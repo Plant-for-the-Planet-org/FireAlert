@@ -24,6 +24,8 @@ end
 target 'FireAlert' do
   config = use_native_modules!
 
+  pod 'SRSRadialGradient', :path => '../node_modules/react-native-radial-gradient/ios'
+
   # Flags change depending on the env values.
   flags = get_default_flags()
 

@@ -1,7 +1,7 @@
 import React, {useEffect} from 'react';
 import SplashScreen from 'react-native-splash-screen';
 
-import Home from './screens/Home/Home';
+import {Home, Login} from './screens';
 
 function App(): JSX.Element {
   useEffect(() => {
@@ -9,7 +9,7 @@ function App(): JSX.Element {
       SplashScreen.hide();
     }, 2000);
   }, []);
-  return <Home />;
+  return <Login />;
 }
 
 export default App;
