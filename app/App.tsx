@@ -1,6 +1,7 @@
 import React, {useEffect} from 'react';
-import {SafeAreaView, Text} from 'react-native';
 import SplashScreen from 'react-native-splash-screen';
+
+import Home from './screens/Home/Home';
 
 function App(): JSX.Element {
   useEffect(() => {
@@ -8,11 +9,7 @@ function App(): JSX.Element {
       SplashScreen.hide();
     }, 2000);
   }, []);
-  return (
-    <SafeAreaView>
-      <Text>FireAlert</Text>
-    </SafeAreaView>
-  );
+  return <Home />;
 }
 
 export default App;
