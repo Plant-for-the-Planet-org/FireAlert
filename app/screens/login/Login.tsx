@@ -1,35 +1,44 @@
 import React from 'react';
-import {StyleSheet, View} from 'react-native';
 import RadialGradient from 'react-native-radial-gradient';
+import {StatusBar, StyleSheet, TouchableOpacity, View} from 'react-native';
 
 import {Colors} from '../../styles';
-import {Logo} from '../../assets/svgs';
 import {CustomButton} from '../../components';
+import {CrossIcon, Logo} from '../../assets/svgs';
+
+const RADIUS = 200;
+const CENTER_ARR = [187.5, 270.6];
+const GRADIENT_ARR = [Colors.PRIMARY_DARK, Colors.GRADIENT_PRIMARY];
 
 const Login = () => {
   return (
-    <RadialGradient
-      style={styles.container}
-      colors={[Colors.PRIMARY_DARK, '#E86F56']}
-      // stops={[0, 187.5]}
-      center={[187.5, 270.6]}
-      radius={200}>
-      <View style={styles.logoContainer}>
-        <Logo />
-      </View>
-      <View style={styles.btnContainer}>
-        <CustomButton
-          title="Sign Up"
-          style={styles.btn}
-          titleStyle={styles.titleStyle}
-        />
-        <CustomButton
-          title="Log In"
-          style={styles.btn}
-          titleStyle={styles.titleStyle}
-        />
-      </View>
-    </RadialGradient>
+    <>
+      <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
+      <RadialGradient
+        radius={RADIUS}
+        center={CENTER_ARR}
+        style={styles.container}
+        colors={GRADIENT_ARR}>
+        <TouchableOpacity style={styles.crossContainer}>
+          <CrossIcon />
+        </TouchableOpacity>
+        <View style={styles.logoContainer}>
+          <Logo />
+        </View>
+        <View style={styles.btnContainer}>
+          <CustomButton
+            title="Sign Up"
+            style={styles.btn}
+            titleStyle={styles.titleStyle}
+          />
+          <CustomButton
+            title="Log In"
+            style={styles.btn}
+            titleStyle={styles.titleStyle}
+          />
+        </View>
+      </RadialGradient>
+    </>
   );
 };
 
@@ -38,6 +47,11 @@ export default Login;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  crossContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 32,
   },
   logoContainer: {
     position: 'absolute',

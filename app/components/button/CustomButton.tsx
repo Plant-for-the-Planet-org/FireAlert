@@ -3,7 +3,17 @@ import {StyleSheet, Text, TouchableOpacity} from 'react-native';
 
 import {Colors, Typography} from '../../styles';
 
-const CustomButton = ({style, titleStyle, title = 'Click'}) => {
+interface ICustomButtonProps {
+  style?: any;
+  titleStyle?: any;
+  title?: string;
+}
+
+const CustomButton = ({
+  style,
+  titleStyle,
+  title = 'Click',
+}: ICustomButtonProps) => {
   return (
     <TouchableOpacity style={[styles.btn, style]}>
       <Text style={[styles.title, titleStyle]}>{title}</Text>

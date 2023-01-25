@@ -19,3 +19,9 @@ export const GRAY_LIGHT = '#E6E9EC';
 export const GRAY_MEDIUM = '#E1E2E2';
 export const GRAY_DARK = '#D3D3D3';
 export const GRAY_LIGHTEST = '#707070';
+
+//TRANSPARENT
+export const TRANSPARENT = 'transparent';
+
+//GRADIENT
+export const GRADIENT_PRIMARY = '#E86F56';
