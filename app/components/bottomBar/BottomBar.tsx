@@ -12,9 +12,15 @@ import * as shape from 'd3-shape';
 import React, {useEffect, useState} from 'react';
 import Svg, {Path, SvgXml} from 'react-native-svg';
 
+import {
+  MapIcon,
+  ListIcon,
+  uploadIcon,
+  polygonIcon,
+  locationIcon,
+} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {plusIcon} from '../../assets/svgs/plusIcon';
-import {MapIcon, ListIcon, ecgIcon, uploadIcon} from '../../assets/svgs';
 
 let {width} = Dimensions.get('window');
 const IS_ANDROID = Platform.OS === 'android';
@@ -77,7 +83,12 @@ interface IBottomBarProps {
 const AddOptions = () => {
   const addOptions = [
     {
-      svgXML: ecgIcon,
+      svgXML: locationIcon,
+      title: 'Select Location',
+      onPress: () => {},
+    },
+    {
+      svgXML: polygonIcon,
       title: 'Create Polygon',
       onPress: () => {},
     },
@@ -93,10 +104,11 @@ const AddOptions = () => {
       <View style={styles.addOptionsContainer}>
         {addOptions.length > 0
           ? addOptions.map((option: any, index: number) => (
-              <>
+              <View
+                key={`addOption${index}`}
+                style={styles.addButtonOptionWrap}>
                 <TouchableOpacity
                   onPress={option.onPress}
-                  key={`addOption${index}`}
                   style={styles.addButtonOption}>
                   <View style={styles.icon}>
                     <SvgXml xml={option.svgXML} />
@@ -106,7 +118,7 @@ const AddOptions = () => {
                 {addOptions.length - 1 !== index && (
                   <View style={styles.separator} />
                 )}
-              </>
+              </View>
             ))
           : []}
       </View>
@@ -280,27 +292,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addOptionsContainer: {
-    width: 320,
+    width: 257,
     borderRadius: 14,
     backgroundColor: Colors.WHITE,
     justifyContent: 'center',
     alignItems: 'flex-start',
     elevation: 4,
   },
-  addButtonOption: {
-    padding: 20,
+  addButtonOptionWrap: {
     borderRadius: 8,
-    flex: 1,
+  },
+  addButtonOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    padding: 20,
   },
   icon: {
     height: 48,
     width: 48,
     marginRight: 16,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   text: {
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,

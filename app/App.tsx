@@ -5,7 +5,7 @@ import SplashScreen from 'react-native-splash-screen';
 import AppNavigator from './routes/AppNavigator';
 
 MapboxGL.setAccessToken(
-  'sk.eyJ1IjoibWF5YW5rNHBsYW50LWZvci10aGUtcGxhbmV0IiwiYSI6ImNsYzhsbjZ2bjAwbTgzcHBjd3Z1em51dW0ifQ.eVUMzupZhzqKU3knkY7YBw',
+  'sk.eyJ1IjoibWF5YW5rNHBsYW50LWZvci10aGUtcGxhbmV0IiwiYSI6ImNsZGNvbW44azBjN2UzdXF6YXlsZHQ2NjAifQ.biPiyvXSzxjT_-oEPRQSRQ',
 );
 
 function App(): JSX.Element {
