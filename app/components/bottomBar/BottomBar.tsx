@@ -11,6 +11,7 @@ import {
 import * as shape from 'd3-shape';
 import React, {useEffect, useState} from 'react';
 import Svg, {Path, SvgXml} from 'react-native-svg';
+import {useNavigation} from '@react-navigation/native';
 
 import {
   MapIcon,
@@ -81,6 +82,7 @@ interface IBottomBarProps {
 }
 
 const AddOptions = () => {
+  const navigation = useNavigation();
   const addOptions = [
     {
       svgXML: locationIcon,
@@ -90,7 +92,7 @@ const AddOptions = () => {
     {
       svgXML: polygonIcon,
       title: 'Create Polygon',
-      onPress: () => {},
+      onPress: () => navigation.navigate('CreatePolygon'),
     },
     {
       svgXML: uploadIcon,
