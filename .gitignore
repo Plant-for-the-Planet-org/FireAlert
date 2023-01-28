@@ -66,3 +66,4 @@ yarn.lock
 #.env file
 .env
 .env*
+!.env.sample
