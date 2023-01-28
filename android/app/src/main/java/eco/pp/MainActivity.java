@@ -1,4 +1,4 @@
-package com.firealert;
+package eco.pp.firealert;
 
 import android.os.Bundle;
 
@@ -15,7 +15,7 @@ public class MainActivity extends ReactActivity {
     */
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-      SplashScreen.show(this);  
+      SplashScreen.show(this);
       super.onCreate(savedInstanceState);
   }
   /**

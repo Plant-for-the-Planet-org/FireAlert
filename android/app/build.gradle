@@ -93,9 +93,9 @@ android {
 
     compileSdkVersion rootProject.ext.compileSdkVersion
 
-    namespace "com.firealert"
+    namespace "eco.pp.firealert"
     defaultConfig {
-        applicationId "com.firealert"
+        applicationId "eco.pp.firealert"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
