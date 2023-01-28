@@ -1,7 +1,7 @@
 function toLetters(num) {
   'use strict';
   var mod = num % 26;
-  var pow = num / 26 | 0;
+  var pow = (num / 26) | 0;
   var out = mod ? String.fromCharCode(64 + mod) : (pow--, 'Z');
   return pow ? toLetters(pow) + out : out;
 }

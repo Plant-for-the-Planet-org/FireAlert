@@ -4,4 +4,4 @@ const uploadIcon = `<svg width="35" height="36" viewBox="0 0 35 36" fill="none" 
 <path d="M16.5555 17V25" stroke="#757575" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-export {uploadIcon}
+export {uploadIcon};
