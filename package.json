@@ -5,9 +5,10 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint app --fix",
+    "lint:errors": "eslint app --quiet"
   },
   "dependencies": {
     "@react-navigation/native": "^6.1.2",
