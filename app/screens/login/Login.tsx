@@ -20,7 +20,7 @@ const Login = () => {
         style={styles.container}
         colors={GRADIENT_ARR}>
         <TouchableOpacity style={styles.crossContainer}>
-          <CrossIcon />
+          <CrossIcon fill={Colors.WHITE} />
         </TouchableOpacity>
         <View style={styles.logoContainer}>
           <Logo />

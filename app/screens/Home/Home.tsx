@@ -162,6 +162,8 @@ const Home = () => {
       <MapboxGL.MapView
         ref={map}
         style={styles.map}
+        logoEnabled={false}
+        scaleBarEnabled={false}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
         attributionPosition={attributionPosition}>

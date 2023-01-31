@@ -1,9 +1,28 @@
+import {
+  Text,
+  View,
+  Alert,
+  Platform,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import React from 'react';
-import {Alert, StyleSheet, View} from 'react-native';
+import {SvgXml} from 'react-native-svg';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
 
 import Markers from '../Markers';
 import {Colors, Typography} from '../../styles';
+import {active_marker} from '../../assets/svgs';
+
+const IS_ANDROID = Platform.OS === 'android';
+let attributionPosition: any = {
+  bottom: IS_ANDROID ? 72 : 76,
+  left: 18,
+};
+let compassViewMargins: {
+  x: 30;
+  y: 230;
+};
 
 MapboxGL.setAccessToken(
   'sk.eyJ1IjoibWF5YW5rNHBsYW50LWZvci10aGUtcGxhbmV0IiwiYSI6ImNsZGNvbW44azBjN2UzdXF6YXlsZHQ2NjAifQ.biPiyvXSzxjT_-oEPRQSRQ',
@@ -45,7 +64,10 @@ export default function Map({
   markerText,
   activePolygonIndex,
   setLocation,
+  onPressMap,
 }: IMapProps) {
+  let shouldRenderShape =
+    geoJSON.features[activePolygonIndex].geometry.coordinates.length > 1;
   const onChangeRegionStart = () => setLoader(true);
 
   const onChangeRegionComplete = () => {
@@ -55,33 +77,29 @@ export default function Map({
   return (
     <View style={styles.container}>
       <MapboxGL.MapView
-        showUserLocation={true}
-        style={styles.container}
         ref={map}
+        logoEnabled={false}
+        onPress={onPressMap}
         compassViewPosition={3}
-        compassViewMargins={{
-          x: 30,
-          y: 230,
-        }}
-        logo
+        showUserLocation={true}
+        scaleBarEnabled={false}
+        style={styles.container}
+        compassViewMargins={compassViewMargins}
         onRegionIsChanging={onChangeRegionStart}
+        attributionPosition={attributionPosition}
         onRegionDidChange={onChangeRegionComplete}>
-        <Markers
-          geoJSON={geoJSON}
-          type={'LineString'}
-          onPressMarker={() => Alert.alert('dfd')}
-        />
-
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;
             setIsCameraRefVisible(!!el);
           }}
         />
-
-        <MapboxGL.ShapeSource id={'polygon'} shape={geoJSON}>
-          <MapboxGL.LineLayer id={'polyline'} style={polyline} />
-        </MapboxGL.ShapeSource>
+        <Markers geoJSON={geoJSON} type={'LineString'} />
+        {shouldRenderShape && (
+          <MapboxGL.ShapeSource id={'polygon'} shape={geoJSON}>
+            <MapboxGL.LineLayer id={'polyline'} style={polyline} />
+          </MapboxGL.ShapeSource>
+        )}
         {location && (
           <MapboxGL.UserLocation
             showsUserHeadingIndicator
@@ -89,19 +107,20 @@ export default function Map({
           />
         )}
       </MapboxGL.MapView>
-
-      {/* <View style={styles.fakeMarkerCont}>
+      {location && (
+        <MapboxGL.UserLocation
+          showsUserHeadingIndicator
+          onUpdate={data => setLocation(data)}
+        />
+      )}
+      <View style={styles.fakeMarkerCont}>
         <SvgXml xml={active_marker} style={styles.markerImage} />
-        {treeType === MULTI ? (
-          loader ? (
-            <ActivityIndicator color={Colors.WHITE} style={styles.loader} />
-          ) : (
-            <Text style={styles.activeMarkerLocation}>{markerText}</Text>
-          )
+        {loader ? (
+          <ActivityIndicator color={Colors.WHITE} style={styles.loader} />
         ) : (
-          []
+          <Text style={styles.activeMarkerLocation}>{markerText}</Text>
         )}
-      </View> */}
+      </View>
     </View>
   );
 }
@@ -144,8 +163,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 67,
     color: Colors.WHITE,
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    fontSize: Typography.FONT_SIZE_16,
   },
 });
 

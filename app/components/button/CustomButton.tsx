@@ -13,9 +13,10 @@ const CustomButton = ({
   style,
   titleStyle,
   title = 'Click',
+  onPress,
 }: ICustomButtonProps) => {
   return (
-    <TouchableOpacity style={[styles.btn, style]}>
+    <TouchableOpacity onPress={onPress} style={[styles.btn, style]}>
       <Text style={[styles.title, titleStyle]}>{title}</Text>
     </TouchableOpacity>
   );

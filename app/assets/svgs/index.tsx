@@ -6,6 +6,8 @@ import MyLocIcon from './myLocIcon.svg';
 import {polygonIcon} from './polygonIcon';
 import {uploadIcon} from './uploadIcon.js';
 import {locationIcon} from './locationIcon';
+import {active_marker} from './active_marker';
+import SatelliteDish from './satelliteDish.svg';
 
 export {
   Logo,
@@ -16,4 +18,6 @@ export {
   uploadIcon,
   polygonIcon,
   locationIcon,
+  active_marker,
+  SatelliteDish,
 };
