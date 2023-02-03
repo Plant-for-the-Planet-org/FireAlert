@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
-import Geolocation from 'react-native-geolocation-service';
 import React, {useEffect, useRef, useState} from 'react';
+import Geolocation from 'react-native-geolocation-service';
 
 import {Colors} from '../../styles';
-import {MyLocIcon} from '../../assets/svgs';
+import {LayerIcon, MyLocIcon} from '../../assets/svgs';
 import {AlertModal, BottomBar} from '../../components';
 import {locationPermission} from '../../utils/permissions';
 
@@ -20,6 +20,8 @@ import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from './permissionAlert/LocationPermissionAlerts';
+import LayerModal from '../../components/layerModal/LayerModal';
+import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
 
@@ -39,12 +41,16 @@ const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
 const Home = () => {
+  const {state} = useMapLayers(MapLayerContext);
+
   const [isInitial, setIsInitial] = useState(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
 
   const [isPermissionDenied, setIsPermissionDenied] = useState(false);
   const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
   const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
+
+  const [visible, setVisible] = useState(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
@@ -142,6 +148,9 @@ const Home = () => {
     }
   };
 
+  const handleLayer = () => setVisible(true);
+  const closeMapLayer = () => setVisible(false);
+
   const onPressPerBlockedAlertPrimaryBtn = () => {};
   const onPressPerBlockedAlertSecondaryBtn = () => {
     BackHandler.exitApp();
@@ -164,6 +173,7 @@ const Home = () => {
         style={styles.map}
         logoEnabled={false}
         scaleBarEnabled={false}
+        styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
         attributionPosition={attributionPosition}>
@@ -181,6 +191,7 @@ const Home = () => {
         )}
       </MapboxGL.MapView>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
+      <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <AlertModal
         visible={isLocationAlertShow}
         heading={'Location Service'}
@@ -207,6 +218,14 @@ const Home = () => {
         onPressPrimaryBtn={onPressPerDeniedAlertPrimaryBtn}
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
+      <TouchableOpacity
+        onPress={handleLayer}
+        style={styles.layerIcon}
+        accessibilityLabel="layer"
+        accessible={true}
+        testID="layer">
+        <LayerIcon width={20} height={20} fill={Colors.TEXT_COLOR} />
+      </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
         style={styles.myLocationIcon}
@@ -241,6 +260,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     justifyContent: 'center',
     bottom: IS_ANDROID ? 72 : 92,
+    backgroundColor: Colors.WHITE,
+    borderColor: Colors.GRAY_LIGHT,
+  },
+  layerIcon: {
+    right: 32,
+    width: 45,
+    height: 45,
+    borderWidth: 1,
+    borderRadius: 100,
+    alignItems: 'center',
+    position: 'absolute',
+    justifyContent: 'center',
+    top: IS_ANDROID ? 92 : 112,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },

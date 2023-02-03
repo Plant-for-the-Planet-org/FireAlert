@@ -2,6 +2,7 @@ import Logo from './logo.svg';
 import MapIcon from './mapIcon.svg';
 import ListIcon from './listIcon.svg';
 import CrossIcon from './crossIcon.svg';
+import LayerIcon from './layerIcon.svg';
 import MyLocIcon from './myLocIcon.svg';
 import {polygonIcon} from './polygonIcon';
 import {uploadIcon} from './uploadIcon.js';
@@ -14,6 +15,7 @@ export {
   MapIcon,
   ListIcon,
   CrossIcon,
+  LayerIcon,
   MyLocIcon,
   uploadIcon,
   polygonIcon,

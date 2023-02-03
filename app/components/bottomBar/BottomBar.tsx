@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    width: 320,
+    width: 257,
     backgroundColor: Colors.GRAY_LIGHT,
   },
 });

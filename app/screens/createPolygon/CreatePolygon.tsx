@@ -13,6 +13,12 @@ import MapboxGL from '@rnmapbox/maps';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 
+import {
+  CrossIcon,
+  LayerIcon,
+  MyLocIcon,
+  SatelliteDish,
+} from '../../assets/svgs';
 import Map from '../MapMarking/Map';
 import {Colors, Typography} from '../../styles';
 import {CustomButton, AlertModal} from '../../components';
@@ -22,9 +28,9 @@ import {
   PermissionDeniedAlert,
 } from '../home/permissionAlert/LocationPermissionAlerts';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
-import distanceCalculator from '../../utils/distanceCalculator';
-import {CrossIcon, MyLocIcon, SatelliteDish} from '../../assets/svgs';
 import {getAccuracyColors} from '../../utils/accuracyColors';
+import distanceCalculator from '../../utils/distanceCalculator';
+import LayerModal from '../../components/layerModal/LayerModal';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
@@ -35,6 +41,7 @@ const CreatePolygon = ({navigation}) => {
 
   const map = useRef(null);
   const [loader, setLoader] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [alphabets, setAlphabets] = useState<string[]>([]);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
   const [activePolygonIndex, setActivePolygonIndex] = useState(0);
@@ -164,6 +171,8 @@ const CreatePolygon = ({navigation}) => {
       checkPermission();
     }
   };
+
+  const handleLayer = () => setVisible(true);
 
   const checkIsValidMarker = async (centerCoordinates: number[]) => {
     let isValidMarkers = true;
@@ -302,6 +311,7 @@ const CreatePolygon = ({navigation}) => {
   };
 
   const handleClose = () => navigation.goBack();
+  const closeMapLayer = () => setVisible(false);
 
   const onPressPerBlockedAlertPrimaryBtn = () => {};
   const onPressPerBlockedAlertSecondaryBtn = () => {
@@ -332,7 +342,6 @@ const CreatePolygon = ({navigation}) => {
         interval: 1000,
       },
     );
-
     return () => {
       Geolocation.clearWatch(watchId);
     };
@@ -366,6 +375,7 @@ const CreatePolygon = ({navigation}) => {
         activePolygonIndex={activePolygonIndex}
         setIsCameraRefVisible={setIsCameraRefVisible}
       />
+      <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <View style={styles.header}>
         <TouchableOpacity onPress={handleClose}>
           <CrossIcon fill={'#4D5153'} />
@@ -422,6 +432,14 @@ const CreatePolygon = ({navigation}) => {
         onPressPrimaryBtn={onPressPerDeniedAlertPrimaryBtn}
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
+      <TouchableOpacity
+        onPress={handleLayer}
+        style={styles.layerIcon}
+        accessibilityLabel="layer"
+        accessible={true}
+        testID="layer">
+        <LayerIcon width={20} height={20} fill={Colors.TEXT_COLOR} />
+      </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
         style={styles.myLocationIcon}
@@ -481,6 +499,19 @@ const styles = StyleSheet.create({
   },
   title: {
     color: Colors.WHITE,
+  },
+  layerIcon: {
+    right: 32,
+    width: 45,
+    height: 45,
+    borderWidth: 1,
+    borderRadius: 100,
+    alignItems: 'center',
+    position: 'absolute',
+    justifyContent: 'center',
+    top: IS_ANDROID ? 92 : 112,
+    backgroundColor: Colors.WHITE,
+    borderColor: Colors.GRAY_LIGHT,
   },
   myLocationIcon: {
     right: 32,

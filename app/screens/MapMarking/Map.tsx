@@ -1,7 +1,6 @@
 import {
   Text,
   View,
-  Alert,
   Platform,
   StyleSheet,
   ActivityIndicator,
@@ -13,6 +12,7 @@ import MapboxGL, {Logger} from '@rnmapbox/maps';
 import Markers from '../Markers';
 import {Colors, Typography} from '../../styles';
 import {active_marker} from '../../assets/svgs';
+import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
 let attributionPosition: any = {
@@ -68,6 +68,7 @@ export default function Map({
 }: IMapProps) {
   let shouldRenderShape =
     geoJSON.features[activePolygonIndex].geometry.coordinates.length > 1;
+  const {state} = useMapLayers(MapLayerContext);
   const onChangeRegionStart = () => setLoader(true);
 
   const onChangeRegionComplete = () => {
@@ -84,6 +85,7 @@ export default function Map({
         showUserLocation={true}
         scaleBarEnabled={false}
         style={styles.container}
+        styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         onRegionIsChanging={onChangeRegionStart}
         attributionPosition={attributionPosition}
@@ -107,12 +109,6 @@ export default function Map({
           />
         )}
       </MapboxGL.MapView>
-      {location && (
-        <MapboxGL.UserLocation
-          showsUserHeadingIndicator
-          onUpdate={data => setLocation(data)}
-        />
-      )}
       <View style={styles.fakeMarkerCont}>
         <SvgXml xml={active_marker} style={styles.markerImage} />
         {loader ? (
