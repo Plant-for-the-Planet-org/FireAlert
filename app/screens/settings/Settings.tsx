@@ -5,12 +5,14 @@ import {
   Dimensions,
   SafeAreaView,
   TouchableOpacity,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import React, {useState} from 'react';
-import {DropdownArrow} from '../../assets/svgs';
 
 import {Switch} from '../../components';
 import {Colors, Typography} from '../../styles';
+import {AddIcon, DropdownArrow, EmailIcon, PhoneIcon} from '../../assets/svgs';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -46,16 +48,39 @@ const PROJECTS = [
   },
 ];
 
+const MY_SITES = [
+  {id: 1, name: 'Balam Kú Sur', radius: 100, enabled: false},
+  {id: 2, name: 'Balam Kú Norte', radius: 100, enabled: false},
+];
+
 const RADIUS_ARR = [
   {name: 'within 100 km', value: 100},
   {name: 'within 10 km', value: 10},
   {name: 'inside', value: null},
 ];
 
+const EMAILS = [
+  {
+    id: 1,
+    email: 'mah@gmail.com',
+  },
+  {
+    id: 2,
+    email: 'john12@gmail.com',
+  },
+  {
+    id: 3,
+    email: 'xodd@gmail.com',
+  },
+];
+
 const Settings = () => {
   const [projects, setProjects] = useState(PROJECTS);
+  const [mySites, setMySites] = useState(MY_SITES);
   const [dropDownModal, setDropDownModal] = useState(false);
   const [pageXY, setPageXY] = useState(null);
+  const [mobileNotify, setMobileNotify] = useState(false);
+  const [emails, setEmails] = useState(EMAILS);
 
   const handleSwitch = (index, val) => {
     let arr = [...projects];
@@ -64,13 +89,21 @@ const Settings = () => {
   };
 
   const handleSelectRadius = val => {
-    let arr = [...projects];
-    const filteredProjects = arr.findIndex(({id}) => id === pageXY.projectId);
-    const filteredSites = arr[filteredProjects].sites?.findIndex(
-      ({id}) => id === pageXY.siteId,
-    );
-    arr[filteredProjects].sites[filteredSites].radius = val;
-    setProjects(arr);
+    if (pageXY.projectId) {
+      let arr = [...projects];
+      const filteredProjects = arr.findIndex(({id}) => id === pageXY.projectId);
+      const filteredSites = arr[filteredProjects].sites?.findIndex(
+        ({id}) => id === pageXY.siteId,
+      );
+      arr[filteredProjects].sites[filteredSites].radius = val;
+      setProjects(arr);
+    } else {
+      let arr = [...mySites];
+      const filteredSite = arr.findIndex(({id}) => id === pageXY.siteId);
+      arr[filteredSite].radius = val;
+      arr[filteredSite].enabled = true;
+      setMySites(arr);
+    }
     setDropDownModal(false);
   };
 
@@ -84,68 +117,134 @@ const Settings = () => {
     setDropDownModal(!dropDownModal);
   };
 
+  const handleSiteRadius = (evt, siteId) => {
+    setPageXY({
+      x: evt.nativeEvent.pageX,
+      y: evt.nativeEvent.pageY,
+      siteId,
+    });
+    setDropDownModal(!dropDownModal);
+  };
+
+  const handleAddSites = () => {};
+
+  const handleAddEmail = () => {};
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* my projects */}
-      <View style={[styles.myProjects, styles.commonPadding]}>
-        <Text style={styles.mainHeading}>
-          My Projects{' '}
-          <Text style={styles.ppLink}>
-            {' '}
-            via <Text style={styles.underLine}>pp.eco</Text>{' '}
+      <ScrollView>
+        {/* my projects */}
+        <View style={[styles.myProjects, styles.commonPadding]}>
+          <Text style={styles.mainHeading}>
+            My Projects{' '}
+            <Text style={styles.ppLink}>
+              {' '}
+              via <Text style={styles.underLine}>pp.eco</Text>{' '}
+            </Text>
           </Text>
-        </Text>
-        {PROJECTS.map((item, index) => (
-          <View key={`projects_${index}`} style={styles.projectsInfo}>
-            <View style={styles.projectsNameInfo}>
-              <Text style={styles.projectsName}>{item.name}</Text>
-              <Switch
-                value={item.enabled}
-                onValueChange={val => handleSwitch(index, val)}
-              />
+          {projects.map((item, index) => (
+            <View key={`projects_${index}`} style={styles.projectsInfo}>
+              <View style={styles.projectsNameInfo}>
+                <Text style={styles.projectsName}>{item.name}</Text>
+                <Switch
+                  value={item.enabled}
+                  onValueChange={val => handleSwitch(index, val)}
+                />
+              </View>
+              {item.enabled && item.sites
+                ? item.sites.map((sites, index) => (
+                    <View key={`sites_${index}`} style={styles.sitesInProjects}>
+                      <Text style={styles.sitesName}>{sites.name}</Text>
+                      <TouchableOpacity
+                        onPress={evt => handleRadius(evt, item.id, sites.id)}
+                        style={styles.dropDownRadius}>
+                        <Text style={styles.siteRadius}>
+                          {sites.radius
+                            ? `within ${sites.radius} km`
+                            : 'inside'}
+                        </Text>
+                        <DropdownArrow />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                : null}
             </View>
-            {item.enabled && item.sites
-              ? item.sites.map((sites, index) => (
-                  <View key={`sites_${index}`} style={styles.sitesInProjects}>
-                    <Text style={styles.sitesName}>{sites.name}</Text>
-                    <TouchableOpacity
-                      onPress={evt => handleRadius(evt, item.id, sites.id)}
-                      style={styles.dropDownRadius}>
-                      <Text style={styles.siteRadius}>
-                        {sites.radius ? `within ${sites.radius} km` : 'inside'}
-                      </Text>
-                      <DropdownArrow />
-                    </TouchableOpacity>
-                  </View>
-                ))
-              : null}
-          </View>
-        ))}
-      </View>
-      {dropDownModal ? (
-        <>
-          <TouchableOpacity
-            style={styles.overlay}
-            onPress={() => setDropDownModal(false)}
-          />
-          <View
-            style={[
-              styles.dropDownModal,
-              {
-                top: pageXY.y + 15,
-                right: 40,
-              },
-            ]}>
-            {RADIUS_ARR.map((item, index) => (
+          ))}
+        </View>
+        {/* my sites */}
+        <View style={[styles.mySites, styles.commonPadding]}>
+          <TouchableOpacity style={styles.mySitesHead} onPress={handleAddSites}>
+            <Text style={styles.mainHeading}>My Sites</Text>
+            <AddIcon />
+          </TouchableOpacity>
+          {mySites.map((item, index) => (
+            <View style={styles.mySiteNameContainer}>
+              <Text style={styles.mySiteName}>{item.name}</Text>
               <TouchableOpacity
-                key={`RADIUS_ARR_${index}`}
-                onPress={() => handleSelectRadius(item.value)}>
-                <Text style={styles.siteRadiusText}>{item.name}</Text>
+                onPress={evt => handleSiteRadius(evt, item.id)}
+                style={styles.dropDownRadius}>
+                <Text style={styles.siteRadius}>
+                  {item.enabled
+                    ? item.radius
+                      ? `within ${item.radius} km`
+                      : 'inside'
+                    : 'off'}
+                </Text>
+                <DropdownArrow />
               </TouchableOpacity>
-            ))}
+            </View>
+          ))}
+        </View>
+        {/* notifications */}
+        <View style={[styles.myNotifications, styles.commonPadding]}>
+          <Text style={styles.mainHeading}>Notifications</Text>
+          <View style={styles.mySiteNameContainer}>
+            <View style={styles.mobileContainer}>
+              <PhoneIcon />
+              <Text style={[styles.smallHeading, {marginLeft: 13}]}>
+                Mobile
+              </Text>
+            </View>
+            <Switch
+              value={mobileNotify}
+              onValueChange={val => setMobileNotify(val)}
+            />
           </View>
-        </>
-      ) : null}
+          <View style={styles.mySiteNameContainer}>
+            <View style={styles.mobileContainer}>
+              <EmailIcon />
+              <Text style={[styles.smallHeading, {marginLeft: 13}]}>Email</Text>
+            </View>
+            <TouchableOpacity onPress={handleAddEmail}>
+              <AddIcon />
+            </TouchableOpacity>
+          </View>
+        </View>
+        {dropDownModal ? (
+          <>
+            <TouchableOpacity
+              style={styles.overlay}
+              onPress={() => setDropDownModal(false)}
+            />
+            <View
+              style={[
+                styles.dropDownModal,
+                {
+                  top: pageXY.y + 15,
+                  right: 40,
+                },
+              ]}>
+              {RADIUS_ARR.map((item, index) => (
+                <TouchableOpacity
+                  key={`RADIUS_ARR_${index}`}
+                  onPress={() => handleSelectRadius(item.value)}>
+                  <Text style={styles.siteRadiusText}>{item.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        ) : null}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -172,7 +271,15 @@ const styles = StyleSheet.create({
   underLine: {
     textDecorationLine: 'underline',
   },
-  myProjects: {},
+  myProjects: {
+    marginTop: 20,
+  },
+  mySites: {
+    marginTop: 50,
+  },
+  myNotifications: {
+    marginTop: 50,
+  },
   projectsInfo: {
     padding: 15,
     marginTop: 17,
@@ -232,5 +339,36 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.BLACK,
     paddingVertical: 5,
+  },
+  mySitesHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  mySiteNameContainer: {
+    padding: 16,
+    marginTop: 17,
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: Colors.GRAY_MEDIUM,
+    justifyContent: 'space-between',
+  },
+  mySiteName: {
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    color: Colors.BLACK,
+    paddingVertical: 5,
+  },
+  smallHeading: {
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+    paddingVertical: 5,
+  },
+  mobileContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
