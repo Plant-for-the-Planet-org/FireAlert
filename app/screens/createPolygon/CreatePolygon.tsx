@@ -31,6 +31,7 @@ import {toLetters} from '../../utils/mapMarkingCoordinate';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import distanceCalculator from '../../utils/distanceCalculator';
 import LayerModal from '../../components/layerModal/LayerModal';
+import FloatingInput from '../../components/inputs/FloatingInput';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
@@ -42,10 +43,12 @@ const CreatePolygon = ({navigation}) => {
   const map = useRef(null);
   const [loader, setLoader] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [siteName, setSiteName] = useState('');
   const [alphabets, setAlphabets] = useState<string[]>([]);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
   const [activePolygonIndex, setActivePolygonIndex] = useState(0);
   const [accuracyInMeters, setAccuracyInMeters] = useState(0);
+  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
 
   const [isInitial, setIsInitial] = useState(true);
 
@@ -222,6 +225,7 @@ const CreatePolygon = ({navigation}) => {
       geoJSON.features[0].geometry.coordinates[0],
     );
     setGeoJSON(geo);
+    setSiteNameModalVisible(true);
   };
 
   //small button on top right corner which will show accuracy in meters and the respective colour
@@ -448,6 +452,17 @@ const CreatePolygon = ({navigation}) => {
         testID="my_location">
         <MyLocIcon />
       </TouchableOpacity>
+      <Modal visible={siteNameModalVisible} transparent>
+        <View style={styles.siteModalStyle}>
+          <FloatingInput label={'Site Name'} onChangeText={setSiteName} />
+          <CustomButton
+            title="Continue"
+            onPress={() => setSiteNameModalVisible(false)}
+            style={styles.btnContinueSiteModal}
+            titleStyle={styles.title}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -562,5 +577,13 @@ const styles = StyleSheet.create({
     lineHeight: Typography.LINE_HEIGHT_20,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     fontSize: Typography.FONT_SIZE_14,
+  },
+  siteModalStyle: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
+  },
+  btnContinueSiteModal: {
+    marginTop: 18,
   },
 });

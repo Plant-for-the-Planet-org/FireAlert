@@ -1,4 +1,5 @@
 import {
+  Text,
   Linking,
   Platform,
   StatusBar,
@@ -11,10 +12,10 @@ import MapboxGL from '@rnmapbox/maps';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 
-import {Colors} from '../../styles';
-import {LayerIcon, MyLocIcon} from '../../assets/svgs';
+import {Colors, Typography} from '../../styles';
 import {AlertModal, BottomBar} from '../../components';
 import {locationPermission} from '../../utils/permissions';
+import {LayerIcon, MyLocIcon, LoginIcon} from '../../assets/svgs';
 
 import {
   PermissionBlockedAlert,
@@ -148,6 +149,8 @@ const Home = () => {
     }
   };
 
+  const handleLogin = () => {};
+
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
 
@@ -219,6 +222,15 @@ const Home = () => {
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
       <TouchableOpacity
+        onPress={handleLogin}
+        style={styles.loginBtn}
+        accessibilityLabel="my_location"
+        accessible={true}
+        testID="my_location">
+        <LoginIcon />
+        <Text style={styles.loginText}>Log In</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
         onPress={handleLayer}
         style={styles.layerIcon}
         accessibilityLabel="layer"
@@ -272,8 +284,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 92 : 112,
+    top: IS_ANDROID ? 102 : 122,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
+  },
+  loginBtn: {
+    right: 32,
+    width: 150,
+    height: 56,
+    borderWidth: 1,
+    borderRadius: 14,
+    alignItems: 'center',
+    position: 'absolute',
+    flexDirection: 'row',
+    top: IS_ANDROID ? 32 : 52,
+    backgroundColor: Colors.WHITE,
+    justifyContent: 'space-evenly',
+    borderColor: Colors.GRADIENT_PRIMARY,
+  },
+  loginText: {
+    color: Colors.GRADIENT_PRIMARY,
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
 });

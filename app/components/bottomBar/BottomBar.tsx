@@ -194,28 +194,36 @@ const BottomBar = ({
         <TouchableOpacity
           style={[styles.left, styles.tabButton]}
           onPress={handleMap}>
-          <MapIcon fill={!selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR} />
-          <Text
-            style={[
-              styles.tabText,
-              {color: !selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR},
-            ]}>
-            Map
-          </Text>
+          <View style={styles.tabIconCon}>
+            <MapIcon
+              fill={!selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {color: !selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR},
+              ]}>
+              Map
+            </Text>
+          </View>
         </TouchableOpacity>
 
         {/* project list button */}
         <TouchableOpacity
           style={[styles.right, styles.tabButton]}
           onPress={handleList}>
-          <ListIcon fill={selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR} />
-          <Text
-            style={[
-              styles.tabText,
-              {color: selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR},
-            ]}>
-            List
-          </Text>
+          <View style={styles.tabIconCon}>
+            <ListIcon
+              fill={selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                {color: selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR},
+              ]}>
+              Settings
+            </Text>
+          </View>
         </TouchableOpacity>
         <SafeAreaView style={styles.safeArea} />
       </View>
@@ -234,8 +242,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   bottomBarContainer: {
-    position: 'absolute',
     bottom: 0,
+    position: 'absolute',
   },
   menuDash: {
     height: 3,
@@ -244,8 +252,8 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     position: 'absolute',
-    justifyContent: 'space-around',
     alignItems: 'flex-start',
+    justifyContent: 'space-around',
     marginBottom: IS_ANDROID ? 0 : 6,
   },
   firstDash: {
@@ -273,6 +281,9 @@ const styles = StyleSheet.create({
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     color: Colors.TEXT_COLOR,
     marginTop: 4,
+  },
+  tabIconCon: {
+    alignItems: 'center',
   },
   addButton: {
     position: 'absolute',
