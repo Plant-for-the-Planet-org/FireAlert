@@ -41,7 +41,7 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
-const Home = () => {
+const Home = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
 
   const [isInitial, setIsInitial] = useState(true);
@@ -162,7 +162,7 @@ const Home = () => {
   const onPressPerDeniedAlertPrimaryBtn = () => checkPermission();
   const onPressPerDeniedAlertSecondaryBtn = () => checkPermission();
 
-  const onListPress = () => {};
+  const onListPress = () => navigation.navigate('Settings');
   const onMapPress = () => {};
 
   useEffect(() => {

@@ -10,6 +10,7 @@ import {uploadIcon} from './uploadIcon.js';
 import {locationIcon} from './locationIcon';
 import {active_marker} from './active_marker';
 import SatelliteDish from './satelliteDish.svg';
+import DropdownArrow from './dropdownArrow.svg';
 
 export {
   Logo,
@@ -24,4 +25,5 @@ export {
   locationIcon,
   active_marker,
   SatelliteDish,
+  DropdownArrow,
 };

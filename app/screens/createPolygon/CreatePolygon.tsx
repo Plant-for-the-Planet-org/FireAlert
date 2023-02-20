@@ -14,6 +14,12 @@ import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 
 import {
+  AlertModal,
+  LayerModal,
+  CustomButton,
+  FloatingInput,
+} from '../../components';
+import {
   CrossIcon,
   LayerIcon,
   MyLocIcon,
@@ -21,7 +27,6 @@ import {
 } from '../../assets/svgs';
 import Map from '../MapMarking/Map';
 import {Colors, Typography} from '../../styles';
-import {CustomButton, AlertModal} from '../../components';
 import {locationPermission} from '../../utils/permissions';
 import {
   PermissionBlockedAlert,
@@ -30,8 +35,6 @@ import {
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import distanceCalculator from '../../utils/distanceCalculator';
-import LayerModal from '../../components/layerModal/LayerModal';
-import FloatingInput from '../../components/inputs/FloatingInput';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
