@@ -2,17 +2,29 @@ import {
   Text,
   View,
   StyleSheet,
+  ScrollView,
   Dimensions,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
-  ScrollView,
 } from 'react-native';
 import React, {useState} from 'react';
 
+import {
+  AddIcon,
+  SmsIcon,
+  PhoneIcon,
+  CrossIcon,
+  EmailIcon,
+  WhatsAppIcon,
+  DropdownArrow,
+  BellIcon,
+  GlobeIcon,
+  DistanceIcon,
+  PlanetLogo,
+  NasaLogo,
+} from '../../assets/svgs';
 import {Switch} from '../../components';
 import {Colors, Typography} from '../../styles';
-import {AddIcon, DropdownArrow, EmailIcon, PhoneIcon} from '../../assets/svgs';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -63,14 +75,35 @@ const EMAILS = [
   {
     id: 1,
     email: 'mah@gmail.com',
+    enabled: false,
   },
   {
     id: 2,
     email: 'john12@gmail.com',
+    enabled: true,
   },
   {
     id: 3,
     email: 'xodd@gmail.com',
+    enabled: false,
+  },
+];
+
+const WHATSAPP_CONTACT = [
+  {
+    id: 1,
+    contact: '9887333334',
+    enabled: false,
+  },
+  {
+    id: 2,
+    contact: '8873333346',
+    enabled: true,
+  },
+  {
+    id: 3,
+    contact: '8867333346',
+    enabled: true,
   },
 ];
 
@@ -81,6 +114,7 @@ const Settings = () => {
   const [pageXY, setPageXY] = useState(null);
   const [mobileNotify, setMobileNotify] = useState(false);
   const [emails, setEmails] = useState(EMAILS);
+  const [whatsapp, setWhatsapp] = useState(WHATSAPP_CONTACT);
 
   const handleSwitch = (index, val) => {
     let arr = [...projects];
@@ -126,9 +160,35 @@ const Settings = () => {
     setDropDownModal(!dropDownModal);
   };
 
+  const handleEmailNotify = (index, val) => {
+    let emailArr = [...emails];
+    emailArr[index].enabled = val;
+    setEmails(emailArr);
+  };
+
+  const handleRemoveEmail = index => {
+    let emailArr = [...emails];
+    emailArr.splice(index, 1);
+    setEmails(emailArr);
+  };
+
+  const handleWhatsappNotify = (index, val) => {
+    let whatsappArr = [...whatsapp];
+    whatsappArr[index].enabled = val;
+    setWhatsapp(whatsappArr);
+  };
+
+  const handleRemoveWhatsapp = index => {
+    let whatsappArr = [...whatsapp];
+    whatsappArr.splice(index, 1);
+    setWhatsapp(whatsappArr);
+  };
+
   const handleAddSites = () => {};
 
   const handleAddEmail = () => {};
+
+  const handleAddSms = () => {};
 
   return (
     <SafeAreaView style={styles.container}>
@@ -173,12 +233,14 @@ const Settings = () => {
         </View>
         {/* my sites */}
         <View style={[styles.mySites, styles.commonPadding]}>
-          <TouchableOpacity style={styles.mySitesHead} onPress={handleAddSites}>
+          <View style={styles.mySitesHead}>
             <Text style={styles.mainHeading}>My Sites</Text>
-            <AddIcon />
-          </TouchableOpacity>
+            <TouchableOpacity onPress={handleAddSites}>
+              <AddIcon />
+            </TouchableOpacity>
+          </View>
           {mySites.map((item, index) => (
-            <View style={styles.mySiteNameContainer}>
+            <View key={`mySites_${index}`} style={styles.mySiteNameContainer}>
               <Text style={styles.mySiteName}>{item.name}</Text>
               <TouchableOpacity
                 onPress={evt => handleSiteRadius(evt, item.id)}
@@ -210,14 +272,229 @@ const Settings = () => {
               onValueChange={val => setMobileNotify(val)}
             />
           </View>
+          {/* emails */}
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <EmailIcon />
+                <Text style={[styles.smallHeading, {marginLeft: 13}]}>
+                  Email
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleAddEmail}>
+                <AddIcon />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.emailContainer}>
+              {emails.map((item, i) => (
+                <View
+                  key={`emails_${i}`}
+                  style={[
+                    styles.emailSubContainer,
+                    {justifyContent: 'space-between'},
+                  ]}>
+                  <View style={styles.emailSubContainer}>
+                    <TouchableOpacity onPress={() => handleRemoveEmail(i)}>
+                      <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+                    </TouchableOpacity>
+                    <Text style={[styles.mySiteName, {marginLeft: 10}]}>
+                      {item?.email}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={item.enabled}
+                    onValueChange={val => handleEmailNotify(i, val)}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+          {/* whatsapp */}
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <WhatsAppIcon />
+                <Text style={[styles.smallHeading, {marginLeft: 13}]}>
+                  WhatsApp
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleAddEmail}>
+                <AddIcon />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.emailContainer}>
+              {whatsapp.map((item, i) => (
+                <View
+                  key={`emails_${i}`}
+                  style={[
+                    styles.emailSubContainer,
+                    {justifyContent: 'space-between'},
+                  ]}>
+                  <View style={styles.emailSubContainer}>
+                    <TouchableOpacity onPress={() => handleRemoveWhatsapp(i)}>
+                      <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+                    </TouchableOpacity>
+                    <Text style={[styles.mySiteName, {marginLeft: 10}]}>
+                      {item?.contact}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={item.enabled}
+                    onValueChange={val => handleWhatsappNotify(i, val)}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
           <View style={styles.mySiteNameContainer}>
             <View style={styles.mobileContainer}>
-              <EmailIcon />
-              <Text style={[styles.smallHeading, {marginLeft: 13}]}>Email</Text>
+              <SmsIcon />
+              <Text style={[styles.smallHeading, {marginLeft: 13}]}>Sms</Text>
             </View>
-            <TouchableOpacity onPress={handleAddEmail}>
+            <TouchableOpacity onPress={handleAddSms}>
               <AddIcon />
             </TouchableOpacity>
+          </View>
+        </View>
+        {/* Warning */}
+        <View style={styles.warningContainer}>
+          <Text style={styles.warningHeading}>
+            ⚠️ Warning{'\n'} Not all fires detected
+          </Text>
+          <Text style={styles.warningText}>
+            You should not rely on FireAlert exclusively. Many fires will not be
+            detected by the system, for instance if is cloudy or the fire is
+            relatively small.
+          </Text>
+          <Text style={styles.warningText}>
+            Active fire/thermal anomalies may be from fire, hot smoke,
+            agriculture, gas flares, volcanoes or other sources. FAQs
+          </Text>
+          <Text style={styles.warningText}>
+            Sun glint or bright water can cause false alarms.
+          </Text>
+          <Text style={styles.warningText}>
+            Fires must be relatively large to be detected by the main systems.
+            For instance, MODIS usually detects both flaming and smouldering
+            fires 1000 m2 in size. Under ideal conditions, flaming fires one
+            tenth this size can be detected.
+          </Text>
+        </View>
+        {/* geoStationary */}
+        <View style={[styles.myNotifications, styles.commonPadding]}>
+          <View style={styles.geostationaryContainer}>
+            <Text style={styles.mainHeading}>Geostationary</Text>
+            <Switch
+              value={mobileNotify}
+              onValueChange={val => setMobileNotify(val)}
+            />
+          </View>
+          <Text style={styles.desc}>
+            Quick but many false alarms{' '}
+            <Text style={{color: Colors.GRADIENT_PRIMARY}}>[BETA] </Text>
+          </Text>
+          <View style={styles.geostationaryInfoContainer}>
+            <View style={styles.iconContainer}>
+              <BellIcon />
+              <Text style={styles.geoDesc}>Checks every 10 to 15 min</Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <GlobeIcon />
+              <Text style={styles.geoDesc}>~30 min alert delay</Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <DistanceIcon />
+              <Text style={styles.geoDesc}>2–4.5 km resolution</Text>
+            </View>
+          </View>
+        </View>
+        {/* Polar-Orbiting Satellites */}
+        <View style={[styles.myNotifications, styles.commonPadding]}>
+          <Text style={styles.mainHeading}>Polar-Orbiting Satellites</Text>
+          <Text style={styles.desc}>Delayed detection but very reliable</Text>
+          <View style={styles.geostationaryInfoContainer}>
+            <Text style={styles.desc}>VIIRS</Text>
+            <View style={styles.iconContainer}>
+              <BellIcon />
+              <Text style={styles.geoDesc}>Checks Eevery ~12 hours</Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <GlobeIcon />
+              <Text style={styles.geoDesc}>
+                ~3h alert delay globally (1-30 min in US and Canada)
+              </Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <DistanceIcon />
+              <Text style={styles.geoDesc}>375m resolution</Text>
+            </View>
+          </View>
+          <View style={styles.geostationaryInfoContainer}>
+            <Text style={styles.desc}>MODIS</Text>
+            <View style={styles.iconContainer}>
+              <BellIcon />
+              <Text style={styles.geoDesc}>Checks every 1-2 days</Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <GlobeIcon />
+              <Text style={styles.geoDesc}>~3-5h alert delay (NRT)</Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <DistanceIcon />
+              <Text style={styles.geoDesc}>1km resolution</Text>
+            </View>
+          </View>
+          <View style={styles.geostationaryInfoContainer}>
+            <Text style={styles.desc}>LANDSAT</Text>
+            <View style={styles.iconContainer}>
+              <BellIcon />
+              <Text style={styles.geoDesc}>Checks every ~8 days</Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <GlobeIcon />
+              <Text style={styles.geoDesc}>~30 min alert delay</Text>
+            </View>
+            <View style={styles.iconContainer}>
+              <DistanceIcon />
+              <Text style={styles.geoDesc}>30m resolution</Text>
+            </View>
+          </View>
+        </View>
+        {/* warning */}
+        <View style={styles.warningContainer}>
+          <View style={styles.warningSubContainer}>
+            <PlanetLogo />
+            <Text style={styles.warningText2}>
+              <Text style={styles.primaryUnderline}>FireAlert</Text> is a
+              project of the{' '}
+              <Text style={styles.primaryUnderline}>
+                Plant-for-the-Planet Foundation
+              </Text>
+              , a non-profit organisation dedicated to restoring and conserving
+              the world’s forests.{'\n\n'}
+              <Text>
+                By using this app, you agree to our{' '}
+                <Text style={styles.primaryUnderline}>Terms & Conditions</Text>.
+                <Text style={styles.primaryUnderline}> Disclaimer</Text>.
+              </Text>
+            </Text>
+          </View>
+          <View style={[styles.warningSubContainer, {marginTop: 50}]}>
+            <NasaLogo />
+            <Text style={styles.warningText2}>
+              We gratefully acknowledge the use of data and from NASA's{' '}
+              <Text style={styles.primaryUnderline}>
+                {' '}
+                Information for Resource Management System (FIRMS)
+              </Text>
+              , part of NASA's Earth Observing System Data and Information
+              System (EOSDIS). {'\n\n'}We thank the scientists and engineers who
+              built <Text style={styles.primaryUnderline}>MODIS, VIIRS</Text>{' '}
+              and <Text style={styles.primaryUnderline}>Landsat</Text>. We
+              appreciate NASA’s dedication to sharing data. This project is not
+              affiliated with NASA.{' '}
+              <Text style={styles.primaryUnderline}>FIRMS Disclaimer</Text>. 
+            </Text>
           </View>
         </View>
         {dropDownModal ? (
@@ -345,6 +622,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  mySiteNameMainContainer: {
+    marginTop: 17,
+    borderWidth: 1,
+    borderRadius: 12,
+    borderColor: Colors.GRAY_MEDIUM,
+    justifyContent: 'space-between',
+  },
+  mySiteNameSubContainer: {
+    marginTop: 17,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+  },
   mySiteNameContainer: {
     padding: 16,
     marginTop: 17,
@@ -370,5 +661,64 @@ const styles = StyleSheet.create({
   mobileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  emailContainer: {
+    padding: 16,
+  },
+  emailSubContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  warningContainer: {
+    marginTop: 35,
+    padding: 35,
+    backgroundColor: Colors.GRADIENT_PRIMARY + '12',
+  },
+  warningSubContainer: {
+    flexDirection: 'row',
+  },
+  warningHeading: {
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  warningText: {
+    marginTop: 30,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    color: Colors.TEXT_COLOR,
+  },
+  warningText2: {
+    width: 240,
+    marginLeft: 10,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    color: Colors.TEXT_COLOR,
+  },
+  geostationaryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  desc: {
+    marginTop: 7,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  geostationaryInfoContainer: {
+    marginTop: 20,
+  },
+  iconContainer: {
+    marginTop: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  geoDesc: {
+    marginLeft: 15,
+  },
+  primaryUnderline: {
+    textDecorationLine: 'underline',
+    color: Colors.GRADIENT_PRIMARY,
   },
 });
