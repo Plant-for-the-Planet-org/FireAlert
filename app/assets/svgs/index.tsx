@@ -14,6 +14,7 @@ import EmailIcon from './emailIcon.svg';
 import GlobeIcon from './globeIcon.svg';
 import PlanetLogo from './planetLogo.svg';
 import {polygonIcon} from './polygonIcon';
+import PencilIcon from './pencilIcon.svg';
 import {uploadIcon} from './uploadIcon.js';
 import {locationIcon} from './locationIcon';
 import DistanceIcon from './distanceIcon.svg';
@@ -21,6 +22,8 @@ import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.svg';
 import SatelliteDish from './satelliteDish.svg';
 import DropdownArrow from './dropdownArrow.svg';
+import MapOutlineIcon from './mapOutlineIcon.svg';
+import TrashOutlineIcon from './trashOutlineIcon.svg';
 
 export {
   Logo,
@@ -37,6 +40,7 @@ export {
   LayerIcon,
   MyLocIcon,
   GlobeIcon,
+  PencilIcon,
   PlanetLogo,
   uploadIcon,
   polygonIcon,
@@ -46,4 +50,6 @@ export {
   active_marker,
   SatelliteDish,
   DropdownArrow,
+  MapOutlineIcon,
+  TrashOutlineIcon,
 };

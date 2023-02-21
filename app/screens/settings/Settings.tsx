@@ -1,6 +1,7 @@
 import {
   Text,
   View,
+  Modal,
   StyleSheet,
   ScrollView,
   Dimensions,
@@ -12,16 +13,19 @@ import React, {useState} from 'react';
 import {
   AddIcon,
   SmsIcon,
+  NasaLogo,
+  BellIcon,
   PhoneIcon,
   CrossIcon,
+  GlobeIcon,
   EmailIcon,
+  PlanetLogo,
+  PencilIcon,
+  DistanceIcon,
   WhatsAppIcon,
   DropdownArrow,
-  BellIcon,
-  GlobeIcon,
-  DistanceIcon,
-  PlanetLogo,
-  NasaLogo,
+  MapOutlineIcon,
+  TrashOutlineIcon,
 } from '../../assets/svgs';
 import {Switch} from '../../components';
 import {Colors, Typography} from '../../styles';
@@ -107,14 +111,16 @@ const WHATSAPP_CONTACT = [
   },
 ];
 
-const Settings = () => {
+const Settings = ({navigation}) => {
   const [projects, setProjects] = useState(PROJECTS);
   const [mySites, setMySites] = useState(MY_SITES);
+  const [whatsapp, setWhatsapp] = useState(WHATSAPP_CONTACT);
   const [dropDownModal, setDropDownModal] = useState(false);
+  const [sitesInfoModal, setSitesInfoModal] = useState(false);
+  const [selectedSiteInfo, setSelectedSiteInfo] = useState(null);
   const [pageXY, setPageXY] = useState(null);
   const [mobileNotify, setMobileNotify] = useState(false);
   const [emails, setEmails] = useState(EMAILS);
-  const [whatsapp, setWhatsapp] = useState(WHATSAPP_CONTACT);
 
   const handleSwitch = (index, val) => {
     let arr = [...projects];
@@ -184,7 +190,14 @@ const Settings = () => {
     setWhatsapp(whatsappArr);
   };
 
+  const handleSiteInformation = item => {
+    setSelectedSiteInfo(item);
+    setSitesInfoModal(!sitesInfoModal);
+  };
+
   const handleAddSites = () => {};
+
+  const handleEditSite = () => {};
 
   const handleAddEmail = () => {};
 
@@ -240,7 +253,10 @@ const Settings = () => {
             </TouchableOpacity>
           </View>
           {mySites.map((item, index) => (
-            <View key={`mySites_${index}`} style={styles.mySiteNameContainer}>
+            <TouchableOpacity
+              onPress={() => handleSiteInformation(item)}
+              key={`mySites_${index}`}
+              style={styles.mySiteNameContainer}>
               <Text style={styles.mySiteName}>{item.name}</Text>
               <TouchableOpacity
                 onPress={evt => handleSiteRadius(evt, item.id)}
@@ -254,7 +270,7 @@ const Settings = () => {
                 </Text>
                 <DropdownArrow />
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
         {/* notifications */}
@@ -521,6 +537,31 @@ const Settings = () => {
             </View>
           </>
         ) : null}
+        {/* site information modal */}
+        <Modal visible={sitesInfoModal} animationType={'slide'} transparent>
+          <TouchableOpacity
+            activeOpacity={0}
+            onPress={() => setSitesInfoModal(false)}
+            style={styles.modalLayer}
+          />
+          <View style={[styles.modalContainer, styles.commonPadding]}>
+            <View style={styles.modalHeader} />
+            <View style={styles.siteTitleCon}>
+              <Text style={styles.siteTitle}>{selectedSiteInfo?.name}</Text>
+              <TouchableOpacity onPress={handleEditSite}>
+                <PencilIcon />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.btn}>
+              <MapOutlineIcon />
+              <Text style={styles.siteActionText}>View on Map</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btn}>
+              <TrashOutlineIcon />
+              <Text style={styles.siteActionText}>Delete Site</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -531,6 +572,26 @@ export default Settings;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  modalContainer: {
+    bottom: 0,
+    borderRadius: 15,
+    width: SCREEN_WIDTH,
+    position: 'absolute',
+    height: SCREEN_HEIGHT / 3,
+    backgroundColor: Colors.WHITE,
+  },
+  modalLayer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalHeader: {
+    width: 46,
+    height: 8,
+    marginTop: 13,
+    borderRadius: 5,
+    alignSelf: 'center',
+    backgroundColor: Colors.GRAY_MEDIUM,
   },
   commonPadding: {
     paddingHorizontal: 30,
@@ -607,8 +668,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.GRAY_MEDIUM,
   },
   overlay: {
-    height: SCREEN_WIDTH,
-    width: SCREEN_HEIGHT,
+    height: SCREEN_HEIGHT,
+    width: SCREEN_WIDTH,
     position: 'absolute',
   },
   siteRadiusText: {
@@ -666,6 +727,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   emailSubContainer: {
+    marginVertical: 5,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -720,5 +782,32 @@ const styles = StyleSheet.create({
   primaryUnderline: {
     textDecorationLine: 'underline',
     color: Colors.GRADIENT_PRIMARY,
+  },
+  siteTitleCon: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  siteTitle: {
+    fontSize: Typography.FONT_SIZE_24,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  btn: {
+    height: 56,
+    marginTop: 22,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: Colors.GRADIENT_PRIMARY,
+  },
+  siteActionText: {
+    marginLeft: 30,
+    color: Colors.GRADIENT_PRIMARY,
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
 });
