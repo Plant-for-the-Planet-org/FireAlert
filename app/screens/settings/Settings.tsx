@@ -195,13 +195,25 @@ const Settings = ({navigation}) => {
     setSitesInfoModal(!sitesInfoModal);
   };
 
-  const handleAddSites = () => {};
-
   const handleEditSite = () => {};
 
-  const handleAddEmail = () => {};
+  const handleAddEmail = () => {
+    navigation.navigate('Verification', {
+      verificationType: 'Email',
+    });
+  };
 
-  const handleAddSms = () => {};
+  const handleAddSms = () => {
+    navigation.navigate('Verification', {
+      verificationType: 'Sms',
+    });
+  };
+
+  const handleAddWhatsapp = () => {
+    navigation.navigate('Verification', {
+      verificationType: 'Whatsapp',
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -248,9 +260,6 @@ const Settings = ({navigation}) => {
         <View style={[styles.mySites, styles.commonPadding]}>
           <View style={styles.mySitesHead}>
             <Text style={styles.mainHeading}>My Sites</Text>
-            <TouchableOpacity onPress={handleAddSites}>
-              <AddIcon />
-            </TouchableOpacity>
           </View>
           {mySites.map((item, index) => (
             <TouchableOpacity
@@ -334,7 +343,7 @@ const Settings = ({navigation}) => {
                   WhatsApp
                 </Text>
               </View>
-              <TouchableOpacity onPress={handleAddEmail}>
+              <TouchableOpacity onPress={handleAddWhatsapp}>
                 <AddIcon />
               </TouchableOpacity>
             </View>

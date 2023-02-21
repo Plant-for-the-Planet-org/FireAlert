@@ -1,5 +1,12 @@
 import React, {useState} from 'react';
-import {Text, View, Platform, TextInput, StyleSheet} from 'react-native';
+import {
+  Text,
+  View,
+  Platform,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 
 import {Colors} from '../../styles';
 
@@ -12,6 +19,8 @@ const FloatingInput = props => {
     onChangeText,
     containerStyle,
     label = 'input',
+    verifier = false,
+    verified = false,
     ...restOfProps
   } = props;
   const [isFocused, setIsFocused] = useState(false);
@@ -28,6 +37,7 @@ const FloatingInput = props => {
         styles.container,
         containerStyle,
         {borderColor: errors ? Colors.ALERT : Colors.GRAY_MEDIUM},
+        verifier && {flexDirection: 'row', alignItems: 'center'},
       ]}>
       <View style={styles.labelContainer}>
         <Text
@@ -40,19 +50,26 @@ const FloatingInput = props => {
           {label}
         </Text>
       </View>
-
       <TextInput
         onBlur={onBlur}
         style={[
           styles.input,
           inputStyle,
           {color: errors ? Colors.ALERT : Colors.BLACK},
+          verifier && {width: 240},
         ]}
         onFocus={setIsFocused}
         onChangeText={onChangeText}
         selectionColor={Colors.TEXT_COLOR}
         {...restOfProps}
       />
+      {verifier ? (
+        !verified ? (
+          <ActivityIndicator />
+        ) : (
+          <View style={styles.verified} />
+        )
+      ) : null}
     </View>
   );
 };
@@ -65,7 +82,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderRadius: 12,
     paddingHorizontal: 18,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginVertical: 5,
     alignSelf: 'center',
   },
@@ -82,5 +99,11 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     fontSize: 18,
+  },
+  verified: {
+    width: 15,
+    height: 15,
+    borderRadius: 100,
+    backgroundColor: 'green',
   },
 });

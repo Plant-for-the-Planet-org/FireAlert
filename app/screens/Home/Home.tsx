@@ -222,15 +222,6 @@ const Home = ({navigation}) => {
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
       <TouchableOpacity
-        onPress={handleLogin}
-        style={styles.loginBtn}
-        accessibilityLabel="my_location"
-        accessible={true}
-        testID="my_location">
-        <LoginIcon />
-        <Text style={styles.loginText}>Log In</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
         onPress={handleLayer}
         style={styles.layerIcon}
         accessibilityLabel="layer"
@@ -276,7 +267,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.GRAY_LIGHT,
   },
   layerIcon: {
-    right: 32,
+    right: 16,
     width: 45,
     height: 45,
     borderWidth: 1,
@@ -284,27 +275,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 102 : 122,
+    top: IS_ANDROID ? 72 : 92,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
-  },
-  loginBtn: {
-    right: 32,
-    width: 150,
-    height: 56,
-    borderWidth: 1,
-    borderRadius: 14,
-    alignItems: 'center',
-    position: 'absolute',
-    flexDirection: 'row',
-    top: IS_ANDROID ? 32 : 52,
-    backgroundColor: Colors.WHITE,
-    justifyContent: 'space-evenly',
-    borderColor: Colors.GRADIENT_PRIMARY,
-  },
-  loginText: {
-    color: Colors.GRADIENT_PRIMARY,
-    fontSize: Typography.FONT_SIZE_18,
-    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
 });

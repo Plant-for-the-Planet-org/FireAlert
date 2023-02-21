@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     color: Colors.WHITE,
   },
   layerIcon: {
-    right: 32,
+    right: 16,
     width: 45,
     height: 45,
     borderWidth: 1,
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.GRAY_LIGHT,
   },
   myLocationIcon: {
-    right: 32,
+    right: 16,
     width: 45,
     height: 45,
     borderWidth: 1,

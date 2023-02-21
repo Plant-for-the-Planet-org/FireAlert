@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   },
   subContainer: {
     top: 150,
-    right: 74,
+    right: 54,
     width: '50%',
     borderRadius: 10,
     backgroundColor: Colors.WHITE,
