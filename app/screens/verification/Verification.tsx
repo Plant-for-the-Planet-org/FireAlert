@@ -22,17 +22,21 @@ const Verification = ({navigation, route}) => {
 
   const handleClose = () => navigation.goBack();
   const handleVerify = () => navigation.navigate('Otp', {verificationType});
+
   const handleEmail = emailText => {
     setVerifyingLoader(true);
+    if (emailText === '') {
+      setVerifyingLoader(false);
+    } else {
+      setVerifyingLoader(true);
+    }
     if (validateEmail(emailText)) {
       setVerified(true);
+    } else {
+      setVerified(false);
     }
-    setVerified(false);
     setNewEmail(emailText);
-    // setVerifyingLoader(false);
   };
-
-  console.log(verified);
 
   return (
     <SafeAreaView style={styles.container}>

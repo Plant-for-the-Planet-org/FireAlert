@@ -22,6 +22,7 @@ import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.svg';
 import SatelliteDish from './satelliteDish.svg';
 import DropdownArrow from './dropdownArrow.svg';
+import BackArrowIcon from './backArrowIcon.svg';
 import MapOutlineIcon from './mapOutlineIcon.svg';
 import TrashOutlineIcon from './trashOutlineIcon.svg';
 
@@ -48,6 +49,7 @@ export {
   DistanceIcon,
   WhatsAppIcon,
   active_marker,
+  BackArrowIcon,
   SatelliteDish,
   DropdownArrow,
   MapOutlineIcon,

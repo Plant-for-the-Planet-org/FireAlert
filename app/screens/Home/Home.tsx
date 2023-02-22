@@ -149,8 +149,6 @@ const Home = ({navigation}) => {
     }
   };
 
-  const handleLogin = () => {};
-
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
 

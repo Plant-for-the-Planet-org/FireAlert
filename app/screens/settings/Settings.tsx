@@ -26,6 +26,7 @@ import {
   DropdownArrow,
   MapOutlineIcon,
   TrashOutlineIcon,
+  BackArrowIcon,
 } from '../../assets/svgs';
 import {Switch} from '../../components';
 import {Colors, Typography} from '../../styles';
@@ -215,11 +216,16 @@ const Settings = ({navigation}) => {
     });
   };
 
+  const handleBack = () => navigation.goBack();
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
         {/* my projects */}
         <View style={[styles.myProjects, styles.commonPadding]}>
+          <TouchableOpacity onPress={handleBack} style={styles.backIcon}>
+            <BackArrowIcon />
+          </TouchableOpacity>
           <Text style={styles.mainHeading}>
             My Projects{' '}
             <Text style={styles.ppLink}>
@@ -269,7 +275,7 @@ const Settings = ({navigation}) => {
               <Text style={styles.mySiteName}>{item.name}</Text>
               <TouchableOpacity
                 onPress={evt => handleSiteRadius(evt, item.id)}
-                style={styles.dropDownRadius}>
+                style={[styles.dropDownRadius, {paddingHorizontal: 15}]}>
                 <Text style={styles.siteRadius}>
                   {item.enabled
                     ? item.radius
@@ -620,6 +626,9 @@ const styles = StyleSheet.create({
   },
   myProjects: {
     marginTop: 20,
+  },
+  backIcon: {
+    marginBottom: 25,
   },
   mySites: {
     marginTop: 50,

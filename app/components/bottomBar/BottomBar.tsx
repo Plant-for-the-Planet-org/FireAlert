@@ -168,7 +168,7 @@ const BottomBar = ({
   };
 
   const handleList = () => {
-    setSelected(1);
+    // setSelected(1);
     onTreeInventoryPress();
   };
 
