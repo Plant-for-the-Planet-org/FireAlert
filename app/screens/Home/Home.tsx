@@ -9,13 +9,14 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
+import {useAuth0} from 'react-native-auth0';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 
-import {Colors, Typography} from '../../styles';
+import {Colors} from '../../styles';
+import {LayerIcon, MyLocIcon} from '../../assets/svgs';
 import {AlertModal, BottomBar} from '../../components';
 import {locationPermission} from '../../utils/permissions';
-import {LayerIcon, MyLocIcon, LoginIcon} from '../../assets/svgs';
 
 import {
   PermissionBlockedAlert,
@@ -43,6 +44,7 @@ const ANIMATION_DURATION = 1000;
 
 const Home = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
+  const {clearSession} = useAuth0();
 
   const [isInitial, setIsInitial] = useState(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
@@ -149,6 +151,14 @@ const Home = ({navigation}) => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await clearSession();
+    } catch (e) {
+      console.log('Log out cancelled');
+    }
+  };
+
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
 
@@ -219,6 +229,15 @@ const Home = ({navigation}) => {
         onPressPrimaryBtn={onPressPerDeniedAlertPrimaryBtn}
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
+
+      <TouchableOpacity
+        onPress={handleLogout}
+        style={[styles.layerIcon, {top: 210}]}
+        accessibilityLabel="layer"
+        accessible={true}
+        testID="layer">
+        <Text>Logot</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         onPress={handleLayer}
         style={styles.layerIcon}

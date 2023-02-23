@@ -1,15 +1,14 @@
 import * as React from 'react';
 import MapboxGL from '@rnmapbox/maps';
 import {StyleSheet} from 'react-native';
+import Config from 'react-native-config';
 import {useEffect, useRef, useState} from 'react';
 
 import {Colors} from '../../styles';
 import MarkerSVG from '../MarkerSVG';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 
-MapboxGL.setAccessToken(
-  'sk.eyJ1IjoibWF5YW5rNHBsYW50LWZvci10aGUtcGxhbmV0IiwiYSI6ImNsZGNvbW44azBjN2UzdXF6YXlsZHQ2NjAifQ.biPiyvXSzxjT_-oEPRQSRQ',
-);
+MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
 interface MarkersProps {
   geoJSON: geoJSONType;

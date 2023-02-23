@@ -628,7 +628,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   backIcon: {
-    marginBottom: 25,
+    width: 40,
+    height: 25,
+    paddingRight: 20,
+    marginBottom: 10,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mySites: {
     marginTop: 50,

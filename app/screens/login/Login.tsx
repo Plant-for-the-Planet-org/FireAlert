@@ -1,16 +1,35 @@
 import React from 'react';
+import {useAuth0} from 'react-native-auth0';
+import {StatusBar, StyleSheet, View} from 'react-native';
 import RadialGradient from 'react-native-radial-gradient';
-import {StatusBar, StyleSheet, TouchableOpacity, View} from 'react-native';
 
 import {Colors} from '../../styles';
+import {Logo} from '../../assets/svgs';
 import {CustomButton} from '../../components';
-import {CrossIcon, Logo} from '../../assets/svgs';
 
 const RADIUS = 200;
 const CENTER_ARR = [187.5, 270.6];
 const GRADIENT_ARR = [Colors.PRIMARY_DARK, Colors.GRADIENT_PRIMARY];
 
-const Login = () => {
+const Login = ({navigation}) => {
+  const {authorize, getCredentials} = useAuth0();
+
+  const handleLogin = async () => {
+    try {
+      await authorize(
+        {
+          scope: 'openid email profile offline_access',
+          federated: true,
+          prompt: 'login',
+          audience: 'urn:plant-for-the-planet',
+        },
+        {ephemeralSession: false},
+      );
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   return (
     <>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
@@ -19,9 +38,6 @@ const Login = () => {
         center={CENTER_ARR}
         style={styles.container}
         colors={GRADIENT_ARR}>
-        <TouchableOpacity style={styles.crossContainer}>
-          <CrossIcon fill={Colors.WHITE} />
-        </TouchableOpacity>
         <View style={styles.logoContainer}>
           <Logo />
         </View>
@@ -34,6 +50,7 @@ const Login = () => {
           <CustomButton
             title="Log In"
             style={styles.btn}
+            onPress={handleLogin}
             titleStyle={styles.titleStyle}
           />
         </View>

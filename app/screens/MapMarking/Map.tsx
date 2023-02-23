@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import React from 'react';
 import {SvgXml} from 'react-native-svg';
+import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
 
 import Markers from '../Markers';
@@ -24,9 +25,7 @@ let compassViewMargins: {
   y: 230;
 };
 
-MapboxGL.setAccessToken(
-  'sk.eyJ1IjoibWF5YW5rNHBsYW50LWZvci10aGUtcGxhbmV0IiwiYSI6ImNsZGNvbW44azBjN2UzdXF6YXlsZHQ2NjAifQ.biPiyvXSzxjT_-oEPRQSRQ',
-);
+MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
 Logger.setLogCallback(log => {
   const {message} = log;
