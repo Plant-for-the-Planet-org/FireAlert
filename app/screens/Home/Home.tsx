@@ -1,20 +1,32 @@
 import {
   Text,
+  View,
+  Image,
+  Modal,
   Linking,
   Platform,
   StatusBar,
+  Dimensions,
   StyleSheet,
   BackHandler,
   SafeAreaView,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
-import {useAuth0} from 'react-native-auth0';
+import Config from 'react-native-config';
+import Auth0, {useAuth0} from 'react-native-auth0';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 
-import {Colors} from '../../styles';
-import {LayerIcon, MyLocIcon} from '../../assets/svgs';
+import {
+  LayerIcon,
+  MyLocIcon,
+  LogoutIcon,
+  PencilIcon,
+  MapOutlineIcon,
+} from '../../assets/svgs';
+import {Colors, Typography} from '../../styles';
 import {AlertModal, BottomBar} from '../../components';
 import {locationPermission} from '../../utils/permissions';
 
@@ -22,10 +34,14 @@ import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from './permissionAlert/LocationPermissionAlerts';
+import {useAppDispatch, useAppSelector} from '../../hooks';
 import LayerModal from '../../components/layerModal/LayerModal';
+import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 let attributionPosition: any = {
   bottom: IS_ANDROID ? 72 : 56,
@@ -44,7 +60,9 @@ const ANIMATION_DURATION = 1000;
 
 const Home = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
-  const {clearSession} = useAuth0();
+  const {clearCredentials} = useAuth0();
+  const {userDetails} = useAppSelector(state => state.loginSlice);
+  const {sites} = useAppSelector(state => state.siteSlice);
 
   const [isInitial, setIsInitial] = useState(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
@@ -54,11 +72,13 @@ const Home = ({navigation}) => {
   const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
 
   const [visible, setVisible] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
   >();
 
+  const dispatch = useAppDispatch();
   const map = useRef(null);
   const camera = useRef<MapboxGL.Camera | null>(null);
 
@@ -151,9 +171,21 @@ const Home = ({navigation}) => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleUser = () => {
+    setProfileModalVisible(true);
+  };
+
+  const handleLogout = () => {
     try {
-      await clearSession();
+      setProfileModalVisible(false);
+      const auth0 = new Auth0({
+        domain: Config.AUTH0_DOMAIN,
+        clientId: Config.AUTH0_CLIENT_ID,
+      });
+      auth0.webAuth.clearSession().then(async () => {
+        dispatch(updateIsLoggedIn(false));
+        await clearCredentials();
+      });
     } catch (e) {
       console.log('Log out cancelled');
     }
@@ -200,6 +232,38 @@ const Home = ({navigation}) => {
             onUpdate={data => setLocation(data)}
           />
         )}
+        <MapboxGL.ShapeSource
+          id={'polygon'}
+          shape={{
+            type: 'FeatureCollection',
+            features: sites?.map((singleSite, i) => {
+              return {
+                type: 'Feature',
+                properties: {id: singleSite?.guid},
+                geometry: JSON.parse(singleSite?.geometry),
+              };
+            }),
+          }}
+          onPress={e => {
+            console.log(e);
+          }}>
+          <MapboxGL.FillLayer
+            id={'polyFill'}
+            style={{
+              fillColor: Colors.WHITE,
+              fillOpacity: 0.6,
+            }}
+          />
+          <MapboxGL.LineLayer
+            id={'polyline'}
+            style={{
+              lineWidth: 2,
+              lineColor: Colors.WHITE,
+              lineOpacity: 1,
+              lineJoin: 'bevel',
+            }}
+          />
+        </MapboxGL.ShapeSource>
       </MapboxGL.MapView>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
@@ -229,14 +293,13 @@ const Home = ({navigation}) => {
         onPressPrimaryBtn={onPressPerDeniedAlertPrimaryBtn}
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
-
       <TouchableOpacity
-        onPress={handleLogout}
-        style={[styles.layerIcon, {top: 210}]}
+        onPress={handleUser}
+        style={[styles.layerIcon, styles.avatarContainer]}
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <Text>Logot</Text>
+        <Image source={{uri: userDetails?.avatar}} style={styles.userAvatar} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleLayer}
@@ -257,6 +320,30 @@ const Home = ({navigation}) => {
       <SafeAreaView style={styles.safeAreaView}>
         <BottomBar onListPress={onListPress} onMapPress={onMapPress} />
       </SafeAreaView>
+      <Modal visible={profileModalVisible} animationType={'slide'} transparent>
+        <TouchableOpacity
+          activeOpacity={0}
+          onPress={() => setProfileModalVisible(false)}
+          style={styles.modalLayer}
+        />
+        <View style={[styles.modalContainer, styles.commonPadding]}>
+          <View style={styles.modalHeader} />
+          <View style={styles.siteTitleCon}>
+            <Text style={styles.siteTitle}>{userDetails?.name}</Text>
+            <TouchableOpacity>
+              <PencilIcon />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.btn}>
+            <MapOutlineIcon />
+            <Text style={styles.siteActionText}>Open Platform</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={styles.btn}>
+            <LogoutIcon />
+            <Text style={styles.siteActionText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -292,8 +379,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 72 : 92,
+    top: IS_ANDROID ? 72 : 152,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
+  },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    top: 70,
+  },
+  userAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 100,
+  },
+  modalContainer: {
+    bottom: 0,
+    borderRadius: 15,
+    width: SCREEN_WIDTH,
+    position: 'absolute',
+    height: SCREEN_HEIGHT / 3,
+    backgroundColor: Colors.WHITE,
+  },
+  modalLayer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalHeader: {
+    width: 46,
+    height: 8,
+    marginTop: 13,
+    borderRadius: 5,
+    alignSelf: 'center',
+    backgroundColor: Colors.GRAY_MEDIUM,
+  },
+  commonPadding: {
+    paddingHorizontal: 30,
+  },
+  siteTitleCon: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  siteTitle: {
+    fontSize: Typography.FONT_SIZE_24,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  btn: {
+    height: 56,
+    marginTop: 22,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: Colors.GRADIENT_PRIMARY,
+  },
+  siteActionText: {
+    marginLeft: 30,
+    color: Colors.GRADIENT_PRIMARY,
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
 });

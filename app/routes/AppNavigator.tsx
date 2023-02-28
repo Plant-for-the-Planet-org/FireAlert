@@ -1,12 +1,16 @@
 import * as React from 'react';
 import Auth0 from 'react-native-auth0';
+import Config from 'react-native-config';
 import {NavigationContainer} from '@react-navigation/native';
 
 import {CommonStack, SignInStack} from './stack';
-import Config from 'react-native-config';
+import {useAppDispatch, useAppSelector} from '../hooks';
+import {getSites} from '../redux/slices/sites/siteSlice';
+import {updateIsLoggedIn} from '../redux/slices/login/loginSlice';
 
 export default function AppNavigator() {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  const {isLoggedIn} = useAppSelector(state => state.loginSlice);
+  const dispatch = useAppDispatch();
 
   const checkUserValidation = async () => {
     const auth0 = new Auth0({
@@ -17,15 +21,25 @@ export default function AppNavigator() {
     const isLogged = await auth0.credentialsManager.hasValidCredentials();
 
     if (isLogged) {
-      setIsLoggedIn(true);
+      dispatch(updateIsLoggedIn(true));
     } else {
-      setIsLoggedIn(false);
+      dispatch(updateIsLoggedIn(false));
     }
   };
 
   React.useEffect(() => {
     checkUserValidation();
   }, []);
+
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      const request = {
+        onSuccess: () => {},
+        onFail: () => {},
+      };
+      dispatch(getSites(request));
+    }
+  }, [isLoggedIn]);
 
   return (
     <NavigationContainer>

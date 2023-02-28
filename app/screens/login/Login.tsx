@@ -1,22 +1,33 @@
 import React from 'react';
-import {useAuth0} from 'react-native-auth0';
+import Auth0 from 'react-native-auth0';
+import Config from 'react-native-config';
 import {StatusBar, StyleSheet, View} from 'react-native';
 import RadialGradient from 'react-native-radial-gradient';
 
 import {Colors} from '../../styles';
 import {Logo} from '../../assets/svgs';
+import {useAppDispatch} from '../../hooks';
 import {CustomButton} from '../../components';
+import {
+  getUserDetails,
+  updateAccessToken,
+  updateIsLoggedIn,
+} from '../../redux/slices/login/loginSlice';
 
 const RADIUS = 200;
 const CENTER_ARR = [187.5, 270.6];
 const GRADIENT_ARR = [Colors.PRIMARY_DARK, Colors.GRADIENT_PRIMARY];
 
 const Login = ({navigation}) => {
-  const {authorize, getCredentials} = useAuth0();
+  const dispatch = useAppDispatch();
 
   const handleLogin = async () => {
-    try {
-      await authorize(
+    const auth0 = new Auth0({
+      domain: Config.AUTH0_DOMAIN,
+      clientId: Config.AUTH0_CLIENT_ID,
+    });
+    auth0.webAuth
+      .authorize(
         {
           scope: 'openid email profile offline_access',
           federated: true,
@@ -24,10 +35,19 @@ const Login = ({navigation}) => {
           audience: 'urn:plant-for-the-planet',
         },
         {ephemeralSession: false},
-      );
-    } catch (e) {
-      console.log(e);
-    }
+      )
+      .then(cred => {
+        const request = {
+          onSuccess: async message => {},
+          onFail: message => {},
+        };
+        dispatch(updateIsLoggedIn(true));
+        dispatch(updateAccessToken(cred?.accessToken));
+        dispatch(getUserDetails(request));
+      })
+      .catch(err => {
+        console.log(err);
+      });
   };
 
   return (

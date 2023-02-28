@@ -12,6 +12,7 @@ import MyLocIcon from './myLocIcon.svg';
 import PhoneIcon from './phoneIcon.svg';
 import EmailIcon from './emailIcon.svg';
 import GlobeIcon from './globeIcon.svg';
+import LogoutIcon from './logoutIcon.svg';
 import PlanetLogo from './planetLogo.svg';
 import {polygonIcon} from './polygonIcon';
 import PencilIcon from './pencilIcon.svg';
@@ -43,6 +44,7 @@ export {
   GlobeIcon,
   PencilIcon,
   PlanetLogo,
+  LogoutIcon,
   uploadIcon,
   polygonIcon,
   locationIcon,
