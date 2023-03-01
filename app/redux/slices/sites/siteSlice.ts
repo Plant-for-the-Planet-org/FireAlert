@@ -40,3 +40,21 @@ export const getSites = request => {
     }
   };
 };
+
+export const deleteSite = request => {
+  return async (dispatch, getState) => {
+    const {onSuccess, onFail, payload} = request;
+    try {
+      const res = await ApiService.deleteSite(
+        getState().loginSlice?.accessToken,
+        payload,
+      );
+      if (res?.status === 200) {
+      } else {
+        onFail(res?.data?.message || 'Something went wrong');
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+};

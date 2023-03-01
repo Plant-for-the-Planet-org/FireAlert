@@ -10,7 +10,7 @@ import React, {useState} from 'react';
 
 import {Colors} from '../../styles';
 
-const TOP = Platform.OS === 'ios' ? -8.2 : -1.6;
+const TOP = Platform.OS === 'ios' ? -8.2 : -8.6;
 
 const FloatingInput = props => {
   const {

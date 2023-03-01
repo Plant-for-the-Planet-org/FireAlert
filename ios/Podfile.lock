@@ -495,10 +495,6 @@ DEPENDENCIES:
 SPEC REPOS:
   https://github.com/CocoaPods/Specs.git:
     - Auth0
-    - JWTDecode
-    - libevent
-    - SimpleKeychain
-  trunk:
     - CocoaAsyncSocket
     - Flipper
     - Flipper-Boost-iOSX
@@ -510,11 +506,14 @@ SPEC REPOS:
     - Flipper-RSocket
     - FlipperKit
     - fmt
+    - JWTDecode
+    - libevent
     - MapboxCommon
     - MapboxCoreMaps
     - MapboxMaps
     - MapboxMobileEvents
     - OpenSSL-Universal
+    - SimpleKeychain
     - SocketRocket
     - Turf
     - YogaKit

@@ -154,7 +154,7 @@ const CreatePolygon = ({navigation}) => {
   const checkPermission = async (showAlert = true) => {
     try {
       await locationPermission();
-      MapboxGL.setTelemetryEnabled(false);
+      // MapboxGL.setTelemetryEnabled(false);
 
       updateCurrentPosition(showAlert);
       return true;

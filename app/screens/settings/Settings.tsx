@@ -29,7 +29,9 @@ import {
   BackArrowIcon,
 } from '../../assets/svgs';
 import {Switch} from '../../components';
+import {useAppDispatch, useAppSelector} from '../../hooks';
 import {Colors, Typography} from '../../styles';
+import {deleteSite} from '../../redux/slices/sites/siteSlice';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -122,6 +124,9 @@ const Settings = ({navigation}) => {
   const [pageXY, setPageXY] = useState(null);
   const [mobileNotify, setMobileNotify] = useState(false);
   const [emails, setEmails] = useState(EMAILS);
+
+  const {sites} = useAppSelector(state => state.siteSlice);
+  const dispatch = useAppDispatch();
 
   const handleSwitch = (index, val) => {
     let arr = [...projects];
@@ -216,6 +221,15 @@ const Settings = ({navigation}) => {
     });
   };
 
+  const handleDeleteSite = guid => {
+    const request = {
+      payload: {guid},
+      onSuccess: () => {},
+      onFail: () => {},
+    };
+    dispatch(deleteSite(request));
+  };
+
   const handleBack = () => navigation.goBack();
 
   return (
@@ -267,21 +281,19 @@ const Settings = ({navigation}) => {
           <View style={styles.mySitesHead}>
             <Text style={styles.mainHeading}>My Sites</Text>
           </View>
-          {mySites.map((item, index) => (
+          {sites.map((item, index) => (
             <TouchableOpacity
               onPress={() => handleSiteInformation(item)}
               key={`mySites_${index}`}
               style={styles.mySiteNameContainer}>
-              <Text style={styles.mySiteName}>{item.name}</Text>
+              <Text style={styles.mySiteName}>{item.name || item.guid}</Text>
               <TouchableOpacity
-                onPress={evt => handleSiteRadius(evt, item.id)}
+                onPress={evt => handleSiteRadius(evt, item.guid)}
                 style={[styles.dropDownRadius, {paddingHorizontal: 15}]}>
                 <Text style={styles.siteRadius}>
-                  {item.enabled
-                    ? item.radius
-                      ? `within ${item.radius} km`
-                      : 'inside'
-                    : 'off'}
+                  {!(item.radius === 'inside')
+                    ? `within ${item.radius} km`
+                    : 'inside'}
                 </Text>
                 <DropdownArrow />
               </TouchableOpacity>
@@ -562,7 +574,9 @@ const Settings = ({navigation}) => {
           <View style={[styles.modalContainer, styles.commonPadding]}>
             <View style={styles.modalHeader} />
             <View style={styles.siteTitleCon}>
-              <Text style={styles.siteTitle}>{selectedSiteInfo?.name}</Text>
+              <Text style={styles.siteTitle}>
+                {selectedSiteInfo?.name || selectedSiteInfo?.guid}
+              </Text>
               <TouchableOpacity onPress={handleEditSite}>
                 <PencilIcon />
               </TouchableOpacity>
@@ -571,7 +585,9 @@ const Settings = ({navigation}) => {
               <MapOutlineIcon />
               <Text style={styles.siteActionText}>View on Map</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.btn}>
+            <TouchableOpacity
+              onPress={() => handleDeleteSite(selectedSiteInfo?.guid)}
+              style={styles.btn}>
               <TrashOutlineIcon />
               <Text style={styles.siteActionText}>Delete Site</Text>
             </TouchableOpacity>

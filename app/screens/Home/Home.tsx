@@ -11,7 +11,6 @@ import {
   BackHandler,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import Config from 'react-native-config';
@@ -147,7 +146,7 @@ const Home = ({navigation}) => {
   const checkPermission = async (showAlert = true) => {
     try {
       await locationPermission();
-      MapboxGL.setTelemetryEnabled(false);
+      // MapboxGL.setTelemetryEnabled(false);
 
       updateCurrentPosition(showAlert);
       return true;
@@ -379,18 +378,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 72 : 152,
+    top: IS_ANDROID ? 152 : 152,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   avatarContainer: {
-    width: 60,
-    height: 60,
-    top: 70,
+    width: 45,
+    height: 45,
+    top: 90,
   },
   userAvatar: {
-    width: 60,
-    height: 60,
+    width: 45,
+    height: 45,
     borderRadius: 100,
   },
   modalContainer: {

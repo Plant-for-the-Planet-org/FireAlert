@@ -3,14 +3,13 @@ import Config from 'react-native-config';
 
 axios.defaults.timeout = 30000;
 
-export default function fireApi({method, URL, data, header, token, code}) {
+export default function fireApi({method, URL, data, header, token}) {
   URL = Config.API_URL + URL;
   if (method === 'POST') {
     let headers = {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
-        Code: code,
       },
     };
     if (token) {
@@ -37,7 +36,6 @@ export default function fireApi({method, URL, data, header, token, code}) {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
-        Code: code,
       },
     };
     if (token) {
@@ -83,6 +81,32 @@ export default function fireApi({method, URL, data, header, token, code}) {
       },
       error => {
         return axios.delete(URL, headers);
+      },
+    );
+  } else if (method === 'PUT') {
+    let headers = {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+    };
+    if (token) {
+      headers = {
+        headers: {
+          ...headers.headers,
+          Authorization: `Bearer ${token}`,
+        },
+      };
+    }
+    if (header) {
+      headers = header;
+    }
+    return axios.put(URL, data, headers).then(
+      res => {
+        return res;
+      },
+      error => {
+        return axios.put(URL, data, headers);
       },
     );
   }

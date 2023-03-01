@@ -16,4 +16,12 @@ export const ApiService = {
       token,
     });
   },
+  deleteSite: async (token, guid) => {
+    return fireApi({
+      method: 'DELETE',
+      URL: ApiUrl.sites,
+      data: guid,
+      token,
+    });
+  },
 };
