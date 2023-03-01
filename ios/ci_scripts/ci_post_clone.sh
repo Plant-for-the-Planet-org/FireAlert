@@ -28,6 +28,9 @@ cd ../..
 echo "no env yet"
 echo "MAPBOXGL_ACCCESS_TOKEN=$MAPBOXGL_ACCCESS_TOKEN" >> .env
 echo "BUGSNAP_CLIENT_KEY=$BUGSNAP_CLIENT_KEY" >> .env
+echo "API_URL=$API_URL" >> .env
+echo "AUTH0_CLIENT_ID=$AUTH0_CLIENT_ID" >> .env
+echo "AUTH0_DOMAIN=$AUTH0_DOMAIN" >> .env
 cp .env $ENV_FILENAME
 echo "ENV_FILENAME is $ENV_FILENAME"
 cat $ENV_FILENAME
