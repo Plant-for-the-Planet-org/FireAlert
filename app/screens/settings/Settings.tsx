@@ -28,10 +28,14 @@ import {
   TrashOutlineIcon,
   BackArrowIcon,
 } from '../../assets/svgs';
-import {Switch} from '../../components';
-import {useAppDispatch, useAppSelector} from '../../hooks';
+import {
+  editSite,
+  getSites,
+  deleteSite,
+} from '../../redux/slices/sites/siteSlice';
 import {Colors, Typography} from '../../styles';
-import {deleteSite} from '../../redux/slices/sites/siteSlice';
+import {useAppDispatch, useAppSelector} from '../../hooks';
+import {CustomButton, FloatingInput, Switch} from '../../components';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -120,10 +124,13 @@ const Settings = ({navigation}) => {
   const [whatsapp, setWhatsapp] = useState(WHATSAPP_CONTACT);
   const [dropDownModal, setDropDownModal] = useState(false);
   const [sitesInfoModal, setSitesInfoModal] = useState(false);
+  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
   const [selectedSiteInfo, setSelectedSiteInfo] = useState(null);
   const [pageXY, setPageXY] = useState(null);
   const [mobileNotify, setMobileNotify] = useState(false);
   const [emails, setEmails] = useState(EMAILS);
+  const [siteName, setSiteName] = useState('');
+  const [siteGuid, setSiteGuid] = useState('');
 
   const {sites} = useAppSelector(state => state.siteSlice);
   const dispatch = useAppDispatch();
@@ -201,7 +208,34 @@ const Settings = ({navigation}) => {
     setSitesInfoModal(!sitesInfoModal);
   };
 
-  const handleEditSite = () => {};
+  const handleEditSite = site => {
+    setSitesInfoModal(false);
+    setSiteName(site.name);
+    setSiteGuid(site.guid);
+    setSiteNameModalVisible(true);
+  };
+
+  const handleEditSiteInfo = () => {
+    const payload = {
+      name: siteName,
+      guid: siteGuid,
+    };
+    const request = {
+      payload,
+      onSuccess: () => {
+        const req = {
+          onSuccess: () => {},
+          onFail: () => {},
+        };
+        setTimeout(() => {
+          dispatch(getSites(req));
+        }, 500);
+      },
+      onFail: () => {},
+    };
+    dispatch(editSite(request));
+    setSiteNameModalVisible(false);
+  };
 
   const handleAddEmail = () => {
     navigation.navigate('Verification', {
@@ -223,7 +257,7 @@ const Settings = ({navigation}) => {
 
   const handleDeleteSite = guid => {
     const request = {
-      payload: {guid},
+      params: guid,
       onSuccess: () => {},
       onFail: () => {},
     };
@@ -292,7 +326,7 @@ const Settings = ({navigation}) => {
                 style={[styles.dropDownRadius, {paddingHorizontal: 15}]}>
                 <Text style={styles.siteRadius}>
                   {!(item.radius === 'inside')
-                    ? `within ${item.radius} km`
+                    ? `within ${item.radius}`
                     : 'inside'}
                 </Text>
                 <DropdownArrow />
@@ -577,7 +611,8 @@ const Settings = ({navigation}) => {
               <Text style={styles.siteTitle}>
                 {selectedSiteInfo?.name || selectedSiteInfo?.guid}
               </Text>
-              <TouchableOpacity onPress={handleEditSite}>
+              <TouchableOpacity
+                onPress={() => handleEditSite(selectedSiteInfo)}>
                 <PencilIcon />
               </TouchableOpacity>
             </View>
@@ -591,6 +626,24 @@ const Settings = ({navigation}) => {
               <TrashOutlineIcon />
               <Text style={styles.siteActionText}>Delete Site</Text>
             </TouchableOpacity>
+          </View>
+        </Modal>
+        <Modal
+          visible={siteNameModalVisible}
+          animationType={'slide'}
+          transparent>
+          <View style={styles.siteModalStyle}>
+            <FloatingInput
+              value={siteName}
+              label={'Site Name'}
+              onChangeText={setSiteName}
+            />
+            <CustomButton
+              title="Continue"
+              onPress={handleEditSiteInfo}
+              style={styles.btnContinueSiteModal}
+              titleStyle={styles.title}
+            />
           </View>
         </Modal>
       </ScrollView>
@@ -849,5 +902,16 @@ const styles = StyleSheet.create({
     color: Colors.GRADIENT_PRIMARY,
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+  },
+  siteModalStyle: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
+  },
+  btnContinueSiteModal: {
+    marginTop: 18,
+  },
+  title: {
+    color: Colors.WHITE,
   },
 });

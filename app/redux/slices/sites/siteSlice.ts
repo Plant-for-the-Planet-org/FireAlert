@@ -31,6 +31,7 @@ export const getSites = request => {
     try {
       const res = await ApiService.sites(getState().loginSlice?.accessToken);
       if (res?.status === 200) {
+        onSuccess();
         dispatch(updateSites(res?.data));
       } else {
         onFail(res?.data?.message || 'Something went wrong');
@@ -43,13 +44,32 @@ export const getSites = request => {
 
 export const deleteSite = request => {
   return async (dispatch, getState) => {
-    const {onSuccess, onFail, payload} = request;
+    const {params, onSuccess, onFail} = request;
     try {
       const res = await ApiService.deleteSite(
+        getState().loginSlice?.accessToken,
+      );
+      if (res?.status === 200) {
+        onSuccess();
+      } else {
+        onFail(res?.data?.message || 'Something went wrong');
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+};
+
+export const editSite = request => {
+  return async (dispatch, getState) => {
+    const {payload, onSuccess, onFail} = request;
+    try {
+      const res = await ApiService.editSite(
         getState().loginSlice?.accessToken,
         payload,
       );
       if (res?.status === 200) {
+        onSuccess();
       } else {
         onFail(res?.data?.message || 'Something went wrong');
       }
