@@ -57,11 +57,19 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
+const coordinates = [
+  [75.61481311801947, 32.245842020551834],
+  [71.86583870489832, 27.0061198457104],
+  [73.44589896675103, 24.5653636958654],
+  [76.96228092617793, 22.125249549952358],
+];
+
 const Home = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
   const {clearCredentials} = useAuth0();
   const {userDetails} = useAppSelector(state => state.loginSlice);
   const {sites} = useAppSelector(state => state.siteSlice);
+  const {alerts} = useAppSelector(state => state.alertSlice);
 
   const [isInitial, setIsInitial] = useState(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
@@ -204,6 +212,38 @@ const Home = ({navigation}) => {
   const onListPress = () => navigation.navigate('Settings');
   const onMapPress = () => {};
 
+  const renderAnnotation = counter => {
+    const id = `pointAnnotation${counter}`;
+    const coordinate = coordinates[counter];
+    const title = `Longitude: ${coordinates[counter][0]} Latitude: ${coordinates[counter][1]}`;
+    console.log(coordinate, '[[[');
+    return (
+      <MapboxGL.PointAnnotation
+        key={id}
+        id={id}
+        title={title}
+        coordinate={coordinate}>
+        <View
+          style={{
+            backgroundColor: Colors.GRADIENT_PRIMARY,
+            width: 25,
+            height: 25,
+          }}
+        />
+      </MapboxGL.PointAnnotation>
+    );
+  };
+
+  const renderAnnotations = () => {
+    const items = [];
+
+    for (let i = 0; i < coordinates.length; i++) {
+      items.push(renderAnnotation(i));
+    }
+
+    return items;
+  };
+
   useEffect(() => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location]);
@@ -263,6 +303,7 @@ const Home = ({navigation}) => {
             }}
           />
         </MapboxGL.ShapeSource>
+        {renderAnnotations()}
       </MapboxGL.MapView>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />

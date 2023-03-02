@@ -31,4 +31,11 @@ export const ApiService = {
       data,
     });
   },
+  getAlerts: async (token, data) => {
+    return fireApi({
+      method: 'GET',
+      URL: ApiUrl.alerts,
+      token,
+    });
+  },
 };

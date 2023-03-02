@@ -6,6 +6,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {CommonStack, SignInStack} from './stack';
 import {useAppDispatch, useAppSelector} from '../hooks';
 import {getSites} from '../redux/slices/sites/siteSlice';
+import {getAlerts} from '../redux/slices/alerts/alertSlice';
 import {updateIsLoggedIn} from '../redux/slices/login/loginSlice';
 
 export default function AppNavigator() {
@@ -38,6 +39,7 @@ export default function AppNavigator() {
         onFail: () => {},
       };
       dispatch(getSites(request));
+      dispatch(getAlerts(request));
     }
   }, [isLoggedIn]);
 
