@@ -31,7 +31,7 @@ import {locationPermission} from '../../utils/permissions';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
-} from '../home/permissionAlert/LocationPermissionAlerts';
+} from '../Home/PermissionAlert/LocationPermissionAlerts';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import distanceCalculator from '../../utils/distanceCalculator';
@@ -590,4 +590,3 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
 });
-
