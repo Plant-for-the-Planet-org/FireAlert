@@ -5,6 +5,7 @@ import SmsIcon from './smsIcon.svg';
 import ListIcon from './listIcon.svg';
 import BellIcon from './bellIcon.svg';
 import NasaLogo from './nasaLogo.svg';
+import RadarIcon from './radarIcon.svg';
 import LoginIcon from './loginIcon.svg';
 import CrossIcon from './crossIcon.svg';
 import LayerIcon from './layerIcon.svg';
@@ -22,8 +23,10 @@ import DistanceIcon from './distanceIcon.svg';
 import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.svg';
 import SatelliteDish from './satelliteDish.svg';
+import SatelliteIcon from './satelliteIcon.svg';
 import DropdownArrow from './dropdownArrow.svg';
 import BackArrowIcon from './backArrowIcon.svg';
+import LocationPinIcon from './locationPin.svg';
 import MapOutlineIcon from './mapOutlineIcon.svg';
 import TrashOutlineIcon from './trashOutlineIcon.svg';
 
@@ -36,6 +39,7 @@ export {
   NasaLogo,
   ListIcon,
   PhoneIcon,
+  RadarIcon,
   CrossIcon,
   EmailIcon,
   LoginIcon,
@@ -52,8 +56,10 @@ export {
   WhatsAppIcon,
   active_marker,
   BackArrowIcon,
+  SatelliteIcon,
   SatelliteDish,
   DropdownArrow,
   MapOutlineIcon,
+  LocationPinIcon,
   TrashOutlineIcon,
 };

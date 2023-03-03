@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
+import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
 import Config from 'react-native-config';
 import Auth0, {useAuth0} from 'react-native-auth0';
@@ -21,9 +22,12 @@ import Geolocation from 'react-native-geolocation-service';
 import {
   LayerIcon,
   MyLocIcon,
+  RadarIcon,
   LogoutIcon,
   PencilIcon,
+  SatelliteIcon,
   MapOutlineIcon,
+  LocationPinIcon,
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {AlertModal, BottomBar} from '../../components';
@@ -57,13 +61,6 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
-const coordinates = [
-  [75.61481311801947, 32.245842020551834],
-  [71.86583870489832, 27.0061198457104],
-  [73.44589896675103, 24.5653636958654],
-  [76.96228092617793, 22.125249549952358],
-];
-
 const Home = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
   const {clearCredentials} = useAuth0();
@@ -84,6 +81,8 @@ const Home = ({navigation}) => {
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
   >();
+
+  const [selectedAlert, setSelectedAlert] = useState({});
 
   const dispatch = useAppDispatch();
   const map = useRef(null);
@@ -213,22 +212,25 @@ const Home = ({navigation}) => {
   const onMapPress = () => {};
 
   const renderAnnotation = counter => {
-    const id = `pointAnnotation${counter}`;
-    const coordinate = coordinates[counter];
-    const title = `Longitude: ${coordinates[counter][0]} Latitude: ${coordinates[counter][1]}`;
-    console.log(coordinate, '[[[');
+    const id = alerts[counter]?.guid;
+    const coordinate = [alerts[counter]?.latitude, alerts[counter]?.longitude];
+    const title = `Longitude: ${alerts[counter]?.latitude} Latitude: ${alerts[counter]?.longitude}`;
     return (
       <MapboxGL.PointAnnotation
-        key={id}
         id={id}
         title={title}
+        onSelected={e => {
+          setSelectedAlert(alerts[counter]), console.log(e);
+        }}
         coordinate={coordinate}>
         <View
-          style={{
-            backgroundColor: Colors.GRADIENT_PRIMARY,
-            width: 25,
-            height: 25,
-          }}
+          style={[
+            {
+              backgroundColor:
+                Colors.GRADIENT_PRIMARY + `${alerts[counter]?.confidence}`,
+            },
+            styles.alertSpot,
+          ]}
         />
       </MapboxGL.PointAnnotation>
     );
@@ -237,7 +239,7 @@ const Home = ({navigation}) => {
   const renderAnnotations = () => {
     const items = [];
 
-    for (let i = 0; i < coordinates.length; i++) {
+    for (let i = 0; i < alerts.length; i++) {
       items.push(renderAnnotation(i));
     }
 
@@ -271,6 +273,18 @@ const Home = ({navigation}) => {
             onUpdate={data => setLocation(data)}
           />
         )}
+        {Object.keys(selectedAlert).length ? (
+          <MapboxGL.PointAnnotation
+            title={'title'}
+            coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}>
+            <View
+              style={[
+                styles.alertSpot,
+                {borderWidth: 2, borderColor: Colors.BLACK},
+              ]}
+            />
+          </MapboxGL.PointAnnotation>
+        ) : null}
         <MapboxGL.ShapeSource
           id={'polygon'}
           shape={{
@@ -360,6 +374,7 @@ const Home = ({navigation}) => {
       <SafeAreaView style={styles.safeAreaView}>
         <BottomBar onListPress={onListPress} onMapPress={onMapPress} />
       </SafeAreaView>
+      {/* profile modal */}
       <Modal visible={profileModalVisible} animationType={'slide'} transparent>
         <TouchableOpacity
           activeOpacity={0}
@@ -381,6 +396,80 @@ const Home = ({navigation}) => {
           <TouchableOpacity onPress={handleLogout} style={styles.btn}>
             <LogoutIcon />
             <Text style={styles.siteActionText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+      {/* fire alert info modal */}
+      <Modal
+        visible={Object.keys(selectedAlert).length > 0}
+        animationType={'slide'}
+        transparent>
+        <TouchableOpacity
+          activeOpacity={0}
+          onPress={() => setSelectedAlert({})}
+          style={[styles.modalLayer, {backgroundColor: Colors.TRANSPARENT}]}
+        />
+        <View style={[styles.modalContainer, styles.commonPadding]}>
+          <View style={styles.modalHeader} />
+          <View style={styles.satelliteInfoCon}>
+            <View style={styles.satelliteIcon}>
+              <SatelliteIcon />
+            </View>
+            <View style={styles.satelliteInfo}>
+              <Text style={styles.satelliteText}>
+                DETECTED BY {selectedAlert?.detectedBy}
+              </Text>
+              <Text style={styles.eventDate}>
+                <Text
+                  style={[
+                    styles.eventFromNow,
+                    {
+                      color:
+                        Colors.GRADIENT_PRIMARY + selectedAlert?.confidence,
+                    },
+                  ]}>
+                  {moment(selectedAlert?.eventDate, 'MM/DD/YYYY').fromNow()}
+                </Text>{' '}
+                (
+                {moment(selectedAlert?.eventDate, 'MM/DD/YYYY').format(
+                  'DD MMM YYYY',
+                )}
+                )
+              </Text>
+              <Text style={styles.confidence}>
+                {selectedAlert?.confidence}% alert confidence
+              </Text>
+            </View>
+          </View>
+          <View style={styles.satelliteInfoCon}>
+            <View style={styles.satelliteIcon}>
+              <LocationPinIcon />
+            </View>
+            <View style={styles.satelliteInfo}>
+              <Text style={styles.satelliteText}>LOCATION</Text>
+              <Text style={styles.eventDate}>
+                {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
+                {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
+              </Text>
+              <Text style={styles.confidence}>
+                {selectedAlert?.confidence}% alert confidence
+              </Text>
+            </View>
+          </View>
+          <View style={styles.satelliteInfoCon}>
+            <View style={styles.satelliteIcon}>
+              <RadarIcon />
+            </View>
+            <View style={styles.satelliteInfo}>
+              <Text style={styles.eventDate}>
+                Search for the fire within a 1km radius around the location.
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.btn}>
+            <Text style={[styles.siteActionText, {marginLeft: 0}]}>
+              Open in Google Maps
+            </Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -436,9 +525,9 @@ const styles = StyleSheet.create({
   modalContainer: {
     bottom: 0,
     borderRadius: 15,
+    paddingBottom: 30,
     width: SCREEN_WIDTH,
     position: 'absolute',
-    height: SCREEN_HEIGHT / 3,
     backgroundColor: Colors.WHITE,
   },
   modalLayer: {
@@ -482,5 +571,37 @@ const styles = StyleSheet.create({
     color: Colors.GRADIENT_PRIMARY,
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+  },
+  alertSpot: {
+    width: 25,
+    height: 25,
+  },
+  satelliteInfoCon: {
+    marginTop: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  satelliteInfo: {
+    marginLeft: 10,
+  },
+  satelliteText: {
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_10,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
+  eventFromNow: {
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+  },
+  eventDate: {
+    marginVertical: 5,
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
+  confidence: {
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
 });
