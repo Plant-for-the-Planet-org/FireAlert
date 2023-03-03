@@ -17,7 +17,7 @@ Run `nvm install && nvm use` to install and use required version of node.
 
 ## Configure your secret token for Mapbox
 
-Your secret token enables you to download the SDK directly from Mapbox. To use your secret token, you will need to store it in a .netrc file in your home directory (not your project folder).
+Your secret token enables you to download the SDK directly from Mapbox. To use your secret token, you will need to store it in a `.netrc` file in your home directory (not your project folder).
 ```
 machine api.mapbox.com
 login mapbox
