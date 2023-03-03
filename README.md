@@ -15,6 +15,15 @@ Copy `.env.sample` to `.env` and add the necessary API keys for your development
 Install nvm following instructions from https://github.com/nvm-sh/nvm#install--update-script
 Run `nvm install && nvm use` to install and use required version of node.
 
+## Configure your secret token for Mapbox
+
+Your secret token enables you to download the SDK directly from Mapbox. To use your secret token, you will need to store it in a .netrc file in your home directory (not your project folder).
+```
+machine api.mapbox.com
+login mapbox
+password YOUR_SECRET_MAPBOX_ACCESS_TOKEN
+```
+
 ## iOS Setup
 
 * Install latest Xcode.
