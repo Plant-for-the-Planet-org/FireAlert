@@ -36,7 +36,7 @@ import {locationPermission} from '../../utils/permissions';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
-} from './permissionAlert/LocationPermissionAlerts';
+} from './PermissionAlert/LocationPermissionAlerts';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import LayerModal from '../../components/layerModal/LayerModal';
 import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
