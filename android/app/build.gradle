@@ -58,6 +58,12 @@ react {
     // hermesFlags = ["-O", "-output-source-map"]
 }
 
+def Properties properties = new Properties()
+def File propfile = project.rootProject.file("local.properties")
+if (propfile.exists()) {
+  properties.load(propfile.newDataInputStream())
+}
+
 /**
  * Set this to true to create four separate APKs instead of one,
  * one for each native architecture. This is useful if you don't
