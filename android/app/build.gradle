@@ -3,7 +3,7 @@ apply plugin: "com.facebook.react"
 project.ext.envConfigFiles = [
   staging   : ".env.staging",
   production: ".env.production",
-  develop   : ".env.develop",
+  develop   : ".env",
 ]
 apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 
@@ -59,10 +59,10 @@ react {
 }
 
 def Properties properties = new Properties()
-def File propfile = project.rootProject.file("local.properties")
-if (propfile.exists()) {
-  properties.load(propfile.newDataInputStream())
+if (project.rootProject.file('local.properties').canRead()) {
+        properties.load(project.rootProject.file("local.properties").newDataInputStream())
 }
+
 
 /**
  * Set this to true to create four separate APKs instead of one,

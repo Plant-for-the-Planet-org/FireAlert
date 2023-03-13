@@ -35,6 +35,8 @@ import {
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import distanceCalculator from '../../utils/distanceCalculator';
+import {addSite} from '../../redux/slices/sites/siteSlice';
+import {useAppDispatch, useAppSelector} from '../../hooks';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
@@ -80,6 +82,9 @@ const CreatePolygon = ({navigation}) => {
       },
     ],
   });
+
+  const {sites} = useAppSelector(state => state.siteSlice);
+  const dispatch = useAppDispatch();
 
   // generates the alphabets
   const generateAlphabets = () => {
@@ -222,8 +227,39 @@ const CreatePolygon = ({navigation}) => {
     // Check distance
   };
 
+  const postPolygon = () => {
+    const payload = {
+      type: 'Polygon',
+      name: siteName,
+      geometry: {
+        coordinates: geoJSON.features[0].geometry.coordinates,
+        type: 'Polygon',
+      },
+      radius: 'inside',
+    };
+    const request = {
+      payload,
+      onSuccess: () => {
+        //  const req = {
+        //    onSuccess: () => {},
+        //    onFail: () => {},
+        //  };
+        //  setTimeout(() => {
+        //    dispatch(getSites(req));
+        //  }, 500);
+        setSiteNameModalVisible(false);
+        navigation.navigate('Home');
+      },
+      onFail: () => {
+        setSiteNameModalVisible(false);
+      },
+    };
+    dispatch(addSite(request));
+  };
+
   const addPolygon = () => {
     let geo = geoJSON;
+    geo.features[0].properties.isPolygonComplete = true;
     geo.features[0].geometry.coordinates.push(
       geoJSON.features[0].geometry.coordinates[0],
     );
@@ -319,6 +355,11 @@ const CreatePolygon = ({navigation}) => {
 
   const handleClose = () => navigation.goBack();
   const closeMapLayer = () => setVisible(false);
+  const handleSiteModalContinue = () => {
+    if (siteName !== '') {
+      postPolygon();
+    }
+  };
 
   const onPressPerBlockedAlertPrimaryBtn = () => {};
   const onPressPerBlockedAlertSecondaryBtn = () => {
@@ -460,7 +501,7 @@ const CreatePolygon = ({navigation}) => {
           <FloatingInput label={'Site Name'} onChangeText={setSiteName} />
           <CustomButton
             title="Continue"
-            onPress={() => setSiteNameModalVisible(false)}
+            onPress={handleSiteModalContinue}
             style={styles.btnContinueSiteModal}
             titleStyle={styles.title}
           />

@@ -78,3 +78,22 @@ export const editSite = request => {
     }
   };
 };
+
+export const addSite = request => {
+  return async (dispatch, getState) => {
+    const {payload, onSuccess, onFail} = request;
+    try {
+      const res = await ApiService.addSite(
+        getState().loginSlice?.accessToken,
+        payload,
+      );
+      if (res?.status === 200) {
+        onSuccess();
+      } else {
+        onFail(res?.data?.message || 'Something went wrong');
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+};
