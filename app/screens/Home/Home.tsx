@@ -251,16 +251,6 @@ const Home = ({navigation}) => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location]);
 
-  console.log(
-    sites?.map((singleSite, i) => {
-      return {
-        type: 'Feature',
-        properties: {id: singleSite?.guid},
-        geometry: JSON.parse(singleSite?.geometry),
-      };
-    }),
-  );
-
   return (
     <>
       <MapboxGL.MapView
