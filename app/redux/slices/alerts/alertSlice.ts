@@ -72,10 +72,11 @@ export const getAlertsPreferences = request => {
 
 export const createAlertPreferences = request => {
   return async (dispatch, getState) => {
-    const {onSuccess, onFail} = request;
+    const {payload, onSuccess, onFail} = request;
     try {
       const res = await ApiService.createAlertPreferences(
         getState().loginSlice?.accessToken,
+        payload,
       );
       if (res?.status === 200) {
         onSuccess();

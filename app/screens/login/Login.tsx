@@ -50,6 +50,32 @@ const Login = ({navigation}) => {
       });
   };
 
+  const handleSignUp = async () => {
+    const auth0 = new Auth0({
+      domain: Config.AUTH0_DOMAIN,
+      clientId: Config.AUTH0_CLIENT_ID,
+    });
+    auth0.webAuth
+      .authorize(
+        {
+          scope: 'openid email profile offline_access',
+          federated: true,
+          prompt: 'signup',
+          audience: 'urn:plant-for-the-planet',
+        },
+        {ephemeralSession: false},
+      )
+      .then(cred => {
+        const request = {
+          onSuccess: async message => {},
+          onFail: message => {},
+        };
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  };
+
   return (
     <>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
@@ -65,6 +91,7 @@ const Login = ({navigation}) => {
           <CustomButton
             title="Sign Up"
             style={styles.btn}
+            onPress={handleSignUp}
             titleStyle={styles.titleStyle}
           />
           <CustomButton

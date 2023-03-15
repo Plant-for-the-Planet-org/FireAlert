@@ -6,9 +6,10 @@ import {
   ScrollView,
   Dimensions,
   SafeAreaView,
+  RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useCallback, useState} from 'react';
 
 import {
   AddIcon,
@@ -23,10 +24,10 @@ import {
   PencilIcon,
   DistanceIcon,
   WhatsAppIcon,
+  BackArrowIcon,
   DropdownArrow,
   MapOutlineIcon,
   TrashOutlineIcon,
-  BackArrowIcon,
 } from '../../assets/svgs';
 import {
   editSite,
@@ -34,6 +35,7 @@ import {
   deleteSite,
 } from '../../redux/slices/sites/siteSlice';
 import {Colors, Typography} from '../../styles';
+import handleLink from '../../utils/browserLinking';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {CustomButton, FloatingInput, Switch} from '../../components';
 
@@ -131,6 +133,7 @@ const Settings = ({navigation}) => {
   const [emails, setEmails] = useState(EMAILS);
   const [siteName, setSiteName] = useState('');
   const [siteGuid, setSiteGuid] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const {sites} = useAppSelector(state => state.siteSlice);
   const dispatch = useAppDispatch();
@@ -144,17 +147,17 @@ const Settings = ({navigation}) => {
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
       let arr = [...projects];
-      const filteredProjects = arr.findIndex(({id}) => id === pageXY.projectId);
-      const filteredSites = arr[filteredProjects].sites?.findIndex(
-        ({id}) => id === pageXY.siteId,
-      );
-      arr[filteredProjects].sites[filteredSites].radius = val;
+      // const filteredProjects = arr.findIndex(({id}) => id === pageXY.projectId);
+      // const filteredSites = arr[filteredProjects].sites?.findIndex(
+      //   ({id}) => id === pageXY.siteId,
+      // );
+      // arr[filteredProjects].sites[filteredSites].radius = val;
       setProjects(arr);
     } else {
       let arr = [...mySites];
-      const filteredSite = arr.findIndex(({id}) => id === pageXY.siteId);
-      arr[filteredSite].radius = val;
-      arr[filteredSite].enabled = true;
+      // const filteredSite = arr.findIndex(({id}) => id === pageXY.siteId);
+      // arr[filteredSite].radius = val;
+      // arr[filteredSite].enabled = true;
       setMySites(arr);
     }
     setDropDownModal(false);
@@ -264,11 +267,31 @@ const Settings = ({navigation}) => {
     dispatch(deleteSite(request));
   };
 
+  const handleEcoWeb = () => {
+    handleLink('https://pp.eco/');
+  };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    const req = {
+      onSuccess: () => {
+        setRefreshing(false);
+      },
+      onFail: () => {
+        setRefreshing(false);
+      },
+    };
+    dispatch(getSites(req));
+  }, []);
+
   const handleBack = () => navigation.goBack();
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
         {/* my projects */}
         <View style={[styles.myProjects, styles.commonPadding]}>
           <TouchableOpacity onPress={handleBack} style={styles.backIcon}>
@@ -278,7 +301,10 @@ const Settings = ({navigation}) => {
             My Projects{' '}
             <Text style={styles.ppLink}>
               {' '}
-              via <Text style={styles.underLine}>pp.eco</Text>{' '}
+              via{' '}
+              <Text onPress={handleEcoWeb} style={styles.underLine}>
+                pp.eco
+              </Text>{' '}
             </Text>
           </Text>
           {projects.map((item, index) => (

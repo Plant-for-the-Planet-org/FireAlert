@@ -53,11 +53,12 @@ export const ApiService = {
       token,
     });
   },
-  createAlertPreferences: async token => {
+  createAlertPreferences: async (token, data) => {
     return fireApi({
       method: 'POST',
       URL: ApiUrl.alertPreferencesList,
       token,
+      data,
     });
   },
   updateAlertPreferences: async token => {

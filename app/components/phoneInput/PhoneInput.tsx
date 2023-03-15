@@ -4,7 +4,7 @@ import PhoneNoInput from 'react-native-phone-number-input';
 
 import {Colors, Typography} from '../../styles';
 
-const PhoneInput = ({containerStyle}) => {
+const PhoneInput = ({containerStyle, inputValue}) => {
   const [value, setValue] = useState('');
   const [formattedValue, setFormattedValue] = useState('');
   const [valid, setValid] = useState(false);
@@ -15,6 +15,7 @@ const PhoneInput = ({containerStyle}) => {
     const checkValid = phoneInput.current?.isValidNumber(value);
     setShowMessage(true);
     setValid(checkValid ? checkValid : false);
+    inputValue(formattedValue);
   };
 
   useEffect(() => {

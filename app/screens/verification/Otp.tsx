@@ -9,15 +9,39 @@ import {
 } from 'react-native';
 import React from 'react';
 
-import {useCountdown} from '../../hooks';
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {CustomButton, OtpInput} from '../../components';
+import {useAppDispatch, useCountdown} from '../../hooks';
+import {createAlertPreferences} from '../../redux/slices/alerts/alertSlice';
 
 const Otp = ({navigation, route}) => {
-  const {verificationType} = route.params;
+  const {verificationType, phoneInput, newEmail} = route.params;
+
+  const dispatch = useAppDispatch();
   const count = useCountdown(30);
+
   const handleClose = () => navigation.goBack();
+
+  const handleContinue = () => {
+    const req = {
+      payload: {
+        method: 'sms',
+        destination:
+          verificationType === 'Whatsapp' || verificationType === 'Sms'
+            ? phoneInput
+            : newEmail,
+        isVerified: true,
+        isEnabled: true,
+      },
+      onSuccess: () => {
+        navigation.navigate('Settings');
+      },
+      onFail: () => {},
+    };
+    dispatch(createAlertPreferences(req));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -36,7 +60,8 @@ const Otp = ({navigation, route}) => {
               <Text style={[styles.resendOtp, styles.link]}>Resend Otp</Text>
             ) : (
               <Text style={styles.resendOtp}>
-                Otp will expires in <Text style={styles.link}>{count}</Text>
+                Verification Code will expires in{' '}
+                <Text style={styles.link}>{count}</Text>
               </Text>
             )}
           </TouchableOpacity>
@@ -44,6 +69,7 @@ const Otp = ({navigation, route}) => {
             title="Continue"
             style={styles.btnContinue}
             titleStyle={styles.title}
+            onPress={handleContinue}
           />
         </View>
       </KeyboardAvoidingView>

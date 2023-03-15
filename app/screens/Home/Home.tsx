@@ -385,7 +385,9 @@ const Home = ({navigation}) => {
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
-            <Text style={styles.siteTitle}>{userDetails?.name}</Text>
+            <Text style={styles.siteTitle}>
+              {userDetails?.name || 'Anonymous Firefighter'}
+            </Text>
             <TouchableOpacity>
               <PencilIcon />
             </TouchableOpacity>
@@ -421,14 +423,7 @@ const Home = ({navigation}) => {
                 DETECTED BY {selectedAlert?.detectedBy}
               </Text>
               <Text style={styles.eventDate}>
-                <Text
-                  style={[
-                    styles.eventFromNow,
-                    {
-                      color:
-                        Colors.GRADIENT_PRIMARY + selectedAlert?.confidence,
-                    },
-                  ]}>
+                <Text style={styles.eventFromNow}>
                   {moment(selectedAlert?.eventDate, 'MM/DD/YYYY').fromNow()}
                 </Text>{' '}
                 (
@@ -591,6 +586,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
   eventFromNow: {
+    color: Colors.GRADIENT_PRIMARY,
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
