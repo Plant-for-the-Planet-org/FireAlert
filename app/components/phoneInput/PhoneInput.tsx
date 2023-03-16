@@ -44,6 +44,12 @@ const PhoneInput = ({containerStyle, inputValue}) => {
         flagButtonStyle={styles.flagButtonStyle}
         countryPickerButtonStyle={{}}
         codeTextStyle={styles.textInputStyle}
+        countryPickerProps={{
+          // react-native-country-picker-modal props works here
+          flatListProps: {style: styles.countryPickerModalList},
+          closeButtonImageStyle: styles.closeButtonImageStyle,
+          withAlphaFilter: true,
+        }}
       />
     </>
   );
@@ -79,5 +85,13 @@ const styles = StyleSheet.create({
     color: Colors.BLACK,
     fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+  },
+  countryPickerModalList: {
+    paddingHorizontal: 15,
+  },
+  closeButtonImageStyle: {
+    width: 40,
+    height: 40,
+    marginLeft: 4,
   },
 });
