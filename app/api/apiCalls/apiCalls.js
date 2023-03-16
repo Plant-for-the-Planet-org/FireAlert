@@ -61,9 +61,17 @@ export const ApiService = {
       data,
     });
   },
-  updateAlertPreferences: async token => {
+  updateAlertPreferences: async (token, data) => {
     return fireApi({
       method: 'PUT',
+      URL: ApiUrl.alertPreferencesList,
+      token,
+      data,
+    });
+  },
+  deleteAlertPreferences: async (token, param) => {
+    return fireApi({
+      method: 'DELETE',
       URL: ApiUrl.alertPreferencesList,
       token,
     });

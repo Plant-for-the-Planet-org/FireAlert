@@ -6,7 +6,10 @@ import {NavigationContainer} from '@react-navigation/native';
 import {CommonStack, SignInStack} from './stack';
 import {useAppDispatch, useAppSelector} from '../hooks';
 import {getSites} from '../redux/slices/sites/siteSlice';
-import {getAlerts} from '../redux/slices/alerts/alertSlice';
+import {
+  getAlerts,
+  getAlertsPreferences,
+} from '../redux/slices/alerts/alertSlice';
 import {updateIsLoggedIn} from '../redux/slices/login/loginSlice';
 
 export default function AppNavigator() {
@@ -40,6 +43,7 @@ export default function AppNavigator() {
       };
       dispatch(getSites(request));
       dispatch(getAlerts(request));
+      dispatch(getAlertsPreferences(request));
     }
   }, [isLoggedIn]);
 

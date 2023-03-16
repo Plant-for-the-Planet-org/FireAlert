@@ -38,6 +38,7 @@ import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {CustomButton, FloatingInput, Switch} from '../../components';
+import {updateAlertPreferences} from '../../redux/slices/alerts/alertSlice';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -136,6 +137,8 @@ const Settings = ({navigation}) => {
   const [refreshing, setRefreshing] = useState(false);
 
   const {sites} = useAppSelector(state => state.siteSlice);
+  const {alertListPreferences} = useAppSelector(state => state.alertSlice);
+
   const dispatch = useAppDispatch();
 
   const handleSwitch = (index, val) => {
@@ -182,17 +185,19 @@ const Settings = ({navigation}) => {
     setDropDownModal(!dropDownModal);
   };
 
-  const handleEmailNotify = (index, val) => {
-    let emailArr = [...emails];
-    emailArr[index].enabled = val;
-    setEmails(emailArr);
+  const handleEmailNotify = (destination, val) => {
+    const request = {
+      payload: {
+        destination: destination,
+        isVerified: val,
+      },
+      onSuccess: () => {},
+      onFail: () => {},
+    };
+    dispatch(updateAlertPreferences(request));
   };
 
-  const handleRemoveEmail = index => {
-    let emailArr = [...emails];
-    emailArr.splice(index, 1);
-    setEmails(emailArr);
-  };
+  const handleRemoveEmail = guid => {};
 
   const handleWhatsappNotify = (index, val) => {
     let whatsappArr = [...whatsapp];
@@ -200,11 +205,7 @@ const Settings = ({navigation}) => {
     setWhatsapp(whatsappArr);
   };
 
-  const handleRemoveWhatsapp = index => {
-    let whatsappArr = [...whatsapp];
-    whatsappArr.splice(index, 1);
-    setWhatsapp(whatsappArr);
-  };
+  const handleRemoveWhatsapp = guid => {};
 
   const handleSiteInformation = item => {
     setSelectedSiteInfo(item);
@@ -389,7 +390,7 @@ const Settings = ({navigation}) => {
               </TouchableOpacity>
             </View>
             <View style={styles.emailContainer}>
-              {emails.map((item, i) => (
+              {alertListPreferences?.email?.map((item, i) => (
                 <View
                   key={`emails_${i}`}
                   style={[
@@ -401,12 +402,14 @@ const Settings = ({navigation}) => {
                       <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
                     </TouchableOpacity>
                     <Text style={[styles.mySiteName, {marginLeft: 10}]}>
-                      {item?.email}
+                      {item?.destination}
                     </Text>
                   </View>
                   <Switch
-                    value={item.enabled}
-                    onValueChange={val => handleEmailNotify(i, val)}
+                    value={item.isEnabled}
+                    onValueChange={val =>
+                      handleEmailNotify(item?.destination, val)
+                    }
                   />
                 </View>
               ))}
@@ -426,7 +429,7 @@ const Settings = ({navigation}) => {
               </TouchableOpacity>
             </View>
             <View style={styles.emailContainer}>
-              {whatsapp.map((item, i) => (
+              {alertListPreferences?.whatsapp?.map((item, i) => (
                 <View
                   key={`emails_${i}`}
                   style={[
@@ -438,25 +441,52 @@ const Settings = ({navigation}) => {
                       <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
                     </TouchableOpacity>
                     <Text style={[styles.mySiteName, {marginLeft: 10}]}>
-                      {item?.contact}
+                      {item?.destination}
                     </Text>
                   </View>
                   <Switch
-                    value={item.enabled}
+                    value={item.isEnabled}
                     onValueChange={val => handleWhatsappNotify(i, val)}
                   />
                 </View>
               ))}
             </View>
           </View>
-          <View style={styles.mySiteNameContainer}>
-            <View style={styles.mobileContainer}>
-              <SmsIcon />
-              <Text style={[styles.smallHeading, {marginLeft: 13}]}>Sms</Text>
+          {/* sms */}
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <SmsIcon />
+                <Text style={[styles.smallHeading, {marginLeft: 13}]}>Sms</Text>
+              </View>
+              <TouchableOpacity onPress={handleAddSms}>
+                <AddIcon />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={handleAddSms}>
-              <AddIcon />
-            </TouchableOpacity>
+            <View style={styles.emailContainer}>
+              {alertListPreferences?.sms?.map((item, i) => (
+                <View
+                  key={`emails_${i}`}
+                  style={[
+                    styles.emailSubContainer,
+                    {justifyContent: 'space-between'},
+                  ]}>
+                  <View style={styles.emailSubContainer}>
+                    <TouchableOpacity
+                      onPress={() => handleRemoveWhatsapp(item.guid)}>
+                      <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+                    </TouchableOpacity>
+                    <Text style={[styles.mySiteName, {marginLeft: 10}]}>
+                      {item?.destination}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={item.isEnabled}
+                    onValueChange={val => handleWhatsappNotify(i, val)}
+                  />
+                </View>
+              ))}
+            </View>
           </View>
         </View>
         {/* Warning */}
@@ -831,6 +861,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.BLACK,
     paddingVertical: 5,
+    width: SCREEN_WIDTH / 1.9,
   },
   smallHeading: {
     fontSize: Typography.FONT_SIZE_16,
