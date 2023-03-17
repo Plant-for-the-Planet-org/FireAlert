@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import React, {useCallback, useState} from 'react';
+import {useFocusEffect} from '@react-navigation/native';
 
 import {
   AddIcon,
@@ -34,11 +35,15 @@ import {
   getSites,
   deleteSite,
 } from '../../redux/slices/sites/siteSlice';
+import {
+  getAlertsPreferences,
+  deleteAlertPreferences,
+  updateAlertPreferences,
+} from '../../redux/slices/alerts/alertSlice';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {CustomButton, FloatingInput, Switch} from '../../components';
-import {updateAlertPreferences} from '../../redux/slices/alerts/alertSlice';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -85,53 +90,15 @@ const RADIUS_ARR = [
   {name: 'inside', value: null},
 ];
 
-const EMAILS = [
-  {
-    id: 1,
-    email: 'mah@gmail.com',
-    enabled: false,
-  },
-  {
-    id: 2,
-    email: 'john12@gmail.com',
-    enabled: true,
-  },
-  {
-    id: 3,
-    email: 'xodd@gmail.com',
-    enabled: false,
-  },
-];
-
-const WHATSAPP_CONTACT = [
-  {
-    id: 1,
-    contact: '9887333334',
-    enabled: false,
-  },
-  {
-    id: 2,
-    contact: '8873333346',
-    enabled: true,
-  },
-  {
-    id: 3,
-    contact: '8867333346',
-    enabled: true,
-  },
-];
-
 const Settings = ({navigation}) => {
   const [projects, setProjects] = useState(PROJECTS);
   const [mySites, setMySites] = useState(MY_SITES);
-  const [whatsapp, setWhatsapp] = useState(WHATSAPP_CONTACT);
   const [dropDownModal, setDropDownModal] = useState(false);
   const [sitesInfoModal, setSitesInfoModal] = useState(false);
   const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
   const [selectedSiteInfo, setSelectedSiteInfo] = useState(null);
   const [pageXY, setPageXY] = useState(null);
   const [mobileNotify, setMobileNotify] = useState(false);
-  const [emails, setEmails] = useState(EMAILS);
   const [siteName, setSiteName] = useState('');
   const [siteGuid, setSiteGuid] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -185,24 +152,34 @@ const Settings = ({navigation}) => {
     setDropDownModal(!dropDownModal);
   };
 
-  const handleEmailNotify = (destination, val) => {
+  const handleNotifySwitch = (data, isEnabled) => {
+    const {guid} = data;
     const request = {
       payload: {
-        destination: destination,
-        isVerified: val,
+        guid,
+        isEnabled,
       },
-      onSuccess: () => {},
+      onSuccess: () => {
+        const request = {
+          onSuccess: () => {},
+          onFail: () => {},
+        };
+        setTimeout(() => dispatch(getAlertsPreferences(request)), 500);
+      },
       onFail: () => {},
     };
     dispatch(updateAlertPreferences(request));
   };
 
-  const handleRemoveEmail = guid => {};
-
-  const handleWhatsappNotify = (index, val) => {
-    let whatsappArr = [...whatsapp];
-    whatsappArr[index].enabled = val;
-    setWhatsapp(whatsappArr);
+  const handleRemoveEmail = guid => {
+    const request = {
+      params: () => {
+        guid;
+      },
+      onSuccess: () => {},
+      onFail: () => {},
+    };
+    // dispatch(deleteAlertPreferences(request));
   };
 
   const handleRemoveWhatsapp = guid => {};
@@ -283,9 +260,16 @@ const Settings = ({navigation}) => {
       },
     };
     dispatch(getSites(req));
+    dispatch(getAlertsPreferences(req));
   }, []);
 
   const handleBack = () => navigation.goBack();
+
+  useFocusEffect(
+    useCallback(() => {
+      onRefresh();
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -408,7 +392,7 @@ const Settings = ({navigation}) => {
                   <Switch
                     value={item.isEnabled}
                     onValueChange={val =>
-                      handleEmailNotify(item?.destination, val)
+                      handleNotifySwitch({guid: item.guid}, val)
                     }
                   />
                 </View>
@@ -446,7 +430,9 @@ const Settings = ({navigation}) => {
                   </View>
                   <Switch
                     value={item.isEnabled}
-                    onValueChange={val => handleWhatsappNotify(i, val)}
+                    onValueChange={val =>
+                      handleNotifySwitch({guid: item.guid}, val)
+                    }
                   />
                 </View>
               ))}
@@ -482,7 +468,9 @@ const Settings = ({navigation}) => {
                   </View>
                   <Switch
                     value={item.isEnabled}
-                    onValueChange={val => handleWhatsappNotify(i, val)}
+                    onValueChange={val =>
+                      handleNotifySwitch({guid: item.guid}, val)
+                    }
                   />
                 </View>
               ))}
@@ -630,30 +618,6 @@ const Settings = ({navigation}) => {
             </Text>
           </View>
         </View>
-        {dropDownModal ? (
-          <>
-            <TouchableOpacity
-              style={styles.overlay}
-              onPress={() => setDropDownModal(false)}
-            />
-            <View
-              style={[
-                styles.dropDownModal,
-                {
-                  top: pageXY.y + 15,
-                  right: 40,
-                },
-              ]}>
-              {RADIUS_ARR.map((item, index) => (
-                <TouchableOpacity
-                  key={`RADIUS_ARR_${index}`}
-                  onPress={() => handleSelectRadius(item.value)}>
-                  <Text style={styles.siteRadiusText}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        ) : null}
         {/* site information modal */}
         <Modal visible={sitesInfoModal} animationType={'slide'} transparent>
           <TouchableOpacity
@@ -663,6 +627,7 @@ const Settings = ({navigation}) => {
           />
           <View style={[styles.modalContainer, styles.commonPadding]}>
             <View style={styles.modalHeader} />
+
             <View style={styles.siteTitleCon}>
               <Text style={styles.siteTitle}>
                 {selectedSiteInfo?.name || selectedSiteInfo?.guid}
@@ -703,6 +668,29 @@ const Settings = ({navigation}) => {
           </View>
         </Modal>
       </ScrollView>
+      {dropDownModal ? (
+        <>
+          <TouchableOpacity
+            style={styles.overlay}
+            onPress={() => setDropDownModal(false)}
+          />
+          <View
+            style={[
+              styles.dropDownModal,
+              {
+                top: pageXY.y + 15,
+              },
+            ]}>
+            {RADIUS_ARR.map((item, index) => (
+              <TouchableOpacity
+                key={`RADIUS_ARR_${index}`}
+                onPress={() => handleSelectRadius(item.value)}>
+                <Text style={styles.siteRadiusText}>{item.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      ) : null}
     </SafeAreaView>
   );
 };
@@ -807,7 +795,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dropDownModal: {
-    top: 100,
+    right: 40,
     paddingVertical: 15,
     paddingHorizontal: 25,
     borderWidth: 1,

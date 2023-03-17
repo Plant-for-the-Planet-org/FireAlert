@@ -26,7 +26,7 @@ const Otp = ({navigation, route}) => {
   const handleContinue = () => {
     const req = {
       payload: {
-        method: 'sms',
+        method: String(verificationType).toLowerCase(),
         destination:
           verificationType === 'Whatsapp' || verificationType === 'Sms'
             ? phoneInput
