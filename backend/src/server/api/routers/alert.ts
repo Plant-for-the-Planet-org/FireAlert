@@ -6,14 +6,15 @@ import {
 } from "~/server/api/trpc";
 
 
-export const alertMethodRouter = createTRPCRouter({
+export const alertRouter = createTRPCRouter({
 
-    getAllAlertMethod: protectedProcedure.query(({ ctx }) => {
-        return ctx.prisma.alertMethod.findMany({
+    getAllAlerts: protectedProcedure.query(({ ctx }) => {
+        const sites = ctx.prisma.site.findMany({
             where: {
                 userId: ctx.session.user.id,
             }
         })
+        return sites.then.apply({})
     }),
     createAlertMethod: protectedProcedure
         .input(
@@ -24,7 +25,7 @@ export const alertMethodRouter = createTRPCRouter({
                 deviceType: z.string(),
                 isEnabled: z.boolean(),
                 notificationToken: z.string(),
-                userId: z.string(),
+                userId: z.string()
             })
         )
         .mutation(async ({ ctx, input }) => {

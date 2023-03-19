@@ -102,7 +102,7 @@ model Site {
     isMonitored Boolean?
     lastSynced  DateTime?
     deletedAt   DateTime?
-    projectID   String?
+    projectId   String?
 
     userId String
     user   User   @relation(fields: [userId], references: [id])
