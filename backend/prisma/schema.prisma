@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-    provider = "sqlite"
+    provider = "postgresql"
     // NOTE: When using postgresql, mysql or sqlserver, uncomment the @db.Text annotations in model Account below
     // Further reading:
     // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
@@ -27,12 +27,12 @@ model Account {
     type              String
     provider          String
     providerAccountId String
-    refresh_token     String? // @db.Text
-    access_token      String? // @db.Text
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
     expires_at        Int?
     token_type        String?
     scope             String?
-    id_token          String? // @db.Text
+    id_token          String? @db.Text
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -48,13 +48,25 @@ model Session {
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
+    id              String    @id @default(cuid())
+    guid            String?   @unique
+    sub             String?
+    name            String?
+    email           String?   @unique
+    emailVerified   DateTime?
+    detectionMethod String?
+    isPlanetRO      Boolean?
+    image           String?
+    avatar          String?
+    deletedAt       DateTime?
+    isVerified      Boolean?
+    signupDate      DateTime  @default(now())
+
+    accounts Account[]
+    sessions Session[]
+
+    alertMethods AlertMethod[]
+    sites        Site[]
 }
 
 model VerificationToken {
@@ -63,4 +75,54 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+// Fire Alert Schema
+
+model AlertMethod {
+    id                String    @id @default(cuid())
+    guid              String?   @unique
+    method            String?
+    destination       String?
+    isVerified        Boolean?
+    isEnabled         Boolean?
+    deletedAt         DateTime?
+    deviceType        String?
+    notificationToken String?
+    userId            String
+    user              User      @relation(fields: [userId], references: [id])
+}
+
+model Site {
+    id          String    @id @default(cuid())
+    guid        String?   @unique
+    type        String?
+    geometry    Json?
+    radius      String?
+    isMonitored Boolean?
+    lastSynced  DateTime?
+    deletedAt   DateTime?
+    projectID   String?
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
+
+    alerts Alert[]
+}
+
+model Alert {
+    id         String    @id @default(cuid())
+    guid       String?   @unique
+    type       String?
+    eventDate  DateTime?
+    detectedBy String?
+    confidence Int?
+    latitude   Float?
+    longitude  Float?
+    frp        Float?
+    isRead     Boolean?
+    deletedAt  DateTime?
+
+    siteId String
+    site   Site   @relation(fields: [siteId], references: [id])
 }
