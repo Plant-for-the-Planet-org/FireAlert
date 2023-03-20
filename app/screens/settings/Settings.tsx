@@ -326,7 +326,7 @@ const Settings = ({navigation}) => {
           <View style={styles.mySitesHead}>
             <Text style={styles.mainHeading}>My Sites</Text>
           </View>
-          {sites.map((item, index) => (
+          {sites?.polygon?.map((item, index) => (
             <TouchableOpacity
               onPress={() => handleSiteInformation(item)}
               key={`mySites_${index}`}

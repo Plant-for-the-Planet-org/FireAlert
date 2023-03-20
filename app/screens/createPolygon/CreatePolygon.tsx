@@ -33,10 +33,10 @@ import {
   PermissionDeniedAlert,
 } from '../home/permissionAlert/LocationPermissionAlerts';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
+import {useAppDispatch, useAppSelector} from '../../hooks';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import distanceCalculator from '../../utils/distanceCalculator';
-import {addSite} from '../../redux/slices/sites/siteSlice';
-import {useAppDispatch, useAppSelector} from '../../hooks';
+import {addSite, getSites} from '../../redux/slices/sites/siteSlice';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
@@ -232,7 +232,7 @@ const CreatePolygon = ({navigation}) => {
       type: 'Polygon',
       name: siteName,
       geometry: {
-        coordinates: geoJSON.features[0].geometry.coordinates,
+        coordinates: [geoJSON.features[0].geometry.coordinates],
         type: 'Polygon',
       },
       radius: 'inside',
@@ -240,13 +240,13 @@ const CreatePolygon = ({navigation}) => {
     const request = {
       payload,
       onSuccess: () => {
-        //  const req = {
-        //    onSuccess: () => {},
-        //    onFail: () => {},
-        //  };
-        //  setTimeout(() => {
-        //    dispatch(getSites(req));
-        //  }, 500);
+        const req = {
+          onSuccess: () => {},
+          onFail: () => {},
+        };
+        setTimeout(() => {
+          dispatch(getSites(req));
+        }, 500);
         setSiteNameModalVisible(false);
         navigation.navigate('Home');
       },

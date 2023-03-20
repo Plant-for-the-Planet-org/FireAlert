@@ -87,7 +87,7 @@ const AddOptions = () => {
     {
       svgXML: locationIcon,
       title: 'Select Location',
-      onPress: () => {},
+      onPress: () => navigation.navigate('SelectLocation'),
     },
     {
       svgXML: polygonIcon,

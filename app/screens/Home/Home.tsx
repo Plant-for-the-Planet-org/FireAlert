@@ -28,6 +28,7 @@ import {
   SatelliteIcon,
   MapOutlineIcon,
   LocationPinIcon,
+  active_marker,
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {AlertModal, BottomBar} from '../../components';
@@ -41,6 +42,7 @@ import {useAppDispatch, useAppSelector} from '../../hooks';
 import LayerModal from '../../components/layerModal/LayerModal';
 import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {SvgXml} from 'react-native-svg';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -237,11 +239,34 @@ const Home = ({navigation}) => {
     );
   };
 
-  const renderAnnotations = () => {
-    const items = [];
+  const renderSelectedPoint = counter => {
+    const id = sites?.point[counter]?.guid;
+    const coordinate = JSON.parse(sites?.point[counter]?.geometry)?.coordinates;
+    const title = `Longitude: ${coordinate[0]} Latitude: ${coordinate[1]}`;
+    return (
+      <MapboxGL.PointAnnotation
+        id={id}
+        key={id}
+        title={title}
+        // onSelected={e => {
+        //   setSelectedAlert(sites?.point[counter]), console.log(e);
+        // }}
+        coordinate={coordinate}>
+        <SvgXml xml={active_marker} style={styles.markerImage} />
+      </MapboxGL.PointAnnotation>
+    );
+  };
 
-    for (let i = 0; i < alerts.length; i++) {
-      items.push(renderAnnotation(i));
+  const renderAnnotations = isAlert => {
+    const items = [];
+    const arr = isAlert ? alerts : sites?.point;
+
+    for (let i = 0; i < arr?.length; i++) {
+      {
+        isAlert
+          ? items.push(renderAnnotation(i))
+          : items.push(renderSelectedPoint(i));
+      }
     }
 
     return items;
@@ -290,7 +315,7 @@ const Home = ({navigation}) => {
           id={'polygon'}
           shape={{
             type: 'FeatureCollection',
-            features: sites?.map((singleSite, i) => {
+            features: sites?.polygon?.map((singleSite, i) => {
               return {
                 type: 'Feature',
                 properties: {id: singleSite?.guid},
@@ -318,7 +343,8 @@ const Home = ({navigation}) => {
             }}
           />
         </MapboxGL.ShapeSource>
-        {renderAnnotations()}
+        {renderAnnotations(true)}
+        {renderAnnotations(false)}
       </MapboxGL.MapView>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
