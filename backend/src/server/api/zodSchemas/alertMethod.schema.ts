@@ -14,12 +14,12 @@ export const createAlertMethodSchema = z.object({
     userId: z.string(),
 })
 
-export const params = z.object({
+export const alertMethodParams = z.object({
     alertMethodId: z.string(),
 })
 
 export const updateAlertMethodSchema = z.object({
-    params,
+    alertMethodParams,
     body: z.object({
         method: z.string(),
         destination: z.string(),
@@ -32,7 +32,7 @@ export const updateAlertMethodSchema = z.object({
 })
 
 
-export type AlertMethodParamsInput = z.TypeOf<typeof params>;
+export type AlertMethodParamsInput = z.TypeOf<typeof alertMethodParams>;
 export type CreateAlertMethodInput = z.TypeOf<typeof createAlertMethodSchema>;
 export type UpdateAlertMethodInput = z.TypeOf<typeof updateAlertMethodSchema>;
 

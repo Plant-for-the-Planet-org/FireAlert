@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { createAlertMethodSchema, alertMethodParams, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
+import { CreateAlertMethodInput, AlertMethodParamsInput, UpdateAlertMethodInput } from '../zodSchemas/alertMethod.schema'
 
 import {
     createTRPCRouter,
@@ -16,22 +19,12 @@ export const alertMethodRouter = createTRPCRouter({
         })
     }),
     createAlertMethod: protectedProcedure
-        .input(
-            z.object({
-                method: z.string(),
-                destination: z.string(),
-                isVerified: z.boolean(),
-                deviceType: z.string(),
-                isEnabled: z.boolean(),
-                notificationToken: z.string(),
-                userId: z.string(),
-            })
-        )
+        .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
             try {
                 await ctx.prisma.alertMethod.create({
                     data: {
-                        guid: 'alertmethod' + Math.random() * 99999,
+                        guid: "almt_" + Math.floor(Math.random()*999999999),
                         method: input.method,
                         destination: input.destination,
                         isVerified: input.isVerified,

@@ -33,8 +33,6 @@ export const updateSiteSchema = z.object({
 })
 
 
-export type SiteParamsInput = z.TypeOf<typeof params>;
-export type createSiteInput = z.TypeOf<typeof createSiteSchema>;
-export type updateSiteInput = z.TypeOf<typeof updateSiteSchema>;
-
-
+// export type ParamsInput = z.TypeOf<typeof params>;
+// export type CreateSiteInput = z.TypeOf<typeof createSiteSchema>;
+// export type UpdateSiteInput = z.TypeOf<typeof updateSiteSchema>;

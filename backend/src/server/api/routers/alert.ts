@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { createAlertSchema, alertParams, updateAlertSchema } from '../zodSchemas/alert.schema'
+import { CreateAlertInput, AlertParamsInput, UpdateAlertInput } from '../zodSchemas/alert.schema'
 
 import {
     createTRPCRouter,
@@ -17,29 +20,21 @@ export const alertRouter = createTRPCRouter({
         return sites.then.apply({})
     }),
     createAlertMethod: protectedProcedure
-        .input(
-            z.object({
-                method: z.string(),
-                destination: z.string(),
-                isVerified: z.boolean(),
-                deviceType: z.string(),
-                isEnabled: z.boolean(),
-                notificationToken: z.string(),
-                userId: z.string()
-            })
-        )
+        .input(createAlertSchema)
         .mutation(async ({ ctx, input }) => {
             try {
-                await ctx.prisma.alertMethod.create({
+                await ctx.prisma.alert.create({
                     data: {
-                        guid: 'alertmethod' + Math.random() * 99999,
-                        method: input.method,
-                        destination: input.destination,
-                        isVerified: input.isVerified,
-                        isEnabled: input.isEnabled,
-                        deviceType: input.deviceType,
-                        notificationToken: input.notificationToken,
-                        userId: ctx.session.user.id
+                        guid: "almt_" + Math.floor(Math.random()*999999999),
+                        type: input.type,
+                        eventDate: input.eventDate,
+                        detectedBy: input.detectedBy,
+                        confidence: input.confidence,
+                        latitude: input.latitude,
+                        longitude: input.longitude,
+                        frp: input.frp,
+                        isRead: input.isRead,
+                        siteId: input.siteId,
                     }
                 })
             } catch (error) {
