@@ -31,8 +31,3 @@ export const updateSiteSchema = z.object({
         projectId: z.string().optional(),
     }).partial(),
 })
-
-
-// export type ParamsInput = z.TypeOf<typeof params>;
-// export type CreateSiteInput = z.TypeOf<typeof createSiteSchema>;
-// export type UpdateSiteInput = z.TypeOf<typeof updateSiteSchema>;

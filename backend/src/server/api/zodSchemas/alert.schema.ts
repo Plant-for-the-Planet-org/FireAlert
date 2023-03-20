@@ -12,12 +12,12 @@ export const createAlertSchema = z.object({
     siteId: z.string(),
 })
 
-export const alertParams = z.object({
+export const params = z.object({
     alertId: z.string(),
 })
 
 export const updateAlertSchema = z.object({
-    alertParams,
+    params,
     body: z.object({
         type: z.string(),
         eventDate: z.date(),
@@ -32,8 +32,5 @@ export const updateAlertSchema = z.object({
 })
 
 
-export type AlertParamsInput = z.TypeOf<typeof alertParams>;
-export type CreateAlertInput = z.TypeOf<typeof createAlertSchema>;
-export type UpdateAlertInput = z.TypeOf<typeof updateAlertSchema>;
 
 

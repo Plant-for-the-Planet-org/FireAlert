@@ -1,7 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { createSiteSchema, params, updateSiteSchema } from '../zodSchemas/site.schema'
-
-
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -26,16 +24,17 @@ export const siteRouter = createTRPCRouter({
                 });
                 return {
                     status: 'success',
-                    data: site,
+                    data: {
+                        site,
+                    }
                 }
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
                     code: 'CONFLICT',
-                    message: 'Probably, site with that siteID already exists!'
+                    message: 'Probably, site with that siteId already exists!'
                 });
             }
-
         }),
 
     getAllSites: protectedProcedure
@@ -48,21 +47,20 @@ export const siteRouter = createTRPCRouter({
                 })
                 return{
                     status: 'success',
-                    data: sites
+                    data: sites,
                 }
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: 'Did not find the user id'
+                    message: 'Maybe the userid had an error',
                 });
-            }
-            
+            } 
         }),
     
     getSite: protectedProcedure
         .input(params)
-        .mutation(async({ctx, input}) => {
+        .query(async({ctx, input}) => {
             try{
                 const site = await ctx.prisma.site.findFirst({
                     where: { id: input.siteId}
@@ -74,22 +72,21 @@ export const siteRouter = createTRPCRouter({
             }catch (error){
                 console.log(error)
                 throw new TRPCError({
-                    code: 'CONFLICT',
-                    message: 'Probably, site with that siteID already exists!'
+                    code: 'NOT_FOUND',
+                    message: 'Cannot find a site with that siteId!'
                 });
             }
         }),
-
 
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input}) => {
             try{
                 const paramsInput = input.params
-                const data = input.body
+                const body = input.body
                 const updatedSite = await ctx.prisma.site.update({
                     where: {id: paramsInput.siteId},
-                    data: data,
+                    data: body,
                 })
                 return{
                     status: 'success',
@@ -98,9 +95,9 @@ export const siteRouter = createTRPCRouter({
             }catch (error) {
                 console.log(error)
                 throw new TRPCError({
-                    code: 'CONFLICT',
-                    message: 'Probably, site with that siteID already exists!'
-                });
+                    code: 'NOT_FOUND',
+                    message: 'Cannot update that alert!'
+                })
             }
         }),
     
@@ -112,13 +109,14 @@ export const siteRouter = createTRPCRouter({
                     where: {id: input.siteId}
                 })
                 return{
-                    status: 'success'
+                    status: 'success',
+                    data: deletedSite
                 }
             }catch (error){
                 console.log(error)
                 throw new TRPCError({
                     code: 'NOT_FOUND',
-                    message: 'Probably site with that Id is not found'
+                    message: 'Probably site with that Id is not found, so cannot delete site'
                 });
             }
         }),

@@ -1,8 +1,5 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createAlertMethodSchema, alertMethodParams, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
-import { CreateAlertMethodInput, AlertMethodParamsInput, UpdateAlertMethodInput } from '../zodSchemas/alertMethod.schema'
-
+import { createAlertMethodSchema, params, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -11,18 +8,11 @@ import {
 
 export const alertMethodRouter = createTRPCRouter({
 
-    getAllAlertMethod: protectedProcedure.query(({ ctx }) => {
-        return ctx.prisma.alertMethod.findMany({
-            where: {
-                userId: ctx.session.user.id,
-            }
-        })
-    }),
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
             try {
-                await ctx.prisma.alertMethod.create({
+                const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
                         guid: "almt_" + Math.floor(Math.random()*999999999),
                         method: input.method,
@@ -34,8 +24,102 @@ export const alertMethodRouter = createTRPCRouter({
                         userId: ctx.session.user.id
                     }
                 })
+                return {
+                    status: 'success',
+                    data: {
+                        alertMethod,
+                    }
+                }
             } catch (error) {
                 console.log(error)
+                throw new TRPCError({
+                    code: 'CONFLICT',
+                    message: 'Probably, alertMethod with that alertMethodId already exists!'
+                });
             }
         }),
+    
+    getAllAlertMethods: protectedProcedure
+        .query(async ({ ctx }) => {
+            try{
+                const alertMethods = await ctx.prisma.alertMethod.findMany({
+                    where: {
+                        userId: ctx.session.user.id,
+                    }
+                })
+                return{
+                    status: 'success',
+                    data: alertMethods,
+                }
+            }catch (error){
+                console.log(error)
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: 'Maybe the userid had an error',
+            })
+            }      
+        }),
+    
+    getAlertMethod: protectedProcedure
+        .input(params)
+        .query(async({ctx, input}) => {
+            try{
+                const alertMethod = await ctx.prisma.alertMethod.findFirst({
+                    where: { id: input.alertMethodId }
+                })
+                return{
+                    status: 'success',
+                    data: alertMethod,
+                }
+            }catch (error){
+                console.log(error)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Cannot find a site with that siteId!'
+                })
+            }
+        }),
+        
+    updateAlertMethod: protectedProcedure
+        .input(updateAlertMethodSchema)
+        .mutation(async ({ ctx, input}) => {
+            try{
+                const paramsInput = input.params
+                const body = input.body
+                const updatedAlertMethod = await ctx.prisma.site.update({
+                    where: {id: paramsInput.alertMethodId},
+                    data: body,
+                })
+                return{
+                    status: 'success',
+                    data: updatedAlertMethod,
+                }
+            }catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: 'CONFLICT',
+                    message: 'Probably, site with that siteID already exists!'
+                });
+            }
+        }),
+    
+    deleteAlertMethod: protectedProcedure
+        .input(params)
+        .mutation(async ({ctx, input}) => {
+            try{
+                const deletedAlertMethod = await ctx.prisma.site.delete({
+                    where: {id: input.alertMethodId}
+                })
+                return{
+                    status: 'success',
+                    data: deletedAlertMethod,
+                }
+            }catch (error){
+                console.log(error)
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Probably alertMethod with that Id is not found, so cannot delete AlertMethods'
+                });
+            }
+        }),        
 });
