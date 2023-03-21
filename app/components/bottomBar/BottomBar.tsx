@@ -81,18 +81,24 @@ interface IBottomBarProps {
   onListPress: any;
 }
 
-const AddOptions = ({onReqClose}) => {
+const AddOptions = ({onReqClose, onPressCallback}) => {
   const navigation = useNavigation();
   const addOptions = [
     {
       svgXML: locationIcon,
       title: 'Select Location',
-      onPress: () => navigation.navigate('SelectLocation'),
+      onPress: () => {
+        navigation.navigate('SelectLocation');
+        onPressCallback();
+      },
     },
     {
       svgXML: polygonIcon,
       title: 'Create Polygon',
-      onPress: () => navigation.navigate('CreatePolygon'),
+      onPress: () => {
+        navigation.navigate('CreatePolygon');
+        onPressCallback();
+      },
     },
     {
       svgXML: uploadIcon,
@@ -230,7 +236,11 @@ const BottomBar = ({
         </TouchableOpacity>
         <SafeAreaView style={styles.safeArea} />
       </View>
-      {showAddOptions ? <AddOptions onReqClose={onAddPress} /> : []}
+      {showAddOptions ? (
+        <AddOptions onReqClose={onAddPress} onPressCallback={onAddPress} />
+      ) : (
+        []
+      )}
     </>
   );
 };

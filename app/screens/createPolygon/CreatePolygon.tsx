@@ -8,6 +8,7 @@ import {
   StyleSheet,
   BackHandler,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import React, {useEffect, useRef, useState} from 'react';
@@ -353,6 +354,7 @@ const CreatePolygon = ({navigation}) => {
     );
   };
 
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
   const handleClose = () => navigation.goBack();
   const closeMapLayer = () => setVisible(false);
   const handleSiteModalContinue = () => {
@@ -497,15 +499,33 @@ const CreatePolygon = ({navigation}) => {
         <MyLocIcon />
       </TouchableOpacity>
       <Modal visible={siteNameModalVisible} transparent>
-        <View style={styles.siteModalStyle}>
-          <FloatingInput label={'Site Name'} onChangeText={setSiteName} />
-          <CustomButton
-            title="Continue"
-            onPress={handleSiteModalContinue}
-            style={styles.btnContinueSiteModal}
-            titleStyle={styles.title}
-          />
-        </View>
+        <KeyboardAvoidingView
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+          style={styles.siteModalStyle}>
+          <TouchableOpacity
+            onPress={handleCloseSiteModal}
+            style={styles.crossContainer}>
+            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+          </TouchableOpacity>
+          <Text style={[styles.heading, styles.commonPadding]}>
+            Enter Site Name
+          </Text>
+          <View
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            <FloatingInput
+              autoFocus
+              isFloat={false}
+              label={'Site Name'}
+              onChangeText={setSiteName}
+            />
+            <CustomButton
+              title="Continue"
+              onPress={handleSiteModalContinue}
+              style={styles.btnContinueSiteModal}
+              titleStyle={styles.title}
+            />
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -624,10 +644,26 @@ const styles = StyleSheet.create({
   },
   siteModalStyle: {
     flex: 1,
-    justifyContent: 'center',
     backgroundColor: Colors.WHITE,
+    justifyContent: 'center',
   },
   btnContinueSiteModal: {
-    marginTop: 18,
+    position: 'absolute',
+    bottom: 40,
+  },
+  crossContainer: {
+    width: 25,
+    marginTop: 60,
+    marginHorizontal: 40,
+  },
+  heading: {
+    marginTop: 20,
+    marginBottom: 10,
+    fontSize: Typography.FONT_SIZE_24,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  commonPadding: {
+    paddingHorizontal: 40,
   },
 });

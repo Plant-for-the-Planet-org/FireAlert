@@ -21,6 +21,7 @@ const FloatingInput = props => {
     label = 'input',
     verifier = false,
     verified = false,
+    isFloat = true,
     ...restOfProps
   } = props;
   const [isFocused, setIsFocused] = useState(false);
@@ -39,17 +40,19 @@ const FloatingInput = props => {
         {borderColor: errors ? Colors.ALERT : Colors.GRAY_MEDIUM},
         verifier && {flexDirection: 'row', alignItems: 'center'},
       ]}>
-      <View style={styles.labelContainer}>
-        <Text
-          style={[
-            styles.label,
-            {
-              color,
-            },
-          ]}>
-          {label}
-        </Text>
-      </View>
+      {isFloat && (
+        <View style={styles.labelContainer}>
+          <Text
+            style={[
+              styles.label,
+              {
+                color,
+              },
+            ]}>
+            {label}
+          </Text>
+        </View>
+      )}
       <TextInput
         onBlur={onBlur}
         style={[
