@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 
-const useCountdown = time => {
+const useCountdown = (time: number) => {
   const [timeout, setTimeout] = useState(time);
   const timer = () => setTimeout(prevState => prevState - 1);
   useEffect(() => {

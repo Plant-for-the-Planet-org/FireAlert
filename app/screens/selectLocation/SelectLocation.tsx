@@ -33,7 +33,7 @@ import {locationPermission} from '../../utils/permissions';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import {CustomButton, AlertModal, LayerModal} from '../../components';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import {addSite} from '../../redux/slices/sites/siteSlice';
+import {addSite, getSites} from '../../redux/slices/sites/siteSlice';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -157,6 +157,11 @@ const SelectLocation = ({navigation}) => {
         type: 'Point',
       },
       onSuccess: () => {
+        const req = {
+          onSuccess: () => {},
+          onFail: () => {},
+        };
+        setTimeout(() => dispatch(getSites(req)), 500);
         navigation.navigate('Home');
       },
       onFail: () => {},

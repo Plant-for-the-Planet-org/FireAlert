@@ -23,7 +23,7 @@ import {
 import {Colors, Typography} from '../../styles';
 import {plusIcon} from '../../assets/svgs/plusIcon';
 
-let {width} = Dimensions.get('window');
+let {width, height} = Dimensions.get('window');
 const IS_ANDROID = Platform.OS === 'android';
 
 const buttonWidth = 64;
@@ -81,7 +81,7 @@ interface IBottomBarProps {
   onListPress: any;
 }
 
-const AddOptions = () => {
+const AddOptions = ({onReqClose}) => {
   const navigation = useNavigation();
   const addOptions = [
     {
@@ -102,7 +102,10 @@ const AddOptions = () => {
   ];
 
   return (
-    <View style={styles.addOptionsParent}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onReqClose}
+      style={styles.addOptionsParent}>
       <View style={styles.addOptionsContainer}>
         {addOptions.length > 0
           ? addOptions.map((option: any, index: number) => (
@@ -124,7 +127,7 @@ const AddOptions = () => {
             ))
           : []}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -227,7 +230,7 @@ const BottomBar = ({
         </TouchableOpacity>
         <SafeAreaView style={styles.safeArea} />
       </View>
-      {showAddOptions ? <AddOptions /> : []}
+      {showAddOptions ? <AddOptions onReqClose={onAddPress} /> : []}
     </>
   );
 };
@@ -302,11 +305,15 @@ const styles = StyleSheet.create({
     bottom: tabbarHeight + 42,
     left: 0,
     right: 0,
+    bottom: 0,
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    height,
   },
   addOptionsContainer: {
     width: 257,
     borderRadius: 14,
+    marginBottom: 130,
     backgroundColor: Colors.WHITE,
     justifyContent: 'center',
     alignItems: 'flex-start',
