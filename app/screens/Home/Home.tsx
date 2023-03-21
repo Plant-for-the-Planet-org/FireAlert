@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
+import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Auth0, {useAuth0} from 'react-native-auth0';
 import React, {useEffect, useRef, useState} from 'react';
@@ -42,7 +43,6 @@ import {useAppDispatch, useAppSelector} from '../../hooks';
 import LayerModal from '../../components/layerModal/LayerModal';
 import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import {SvgXml} from 'react-native-svg';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;

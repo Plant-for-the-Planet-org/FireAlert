@@ -586,17 +586,33 @@ const Settings = ({navigation}) => {
           <View style={styles.warningSubContainer}>
             <PlanetLogo />
             <Text style={styles.warningText2}>
-              <Text style={styles.primaryUnderline}>FireAlert</Text> is a
-              project of the{' '}
-              <Text style={styles.primaryUnderline}>
+              <Text
+                onPress={() => handleLink('https://pp.eco/firealert')}
+                style={styles.primaryUnderline}>
+                FireAlert
+              </Text>{' '}
+              is a project of the{' '}
+              <Text
+                onPress={() =>
+                  handleLink('https://www.plant-for-the-planet.org/')
+                }
+                style={styles.primaryUnderline}>
                 Plant-for-the-Planet Foundation
               </Text>
               , a non-profit organisation dedicated to restoring and conserving
               the world’s forests.{'\n\n'}
               <Text>
                 By using this app, you agree to our{' '}
-                <Text style={styles.primaryUnderline}>Terms & Conditions</Text>.
-                <Text style={styles.primaryUnderline}> Disclaimer</Text>.
+                <Text
+                  onPress={() =>
+                    handleLink(
+                      'https://www.plant-for-the-planet.org/terms-and-conditions/',
+                    )
+                  }
+                  style={styles.primaryUnderline}>
+                  Terms & Conditions
+                </Text>
+                .<Text style={styles.primaryUnderline}> Disclaimer</Text>.
               </Text>
             </Text>
           </View>
@@ -604,16 +620,37 @@ const Settings = ({navigation}) => {
             <NasaLogo />
             <Text style={styles.warningText2}>
               We gratefully acknowledge the use of data and from NASA's{' '}
-              <Text style={styles.primaryUnderline}>
+              <Text
+                onPress={() =>
+                  handleLink('https://firms.modaps.eosdis.nasa.gov/')
+                }
+                style={styles.primaryUnderline}>
                 {' '}
                 Information for Resource Management System (FIRMS)
               </Text>
               , part of NASA's Earth Observing System Data and Information
               System (EOSDIS). {'\n\n'}We thank the scientists and engineers who
-              built <Text style={styles.primaryUnderline}>MODIS, VIIRS</Text>{' '}
-              and <Text style={styles.primaryUnderline}>Landsat</Text>. We
-              appreciate NASA’s dedication to sharing data. This project is not
-              affiliated with NASA.{' '}
+              built{' '}
+              <Text
+                onPress={() => handleLink('https://modis.gsfc.nasa.gov/')}
+                style={styles.primaryUnderline}>
+                MODIS,
+              </Text>{' '}
+              <Text
+                onPress={() =>
+                  handleLink('https://www.earthdata.nasa.gov/sensors/viirs')
+                }
+                style={styles.primaryUnderline}>
+                VIIRS
+              </Text>{' '}
+              and{' '}
+              <Text
+                onPress={() => handleLink('https://landsat.gsfc.nasa.gov/')}
+                style={styles.primaryUnderline}>
+                Landsat
+              </Text>
+              . We appreciate NASA’s dedication to sharing data. This project is
+              not affiliated with NASA.{' '}
               <Text style={styles.primaryUnderline}>FIRMS Disclaimer</Text>. 
             </Text>
           </View>
