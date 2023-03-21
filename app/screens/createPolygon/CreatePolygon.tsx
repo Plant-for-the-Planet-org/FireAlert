@@ -26,7 +26,7 @@ import {
   MyLocIcon,
   SatelliteDish,
 } from '../../assets/svgs';
-import Map from '../MapMarking/Map';
+import Map from './MapMarking/Map';
 import {Colors, Typography} from '../../styles';
 import {locationPermission} from '../../utils/permissions';
 import {

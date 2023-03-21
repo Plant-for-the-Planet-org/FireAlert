@@ -11,9 +11,12 @@ import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
 
 import Markers from '../Markers';
-import {Colors, Typography} from '../../styles';
-import {active_marker} from '../../assets/svgs';
-import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {Colors, Typography} from '../../../styles';
+import {active_marker} from '../../../assets/svgs';
+import {
+  MapLayerContext,
+  useMapLayers,
+} from '../../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
 let attributionPosition: any = {

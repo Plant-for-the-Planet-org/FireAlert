@@ -1893,6 +1893,11 @@
     deepmerge "^4.2.2"
     svgo "^2.8.0"
 
+"@tmcw/togeojson@^5.6.0":
+  version "5.6.0"
+  resolved "https://registry.yarnpkg.com/@tmcw/togeojson/-/togeojson-5.6.0.tgz#a6c96971acdf36eef73a1c398cf19a565eb02831"
+  integrity sha512-p+c0kbSY/tIwd3C0rpmTf3iFAOUYV6bkJbDiq0oQDGROOc7c6uh/X8r/mijY6SIFYIkVuKc8MS2REKhur2e6Jw==
+
 "@trysound/sax@0.2.0":
   version "0.2.0"
   resolved "https://registry.npmjs.org/@trysound/sax/-/sax-0.2.0.tgz"
@@ -4063,6 +4068,11 @@ geojson-rbush@3.x:
     "@turf/meta" "6.x"
     "@types/geojson" "7946.0.8"
     rbush "^3.0.1"
+
+geojson-validation@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/geojson-validation/-/geojson-validation-1.0.2.tgz#5c11a83afbec9a1cb9d76c73d47843dbd154d3ff"
+  integrity sha512-K5jrJ4wFvORn2pRKeg181LL0QPYuEKn2KHPvfH1m2QtFlAXFLKdseqt0XwBM3ELOY7kNM1fglRQ6ZwUQZ5S00A==
 
 get-caller-file@^2.0.1, get-caller-file@^2.0.5:
   version "2.0.5"
@@ -6500,6 +6510,21 @@ react-native-country-picker-modal@^2.0.0:
     prop-types "15.7.2"
     react-async-hook "3.6.1"
 
+react-native-document-picker@^8.1.4:
+  version "8.1.4"
+  resolved "https://registry.yarnpkg.com/react-native-document-picker/-/react-native-document-picker-8.1.4.tgz#75a7e08d499c88fd9db5370efb3338cd6a921509"
+  integrity sha512-1GJ6jKTxmoT3jyQQjH6cBXZDLLAjCe+f3JE//bfm1+CFa12ziM4wkv8o6sVzbqQWbFr98Mvnx9VKptmUNTXVWQ==
+  dependencies:
+    invariant "^2.2.4"
+
+react-native-fs@^2.20.0:
+  version "2.20.0"
+  resolved "https://registry.yarnpkg.com/react-native-fs/-/react-native-fs-2.20.0.tgz#05a9362b473bfc0910772c0acbb73a78dbc810f6"
+  integrity sha512-VkTBzs7fIDUiy/XajOSNk0XazFE9l+QlMAce7lGuebZcag5CnjszB+u4BdqzwaQOdcYb5wsJIsqq4kxInIRpJQ==
+  dependencies:
+    base-64 "^0.1.0"
+    utf8 "^3.0.0"
+
 react-native-geolocation-service@^5.3.1:
   version "5.3.1"
   resolved "https://registry.npmjs.org/react-native-geolocation-service/-/react-native-geolocation-service-5.3.1.tgz"
@@ -7644,6 +7669,11 @@ use@^3.1.0:
   resolved "https://registry.npmjs.org/use/-/use-3.1.1.tgz"
   integrity sha512-cwESVXlO3url9YWlFW/TA9cshCEhtu7IKJ/p5soJ/gGpj7vbvFrAY/eIioQ6Dw23KjZhYgiIo8HOs1nQ2vr/oQ==
 
+utf8@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/utf8/-/utf8-3.0.0.tgz#f052eed1364d696e769ef058b183df88c87f69d1"
+  integrity sha512-E8VjFIQ/TyQgp+TZfS6l8yp/xWppSAHzidGiRrqe4bK4XP9pTRyKFgGJpO3SN7zdX4DeomTrwaseCHovfpFcqQ==
+
 util-deprecate@^1.0.1, util-deprecate@~1.0.1:
   version "1.0.2"
   resolved "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz"
@@ -7851,6 +7881,11 @@ xmlbuilder@~11.0.0:
   version "11.0.1"
   resolved "https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-11.0.1.tgz"
   integrity sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==
+
+xmldom@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/xmldom/-/xmldom-0.6.0.tgz#43a96ecb8beece991cef382c08397d82d4d0c46f"
+  integrity sha512-iAcin401y58LckRZ0TkI4k0VSM1Qg0KGSc3i8rU+xrxe19A/BN1zHyVSJY7uoutVlaTSzYyk/v5AmkewAP7jtg==
 
 xtend@~4.0.1:
   version "4.0.2"

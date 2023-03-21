@@ -19,6 +19,7 @@ import {polygonIcon} from './polygonIcon';
 import PencilIcon from './pencilIcon.svg';
 import {uploadIcon} from './uploadIcon.js';
 import {locationIcon} from './locationIcon';
+import UploadCloud from './uploadCloud.svg';
 import DistanceIcon from './distanceIcon.svg';
 import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.svg';
@@ -50,6 +51,7 @@ export {
   PlanetLogo,
   LogoutIcon,
   uploadIcon,
+  UploadCloud,
   polygonIcon,
   locationIcon,
   DistanceIcon,

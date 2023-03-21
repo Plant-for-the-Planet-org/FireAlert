@@ -103,7 +103,10 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
     {
       svgXML: uploadIcon,
       title: 'Upload Polygon',
-      onPress: () => {},
+      onPress: () => {
+        navigation.navigate('UploadPolygon');
+        onPressCallback();
+      },
     },
   ];
 

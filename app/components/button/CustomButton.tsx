@@ -7,6 +7,8 @@ interface ICustomButtonProps {
   style?: any;
   titleStyle?: any;
   title?: string;
+  onPress?: any;
+  disabled?: boolean;
 }
 
 const CustomButton = ({
@@ -14,9 +16,13 @@ const CustomButton = ({
   titleStyle,
   title = 'Click',
   onPress,
+  ...restProps
 }: ICustomButtonProps) => {
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.btn, style]}>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.btn, style]}
+      {...restProps}>
       <Text style={[styles.title, titleStyle]}>{title}</Text>
     </TouchableOpacity>
   );

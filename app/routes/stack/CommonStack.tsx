@@ -1,7 +1,15 @@
+import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
-import SelectLocation from '../../screens/selectLocation/SelectLocation';
-import {Home, CreatePolygon, Settings, Verification, Otp} from '../../screens';
+import {
+  Otp,
+  Home,
+  Settings,
+  Verification,
+  CreatePolygon,
+  UploadPolygon,
+  SelectLocation,
+} from '../../screens';
 
 const screenOptions = {headerShown: false};
 const Stack = createNativeStackNavigator();
@@ -15,6 +23,7 @@ const CommonStack = () => {
       <Stack.Screen name="Verification" component={Verification} />
       <Stack.Screen name="Otp" component={Otp} />
       <Stack.Screen name="SelectLocation" component={SelectLocation} />
+      <Stack.Screen name="UploadPolygon" component={UploadPolygon} />
     </Stack.Navigator>
   );
 };
