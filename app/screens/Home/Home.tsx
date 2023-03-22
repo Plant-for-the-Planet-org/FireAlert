@@ -30,17 +30,19 @@ import {
   MapOutlineIcon,
   LocationPinIcon,
 } from '../../assets/svgs';
-import {Colors, Typography} from '../../styles';
-import {locationPermission} from '../../utils/permissions';
-import {AlertModal, BottomBar, BottomSheet, LayerModal} from '../../components';
-
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from './permissionAlert/LocationPermissionAlerts';
+
+import {WEB_URLS} from '../../constants';
+import {Colors, Typography} from '../../styles';
+import handleLink from '../../utils/browserLinking';
+import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {AlertModal, BottomBar, BottomSheet, LayerModal} from '../../components';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -196,6 +198,8 @@ const Home = ({navigation}) => {
       console.log('Log out cancelled');
     }
   };
+
+  const handleOpenPlatform = () => handleLink(WEB_URLS.PP_ECO);
 
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
@@ -413,7 +417,7 @@ const Home = ({navigation}) => {
               <PencilIcon />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.btn}>
+          <TouchableOpacity onPress={handleOpenPlatform} style={styles.btn}>
             <MapOutlineIcon />
             <Text style={styles.siteActionText}>Open Platform</Text>
           </TouchableOpacity>
