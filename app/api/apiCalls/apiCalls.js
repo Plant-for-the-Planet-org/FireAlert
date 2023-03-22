@@ -9,6 +9,14 @@ export const ApiService = {
       token,
     });
   },
+  editUserDetails: async (token, data) => {
+    return fireApi({
+      method: 'PUT',
+      URL: ApiUrl.userDetails,
+      token,
+      data,
+    });
+  },
   sites: async token => {
     return fireApi({
       method: 'GET',

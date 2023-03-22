@@ -1,6 +1,7 @@
 import {
   Text,
   View,
+  Modal,
   Image,
   Linking,
   Platform,
@@ -10,6 +11,7 @@ import {
   BackHandler,
   SafeAreaView,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from 'react-native';
 import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
@@ -20,9 +22,18 @@ import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 
 import {
+  LayerModal,
+  AlertModal,
+  BottomBar,
+  BottomSheet,
+  CustomButton,
+  FloatingInput,
+} from '../../components';
+import {
   LayerIcon,
   MyLocIcon,
   RadarIcon,
+  CrossIcon,
   LogoutIcon,
   PencilIcon,
   active_marker,
@@ -31,8 +42,13 @@ import {
   LocationPinIcon,
 } from '../../assets/svgs';
 import {
-  PermissionBlockedAlert,
+  editUserProfile,
+  getUserDetails,
+  updateIsLoggedIn,
+} from '../../redux/slices/login/loginSlice';
+import {
   PermissionDeniedAlert,
+  PermissionBlockedAlert,
 } from './permissionAlert/LocationPermissionAlerts';
 
 import {WEB_URLS} from '../../constants';
@@ -40,9 +56,7 @@ import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import {AlertModal, BottomBar, BottomSheet, LayerModal} from '../../components';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -64,8 +78,8 @@ const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
 const Home = ({navigation}) => {
-  const {state} = useMapLayers(MapLayerContext);
   const {clearCredentials} = useAuth0();
+  const {state} = useMapLayers(MapLayerContext);
   const {userDetails} = useAppSelector(state => state.loginSlice);
   const {sites} = useAppSelector(state => state.siteSlice);
   const {alerts} = useAppSelector(state => state.alertSlice);
@@ -79,6 +93,9 @@ const Home = ({navigation}) => {
 
   const [visible, setVisible] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+
+  const [profileName, setProfileName] = useState('');
+  const [profileEditModal, setProfileEditModal] = useState(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
@@ -199,6 +216,32 @@ const Home = ({navigation}) => {
     }
   };
 
+  const handleEditProfileName = () => {
+    const payload = {
+      name: profileName,
+      guid: userDetails?.guid,
+    };
+    const request = {
+      payload,
+      onSuccess: () => {
+        const req = {
+          onSuccess: () => {},
+          onFail: () => {},
+        };
+        setTimeout(() => dispatch(getUserDetails(req)), 500);
+      },
+      onFail: () => {},
+    };
+    dispatch(editUserProfile(request));
+    setProfileEditModal(false);
+  };
+
+  const handlePencil = () => {
+    setProfileName(userDetails?.name);
+    setProfileModalVisible(false);
+    setTimeout(() => setProfileEditModal(true), 500);
+  };
+
   const handleOpenPlatform = () => handleLink(WEB_URLS.PP_ECO);
 
   const handleLayer = () => setVisible(true);
@@ -214,6 +257,8 @@ const Home = ({navigation}) => {
 
   const onListPress = () => navigation.navigate('Settings');
   const onMapPress = () => {};
+
+  const handleCloseProfileModal = () => setProfileEditModal(false);
 
   const renderAnnotation = counter => {
     const id = alerts[counter]?.guid;
@@ -413,7 +458,7 @@ const Home = ({navigation}) => {
             <Text style={styles.siteTitle}>
               {userDetails?.name || 'Anonymous Firefighter'}
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handlePencil}>
               <PencilIcon />
             </TouchableOpacity>
           </View>
@@ -488,6 +533,36 @@ const Home = ({navigation}) => {
           </TouchableOpacity>
         </View>
       </BottomSheet>
+      {/* profile edit modal */}
+      <Modal visible={profileEditModal} animationType={'slide'} transparent>
+        <KeyboardAvoidingView
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+          style={styles.siteModalStyle}>
+          <TouchableOpacity
+            onPress={handleCloseProfileModal}
+            style={styles.crossContainer}>
+            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+          </TouchableOpacity>
+          <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+            Edit Your Name
+          </Text>
+          <View
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            <FloatingInput
+              autoFocus
+              isFloat={false}
+              value={profileName}
+              onChangeText={setProfileName}
+            />
+            <CustomButton
+              title="Continue"
+              titleStyle={styles.title}
+              onPress={handleEditProfileName}
+              style={styles.btnContinueSiteModal}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </>
   );
 };
@@ -616,5 +691,29 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
+  crossContainer: {
+    width: 25,
+    marginTop: 60,
+    marginHorizontal: 40,
+  },
+  heading: {
+    marginTop: 20,
+    marginBottom: 10,
+    fontSize: Typography.FONT_SIZE_24,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  siteModalStyle: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
+  },
+  btnContinueSiteModal: {
+    position: 'absolute',
+    bottom: 40,
+  },
+  title: {
+    color: Colors.WHITE,
   },
 });
