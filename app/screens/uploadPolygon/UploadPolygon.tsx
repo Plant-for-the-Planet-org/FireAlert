@@ -127,10 +127,6 @@ const UploadPolygon = ({navigation}) => {
     }
   };
 
-  useEffect(() => {
-    console.log(JSON.stringify(result, null, 2));
-  }, [result]);
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.myProjects, styles.commonPadding]}>

@@ -2,16 +2,24 @@ import {
   Text,
   View,
   Modal,
+  Platform,
   StyleSheet,
   ScrollView,
   Dimensions,
   SafeAreaView,
   RefreshControl,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from 'react-native';
 import React, {useCallback, useState} from 'react';
 import {useFocusEffect} from '@react-navigation/native';
 
+import {
+  Switch,
+  BottomSheet,
+  CustomButton,
+  FloatingInput,
+} from '../../components';
 import {
   AddIcon,
   SmsIcon,
@@ -43,7 +51,6 @@ import {
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {CustomButton, FloatingInput, Switch} from '../../components';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -193,7 +200,7 @@ const Settings = ({navigation}) => {
     setSitesInfoModal(false);
     setSiteName(site.name);
     setSiteGuid(site.guid);
-    setSiteNameModalVisible(true);
+    setTimeout(() => setSiteNameModalVisible(true), 500);
   };
 
   const handleEditSiteInfo = () => {
@@ -264,6 +271,7 @@ const Settings = ({navigation}) => {
   }, []);
 
   const handleBack = () => navigation.goBack();
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -656,12 +664,10 @@ const Settings = ({navigation}) => {
           </View>
         </View>
         {/* site information modal */}
-        <Modal visible={sitesInfoModal} animationType={'slide'} transparent>
-          <TouchableOpacity
-            activeOpacity={0}
-            onPress={() => setSitesInfoModal(false)}
-            style={styles.modalLayer}
-          />
+        <BottomSheet
+          isVisible={sitesInfoModal}
+          backdropColor={Colors.BLACK + '80'}
+          onBackdropPress={() => setSitesInfoModal(false)}>
           <View style={[styles.modalContainer, styles.commonPadding]}>
             <View style={styles.modalHeader} />
 
@@ -685,24 +691,41 @@ const Settings = ({navigation}) => {
               <Text style={styles.siteActionText}>Delete Site</Text>
             </TouchableOpacity>
           </View>
-        </Modal>
+        </BottomSheet>
         <Modal
           visible={siteNameModalVisible}
           animationType={'slide'}
           transparent>
-          <View style={styles.siteModalStyle}>
-            <FloatingInput
-              value={siteName}
-              label={'Site Name'}
-              onChangeText={setSiteName}
-            />
-            <CustomButton
-              title="Continue"
-              onPress={handleEditSiteInfo}
-              style={styles.btnContinueSiteModal}
-              titleStyle={styles.title}
-            />
-          </View>
+          <KeyboardAvoidingView
+            {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+            style={styles.siteModalStyle}>
+            <TouchableOpacity
+              onPress={handleCloseSiteModal}
+              style={styles.crossContainer}>
+              <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+            </TouchableOpacity>
+            <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+              Enter Site Name
+            </Text>
+            <View
+              style={[
+                styles.siteModalStyle,
+                {justifyContent: 'space-between'},
+              ]}>
+              <FloatingInput
+                autoFocus
+                isFloat={false}
+                value={siteName}
+                onChangeText={setSiteName}
+              />
+              <CustomButton
+                title="Continue"
+                onPress={handleEditSiteInfo}
+                style={styles.btnContinueSiteModal}
+                titleStyle={styles.title}
+              />
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
       </ScrollView>
       {dropDownModal ? (
@@ -991,9 +1014,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
   },
   btnContinueSiteModal: {
-    marginTop: 18,
+    position: 'absolute',
+    bottom: 40,
   },
   title: {
     color: Colors.WHITE,
+  },
+  crossContainer: {
+    width: 25,
+    marginTop: 60,
+    marginHorizontal: 40,
+  },
+  heading: {
+    marginTop: 20,
+    marginBottom: 10,
+    fontSize: Typography.FONT_SIZE_24,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
   },
 });

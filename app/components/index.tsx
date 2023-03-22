@@ -6,6 +6,7 @@ import CustomButton from './button/CustomButton';
 import LayerModal from './layerModal/LayerModal';
 import PhoneInput from './phoneInput/PhoneInput';
 import FloatingInput from './inputs/FloatingInput';
+import BottomSheet from './bottomSheet/BottomSheet';
 
 export {
   Switch,
@@ -14,6 +15,7 @@ export {
   LayerModal,
   PhoneInput,
   AlertModal,
+  BottomSheet,
   CustomButton,
   FloatingInput,
 };

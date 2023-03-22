@@ -2,7 +2,6 @@ import {
   Text,
   View,
   Image,
-  Modal,
   Linking,
   Platform,
   StatusBar,
@@ -26,21 +25,20 @@ import {
   RadarIcon,
   LogoutIcon,
   PencilIcon,
+  active_marker,
   SatelliteIcon,
   MapOutlineIcon,
   LocationPinIcon,
-  active_marker,
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
-import {AlertModal, BottomBar} from '../../components';
 import {locationPermission} from '../../utils/permissions';
+import {AlertModal, BottomBar, BottomSheet, LayerModal} from '../../components';
 
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from './permissionAlert/LocationPermissionAlerts';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import LayerModal from '../../components/layerModal/LayerModal';
 import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
@@ -402,12 +400,9 @@ const Home = ({navigation}) => {
         <BottomBar onListPress={onListPress} onMapPress={onMapPress} />
       </SafeAreaView>
       {/* profile modal */}
-      <Modal visible={profileModalVisible} animationType={'slide'} transparent>
-        <TouchableOpacity
-          activeOpacity={0}
-          onPress={() => setProfileModalVisible(false)}
-          style={styles.modalLayer}
-        />
+      <BottomSheet
+        isVisible={profileModalVisible}
+        onBackdropPress={() => setProfileModalVisible(false)}>
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
@@ -427,17 +422,11 @@ const Home = ({navigation}) => {
             <Text style={styles.siteActionText}>Logout</Text>
           </TouchableOpacity>
         </View>
-      </Modal>
+      </BottomSheet>
       {/* fire alert info modal */}
-      <Modal
-        visible={Object.keys(selectedAlert).length > 0}
-        animationType={'slide'}
-        transparent>
-        <TouchableOpacity
-          activeOpacity={0}
-          onPress={() => setSelectedAlert({})}
-          style={[styles.modalLayer, {backgroundColor: Colors.TRANSPARENT}]}
-        />
+      <BottomSheet
+        onBackdropPress={() => setSelectedAlert({})}
+        isVisible={Object.keys(selectedAlert).length > 0}>
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.satelliteInfoCon}>
@@ -494,7 +483,7 @@ const Home = ({navigation}) => {
             </Text>
           </TouchableOpacity>
         </View>
-      </Modal>
+      </BottomSheet>
     </>
   );
 };
@@ -545,16 +534,13 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   modalContainer: {
+    // flex: 1,
     bottom: 0,
     borderRadius: 15,
     paddingBottom: 30,
     width: SCREEN_WIDTH,
-    position: 'absolute',
+    // position: 'absolute',
     backgroundColor: Colors.WHITE,
-  },
-  modalLayer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalHeader: {
     width: 46,
