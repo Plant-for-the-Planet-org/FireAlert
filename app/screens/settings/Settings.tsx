@@ -48,6 +48,8 @@ import {
   deleteAlertPreferences,
   updateAlertPreferences,
 } from '../../redux/slices/alerts/alertSlice';
+
+import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {useAppDispatch, useAppSelector} from '../../hooks';
@@ -252,9 +254,7 @@ const Settings = ({navigation}) => {
     dispatch(deleteSite(request));
   };
 
-  const handleEcoWeb = () => {
-    handleLink('https://pp.eco/');
-  };
+  const _handleEcoWeb = (URL: string) => () => handleLink(URL);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -295,7 +295,9 @@ const Settings = ({navigation}) => {
             <Text style={styles.ppLink}>
               {' '}
               via{' '}
-              <Text onPress={handleEcoWeb} style={styles.underLine}>
+              <Text
+                style={styles.underLine}
+                onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>
                 pp.eco
               </Text>{' '}
             </Text>
@@ -595,15 +597,13 @@ const Settings = ({navigation}) => {
             <PlanetLogo />
             <Text style={styles.warningText2}>
               <Text
-                onPress={() => handleLink('https://pp.eco/firealert')}
-                style={styles.primaryUnderline}>
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.PP_FIRE_ALERT)}>
                 FireAlert
               </Text>{' '}
               is a project of the{' '}
               <Text
-                onPress={() =>
-                  handleLink('https://www.plant-for-the-planet.org/')
-                }
+                onPress={_handleEcoWeb(WEB_URLS.PP_ORG)}
                 style={styles.primaryUnderline}>
                 Plant-for-the-Planet Foundation
               </Text>
@@ -612,12 +612,8 @@ const Settings = ({navigation}) => {
               <Text>
                 By using this app, you agree to our{' '}
                 <Text
-                  onPress={() =>
-                    handleLink(
-                      'https://www.plant-for-the-planet.org/terms-and-conditions/',
-                    )
-                  }
-                  style={styles.primaryUnderline}>
+                  style={styles.primaryUnderline}
+                  onPress={_handleEcoWeb(WEB_URLS.PP_TERMS_CON)}>
                   Terms & Conditions
                 </Text>
                 .<Text style={styles.primaryUnderline}> Disclaimer</Text>.
@@ -629,10 +625,8 @@ const Settings = ({navigation}) => {
             <Text style={styles.warningText2}>
               We gratefully acknowledge the use of data and from NASA's{' '}
               <Text
-                onPress={() =>
-                  handleLink('https://firms.modaps.eosdis.nasa.gov/')
-                }
-                style={styles.primaryUnderline}>
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.FIRMS)}>
                 {' '}
                 Information for Resource Management System (FIRMS)
               </Text>
@@ -640,21 +634,19 @@ const Settings = ({navigation}) => {
               System (EOSDIS). {'\n\n'}We thank the scientists and engineers who
               built{' '}
               <Text
-                onPress={() => handleLink('https://modis.gsfc.nasa.gov/')}
-                style={styles.primaryUnderline}>
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.MODIS)}>
                 MODIS,
               </Text>{' '}
               <Text
-                onPress={() =>
-                  handleLink('https://www.earthdata.nasa.gov/sensors/viirs')
-                }
-                style={styles.primaryUnderline}>
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.VIIRS)}>
                 VIIRS
               </Text>{' '}
               and{' '}
               <Text
-                onPress={() => handleLink('https://landsat.gsfc.nasa.gov/')}
-                style={styles.primaryUnderline}>
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.LANDSAT)}>
                 Landsat
               </Text>
               . We appreciate NASA’s dedication to sharing data. This project is
@@ -670,7 +662,6 @@ const Settings = ({navigation}) => {
           onBackdropPress={() => setSitesInfoModal(false)}>
           <View style={[styles.modalContainer, styles.commonPadding]}>
             <View style={styles.modalHeader} />
-
             <View style={styles.siteTitleCon}>
               <Text style={styles.siteTitle}>
                 {selectedSiteInfo?.name || selectedSiteInfo?.guid}
