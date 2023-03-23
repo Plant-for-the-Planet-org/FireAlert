@@ -28,17 +28,17 @@ import {
   PermissionBlockedAlert,
 } from '../home/permissionAlert/LocationPermissionAlerts';
 
+import {
+  AlertModal,
+  LayerModal,
+  CustomButton,
+  FloatingInput,
+} from '../../components';
+import {useAppDispatch} from '../../hooks';
 import {Colors, Typography} from '../../styles';
-import {useAppDispatch, useAppSelector} from '../../hooks';
 import {locationPermission} from '../../utils/permissions';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import {addSite, getSites} from '../../redux/slices/sites/siteSlice';
-import {
-  CustomButton,
-  AlertModal,
-  LayerModal,
-  FloatingInput,
-} from '../../components';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -74,6 +74,7 @@ const SelectLocation = ({navigation}) => {
   const [isAccuracyModalShow, setIsAccuracyModalShow] = useState(false);
 
   const [siteName, setSiteName] = useState('');
+  const [loading, setLoading] = useState(false);
   const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
 
   const [location, setLocation] = useState<
@@ -154,12 +155,12 @@ const SelectLocation = ({navigation}) => {
   };
 
   const onSelectLocation = async () => {
+    setLoading(true);
     let centerCoordinates = await map.current.getCenter();
     const geometry = {
       type: 'Point',
       coordinates: centerCoordinates,
     };
-
     const request = {
       payload: {
         geometry,
@@ -167,6 +168,8 @@ const SelectLocation = ({navigation}) => {
         name: siteName,
       },
       onSuccess: () => {
+        setLoading(false);
+
         const req = {
           onSuccess: () => {},
           onFail: () => {},
@@ -174,7 +177,9 @@ const SelectLocation = ({navigation}) => {
         setTimeout(() => dispatch(getSites(req)), 500);
         navigation.navigate('Home');
       },
-      onFail: () => {},
+      onFail: () => {
+        setLoading(false);
+      },
     };
     dispatch(addSite(request));
   };
@@ -446,9 +451,10 @@ const SelectLocation = ({navigation}) => {
             />
             <CustomButton
               title="Continue"
+              isLoading={loading}
+              titleStyle={styles.title}
               onPress={handleSiteModalContinue}
               style={styles.btnContinueSiteModal}
-              titleStyle={styles.title}
             />
           </View>
         </KeyboardAvoidingView>

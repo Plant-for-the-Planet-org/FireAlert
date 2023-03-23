@@ -23,7 +23,6 @@ import Geolocation from 'react-native-geolocation-service';
 import {
   LayerModal,
   AlertModal,
-  BottomBar,
   BottomSheet,
   CustomButton,
   FloatingInput,
@@ -94,6 +93,7 @@ const Home = ({navigation}) => {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
 
   const [profileName, setProfileName] = useState('');
+  const [loading, setLoading] = useState(false);
   const [profileEditModal, setProfileEditModal] = useState(false);
 
   const [location, setLocation] = useState<
@@ -216,6 +216,7 @@ const Home = ({navigation}) => {
   };
 
   const handleEditProfileName = () => {
+    setLoading(true);
     const payload = {
       name: profileName,
       guid: userDetails?.guid,
@@ -223,16 +224,20 @@ const Home = ({navigation}) => {
     const request = {
       payload,
       onSuccess: () => {
+        setLoading(false);
+        setProfileEditModal(false);
         const req = {
           onSuccess: () => {},
           onFail: () => {},
         };
         setTimeout(() => dispatch(getUserDetails(req)), 500);
       },
-      onFail: () => {},
+      onFail: () => {
+        setLoading(false);
+        setProfileEditModal(false);
+      },
     };
     dispatch(editUserProfile(request));
-    setProfileEditModal(false);
   };
 
   const handlePencil = () => {
@@ -552,6 +557,7 @@ const Home = ({navigation}) => {
             />
             <CustomButton
               title="Continue"
+              isLoading={loading}
               titleStyle={styles.title}
               onPress={handleEditProfileName}
               style={styles.btnContinueSiteModal}

@@ -48,6 +48,7 @@ const CreatePolygon = ({navigation}) => {
 
   const map = useRef(null);
   const [loader, setLoader] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
   const [siteName, setSiteName] = useState('');
   const [alphabets, setAlphabets] = useState<string[]>([]);
@@ -229,6 +230,7 @@ const CreatePolygon = ({navigation}) => {
   };
 
   const postPolygon = () => {
+    setLoading(true);
     const payload = {
       type: 'Polygon',
       name: siteName,
@@ -241,6 +243,7 @@ const CreatePolygon = ({navigation}) => {
     const request = {
       payload,
       onSuccess: () => {
+        setLoading(false);
         const req = {
           onSuccess: () => {},
           onFail: () => {},
@@ -252,6 +255,7 @@ const CreatePolygon = ({navigation}) => {
         navigation.navigate('Home');
       },
       onFail: () => {
+        setLoading(false);
         setSiteNameModalVisible(false);
       },
     };
@@ -520,6 +524,7 @@ const CreatePolygon = ({navigation}) => {
             />
             <CustomButton
               title="Continue"
+              isLoading={loading}
               onPress={handleSiteModalContinue}
               style={styles.btnContinueSiteModal}
               titleStyle={styles.title}
