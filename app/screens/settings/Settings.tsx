@@ -19,6 +19,7 @@ import {
   BottomSheet,
   CustomButton,
   FloatingInput,
+  BottomBar,
 } from '../../components';
 import {
   AddIcon,
@@ -33,7 +34,6 @@ import {
   PencilIcon,
   DistanceIcon,
   WhatsAppIcon,
-  BackArrowIcon,
   DropdownArrow,
   MapOutlineIcon,
   TrashOutlineIcon,
@@ -256,6 +256,9 @@ const Settings = ({navigation}) => {
 
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
 
+  const onListPress = () => {};
+  const onMapPress = () => navigation.navigate('Home');
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     const req = {
@@ -270,7 +273,6 @@ const Settings = ({navigation}) => {
     dispatch(getAlertsPreferences(req));
   }, []);
 
-  const handleBack = () => navigation.goBack();
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   useFocusEffect(
@@ -282,14 +284,12 @@ const Settings = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+        contentContainerStyle={styles.scrollContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
         {/* my projects */}
         <View style={[styles.myProjects, styles.commonPadding]}>
-          <TouchableOpacity onPress={handleBack} style={styles.backIcon}>
-            <BackArrowIcon />
-          </TouchableOpacity>
           <Text style={styles.mainHeading}>
             My Projects{' '}
             <Text style={styles.ppLink}>
@@ -719,6 +719,7 @@ const Settings = ({navigation}) => {
           </KeyboardAvoidingView>
         </Modal>
       </ScrollView>
+      <BottomBar onListPress={onListPress} onMapPress={onMapPress} />
       {dropDownModal ? (
         <>
           <TouchableOpacity
@@ -751,6 +752,9 @@ export default Settings;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContainer: {
+    paddingBottom: 100,
   },
   modalContainer: {
     bottom: 0,
@@ -790,15 +794,6 @@ const styles = StyleSheet.create({
   },
   myProjects: {
     marginTop: 20,
-  },
-  backIcon: {
-    width: 40,
-    height: 25,
-    paddingRight: 20,
-    marginBottom: 10,
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   mySites: {
     marginTop: 50,

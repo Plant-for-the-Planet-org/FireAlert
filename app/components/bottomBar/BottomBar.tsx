@@ -175,12 +175,16 @@ const BottomBar = ({
   };
 
   const handleMap = () => {
+    console.log('selectedMap');
+
     setSelected(0);
     onMenuPress();
   };
 
   const handleList = () => {
-    // setSelected(1);
+    console.log('selectedSetting');
+
+    setSelected(1);
     onTreeInventoryPress();
   };
 
@@ -208,12 +212,15 @@ const BottomBar = ({
           onPress={handleMap}>
           <View style={styles.tabIconCon}>
             <MapIcon
-              fill={!selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
+              fill={selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
             />
             <Text
               style={[
                 styles.tabText,
-                {color: !selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR},
+                {
+                  color:
+                    selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
+                },
               ]}>
               Map
             </Text>
@@ -226,12 +233,15 @@ const BottomBar = ({
           onPress={handleList}>
           <View style={styles.tabIconCon}>
             <ListIcon
-              fill={selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
+              fill={selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
             />
             <Text
               style={[
                 styles.tabText,
-                {color: selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR},
+                {
+                  color:
+                    selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
+                },
               ]}>
               Settings
             </Text>
