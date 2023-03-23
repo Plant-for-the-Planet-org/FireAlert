@@ -9,6 +9,7 @@ import {
   BackHandler,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
@@ -31,9 +32,14 @@ import {Colors, Typography} from '../../styles';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {locationPermission} from '../../utils/permissions';
 import {getAccuracyColors} from '../../utils/accuracyColors';
-import {CustomButton, AlertModal, LayerModal} from '../../components';
-import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 import {addSite, getSites} from '../../redux/slices/sites/siteSlice';
+import {
+  CustomButton,
+  AlertModal,
+  LayerModal,
+  FloatingInput,
+} from '../../components';
+import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -66,6 +72,9 @@ const SelectLocation = ({navigation}) => {
   const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
   const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
   const [isAccuracyModalShow, setIsAccuracyModalShow] = useState(false);
+
+  const [siteName, setSiteName] = useState('');
+  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
@@ -155,6 +164,7 @@ const SelectLocation = ({navigation}) => {
       payload: {
         geometry,
         type: 'Point',
+        name: siteName,
       },
       onSuccess: () => {
         const req = {
@@ -276,9 +286,17 @@ const SelectLocation = ({navigation}) => {
     setLoader(false);
   };
 
+  const handleSiteModalContinue = () => {
+    if (siteName !== '') {
+      onSelectLocation();
+    }
+  };
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
+
   const handleLayer = () => setVisible(true);
   const handleClose = () => navigation.goBack();
   const closeMapLayer = () => setVisible(false);
+  const handleContinue = () => setSiteNameModalVisible(true);
 
   const onPressPerBlockedAlertPrimaryBtn = () => {};
   const onPressPerBlockedAlertSecondaryBtn = () => {
@@ -377,7 +395,7 @@ const SelectLocation = ({navigation}) => {
       <CustomButton
         title="Select Location"
         style={styles.btnContinue}
-        onPress={onSelectLocation}
+        onPress={handleContinue}
         titleStyle={styles.title}
       />
       <AlertModal
@@ -406,6 +424,35 @@ const SelectLocation = ({navigation}) => {
         onPressPrimaryBtn={onPressPerDeniedAlertPrimaryBtn}
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
+      <Modal visible={siteNameModalVisible} transparent>
+        <KeyboardAvoidingView
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+          style={styles.siteModalStyle}>
+          <TouchableOpacity
+            onPress={handleCloseSiteModal}
+            style={styles.crossContainer}>
+            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+          </TouchableOpacity>
+          <Text style={[styles.heading, styles.commonPadding]}>
+            Enter Site Name
+          </Text>
+          <View
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            <FloatingInput
+              autoFocus
+              isFloat={false}
+              label={'Site Name'}
+              onChangeText={setSiteName}
+            />
+            <CustomButton
+              title="Continue"
+              onPress={handleSiteModalContinue}
+              style={styles.btnContinueSiteModal}
+              titleStyle={styles.title}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </>
   );
 };
@@ -514,5 +561,29 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_BOLD,
     fontWeight: Typography.FONT_WEIGHT_REGULAR,
     fontSize: Typography.FONT_SIZE_12,
+  },
+  siteModalStyle: {
+    flex: 1,
+    backgroundColor: Colors.WHITE,
+    justifyContent: 'center',
+  },
+  btnContinueSiteModal: {
+    position: 'absolute',
+    bottom: 40,
+  },
+  crossContainer: {
+    width: 25,
+    marginTop: 60,
+    marginHorizontal: 40,
+  },
+  heading: {
+    marginTop: 20,
+    marginBottom: 10,
+    fontSize: Typography.FONT_SIZE_24,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  commonPadding: {
+    paddingHorizontal: 40,
   },
 });
