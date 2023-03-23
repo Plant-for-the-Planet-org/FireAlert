@@ -19,7 +19,6 @@ import {
   BottomSheet,
   CustomButton,
   FloatingInput,
-  BottomBar,
 } from '../../components';
 import {
   AddIcon,
@@ -255,9 +254,6 @@ const Settings = ({navigation}) => {
   };
 
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
-
-  const onListPress = () => {};
-  const onMapPress = () => navigation.navigate('Home');
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -719,7 +715,6 @@ const Settings = ({navigation}) => {
           </KeyboardAvoidingView>
         </Modal>
       </ScrollView>
-      <BottomBar onListPress={onListPress} onMapPress={onMapPress} />
       {dropDownModal ? (
         <>
           <TouchableOpacity

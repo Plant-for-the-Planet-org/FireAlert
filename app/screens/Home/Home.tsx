@@ -9,7 +9,6 @@ import {
   Dimensions,
   StyleSheet,
   BackHandler,
-  SafeAreaView,
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
@@ -445,9 +444,6 @@ const Home = ({navigation}) => {
         testID="my_location">
         <MyLocIcon />
       </TouchableOpacity>
-      <SafeAreaView style={styles.safeAreaView}>
-        <BottomBar onListPress={onListPress} onMapPress={onMapPress} />
-      </SafeAreaView>
       {/* profile modal */}
       <BottomSheet
         isVisible={profileModalVisible}
@@ -570,9 +566,6 @@ const Home = ({navigation}) => {
 export default Home;
 
 const styles = StyleSheet.create({
-  safeAreaView: {
-    backgroundColor: '#000',
-  },
   map: {
     flex: 1,
   },

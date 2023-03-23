@@ -76,11 +76,6 @@ const getPath = (): string => {
 
 const d = getPath();
 
-interface IBottomBarProps {
-  onMapPress: any;
-  onListPress: any;
-}
-
 const AddOptions = ({onReqClose, onPressCallback}) => {
   const navigation = useNavigation();
   const addOptions = [
@@ -140,10 +135,7 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
   );
 };
 
-const BottomBar = ({
-  onMapPress: onMenuPress,
-  onListPress: onTreeInventoryPress,
-}: IBottomBarProps) => {
+const BottomBar = ({...props}) => {
   const [selected, setSelected] = useState(0);
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [spinValue] = useState(new Animated.Value(0));
@@ -175,21 +167,17 @@ const BottomBar = ({
   };
 
   const handleMap = () => {
-    console.log('selectedMap');
-
     setSelected(0);
-    onMenuPress();
+    props.navigation.navigate('Home');
   };
 
   const handleList = () => {
-    console.log('selectedSetting');
-
     setSelected(1);
-    onTreeInventoryPress();
+    props.navigation.navigate('Settings');
   };
 
   return (
-    <>
+    <SafeAreaView>
       <View style={styles.bottomBarContainer}>
         <Svg
           width={width * 2 + tabWidth}
@@ -212,14 +200,14 @@ const BottomBar = ({
           onPress={handleMap}>
           <View style={styles.tabIconCon}>
             <MapIcon
-              fill={selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
+              fill={selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
             />
             <Text
               style={[
                 styles.tabText,
                 {
                   color:
-                    selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
+                    selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
                 },
               ]}>
               Map
@@ -233,14 +221,14 @@ const BottomBar = ({
           onPress={handleList}>
           <View style={styles.tabIconCon}>
             <ListIcon
-              fill={selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
+              fill={selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
             />
             <Text
               style={[
                 styles.tabText,
                 {
                   color:
-                    selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
+                    selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
                 },
               ]}>
               Settings
@@ -254,7 +242,7 @@ const BottomBar = ({
       ) : (
         []
       )}
-    </>
+    </SafeAreaView>
   );
 };
 
