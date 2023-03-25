@@ -4,6 +4,7 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "~/server/api/trpc";
+import { randomUUID } from "crypto";
 
 
 export const siteRouter = createTRPCRouter({
@@ -14,12 +15,12 @@ export const siteRouter = createTRPCRouter({
             try {
                 const site = await ctx.prisma.site.create({
                     data: {
-                        guid: "site_" + Math.floor(Math.random() * 999999999),
+                        guid: "site_" + randomUUID(),
                         type: input.type,
                         geometry: input.geometry,
                         radius: input.radius,
                         isMonitored: input.isMonitored,
-                        userId: ctx.session.user.id
+                        userId: ctx.session.user.id,
                     }
                 });
                 return {

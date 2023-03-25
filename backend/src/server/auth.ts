@@ -4,7 +4,6 @@ import {
   type NextAuthOptions,
   type DefaultSession,
 } from "next-auth";
-import GithubProvider from "next-auth/providers/github"
 import Auth0Provider from "next-auth/providers/auth0"
 
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
@@ -21,15 +20,17 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
+      roles: string;
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"];
   }
 
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    // ...other properties
+    // role: UserRole;
+    roles: string;
+  }
 }
 
 /**
@@ -38,26 +39,34 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
+  
   callbacks: {
-    session({ session, user }) {
+    async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
+        session.user.roles = user.roles;
         // session.user.role = user.role; <-- put other properties on the session here
       }
       return session;
     },
   },
   adapter: PrismaAdapter(prisma),
+  jwt: {
+    maxAge: 60 * 60 * 24 * 30,
+    // async encode(data) {
+
+    // },
+    // async decode(params) {
+      
+    // },
+  },
   providers: [
-    GithubProvider({
-      clientId: env.GITHUB_CLIENT_ID,
-      clientSecret: env.GITHUB_CLIENT_SECRET
-    }),
 
     Auth0Provider({
       clientId: env.AUTH0_CLIENT_ID,
       clientSecret: env.AUTH0_CLIENT_SECRET,
-      issuer: env.AUTH0_ISSUER,
+      // NextAuth uses issuer as AUTH0_DOMAIN
+      issuer: env.AUTH0_DOMAIN,
     })
 
 

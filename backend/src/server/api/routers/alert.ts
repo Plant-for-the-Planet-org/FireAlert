@@ -6,6 +6,7 @@ import {
     protectedProcedure,
 } from "~/server/api/trpc";
 import { Alert } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 
 export const alertRouter = createTRPCRouter({
@@ -16,7 +17,7 @@ export const alertRouter = createTRPCRouter({
             try {
                 const alert = await ctx.prisma.alert.create({
                     data: {
-                        guid: "alrt_" + Math.floor(Math.random()*999999999),
+                        guid: "alrt_" + randomUUID(),
                         type: input.type,
                         eventDate: input.eventDate,
                         detectedBy: input.detectedBy,
@@ -84,7 +85,7 @@ export const alertRouter = createTRPCRouter({
                     data: alertsForUser,
                 }
             }catch (error){
-
+                console.log(error)
             }
         }), 
     

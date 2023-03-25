@@ -4,6 +4,7 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "~/server/api/trpc";
+import { randomUUID } from "crypto";
 
 
 export const alertMethodRouter = createTRPCRouter({
@@ -14,7 +15,7 @@ export const alertMethodRouter = createTRPCRouter({
             try {
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
-                        guid: "almt_" + Math.floor(Math.random()*999999999),
+                        guid: "almt_" + randomUUID(),
                         method: input.method,
                         destination: input.destination,
                         isVerified: input.isVerified,

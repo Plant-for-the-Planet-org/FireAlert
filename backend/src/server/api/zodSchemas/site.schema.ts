@@ -5,6 +5,7 @@ export const createSiteSchema = z.object({
         required_error: 'Type of site is required!'
     }),
     geometry: z.object({
+        type: z.string(),
         coordinates: z.number().array().nonempty({
             message: 'Coordinates cannot be empty'
         }),
@@ -24,6 +25,7 @@ export const updateSiteSchema = z.object({
     body: z.object({
         type: z.string(),
         geometry: z.object({
+            type: z.string(),
             coordinates: z.number().array().nonempty()
         }),
         radius: z.string(),

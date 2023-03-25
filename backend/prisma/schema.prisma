@@ -49,7 +49,7 @@ model Session {
 
 model User {
     id              String    @id @default(cuid())
-    guid            String?   @unique
+    guid            String?   @unique @default(dbgenerated("get_random_uuid()"))
     sub             String?
     name            String?
     email           String?   @unique
@@ -61,12 +61,19 @@ model User {
     deletedAt       DateTime?
     isVerified      Boolean?
     signupDate      DateTime  @default(now())
+    roles           Role      @default(USER)
 
     accounts Account[]
     sessions Session[]
 
     alertMethods AlertMethod[]
     sites        Site[]
+}
+
+enum Role {
+    USER
+    ADMIN
+    ROLE_BACKEND
 }
 
 model VerificationToken {
