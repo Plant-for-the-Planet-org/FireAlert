@@ -49,7 +49,7 @@ model Session {
 
 model User {
     id              String    @id @default(cuid())
-    guid            String?   @unique @default(dbgenerated("get_random_uuid()"))
+    guid            String?   @unique @default(uuid())
     sub             String?
     name            String?
     email           String?   @unique
@@ -88,7 +88,7 @@ model VerificationToken {
 
 model AlertMethod {
     id                String    @id @default(cuid())
-    guid              String?   @unique
+    guid              String?   @unique @default(uuid())
     method            String?
     destination       String?
     isVerified        Boolean?
@@ -102,11 +102,11 @@ model AlertMethod {
 
 model Site {
     id          String    @id @default(cuid())
-    guid        String?   @unique
+    guid        String?   @unique @default(uuid())
     type        String?
     geometry    Json?
     radius      String?
-    isMonitored Boolean?
+    isMonitored Boolean?  @default(true)
     lastSynced  DateTime?
     deletedAt   DateTime?
     projectId   String?
@@ -119,7 +119,7 @@ model Site {
 
 model Alert {
     id         String    @id @default(cuid())
-    guid       String?   @unique
+    guid       String?   @unique @default(uuid())
     type       String?
     eventDate  DateTime?
     detectedBy String?

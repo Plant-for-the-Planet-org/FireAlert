@@ -6,12 +6,10 @@ export const createSiteSchema = z.object({
     }),
     geometry: z.object({
         type: z.string(),
-        coordinates: z.number().array().nonempty({
-            message: 'Coordinates cannot be empty'
-        }),
+        coordinates: z.array(z.array(z.number())),
     }),
     radius: z.string(),
-    isMonitored: z.boolean(),
+    isMonitored: z.boolean().optional(),
     userId: z.string(),
     projectId: z.string().optional(),
 })
@@ -26,10 +24,10 @@ export const updateSiteSchema = z.object({
         type: z.string(),
         geometry: z.object({
             type: z.string(),
-            coordinates: z.number().array().nonempty()
+            coordinates: z.array(z.array(z.number()))
         }),
         radius: z.string(),
-        isMonitored: z.boolean(),
+        isMonitored: z.boolean().optional(),
         projectId: z.string().optional(),
     }).partial(),
 })

@@ -4,6 +4,7 @@ import Head from "next/head";
 import { signIn, signOut, useSession } from "next-auth/react";
 
 import { api } from "~/utils/api";
+import Sites from "~/Components/SiteComponent";
 
 const Home: NextPage = () => {
   const hello = api.example.hello.useQuery({ text: "from tRPC" });
@@ -45,6 +46,7 @@ const AuthShowcase: React.FC = () => {
         {sessionData && <span>Logged in as {sessionData.user.id} {sessionData.user.name} {sessionData.user.email} {sessionData.user.image} {sessionData.expires}</span>}
         {secretMessage && <span> - {secretMessage}</span>}
       </p>
+      <Sites />
       <button
         className={styles.loginButton}
         onClick={sessionData ? () => void signOut() : () => void signIn()}
@@ -54,3 +56,6 @@ const AuthShowcase: React.FC = () => {
     </div>
   );
 };
+
+
+
