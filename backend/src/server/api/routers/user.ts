@@ -8,7 +8,7 @@ import {
 
 export const userRouter = createTRPCRouter({
     // getUser can be called only by the admin
-    getUser: adminProcedure
+    getUser: protectedProcedure
         .input(params)
         .query(async({ctx, input}) => {
             try{

@@ -20,9 +20,26 @@ import { type Session } from "next-auth";
 import { getServerAuthSession } from "~/server/auth";
 import { prisma } from "~/server/db";
 
+
+
 type CreateContextOptions = {
   session: Session | null;
+  decodedToken: DecodedToken | null;
 };
+
+interface DecodedToken extends JwtPayload {
+  given_name: string;
+  family_name: string;
+  nickname: string;
+  name: string;
+  picture: string;
+  locale: string;
+  updated_at: string;
+  email: string;
+  email_verified: boolean;
+  sid: string;
+}
+
 
 /**
  * This helper generates the "internals" for a tRPC context. If you need to use it, you can export
@@ -37,6 +54,7 @@ type CreateContextOptions = {
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     session: opts.session,
+    decodedToken: opts.decodedToken,
     prisma,
   };
 };
@@ -50,11 +68,46 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const { req, res } = opts;
 
-  // Get the session from the server using the getServerSession wrapper function
+  // Get token from the headers
+  // const token = req.headers.authorization?.split(' ')[1];
+  const decodedToken = getToken({req});
+
+
+  console.log(`Token from getToken ${JSON.stringify(decodedToken)}`)
+
+
+  // when getUser api call is made:
+  // verify if token is valid, and signed using getToken()
+  // decode the token! 
+  // check if sub from the token already exists as a providerAccountId from account table, 
+  // use sub as user guid
+  // if user exists (go to line 81)
+  // if user does not exist, create the new user with the information from the access token. 
+  // then add then return the user in the api call
+
+  
+
+  // when any other api call is made:
+  // verify if token is valid, and signed using getToken()
+  // decode the token! 
+  // check if sub from the token already exists as a providerAccountId from account table, 
+  // use sub as user guid
+  // if user exists (go to line 91)
+  // if user does not exist, throw a 401 error. 
+  // then return the data that belongs to the user
+
+
+  if (typeof decodedToken === 'string'){
+    throw new TRPCError({message: 'decodedToken was string!', code:'BAD_REQUEST'})
+  }
+
+  console.log(`Will this run if there is no token in the header? ${decodedToken}`)
+
   const session = await getServerAuthSession({ req, res });
 
   return createInnerTRPCContext({
     session,
+    decodedToken
   });
 };
 
@@ -68,6 +121,9 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import jwt, {type JwtPayload} from 'jsonwebtoken'
+import { getToken } from "next-auth/jwt";
+
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
@@ -109,6 +165,7 @@ export const publicProcedure = t.procedure;
 /** Reusable middleware that enforces users are logged in before running the procedure. */
 const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
   // Add alternative method to make sure that a user can also be authorized with http-authorization-header using bearer token
+  console.log(`This is session from protected procedure ${JSON.stringify(ctx.session)}`)
   if (!ctx.session || !ctx.session.user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
@@ -119,6 +176,36 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
     },
   });
 });
+
+const enforceUserIsUser = t.middleware(({ ctx, next }) => {
+
+  // check if sub from the token already exists as a providerAccountId from account table, 
+  // use sub as user guid
+  // if user exists (go to line 81)
+  // if user does not exist, create the new user with the information from the access token. 
+  // then add then return the user in the api call
+
+  if(ctx.decodedToken?.sub === ctx.session?.account.providerAccountId){
+    //Aashish: I need to make account be available in context
+    // use sub as user guid
+  }
+  
+
+  
+  if(ctx.decodedToken?.email !== ctx.session?.user.email){
+    throw new TRPCError({ code: 'UNAUTHORIZED'})
+  }
+
+
+
+  console.log('Passed all checks!')
+
+  return next({
+    ctx: {
+      session: { ...ctx.session, user: ctx.session!.user}
+    }
+  })
+})
 
 const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
   if (ctx.session?.user.roles !== 'ADMIN') {
@@ -131,6 +218,7 @@ const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
   })
 })
 
+
 /**
  * Protected (authenticated) procedure
  *
@@ -139,6 +227,6 @@ const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+export const protectedProcedure = t.procedure.use(enforceUserIsUser);
 
 export const adminProcedure = t.procedure.use(enforceUserIsAdmin);

@@ -9,6 +9,12 @@ import Auth0Provider from "next-auth/providers/auth0"
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { env } from "~/env.mjs";
 import { prisma } from "~/server/db";
+import { signIn, signOut } from "next-auth/react";
+import { getToken, JWT } from "next-auth/jwt";
+import { Account, User } from "@prisma/client";
+import jwt, {type JwtPayload} from 'jsonwebtoken'
+import { setCookie, destroyCookie } from 'nookies';
+
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -21,10 +27,13 @@ declare module "next-auth" {
     user: {
       id: string;
       roles: string;
+      id_token?: string;
+      token_type?: string;
       // ...other properties
       // role: UserRole;
-    } & DefaultSession["user"];
+    } & DefaultSession["user"],
   }
+
 
   interface User {
     // ...other properties
@@ -39,29 +48,88 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
+
+  session: {
+    strategy: 'jwt'
+  },
   
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        session.user.roles = user.roles;
-        // session.user.role = user.role; <-- put other properties on the session here
+    // async session({ session, user, token}) {
+    //   if (session.user) {
+    //     const id_token = token.id_token as string;
+    //     const token_type = token.token_type as string;
+
+    //     session.user.id = user.id;
+    //     session.user.roles = user.roles;
+    //     session.token.id_token = id_token;
+    //     session.token.token_type = token_type;
+        
+    //     // session.user.role = user.role; <-- put other properties on the session here
+    //   }
+    //   // Seems like this runs at each login
+    //   console.log(`Session is ${JSON.stringify(session)}`)
+    //   return session;
+    // },
+
+    session: async({session, token}) => {
+      console.log(`Session Callback, ${JSON.stringify(session)} ${JSON.stringify(token)}`)
+      console.log(`Token id is ${token.id_token}`) // token.id is undefined!
+      
+      const user = session.user as User;
+      const id_token = token.id_token as string;
+      const token_type = token.token_type as string;
+      const roles = user.roles as string;
+
+      const decodedToken = jwt.decode(id_token)
+      console.log(`The decoded token is ${JSON.stringify(decodedToken)}`)
+      
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id_token: id_token,
+          token_type: token_type,
+          roles: roles
+        }
       }
-      return session;
+    },
+
+    jwt: async({token, user, account}) => {
+      console.log('JWT Callback', {token, user, account})
+      if(user && account) {
+        const u = user as unknown as User
+        const a = account as unknown as Account
+
+        const id_token = a.id_token as string;
+        const token_type = a.token_type as string;
+        const roles = u.roles as string;
+        return {
+          ...token,
+          id_token: id_token,
+          token_type: token_type,
+          roles: roles
+        }
+      }
+      return token
+    },
+
+    signIn: async({account}) => {
+      const token = account?.id_token
+      // TODO: I have to somehow add the token to cookies!
+      // SOLUTION: I couldn't do it with every successful sign in, but when the page loaded, I added token in cookie in index.tsx
+      return true
     },
   },
+
   adapter: PrismaAdapter(prisma),
-  jwt: {
-    maxAge: 60 * 60 * 24 * 30,
-    // async encode(data) {
 
-    // },
-    // async decode(params) {
-      
-    // },
-  },
+  // When a user goes to this page, they are supposed to signup, or signin!
+  // pages:{
+  //   signIn: "/",
+  //   newUser: '/signUp'
+  // },
+
   providers: [
-
     Auth0Provider({
       clientId: env.AUTH0_CLIENT_ID,
       clientSecret: env.AUTH0_CLIENT_SECRET,
@@ -81,6 +149,15 @@ export const authOptions: NextAuthOptions = {
      * @see https://next-auth.js.org/providers/github
      */
   ],
+
+  events: {
+    // 
+    async signIn(message){
+
+      console.log('Checking signin')
+      console.log(message.account?.id_token)
+    }
+  }
 };
 
 /**
