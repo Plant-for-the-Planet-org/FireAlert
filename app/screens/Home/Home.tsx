@@ -51,6 +51,7 @@ import {
 
 import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
+import {clearAll} from '../../utils/localStorage';
 import handleLink from '../../utils/browserLinking';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
@@ -208,6 +209,7 @@ const Home = ({navigation}) => {
       });
       auth0.webAuth.clearSession().then(async () => {
         dispatch(updateIsLoggedIn(false));
+        await clearAll();
         await clearCredentials();
       });
     } catch (e) {
@@ -432,7 +434,10 @@ const Home = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <Image source={{uri: userDetails?.avatar}} style={styles.userAvatar} />
+        <Image
+          source={{uri: userDetails?.avatar || userDetails?.picture}}
+          style={styles.userAvatar}
+        />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleLayer}

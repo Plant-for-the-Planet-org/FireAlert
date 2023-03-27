@@ -7,12 +7,13 @@ import RadialGradient from 'react-native-radial-gradient';
 import {Colors} from '../../styles';
 import {Logo} from '../../assets/svgs';
 import {useAppDispatch} from '../../hooks';
-import {CustomButton} from '../../components';
 import {
   getUserDetails,
-  updateAccessToken,
   updateIsLoggedIn,
+  updateAccessToken,
 } from '../../redux/slices/login/loginSlice';
+import {CustomButton} from '../../components';
+import {storeData} from '../../utils/localStorage';
 
 const RADIUS = 200;
 const CENTER_ARR = [187.5, 270.6];
@@ -41,6 +42,7 @@ const Login = ({navigation}) => {
           onSuccess: async message => {},
           onFail: message => {},
         };
+        storeData('cred', cred);
         dispatch(updateIsLoggedIn(true));
         dispatch(updateAccessToken(cred?.accessToken));
         dispatch(getUserDetails(request));
