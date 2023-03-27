@@ -17,8 +17,10 @@
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import { type Session } from "next-auth";
 
-import { getServerAuthSession } from "~/server/auth";
+import { getServerAuthSession, validateJwtAndSession } from "~/server/auth";
 import { prisma } from "~/server/db";
+
+
 
 type CreateContextOptions = {
   session: Session | null;
@@ -131,6 +133,8 @@ const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
   })
 })
 
+// export const privateProcedure = t.procedure.use(validateJwtAndSession)
+
 /**
  * Protected (authenticated) procedure
  *
@@ -139,6 +143,6 @@ const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+export const protectedProcedure = t.procedure.use(enforceUserIsAuthed).use(validateJwtAndSession);
 
 export const adminProcedure = t.procedure.use(enforceUserIsAdmin);
