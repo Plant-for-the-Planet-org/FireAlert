@@ -47,19 +47,22 @@ export const authOptions: NextAuthOptions = {
         session.user.roles = user.roles;
         // session.user.role = user.role; <-- put other properties on the session here
       }
+      // Seems like this runs at each login
+      console.log(`Session is ${session}`)
       return session;
     },
+    // async jwt({ token, account}) {
+    //   // Persist the OAuth access_token and or the user id to the token right after signin
+    //   if (account) {
+    //     token.accessToken = account.access_token
+    //   }
+    //   console.log(`token is ${token}`)
+    //   return token
+    // }
   },
   adapter: PrismaAdapter(prisma),
-  jwt: {
-    maxAge: 60 * 60 * 24 * 30,
-    // async encode(data) {
+  // session: {strategy: "jwt"},
 
-    // },
-    // async decode(params) {
-      
-    // },
-  },
   providers: [
 
     Auth0Provider({
