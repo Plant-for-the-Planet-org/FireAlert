@@ -366,13 +366,14 @@ const Home = ({navigation}) => {
           id={'polygon'}
           shape={{
             type: 'FeatureCollection',
-            features: sites?.polygon?.map((singleSite, i) => {
-              return {
-                type: 'Feature',
-                properties: {id: singleSite?.guid},
-                geometry: JSON.parse(singleSite?.geometry),
-              };
-            }),
+            features:
+              sites?.polygon?.map((singleSite, i) => {
+                return {
+                  type: 'Feature',
+                  properties: {id: singleSite?.guid},
+                  geometry: JSON.parse(singleSite?.geometry),
+                };
+              }) || [],
           }}
           onPress={e => {
             console.log(e);
