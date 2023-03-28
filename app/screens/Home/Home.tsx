@@ -278,7 +278,7 @@ const Home = ({navigation}) => {
     const title = `Longitude: ${alerts[counter]?.latitude} Latitude: ${alerts[counter]?.longitude}`;
     return (
       <MapboxGL.PointAnnotation
-        id={id}
+        id={'alert_fire'}
         key={id}
         title={title}
         onSelected={e => {
@@ -370,6 +370,8 @@ const Home = ({navigation}) => {
             />
           </MapboxGL.PointAnnotation>
         ) : null}
+        {renderAnnotations(true)}
+        {renderAnnotations(false)}
         <MapboxGL.ShapeSource
           id={'polygon'}
           shape={{
@@ -403,8 +405,6 @@ const Home = ({navigation}) => {
             }}
           />
         </MapboxGL.ShapeSource>
-        {renderAnnotations(true)}
-        {renderAnnotations(false)}
       </MapboxGL.MapView>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />

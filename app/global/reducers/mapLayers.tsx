@@ -2,7 +2,7 @@ import React, {createContext, useContext, useReducer} from 'react';
 
 import {SELECT_MAP_LAYER} from '../actions/Types';
 
-const initialState = 'Street';
+const initialState = 'Satellite';
 
 const mapLayerReducer = (state = initialState, action) => {
   switch (action.type) {
