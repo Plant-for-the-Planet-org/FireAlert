@@ -23,12 +23,15 @@ import UploadCloud from './uploadCloud.svg';
 import DistanceIcon from './distanceIcon.svg';
 import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.svg';
+import BlueFireIcon from './blueFireIcon.svg';
 import SatelliteDish from './satelliteDish.svg';
 import SatelliteIcon from './satelliteIcon.svg';
 import DropdownArrow from './dropdownArrow.svg';
 import BackArrowIcon from './backArrowIcon.svg';
 import LocationPinIcon from './locationPin.svg';
 import MapOutlineIcon from './mapOutlineIcon.svg';
+import OrangeFireIcon from './orangeFireIcon.svg';
+import PurpleFireIcon from './purpleFireIcon.svg';
 import TrashOutlineIcon from './trashOutlineIcon.svg';
 
 export {
@@ -54,6 +57,7 @@ export {
   UploadCloud,
   polygonIcon,
   locationIcon,
+  BlueFireIcon,
   DistanceIcon,
   WhatsAppIcon,
   active_marker,
@@ -62,6 +66,8 @@ export {
   SatelliteDish,
   DropdownArrow,
   MapOutlineIcon,
+  OrangeFireIcon,
+  PurpleFireIcon,
   LocationPinIcon,
   TrashOutlineIcon,
 };

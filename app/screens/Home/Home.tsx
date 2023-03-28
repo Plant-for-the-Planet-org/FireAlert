@@ -51,8 +51,10 @@ import {
 
 import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
+import {daysFromToday} from '../../utils/moment';
 import {clearAll} from '../../utils/localStorage';
 import handleLink from '../../utils/browserLinking';
+import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
@@ -285,7 +287,7 @@ const Home = ({navigation}) => {
           setSelectedAlert(alerts[counter]), console.log(e);
         }}
         coordinate={coordinate}>
-        <View
+        {/* <View
           style={[
             {
               backgroundColor:
@@ -294,6 +296,8 @@ const Home = ({navigation}) => {
             styles.alertSpot,
           ]}
         />
+       */}
+        {getFireIcon(daysFromToday(alerts[counter]?.eventDate))}
       </MapboxGL.PointAnnotation>
     );
   };
@@ -353,7 +357,7 @@ const Home = ({navigation}) => {
         layerIndex={2}
         style={{
           fillColor: Colors.WHITE,
-          fillOpacity: 0.6,
+          fillOpacity: 0.4,
         }}
       />
       <MapboxGL.LineLayer
