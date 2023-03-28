@@ -331,6 +331,43 @@ const Home = ({navigation}) => {
     return items;
   };
 
+  const renderMapSource = () => (
+    <MapboxGL.ShapeSource
+      id={'polygon'}
+      shape={{
+        type: 'FeatureCollection',
+        features:
+          sites?.polygon?.map((singleSite, i) => {
+            return {
+              type: 'Feature',
+              properties: {id: singleSite?.guid},
+              geometry: JSON.parse(singleSite?.geometry),
+            };
+          }) || [],
+      }}
+      onPress={e => {
+        console.log(e);
+      }}>
+      <MapboxGL.FillLayer
+        id={'polyFill'}
+        layerIndex={2}
+        style={{
+          fillColor: Colors.WHITE,
+          fillOpacity: 0.6,
+        }}
+      />
+      <MapboxGL.LineLayer
+        id={'polyline'}
+        style={{
+          lineWidth: 2,
+          lineColor: Colors.WHITE,
+          lineOpacity: 1,
+          lineJoin: 'bevel',
+        }}
+      />
+    </MapboxGL.ShapeSource>
+  );
+
   useEffect(() => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location]);
@@ -370,41 +407,9 @@ const Home = ({navigation}) => {
             />
           </MapboxGL.PointAnnotation>
         ) : null}
+        {renderMapSource()}
         {renderAnnotations(true)}
         {renderAnnotations(false)}
-        <MapboxGL.ShapeSource
-          id={'polygon'}
-          shape={{
-            type: 'FeatureCollection',
-            features:
-              sites?.polygon?.map((singleSite, i) => {
-                return {
-                  type: 'Feature',
-                  properties: {id: singleSite?.guid},
-                  geometry: JSON.parse(singleSite?.geometry),
-                };
-              }) || [],
-          }}
-          onPress={e => {
-            console.log(e);
-          }}>
-          <MapboxGL.FillLayer
-            id={'polyFill'}
-            style={{
-              fillColor: Colors.WHITE,
-              fillOpacity: 0.6,
-            }}
-          />
-          <MapboxGL.LineLayer
-            id={'polyline'}
-            style={{
-              lineWidth: 2,
-              lineColor: Colors.WHITE,
-              lineOpacity: 1,
-              lineJoin: 'bevel',
-            }}
-          />
-        </MapboxGL.ShapeSource>
       </MapboxGL.MapView>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
