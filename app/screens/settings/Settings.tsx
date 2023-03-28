@@ -124,18 +124,31 @@ const Settings = ({navigation}) => {
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
       let arr = [...projects];
-      // const filteredProjects = arr.findIndex(({id}) => id === pageXY.projectId);
-      // const filteredSites = arr[filteredProjects].sites?.findIndex(
-      //   ({id}) => id === pageXY.siteId,
-      // );
-      // arr[filteredProjects].sites[filteredSites].radius = val;
+      const filteredProjects = arr.findIndex(({id}) => id === pageXY.projectId);
+      const filteredSites = arr[filteredProjects].sites?.findIndex(
+        ({id}) => id === pageXY.siteId,
+      );
+      arr[filteredProjects].sites[filteredSites].radius = val;
       setProjects(arr);
     } else {
-      let arr = [...mySites];
-      // const filteredSite = arr.findIndex(({id}) => id === pageXY.siteId);
-      // arr[filteredSite].radius = val;
-      // arr[filteredSite].enabled = true;
-      setMySites(arr);
+      const payload = {
+        radius: val !== null ? `${val}km` : 'inside',
+        guid: pageXY?.siteId,
+      };
+      const request = {
+        payload,
+        onSuccess: () => {
+          const req = {
+            onSuccess: () => {},
+            onFail: () => {},
+          };
+          setTimeout(() => {
+            dispatch(getSites(req));
+          }, 500);
+        },
+        onFail: () => {},
+      };
+      dispatch(editSite(request));
     }
     setDropDownModal(false);
   };
@@ -331,24 +344,28 @@ const Settings = ({navigation}) => {
           <View style={styles.mySitesHead}>
             <Text style={styles.mainHeading}>My Sites</Text>
           </View>
-          {[...sites?.polygon, ...sites?.point]?.map((item, index) => (
-            <TouchableOpacity
-              onPress={() => handleSiteInformation(item)}
-              key={`mySites_${index}`}
-              style={styles.mySiteNameContainer}>
-              <Text style={styles.mySiteName}>{item.name || item.guid}</Text>
+          {[...(sites?.polygon || []), ...(sites?.point || [])]?.map(
+            (item, index) => (
               <TouchableOpacity
-                onPress={evt => handleSiteRadius(evt, item.guid)}
-                style={[styles.dropDownRadius, {paddingHorizontal: 15}]}>
-                <Text style={styles.siteRadius}>
-                  {!(item.radius === 'inside')
-                    ? `within ${item.radius}`
-                    : 'inside'}
+                onPress={() => handleSiteInformation(item)}
+                key={`mySites_${index}`}
+                style={styles.mySiteNameContainer}>
+                <Text style={styles.mySiteName}>
+                  {item?.name || item?.guid}
                 </Text>
-                <DropdownArrow />
+                <TouchableOpacity
+                  onPress={evt => handleSiteRadius(evt, item?.guid)}
+                  style={[styles.dropDownRadius]}>
+                  <Text style={styles.siteRadius}>
+                    {!(item?.radius === 'inside') || item?.radius === null
+                      ? `within ${item?.radius}`
+                      : 'inside'}
+                  </Text>
+                  <DropdownArrow />
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+            ),
+          )}
         </View>
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
@@ -889,7 +906,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.BLACK,
     paddingVertical: 5,
-    width: SCREEN_WIDTH / 1.9,
+    width: SCREEN_WIDTH / 2.5,
   },
   smallHeading: {
     fontSize: Typography.FONT_SIZE_16,
