@@ -250,6 +250,12 @@ const Home = ({navigation}) => {
 
   const handleOpenPlatform = () => handleLink(WEB_URLS.PP_ECO);
 
+  const handleGoogleRedirect = () => {
+    const lat = Number.parseFloat(selectedAlert?.latitude);
+    const lng = Number.parseFloat(selectedAlert?.longitude);
+    handleLink(`https://maps.google.com/?q=${lat},${lng}`);
+  };
+
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
 
@@ -533,7 +539,7 @@ const Home = ({navigation}) => {
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.btn}>
+          <TouchableOpacity onPress={handleGoogleRedirect} style={styles.btn}>
             <Text style={[styles.siteActionText, {marginLeft: 0}]}>
               Open in Google Maps
             </Text>
