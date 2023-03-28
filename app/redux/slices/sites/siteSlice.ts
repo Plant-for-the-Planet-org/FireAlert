@@ -13,7 +13,10 @@ interface SiteState {
 }
 
 const initialState: SiteState = {
-  sites: {},
+  sites: {
+    point: [],
+    polygon: [],
+  },
 };
 
 export const siteSlice = createSlice({

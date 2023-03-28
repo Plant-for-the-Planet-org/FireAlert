@@ -113,7 +113,6 @@ const Settings = ({navigation}) => {
 
   const {sites} = useAppSelector(state => state.siteSlice);
   const {alertListPreferences} = useAppSelector(state => state.alertSlice);
-
   const dispatch = useAppDispatch();
 
   const handleSwitch = (index, val) => {
@@ -396,7 +395,7 @@ const Settings = ({navigation}) => {
                     </Text>
                   </View>
                   <Switch
-                    value={item.isEnabled}
+                    value={item?.isEnabled}
                     onValueChange={val =>
                       handleNotifySwitch({guid: item.guid}, val)
                     }
@@ -435,7 +434,7 @@ const Settings = ({navigation}) => {
                     </Text>
                   </View>
                   <Switch
-                    value={item.isEnabled}
+                    value={item?.isEnabled}
                     onValueChange={val =>
                       handleNotifySwitch({guid: item.guid}, val)
                     }
@@ -473,7 +472,7 @@ const Settings = ({navigation}) => {
                     </Text>
                   </View>
                   <Switch
-                    value={item.isEnabled}
+                    value={item?.isEnabled}
                     onValueChange={val =>
                       handleNotifySwitch({guid: item.guid}, val)
                     }

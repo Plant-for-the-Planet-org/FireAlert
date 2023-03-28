@@ -190,10 +190,10 @@ const SelectLocation = ({navigation}) => {
       <TouchableOpacity
         style={[
           styles.gpsContainer,
-          {backgroundColor: getAccuracyColors(accuracyInMeters) + '20'},
+          {backgroundColor: getAccuracyColors(accuracyInMeters) + '80'},
         ]}
         onPress={() => setIsAccuracyModalShow(true)}>
-        <SatelliteDish fill={getAccuracyColors(accuracyInMeters)} />
+        <SatelliteDish fill={Colors.TEXT_COLOR} />
         <Text style={styles.gpsText}>
           GPS ~{Math.round(accuracyInMeters * 100) / 100}m
         </Text>
