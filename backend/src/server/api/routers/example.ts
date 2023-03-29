@@ -8,6 +8,11 @@ import {
 
 export const exampleRouter = createTRPCRouter({
   //We need to call: localhost:3000/api/trpc/example.hello
+  check: publicProcedure
+    .query(() => {
+      return 'Print this!';
+    }),
+
   hello: publicProcedure
     .input(z.object({ text: z.string() }))
     .query(({ input }) => {
