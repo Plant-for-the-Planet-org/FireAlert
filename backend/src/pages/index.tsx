@@ -2,30 +2,12 @@ import styles from "./index.module.css";
 import { type NextPage } from "next";
 import Head from "next/head";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useCookies } from "react-cookie"
-
 
 import { api } from "~/utils/api";
 import Sites from "~/Components/SiteComponent";
 
 const Home: NextPage = () => {
   const hello = api.example.hello.useQuery({ text: "from tRPC" });
-  const { data: sessionData } = useSession();
-
-  const idToken = sessionData?.user?.id_token;
-
-  const [cookie, setCookie] = useCookies(["JWTToken"])
-  try {
-    setCookie("JWTToken", idToken, {
-      path: "/",
-      sameSite: true,
-    })
-  } catch (err) {
-    console.log(err)
-  }
-
-  console.log(`This is the id_token from index.tsx file ${idToken}`)
-
 
   return (
     <>
@@ -58,10 +40,6 @@ const AuthShowcase: React.FC = () => {
     { enabled: sessionData?.user !== undefined },
   );
 
-
-
-  { console.log(`Logged in session data from index.tsx ${JSON.stringify(sessionData)}`) }
-
   return (
     <div className={styles.authContainer}>
       <p className={styles.showcaseText}>
@@ -71,7 +49,7 @@ const AuthShowcase: React.FC = () => {
       <Sites />
       <button
         className={styles.loginButton}
-        onClick={sessionData ? () => void signOut() : () => void signIn().then(sessionData => console.log(`This is the .then function of${JSON.stringify(sessionData)}`))}
+        onClick={sessionData ? () => void signOut() : () => void signIn()}
       >
         {sessionData ? "Sign out" : "Sign in"}
       </button>

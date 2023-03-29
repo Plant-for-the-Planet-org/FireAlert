@@ -1,173 +1,109 @@
-import { type GetServerSidePropsContext } from "next";
+
+import { inferProcedureInput, MiddlewareFunction } from "@trpc/server";
+import jwt from "jsonwebtoken";
+import jwksClient from "jwks-rsa";
+import { GetServerSidePropsContext } from "next";
 import {
   getServerSession,
-  type NextAuthOptions,
-  type DefaultSession,
+  NextAuthOptions,
+  DefaultSession,
 } from "next-auth";
-import Auth0Provider from "next-auth/providers/auth0"
-
+import Auth0Provider from "next-auth/providers/auth0";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { env } from "~/env.mjs";
 import { prisma } from "~/server/db";
-import { signIn, signOut } from "next-auth/react";
-import { getToken, JWT } from "next-auth/jwt";
-import { Account, User } from "@prisma/client";
-import jwt, {type JwtPayload} from 'jsonwebtoken'
-import { setCookie, destroyCookie } from 'nookies';
 
+// JWKS client setup
+const client = jwksClient({
+  jwksUri: `${env.AUTH0_DOMAIN}/.well-known/jwks.json`,
+});
 
-/**
- * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
- * object and keep type safety.
- *
- * @see https://next-auth.js.org/getting-started/typescript#module-augmentation
- */
+function getKey(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
+  client.getSigningKey(header.kid!, (err, key) => {
+    const signingKey = key && key.getPublicKey();
+    callback(null, signingKey);
+  });
+}
+
+async function validateToken(token: string): Promise<JwtPayload | null> {
+  return new Promise((resolve, _reject) => {
+    jwt.verify(token, getKey, { algorithms: ["RS256"] }, (err, decoded) => {
+      if (err) {
+        resolve(null);
+      } else {
+        resolve(decoded as JwtPayload);
+      }
+    });
+  });
+}
+
 declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
       roles: string;
-      id_token?: string;
-      token_type?: string;
-      // ...other properties
-      // role: UserRole;
-    } & DefaultSession["user"],
+    } & DefaultSession["user"];
   }
 
-
   interface User {
-    // ...other properties
-    // role: UserRole;
     roles: string;
   }
 }
 
-/**
- * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
- *
- * @see https://next-auth.js.org/configuration/options
- */
 export const authOptions: NextAuthOptions = {
-
-  session: {
-    strategy: 'jwt'
-  },
-  
   callbacks: {
-    // async session({ session, user, token}) {
-    //   if (session.user) {
-    //     const id_token = token.id_token as string;
-    //     const token_type = token.token_type as string;
-
-    //     session.user.id = user.id;
-    //     session.user.roles = user.roles;
-    //     session.token.id_token = id_token;
-    //     session.token.token_type = token_type;
-        
-    //     // session.user.role = user.role; <-- put other properties on the session here
-    //   }
-    //   // Seems like this runs at each login
-    //   console.log(`Session is ${JSON.stringify(session)}`)
-    //   return session;
-    // },
-
-    session: async({session, token}) => {
-      console.log(`Session Callback, ${JSON.stringify(session)} ${JSON.stringify(token)}`)
-      console.log(`Token id is ${token.id_token}`) // token.id is undefined!
-      
-      const user = session.user as User;
-      const id_token = token.id_token as string;
-      const token_type = token.token_type as string;
-      const roles = user.roles as string;
-
-      const decodedToken = jwt.decode(id_token)
-      console.log(`The decoded token is ${JSON.stringify(decodedToken)}`)
-      
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id_token: id_token,
-          token_type: token_type,
-          roles: roles
-        }
+    async session({ session, user }) {
+      if (session.user) {
+        session.user.id = user.id;
+        session.user.roles = user.roles;
       }
-    },
-
-    jwt: async({token, user, account}) => {
-      console.log('JWT Callback', {token, user, account})
-      if(user && account) {
-        const u = user as unknown as User
-        const a = account as unknown as Account
-
-        const id_token = a.id_token as string;
-        const token_type = a.token_type as string;
-        const roles = u.roles as string;
-        return {
-          ...token,
-          id_token: id_token,
-          token_type: token_type,
-          roles: roles
-        }
-      }
-      return token
-    },
-
-    signIn: async({account}) => {
-      const token = account?.id_token
-      // TODO: I have to somehow add the token to cookies!
-      // SOLUTION: I couldn't do it with every successful sign in, but when the page loaded, I added token in cookie in index.tsx
-      return true
+      return session;
     },
   },
-
   adapter: PrismaAdapter(prisma),
-
-  // When a user goes to this page, they are supposed to signup, or signin!
-  // pages:{
-  //   signIn: "/",
-  //   newUser: '/signUp'
-  // },
-
+  jwt: {
+    maxAge: 60 * 60 * 24 * 30,
+  },
   providers: [
     Auth0Provider({
       clientId: env.AUTH0_CLIENT_ID,
       clientSecret: env.AUTH0_CLIENT_SECRET,
-      // NextAuth uses issuer as AUTH0_DOMAIN
       issuer: env.AUTH0_DOMAIN,
-    })
-
-
-
-    /**
-     * ...add more providers here.
-     *
-     * Most other providers require a bit more work than the Discord provider. For example, the
-     * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-     * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-     *
-     * @see https://next-auth.js.org/providers/github
-     */
+    }),
   ],
-
-  events: {
-    // 
-    async signIn(message){
-
-      console.log('Checking signin')
-      console.log(message.account?.id_token)
-    }
-  }
 };
 
-/**
- * Wrapper for `getServerSession` so that you don't need to import the `authOptions` in every file.
- *
- * @see https://next-auth.js.org/configuration/nextjs
- */
 export const getServerAuthSession = (ctx: {
   req: GetServerSidePropsContext["req"];
   res: GetServerSidePropsContext["res"];
 }) => {
   return getServerSession(ctx.req, ctx.res, authOptions);
+};
+
+export const validateJwtAndSession: MiddlewareFunction = async (
+  opts: inferProcedureInput<typeof validateJwtAndSession>
+) => {
+  const { ctx, next } = opts;
+  const { req, res } = ctx;
+  const session = await getServerAuthSession({ req, res });
+
+  if (session) {
+    return next({ ctx });
+  }
+
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new Error("Unauthorized");
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  const decoded = await validateToken(token);
+
+  if (!decoded) {
+    throw new Error("Unauthorized");
+  }
+
+  return next({ ctx });
 };
