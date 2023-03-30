@@ -9,6 +9,14 @@ export const ApiService = {
       token,
     });
   },
+  editUserDetails: async (token, data) => {
+    return fireApi({
+      method: 'PUT',
+      URL: ApiUrl.userDetails,
+      token,
+      data,
+    });
+  },
   sites: async token => {
     return fireApi({
       method: 'GET',
@@ -53,16 +61,25 @@ export const ApiService = {
       token,
     });
   },
-  createAlertPreferences: async token => {
+  createAlertPreferences: async (token, data) => {
     return fireApi({
       method: 'POST',
       URL: ApiUrl.alertPreferencesList,
       token,
+      data,
     });
   },
-  updateAlertPreferences: async token => {
+  updateAlertPreferences: async (token, data) => {
     return fireApi({
       method: 'PUT',
+      URL: ApiUrl.alertPreferencesList,
+      token,
+      data,
+    });
+  },
+  deleteAlertPreferences: async (token, param) => {
+    return fireApi({
+      method: 'DELETE',
       URL: ApiUrl.alertPreferencesList,
       token,
     });

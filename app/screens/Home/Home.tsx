@@ -1,45 +1,62 @@
 import {
   Text,
   View,
-  Image,
   Modal,
+  Image,
   Linking,
   Platform,
   StatusBar,
   Dimensions,
   StyleSheet,
   BackHandler,
-  SafeAreaView,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from 'react-native';
 import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
+import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Auth0, {useAuth0} from 'react-native-auth0';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 
 import {
+  LayerModal,
+  AlertModal,
+  BottomSheet,
+  CustomButton,
+  FloatingInput,
+} from '../../components';
+import {
   LayerIcon,
   MyLocIcon,
   RadarIcon,
+  CrossIcon,
   LogoutIcon,
   PencilIcon,
+  active_marker,
   SatelliteIcon,
   MapOutlineIcon,
   LocationPinIcon,
 } from '../../assets/svgs';
-import {Colors, Typography} from '../../styles';
-import {AlertModal, BottomBar} from '../../components';
-import {locationPermission} from '../../utils/permissions';
-
 import {
-  PermissionBlockedAlert,
+  editUserProfile,
+  getUserDetails,
+  updateIsLoggedIn,
+} from '../../redux/slices/login/loginSlice';
+import {
   PermissionDeniedAlert,
+  PermissionBlockedAlert,
 } from './permissionAlert/LocationPermissionAlerts';
+
+import {WEB_URLS} from '../../constants';
+import {Colors, Typography} from '../../styles';
+import {daysFromToday} from '../../utils/moment';
+import {clearAll} from '../../utils/localStorage';
+import handleLink from '../../utils/browserLinking';
+import {getFireIcon} from '../../utils/getFireIcon';
+import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import LayerModal from '../../components/layerModal/LayerModal';
-import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -62,8 +79,8 @@ const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
 const Home = ({navigation}) => {
-  const {state} = useMapLayers(MapLayerContext);
   const {clearCredentials} = useAuth0();
+  const {state} = useMapLayers(MapLayerContext);
   const {userDetails} = useAppSelector(state => state.loginSlice);
   const {sites} = useAppSelector(state => state.siteSlice);
   const {alerts} = useAppSelector(state => state.alertSlice);
@@ -77,6 +94,10 @@ const Home = ({navigation}) => {
 
   const [visible, setVisible] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+
+  const [profileName, setProfileName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [profileEditModal, setProfileEditModal] = useState(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
@@ -190,11 +211,51 @@ const Home = ({navigation}) => {
       });
       auth0.webAuth.clearSession().then(async () => {
         dispatch(updateIsLoggedIn(false));
+        await clearAll();
         await clearCredentials();
       });
     } catch (e) {
       console.log('Log out cancelled');
     }
+  };
+
+  const handleEditProfileName = () => {
+    setLoading(true);
+    const payload = {
+      name: profileName,
+      guid: userDetails?.guid,
+    };
+    const request = {
+      payload,
+      onSuccess: () => {
+        setLoading(false);
+        setProfileEditModal(false);
+        const req = {
+          onSuccess: () => {},
+          onFail: () => {},
+        };
+        setTimeout(() => dispatch(getUserDetails(req)), 500);
+      },
+      onFail: () => {
+        setLoading(false);
+        setProfileEditModal(false);
+      },
+    };
+    dispatch(editUserProfile(request));
+  };
+
+  const handlePencil = () => {
+    setProfileName(userDetails?.name);
+    setProfileModalVisible(false);
+    setTimeout(() => setProfileEditModal(true), 500);
+  };
+
+  const handleOpenPlatform = () => handleLink(WEB_URLS.PP_ECO);
+
+  const handleGoogleRedirect = () => {
+    const lat = Number.parseFloat(selectedAlert?.latitude);
+    const lng = Number.parseFloat(selectedAlert?.longitude);
+    handleLink(`https://maps.google.com/?q=${lat},${lng}`);
   };
 
   const handleLayer = () => setVisible(true);
@@ -211,20 +272,22 @@ const Home = ({navigation}) => {
   const onListPress = () => navigation.navigate('Settings');
   const onMapPress = () => {};
 
+  const handleCloseProfileModal = () => setProfileEditModal(false);
+
   const renderAnnotation = counter => {
     const id = alerts[counter]?.guid;
     const coordinate = [alerts[counter]?.latitude, alerts[counter]?.longitude];
     const title = `Longitude: ${alerts[counter]?.latitude} Latitude: ${alerts[counter]?.longitude}`;
     return (
       <MapboxGL.PointAnnotation
-        id={id}
+        id={'alert_fire'}
         key={id}
         title={title}
         onSelected={e => {
           setSelectedAlert(alerts[counter]), console.log(e);
         }}
         coordinate={coordinate}>
-        <View
+        {/* <View
           style={[
             {
               backgroundColor:
@@ -233,19 +296,81 @@ const Home = ({navigation}) => {
             styles.alertSpot,
           ]}
         />
+       */}
+        {getFireIcon(daysFromToday(alerts[counter]?.eventDate))}
       </MapboxGL.PointAnnotation>
     );
   };
 
-  const renderAnnotations = () => {
-    const items = [];
+  const renderSelectedPoint = counter => {
+    const id = sites?.point[counter]?.guid;
+    const coordinate = JSON.parse(sites?.point[counter]?.geometry)?.coordinates;
+    const title = `Longitude: ${coordinate[0]} Latitude: ${coordinate[1]}`;
+    return (
+      <MapboxGL.PointAnnotation
+        id={id}
+        key={id}
+        title={title}
+        // onSelected={e => {
+        //   setSelectedAlert(sites?.point[counter]), console.log(e);
+        // }}
+        coordinate={coordinate}>
+        <SvgXml xml={active_marker} style={styles.markerImage} />
+      </MapboxGL.PointAnnotation>
+    );
+  };
 
-    for (let i = 0; i < alerts.length; i++) {
-      items.push(renderAnnotation(i));
+  const renderAnnotations = isAlert => {
+    const items = [];
+    const arr = isAlert ? alerts : sites?.point;
+
+    for (let i = 0; i < arr?.length; i++) {
+      {
+        isAlert
+          ? items.push(renderAnnotation(i))
+          : items.push(renderSelectedPoint(i));
+      }
     }
 
     return items;
   };
+
+  const renderMapSource = () => (
+    <MapboxGL.ShapeSource
+      id={'polygon'}
+      shape={{
+        type: 'FeatureCollection',
+        features:
+          sites?.polygon?.map((singleSite, i) => {
+            return {
+              type: 'Feature',
+              properties: {id: singleSite?.guid},
+              geometry: JSON.parse(singleSite?.geometry),
+            };
+          }) || [],
+      }}
+      onPress={e => {
+        console.log(e);
+      }}>
+      <MapboxGL.FillLayer
+        id={'polyFill'}
+        layerIndex={2}
+        style={{
+          fillColor: Colors.WHITE,
+          fillOpacity: 0.4,
+        }}
+      />
+      <MapboxGL.LineLayer
+        id={'polyline'}
+        style={{
+          lineWidth: 2,
+          lineColor: Colors.WHITE,
+          lineOpacity: 1,
+          lineJoin: 'bevel',
+        }}
+      />
+    </MapboxGL.ShapeSource>
+  );
 
   useEffect(() => {
     onUpdateUserLocation(location);
@@ -286,39 +411,9 @@ const Home = ({navigation}) => {
             />
           </MapboxGL.PointAnnotation>
         ) : null}
-        <MapboxGL.ShapeSource
-          id={'polygon'}
-          shape={{
-            type: 'FeatureCollection',
-            features: sites?.map((singleSite, i) => {
-              return {
-                type: 'Feature',
-                properties: {id: singleSite?.guid},
-                geometry: JSON.parse(singleSite?.geometry),
-              };
-            }),
-          }}
-          onPress={e => {
-            console.log(e);
-          }}>
-          <MapboxGL.FillLayer
-            id={'polyFill'}
-            style={{
-              fillColor: Colors.WHITE,
-              fillOpacity: 0.6,
-            }}
-          />
-          <MapboxGL.LineLayer
-            id={'polyline'}
-            style={{
-              lineWidth: 2,
-              lineColor: Colors.WHITE,
-              lineOpacity: 1,
-              lineJoin: 'bevel',
-            }}
-          />
-        </MapboxGL.ShapeSource>
-        {renderAnnotations()}
+        {renderMapSource()}
+        {renderAnnotations(true)}
+        {renderAnnotations(false)}
       </MapboxGL.MapView>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
@@ -354,7 +449,10 @@ const Home = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <Image source={{uri: userDetails?.avatar}} style={styles.userAvatar} />
+        <Image
+          source={{uri: userDetails?.avatar || userDetails?.picture}}
+          style={styles.userAvatar}
+        />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleLayer}
@@ -372,25 +470,21 @@ const Home = ({navigation}) => {
         testID="my_location">
         <MyLocIcon />
       </TouchableOpacity>
-      <SafeAreaView style={styles.safeAreaView}>
-        <BottomBar onListPress={onListPress} onMapPress={onMapPress} />
-      </SafeAreaView>
       {/* profile modal */}
-      <Modal visible={profileModalVisible} animationType={'slide'} transparent>
-        <TouchableOpacity
-          activeOpacity={0}
-          onPress={() => setProfileModalVisible(false)}
-          style={styles.modalLayer}
-        />
+      <BottomSheet
+        isVisible={profileModalVisible}
+        onBackdropPress={() => setProfileModalVisible(false)}>
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
-            <Text style={styles.siteTitle}>{userDetails?.name}</Text>
-            <TouchableOpacity>
+            <Text style={styles.siteTitle}>
+              {userDetails?.name || 'Anonymous Firefighter'}
+            </Text>
+            <TouchableOpacity onPress={handlePencil}>
               <PencilIcon />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.btn}>
+          <TouchableOpacity onPress={handleOpenPlatform} style={styles.btn}>
             <MapOutlineIcon />
             <Text style={styles.siteActionText}>Open Platform</Text>
           </TouchableOpacity>
@@ -399,17 +493,11 @@ const Home = ({navigation}) => {
             <Text style={styles.siteActionText}>Logout</Text>
           </TouchableOpacity>
         </View>
-      </Modal>
+      </BottomSheet>
       {/* fire alert info modal */}
-      <Modal
-        visible={Object.keys(selectedAlert).length > 0}
-        animationType={'slide'}
-        transparent>
-        <TouchableOpacity
-          activeOpacity={0}
-          onPress={() => setSelectedAlert({})}
-          style={[styles.modalLayer, {backgroundColor: Colors.TRANSPARENT}]}
-        />
+      <BottomSheet
+        onBackdropPress={() => setSelectedAlert({})}
+        isVisible={Object.keys(selectedAlert).length > 0}>
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.satelliteInfoCon}>
@@ -421,14 +509,7 @@ const Home = ({navigation}) => {
                 DETECTED BY {selectedAlert?.detectedBy}
               </Text>
               <Text style={styles.eventDate}>
-                <Text
-                  style={[
-                    styles.eventFromNow,
-                    {
-                      color:
-                        Colors.GRADIENT_PRIMARY + selectedAlert?.confidence,
-                    },
-                  ]}>
+                <Text style={styles.eventFromNow}>
                   {moment(selectedAlert?.eventDate, 'MM/DD/YYYY').fromNow()}
                 </Text>{' '}
                 (
@@ -467,12 +548,43 @@ const Home = ({navigation}) => {
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.btn}>
+          <TouchableOpacity onPress={handleGoogleRedirect} style={styles.btn}>
             <Text style={[styles.siteActionText, {marginLeft: 0}]}>
               Open in Google Maps
             </Text>
           </TouchableOpacity>
         </View>
+      </BottomSheet>
+      {/* profile edit modal */}
+      <Modal visible={profileEditModal} animationType={'slide'} transparent>
+        <KeyboardAvoidingView
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+          style={styles.siteModalStyle}>
+          <TouchableOpacity
+            onPress={handleCloseProfileModal}
+            style={styles.crossContainer}>
+            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+          </TouchableOpacity>
+          <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+            Edit Your Name
+          </Text>
+          <View
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            <FloatingInput
+              autoFocus
+              isFloat={false}
+              value={profileName}
+              onChangeText={setProfileName}
+            />
+            <CustomButton
+              title="Continue"
+              isLoading={loading}
+              titleStyle={styles.title}
+              onPress={handleEditProfileName}
+              style={styles.btnContinueSiteModal}
+            />
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );
@@ -481,9 +593,6 @@ const Home = ({navigation}) => {
 export default Home;
 
 const styles = StyleSheet.create({
-  safeAreaView: {
-    backgroundColor: '#000',
-  },
   map: {
     flex: 1,
   },
@@ -524,16 +633,13 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   modalContainer: {
+    // flex: 1,
     bottom: 0,
     borderRadius: 15,
     paddingBottom: 30,
     width: SCREEN_WIDTH,
-    position: 'absolute',
+    // position: 'absolute',
     backgroundColor: Colors.WHITE,
-  },
-  modalLayer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalHeader: {
     width: 46,
@@ -591,6 +697,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
   eventFromNow: {
+    color: Colors.GRADIENT_PRIMARY,
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
@@ -604,5 +711,29 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
+  crossContainer: {
+    width: 25,
+    marginTop: 60,
+    marginHorizontal: 40,
+  },
+  heading: {
+    marginTop: 20,
+    marginBottom: 10,
+    fontSize: Typography.FONT_SIZE_24,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  siteModalStyle: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
+  },
+  btnContinueSiteModal: {
+    position: 'absolute',
+    bottom: 40,
+  },
+  title: {
+    color: Colors.WHITE,
   },
 });

@@ -1,23 +1,41 @@
 import {createSlice} from '@reduxjs/toolkit';
 import type {PayloadAction} from '@reduxjs/toolkit';
 
-import {RootState} from './../../store';
+import {RootState, AppDispatch} from './../../store';
 import {ApiService} from '../../../api/apiCalls/apiCalls';
 
+type SiteStructure = {
+  [n: string]: Array<object>;
+};
+
 interface SiteState {
-  sites: Array<object>;
+  sites: SiteStructure;
 }
 
 const initialState: SiteState = {
-  sites: [],
+  sites: {
+    point: [],
+    polygon: [],
+  },
 };
 
 export const siteSlice = createSlice({
   name: 'site',
   initialState,
   reducers: {
-    updateSites: (state, action: PayloadAction<Array<object>>) => {
-      state.sites = action.payload;
+    updateSites: (state, action: PayloadAction<object>) => {
+      if (action.payload instanceof Array) {
+        action.payload
+          .map(item => item.type)
+          .forEach(type => {
+            if (action.payload instanceof Array) {
+              const filteredData = action.payload?.filter(
+                item => item?.type === type,
+              );
+              state.sites[String(type).toLowerCase()] = filteredData;
+            }
+          });
+      }
     },
   },
 });
@@ -25,8 +43,8 @@ export const siteSlice = createSlice({
 export const {updateSites} = siteSlice.actions;
 export default siteSlice.reducer;
 
-export const getSites = request => {
-  return async (dispatch, getState) => {
+export const getSites = (request: any) => {
+  return async (dispatch: AppDispatch, getState: RootState) => {
     const {onSuccess, onFail} = request;
     try {
       const res = await ApiService.sites(getState().loginSlice?.accessToken);
@@ -42,8 +60,8 @@ export const getSites = request => {
   };
 };
 
-export const deleteSite = request => {
-  return async (dispatch, getState) => {
+export const deleteSite = (request: any) => {
+  return async (dispatch: AppDispatch, getState: RootState) => {
     const {params, onSuccess, onFail} = request;
     try {
       const res = await ApiService.deleteSite(
@@ -60,8 +78,8 @@ export const deleteSite = request => {
   };
 };
 
-export const editSite = request => {
-  return async (dispatch, getState) => {
+export const editSite = (request: any) => {
+  return async (dispatch: AppDispatch, getState: RootState) => {
     const {payload, onSuccess, onFail} = request;
     try {
       const res = await ApiService.editSite(
@@ -79,8 +97,8 @@ export const editSite = request => {
   };
 };
 
-export const addSite = request => {
-  return async (dispatch, getState) => {
+export const addSite = (request: any) => {
+  return async (dispatch: AppDispatch, getState: RootState) => {
     const {payload, onSuccess, onFail} = request;
     try {
       const res = await ApiService.addSite(

@@ -19,9 +19,17 @@ const Verification = ({navigation, route}) => {
   const [newEmail, setNewEmail] = useState('');
   const [verifyingLoader, setVerifyingLoader] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [phoneInput, setPhoneInput] = useState(null);
 
   const handleClose = () => navigation.goBack();
-  const handleVerify = () => navigation.navigate('Otp', {verificationType});
+
+  const handleVerify = () => {
+    if (verificationType === 'Whatsapp' || verificationType === 'Sms') {
+      navigation.navigate('Otp', {verificationType, phoneInput});
+    } else {
+      navigation.navigate('Otp', {verificationType, newEmail});
+    }
+  };
 
   const handleEmail = emailText => {
     setVerifyingLoader(true);
@@ -51,7 +59,10 @@ const Verification = ({navigation, route}) => {
         </Text>
         <View style={styles.subContainer}>
           {verificationType === 'Whatsapp' || verificationType === 'Sms' ? (
-            <PhoneInput containerStyle={styles.containerStyle} />
+            <PhoneInput
+              inputValue={setPhoneInput}
+              containerStyle={styles.containerStyle}
+            />
           ) : (
             <FloatingInput
               verified={verified}

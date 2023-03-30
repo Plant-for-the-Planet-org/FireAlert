@@ -1,18 +1,32 @@
 import {
   View,
   Text,
-  Alert,
   Modal,
   Linking,
   Platform,
   StyleSheet,
+  Dimensions,
   BackHandler,
   TouchableOpacity,
+  ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
+import {SvgXml} from 'react-native-svg';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
+
+import {
+  CrossIcon,
+  LayerIcon,
+  MyLocIcon,
+  active_marker,
+  SatelliteDish,
+} from '../../assets/svgs';
+import {
+  PermissionDeniedAlert,
+  PermissionBlockedAlert,
+} from '../home/permissionAlert/LocationPermissionAlerts';
 
 import {
   AlertModal,
@@ -20,101 +34,57 @@ import {
   CustomButton,
   FloatingInput,
 } from '../../components';
-import {
-  CrossIcon,
-  LayerIcon,
-  MyLocIcon,
-  SatelliteDish,
-} from '../../assets/svgs';
-import Map from './MapMarking/Map';
+import {useAppDispatch} from '../../hooks';
 import {Colors, Typography} from '../../styles';
 import {locationPermission} from '../../utils/permissions';
-import {
-  PermissionBlockedAlert,
-  PermissionDeniedAlert,
-} from '../home/permissionAlert/LocationPermissionAlerts';
-import {toLetters} from '../../utils/mapMarkingCoordinate';
-import {useAppDispatch, useAppSelector} from '../../hooks';
 import {getAccuracyColors} from '../../utils/accuracyColors';
-import distanceCalculator from '../../utils/distanceCalculator';
 import {addSite, getSites} from '../../redux/slices/sites/siteSlice';
+import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+let attributionPosition: any = {
+  bottom: IS_ANDROID ? 72 : 56,
+  left: 8,
+};
+
+let compassViewMargins = {
+  x: IS_ANDROID ? 12 : 16,
+  y: IS_ANDROID ? 160 : 120,
+};
+
+const compassViewPosition = 3;
+
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
-const CreatePolygon = ({navigation}) => {
-  const camera = useRef<MapboxGL.Camera | null>(null);
-
-  const map = useRef(null);
+const SelectLocation = ({navigation}) => {
+  const {state} = useMapLayers(MapLayerContext);
   const [loader, setLoader] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [siteName, setSiteName] = useState('');
-  const [alphabets, setAlphabets] = useState<string[]>([]);
-  const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
-  const [activePolygonIndex, setActivePolygonIndex] = useState(0);
-  const [accuracyInMeters, setAccuracyInMeters] = useState(0);
-  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
-
   const [isInitial, setIsInitial] = useState(true);
+  const [accuracyInMeters, setAccuracyInMeters] = useState(0);
+  const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
 
-  const [activeMarkerIndex, setActiveMarkerIndex] = useState(0);
   const [isPermissionDenied, setIsPermissionDenied] = useState(false);
   const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
   const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
   const [isAccuracyModalShow, setIsAccuracyModalShow] = useState(false);
 
+  const [siteName, setSiteName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
+
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
   >();
 
-  const [geoJSON, setGeoJSON] = useState<any>({
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        properties: {
-          isPolygonComplete: false,
-        },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [],
-        },
-      },
-    ],
-  });
+  const map = useRef(null);
+  const camera = useRef<MapboxGL.Camera | null>(null);
 
-  const {sites} = useAppSelector(state => state.siteSlice);
   const dispatch = useAppDispatch();
-
-  // generates the alphabets
-  const generateAlphabets = () => {
-    let alphabetsArray: string[] = [];
-    for (var x = 1, y; x <= 130; x++) {
-      y = toLetters(x);
-      alphabetsArray.push(y);
-    }
-    setAlphabets(alphabetsArray);
-  };
-
-  // only for the first time map will follow the user's current location by default
-  const onUpdateUserLocation = (
-    userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined,
-  ) => {
-    if (isInitial && userLocation) {
-      onPressMyLocationIcon(userLocation);
-    }
-  };
-
-  const onPressLocationAlertPrimaryBtn = () => {
-    setIsLocationAlertShow(false);
-    if (IS_ANDROID) {
-      updateCurrentPosition();
-    } else {
-      Linking.openURL('app-settings:');
-    }
-  };
 
   const updateCurrentPosition = async (showAlert = true) => {
     return new Promise(resolve => {
@@ -143,6 +113,23 @@ const CreatePolygon = ({navigation}) => {
     });
   };
 
+  const checkPermission = async (showAlert = true) => {
+    try {
+      await locationPermission();
+      updateCurrentPosition(showAlert);
+      return true;
+    } catch (err: any) {
+      if (err?.message == 'blocked') {
+        setIsPermissionBlocked(true);
+      } else if (err?.message == 'denied') {
+        setIsPermissionDenied(true);
+      } else {
+        console.error(err);
+      }
+      return false;
+    }
+  };
+
   // recenter the map to the current coordinates of user location
   const onPressMyLocationIcon = (
     position: MapboxGL.Location | Geolocation.GeoPosition,
@@ -158,118 +145,43 @@ const CreatePolygon = ({navigation}) => {
     }
   };
 
-  const checkPermission = async (showAlert = true) => {
-    try {
-      await locationPermission();
-      // MapboxGL.setTelemetryEnabled(false);
-
-      updateCurrentPosition(showAlert);
-      return true;
-    } catch (err: any) {
-      if (err?.message == 'blocked') {
-        setIsPermissionBlocked(true);
-      } else if (err?.message == 'denied') {
-        setIsPermissionDenied(true);
-      } else {
-        console.error(err);
-      }
-      return false;
+  // only for the first time map will follow the user's current location by default
+  const onUpdateUserLocation = (
+    userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined,
+  ) => {
+    if (isInitial && userLocation) {
+      onPressMyLocationIcon(userLocation);
     }
   };
 
-  const handleMyLocation = () => {
-    if (location) {
-      onPressMyLocationIcon(location);
-    } else {
-      checkPermission();
-    }
-  };
-
-  const handleLayer = () => setVisible(true);
-
-  const checkIsValidMarker = async (centerCoordinates: number[]) => {
-    let isValidMarkers = true;
-
-    for (const oneMarker of geoJSON.features[activePolygonIndex].geometry
-      .coordinates) {
-      const distanceInMeters = distanceCalculator(
-        [centerCoordinates[1], centerCoordinates[0]],
-        [oneMarker[1], oneMarker[0]],
-        'meters',
-      );
-      // if the current marker position is less than one meter to already present markers nearby,
-      // then makes the current marker position invalid
-      if (distanceInMeters < 1) {
-        isValidMarkers = false;
-      }
-    }
-    return isValidMarkers;
-  };
-
-  const pushMarker = async () => {
-    geoJSON.features[0].geometry.coordinates[activeMarkerIndex] =
-      await map.current.getCenter();
-
-    setGeoJSON(geoJSON);
-    setActiveMarkerIndex(prevState => prevState + 1);
-  };
-
-  const addPolygonMarker = async (forceContinue = false) => {
-    let centerCoordinates = await map.current.getCenter();
-    let isValidMarkers = await checkIsValidMarker(centerCoordinates);
-    if (!isValidMarkers) {
-      Alert.alert('Invalid marker location');
-      // setShowSecondaryButton(false);
-      // setAlertHeading(i18next.t('label.locate_tree_cannot_mark_location'));
-      // setAlertSubHeading(i18next.t('label.locate_tree_add_marker_valid'));
-      // setShowAlert(true);
-    }
-    pushMarker();
-
-    // Check distance
-  };
-
-  const postPolygon = () => {
+  const onSelectLocation = async () => {
     setLoading(true);
-    const payload = {
-      type: 'Polygon',
-      name: siteName,
-      geometry: {
-        coordinates: [geoJSON.features[0].geometry.coordinates],
-        type: 'Polygon',
-      },
-      radius: 'inside',
+    let centerCoordinates = await map.current.getCenter();
+    const geometry = {
+      type: 'Point',
+      coordinates: centerCoordinates,
     };
     const request = {
-      payload,
+      payload: {
+        geometry,
+        type: 'Point',
+        name: siteName,
+      },
       onSuccess: () => {
         setLoading(false);
+
         const req = {
           onSuccess: () => {},
           onFail: () => {},
         };
-        setTimeout(() => {
-          dispatch(getSites(req));
-        }, 500);
-        setSiteNameModalVisible(false);
+        setTimeout(() => dispatch(getSites(req)), 500);
         navigation.navigate('Home');
       },
       onFail: () => {
         setLoading(false);
-        setSiteNameModalVisible(false);
       },
     };
     dispatch(addSite(request));
-  };
-
-  const addPolygon = () => {
-    let geo = geoJSON;
-    geo.features[0].properties.isPolygonComplete = true;
-    geo.features[0].geometry.coordinates.push(
-      geoJSON.features[0].geometry.coordinates[0],
-    );
-    setGeoJSON(geo);
-    setSiteNameModalVisible(true);
   };
 
   //small button on top right corner which will show accuracy in meters and the respective colour
@@ -289,7 +201,6 @@ const CreatePolygon = ({navigation}) => {
     );
   };
 
-  //this modal shows the information about GPS accuracy and accuracy range for red, yellow and green colour
   const renderAccuracyModal = () => {
     return (
       <Modal transparent visible={isAccuracyModalShow}>
@@ -358,14 +269,39 @@ const CreatePolygon = ({navigation}) => {
     );
   };
 
-  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
-  const handleClose = () => navigation.goBack();
-  const closeMapLayer = () => setVisible(false);
-  const handleSiteModalContinue = () => {
-    if (siteName !== '') {
-      postPolygon();
+  const handleMyLocation = () => {
+    if (location) {
+      onPressMyLocationIcon(location);
+    } else {
+      checkPermission();
     }
   };
+
+  const onPressLocationAlertPrimaryBtn = () => {
+    setIsLocationAlertShow(false);
+    if (IS_ANDROID) {
+      updateCurrentPosition();
+    } else {
+      Linking.openURL('app-settings:');
+    }
+  };
+
+  const onChangeRegionStart = () => setLoader(true);
+  const onChangeRegionComplete = () => {
+    setLoader(false);
+  };
+
+  const handleSiteModalContinue = () => {
+    if (siteName !== '') {
+      onSelectLocation();
+    }
+  };
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
+
+  const handleLayer = () => setVisible(true);
+  const handleClose = () => navigation.goBack();
+  const closeMapLayer = () => setVisible(false);
+  const handleContinue = () => setSiteNameModalVisible(true);
 
   const onPressPerBlockedAlertPrimaryBtn = () => {};
   const onPressPerBlockedAlertSecondaryBtn = () => {
@@ -405,31 +341,38 @@ const CreatePolygon = ({navigation}) => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location]);
 
-  useEffect(() => {
-    if (geoJSON.features[0].geometry.coordinates.length <= 2) {
-      geoJSON.features[0].geometry.type = 'LineString';
-    }
-  }, [geoJSON]);
-
-  useEffect(() => {
-    generateAlphabets();
-  }, []);
-
   return (
-    <View style={styles.container}>
-      <Map
-        map={map}
-        camera={camera}
-        loader={loader}
-        geoJSON={geoJSON}
-        location={location}
-        setLoader={setLoader}
-        markerText={alphabets[activeMarkerIndex]}
-        setLocation={setLocation}
-        activePolygonIndex={activePolygonIndex}
-        setIsCameraRefVisible={setIsCameraRefVisible}
-      />
-      <LayerModal visible={visible} onRequestClose={closeMapLayer} />
+    <>
+      <MapboxGL.MapView
+        ref={map}
+        style={styles.map}
+        logoEnabled={false}
+        scaleBarEnabled={false}
+        styleURL={MapboxGL.StyleURL[state]}
+        compassViewMargins={compassViewMargins}
+        compassViewPosition={compassViewPosition}
+        onRegionIsChanging={onChangeRegionStart}
+        onRegionDidChange={onChangeRegionComplete}
+        attributionPosition={attributionPosition}>
+        <MapboxGL.Camera
+          ref={el => {
+            camera.current = el;
+            setIsCameraRefVisible(!!el);
+          }}
+        />
+        {location && (
+          <MapboxGL.UserLocation
+            showsUserHeadingIndicator
+            onUpdate={data => setLocation(data)}
+          />
+        )}
+        <View style={styles.fakeMarkerCont}>
+          <SvgXml xml={active_marker} style={styles.markerImage} />
+          {loader && (
+            <ActivityIndicator color={Colors.WHITE} style={styles.loader} />
+          )}
+        </View>
+      </MapboxGL.MapView>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleClose}>
           <CrossIcon fill={'#4D5153'} />
@@ -437,29 +380,29 @@ const CreatePolygon = ({navigation}) => {
         {renderAccuracyInfo()}
       </View>
       {renderAccuracyModal()}
-      {geoJSON.features[0].geometry.coordinates.length <= 2 ? (
-        <CustomButton
-          title="Continue"
-          style={styles.btnContinue}
-          onPress={addPolygonMarker}
-          titleStyle={styles.title}
-        />
-      ) : (
-        <View style={styles.btnContainer}>
-          <CustomButton
-            title="Complete"
-            style={[styles.btn, styles.btnComplete]}
-            onPress={addPolygon}
-            titleStyle={styles.titleBtnComplete}
-          />
-          <CustomButton
-            title="Continue"
-            style={styles.btn}
-            onPress={addPolygonMarker}
-            titleStyle={styles.title}
-          />
-        </View>
-      )}
+      <LayerModal visible={visible} onRequestClose={closeMapLayer} />
+      <TouchableOpacity
+        onPress={handleLayer}
+        style={styles.layerIcon}
+        accessibilityLabel="layer"
+        accessible={true}
+        testID="layer">
+        <LayerIcon width={20} height={20} fill={Colors.TEXT_COLOR} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={handleMyLocation}
+        style={styles.myLocationIcon}
+        accessibilityLabel="my_location"
+        accessible={true}
+        testID="my_location">
+        <MyLocIcon />
+      </TouchableOpacity>
+      <CustomButton
+        title="Select Location"
+        style={styles.btnContinue}
+        onPress={handleContinue}
+        titleStyle={styles.title}
+      />
       <AlertModal
         visible={isLocationAlertShow}
         heading={'Location Service'}
@@ -486,22 +429,6 @@ const CreatePolygon = ({navigation}) => {
         onPressPrimaryBtn={onPressPerDeniedAlertPrimaryBtn}
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
-      <TouchableOpacity
-        onPress={handleLayer}
-        style={styles.layerIcon}
-        accessibilityLabel="layer"
-        accessible={true}
-        testID="layer">
-        <LayerIcon width={20} height={20} fill={Colors.TEXT_COLOR} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={handleMyLocation}
-        style={styles.myLocationIcon}
-        accessibilityLabel="my_location"
-        accessible={true}
-        testID="my_location">
-        <MyLocIcon />
-      </TouchableOpacity>
       <Modal visible={siteNameModalVisible} transparent>
         <KeyboardAvoidingView
           {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
@@ -525,64 +452,38 @@ const CreatePolygon = ({navigation}) => {
             <CustomButton
               title="Continue"
               isLoading={loading}
+              titleStyle={styles.title}
               onPress={handleSiteModalContinue}
               style={styles.btnContinueSiteModal}
-              titleStyle={styles.title}
             />
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </>
   );
 };
 
-export default CreatePolygon;
+export default SelectLocation;
 
 const styles = StyleSheet.create({
-  container: {
+  safeAreaView: {
+    backgroundColor: '#000',
+  },
+  map: {
     flex: 1,
   },
-  addSpecies: {
-    color: Colors.ALERT,
-    fontSize: Typography.FONT_SIZE_18,
-    lineHeight: Typography.LINE_HEIGHT_30,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-  },
-  header: {
-    top: 43,
-    width: 336,
-    alignSelf: 'center',
-    position: 'absolute',
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  btn: {
-    width: 160,
-  },
-  btnContainer: {
-    width: 336,
-    bottom: 24,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    position: 'absolute',
-    justifyContent: 'space-between',
-  },
-  btnContinue: {
-    position: 'absolute',
-    bottom: 24,
-    width: 336,
-  },
-  btnComplete: {
+  myLocationIcon: {
+    right: 16,
+    width: 45,
+    height: 45,
     borderWidth: 1,
-    borderColor: Colors.PRIMARY,
+    borderRadius: 100,
+    alignItems: 'center',
+    position: 'absolute',
+    justifyContent: 'center',
+    bottom: IS_ANDROID ? 72 : 92,
     backgroundColor: Colors.WHITE,
-  },
-  titleBtnComplete: {
-    color: Colors.PRIMARY,
-  },
-  title: {
-    color: Colors.WHITE,
+    borderColor: Colors.GRAY_LIGHT,
   },
   layerIcon: {
     right: 16,
@@ -597,33 +498,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
-  myLocationIcon: {
-    right: 16,
-    width: 45,
-    height: 45,
-    borderWidth: 1,
-    borderRadius: 100,
-    alignItems: 'center',
+  fakeMarkerCont: {
     position: 'absolute',
+    left: '50%',
+    top: '50%',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 92 : 112,
-    backgroundColor: Colors.WHITE,
-    borderColor: Colors.GRAY_LIGHT,
-  },
-  gpsContainer: {
-    height: 44,
-    width: 122,
-    borderRadius: 14,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-evenly',
-    backgroundColor: '#FFC40080',
   },
-  gpsText: {
-    color: '#6F7173',
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    fontWeight: Typography.FONT_WEIGHT_REGULAR,
-    fontSize: Typography.FONT_SIZE_12,
+  markerImage: {
+    position: 'absolute',
+    resizeMode: 'contain',
+    bottom: 0,
+  },
+  loader: {
+    position: 'absolute',
+    bottom: 67,
+  },
+  header: {
+    top: 43,
+    width: 336,
+    alignSelf: 'center',
+    position: 'absolute',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  btnContinue: {
+    position: 'absolute',
+    bottom: 24,
+    width: 336,
+  },
+  title: {
+    color: Colors.WHITE,
   },
   modalContainer: {
     flex: 1,
@@ -646,6 +552,21 @@ const styles = StyleSheet.create({
     lineHeight: Typography.LINE_HEIGHT_20,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     fontSize: Typography.FONT_SIZE_14,
+  },
+  gpsContainer: {
+    height: 44,
+    width: 122,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    backgroundColor: '#FFC40080',
+  },
+  gpsText: {
+    color: '#6F7173',
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    fontWeight: Typography.FONT_WEIGHT_REGULAR,
+    fontSize: Typography.FONT_SIZE_12,
   },
   siteModalStyle: {
     flex: 1,

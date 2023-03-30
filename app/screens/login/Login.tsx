@@ -7,12 +7,13 @@ import RadialGradient from 'react-native-radial-gradient';
 import {Colors} from '../../styles';
 import {Logo} from '../../assets/svgs';
 import {useAppDispatch} from '../../hooks';
-import {CustomButton} from '../../components';
 import {
   getUserDetails,
-  updateAccessToken,
   updateIsLoggedIn,
+  updateAccessToken,
 } from '../../redux/slices/login/loginSlice';
+import {CustomButton} from '../../components';
+import {storeData} from '../../utils/localStorage';
 
 const RADIUS = 200;
 const CENTER_ARR = [187.5, 270.6];
@@ -41,9 +42,36 @@ const Login = ({navigation}) => {
           onSuccess: async message => {},
           onFail: message => {},
         };
+        storeData('cred', cred);
         dispatch(updateIsLoggedIn(true));
         dispatch(updateAccessToken(cred?.accessToken));
         dispatch(getUserDetails(request));
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  };
+
+  const handleSignUp = async () => {
+    const auth0 = new Auth0({
+      domain: Config.AUTH0_DOMAIN,
+      clientId: Config.AUTH0_CLIENT_ID,
+    });
+    auth0.webAuth
+      .authorize(
+        {
+          scope: 'openid email profile offline_access',
+          federated: true,
+          prompt: 'signup',
+          audience: 'urn:plant-for-the-planet',
+        },
+        {ephemeralSession: false},
+      )
+      .then(cred => {
+        const request = {
+          onSuccess: async message => {},
+          onFail: message => {},
+        };
       })
       .catch(err => {
         console.log(err);
@@ -65,6 +93,7 @@ const Login = ({navigation}) => {
           <CustomButton
             title="Sign Up"
             style={styles.btn}
+            onPress={handleSignUp}
             titleStyle={styles.titleStyle}
           />
           <CustomButton

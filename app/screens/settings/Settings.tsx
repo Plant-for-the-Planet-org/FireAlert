@@ -2,14 +2,24 @@ import {
   Text,
   View,
   Modal,
+  Platform,
   StyleSheet,
   ScrollView,
   Dimensions,
   SafeAreaView,
+  RefreshControl,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useCallback, useState} from 'react';
+import {useFocusEffect} from '@react-navigation/native';
 
+import {
+  Switch,
+  BottomSheet,
+  CustomButton,
+  FloatingInput,
+} from '../../components';
 import {
   AddIcon,
   SmsIcon,
@@ -26,16 +36,22 @@ import {
   DropdownArrow,
   MapOutlineIcon,
   TrashOutlineIcon,
-  BackArrowIcon,
 } from '../../assets/svgs';
 import {
   editSite,
   getSites,
   deleteSite,
 } from '../../redux/slices/sites/siteSlice';
+import {
+  getAlertsPreferences,
+  deleteAlertPreferences,
+  updateAlertPreferences,
+} from '../../redux/slices/alerts/alertSlice';
+
+import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
+import handleLink from '../../utils/browserLinking';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {CustomButton, FloatingInput, Switch} from '../../components';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -82,57 +98,21 @@ const RADIUS_ARR = [
   {name: 'inside', value: null},
 ];
 
-const EMAILS = [
-  {
-    id: 1,
-    email: 'mah@gmail.com',
-    enabled: false,
-  },
-  {
-    id: 2,
-    email: 'john12@gmail.com',
-    enabled: true,
-  },
-  {
-    id: 3,
-    email: 'xodd@gmail.com',
-    enabled: false,
-  },
-];
-
-const WHATSAPP_CONTACT = [
-  {
-    id: 1,
-    contact: '9887333334',
-    enabled: false,
-  },
-  {
-    id: 2,
-    contact: '8873333346',
-    enabled: true,
-  },
-  {
-    id: 3,
-    contact: '8867333346',
-    enabled: true,
-  },
-];
-
 const Settings = ({navigation}) => {
   const [projects, setProjects] = useState(PROJECTS);
   const [mySites, setMySites] = useState(MY_SITES);
-  const [whatsapp, setWhatsapp] = useState(WHATSAPP_CONTACT);
   const [dropDownModal, setDropDownModal] = useState(false);
   const [sitesInfoModal, setSitesInfoModal] = useState(false);
   const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
   const [selectedSiteInfo, setSelectedSiteInfo] = useState(null);
   const [pageXY, setPageXY] = useState(null);
   const [mobileNotify, setMobileNotify] = useState(false);
-  const [emails, setEmails] = useState(EMAILS);
   const [siteName, setSiteName] = useState('');
   const [siteGuid, setSiteGuid] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const {sites} = useAppSelector(state => state.siteSlice);
+  const {alertListPreferences} = useAppSelector(state => state.alertSlice);
   const dispatch = useAppDispatch();
 
   const handleSwitch = (index, val) => {
@@ -151,11 +131,24 @@ const Settings = ({navigation}) => {
       arr[filteredProjects].sites[filteredSites].radius = val;
       setProjects(arr);
     } else {
-      let arr = [...mySites];
-      const filteredSite = arr.findIndex(({id}) => id === pageXY.siteId);
-      arr[filteredSite].radius = val;
-      arr[filteredSite].enabled = true;
-      setMySites(arr);
+      const payload = {
+        radius: val !== null ? `${val}km` : 'inside',
+        guid: pageXY?.siteId,
+      };
+      const request = {
+        payload,
+        onSuccess: () => {
+          const req = {
+            onSuccess: () => {},
+            onFail: () => {},
+          };
+          setTimeout(() => {
+            dispatch(getSites(req));
+          }, 500);
+        },
+        onFail: () => {},
+      };
+      dispatch(editSite(request));
     }
     setDropDownModal(false);
   };
@@ -179,29 +172,37 @@ const Settings = ({navigation}) => {
     setDropDownModal(!dropDownModal);
   };
 
-  const handleEmailNotify = (index, val) => {
-    let emailArr = [...emails];
-    emailArr[index].enabled = val;
-    setEmails(emailArr);
+  const handleNotifySwitch = (data, isEnabled) => {
+    const {guid} = data;
+    const request = {
+      payload: {
+        guid,
+        isEnabled,
+      },
+      onSuccess: () => {
+        const request = {
+          onSuccess: () => {},
+          onFail: () => {},
+        };
+        setTimeout(() => dispatch(getAlertsPreferences(request)), 500);
+      },
+      onFail: () => {},
+    };
+    dispatch(updateAlertPreferences(request));
   };
 
-  const handleRemoveEmail = index => {
-    let emailArr = [...emails];
-    emailArr.splice(index, 1);
-    setEmails(emailArr);
+  const handleRemoveEmail = guid => {
+    const request = {
+      params: () => {
+        guid;
+      },
+      onSuccess: () => {},
+      onFail: () => {},
+    };
+    // dispatch(deleteAlertPreferences(request));
   };
 
-  const handleWhatsappNotify = (index, val) => {
-    let whatsappArr = [...whatsapp];
-    whatsappArr[index].enabled = val;
-    setWhatsapp(whatsappArr);
-  };
-
-  const handleRemoveWhatsapp = index => {
-    let whatsappArr = [...whatsapp];
-    whatsappArr.splice(index, 1);
-    setWhatsapp(whatsappArr);
-  };
+  const handleRemoveWhatsapp = guid => {};
 
   const handleSiteInformation = item => {
     setSelectedSiteInfo(item);
@@ -212,7 +213,7 @@ const Settings = ({navigation}) => {
     setSitesInfoModal(false);
     setSiteName(site.name);
     setSiteGuid(site.guid);
-    setSiteNameModalVisible(true);
+    setTimeout(() => setSiteNameModalVisible(true), 500);
   };
 
   const handleEditSiteInfo = () => {
@@ -264,21 +265,49 @@ const Settings = ({navigation}) => {
     dispatch(deleteSite(request));
   };
 
-  const handleBack = () => navigation.goBack();
+  const _handleEcoWeb = (URL: string) => () => handleLink(URL);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    const req = {
+      onSuccess: () => {
+        setRefreshing(false);
+      },
+      onFail: () => {
+        setRefreshing(false);
+      },
+    };
+    dispatch(getSites(req));
+    dispatch(getAlertsPreferences(req));
+  }, []);
+
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      onRefresh();
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
         {/* my projects */}
         <View style={[styles.myProjects, styles.commonPadding]}>
-          <TouchableOpacity onPress={handleBack} style={styles.backIcon}>
-            <BackArrowIcon />
-          </TouchableOpacity>
           <Text style={styles.mainHeading}>
             My Projects{' '}
             <Text style={styles.ppLink}>
               {' '}
-              via <Text style={styles.underLine}>pp.eco</Text>{' '}
+              via{' '}
+              <Text
+                style={styles.underLine}
+                onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>
+                pp.eco
+              </Text>{' '}
             </Text>
           </Text>
           {projects.map((item, index) => (
@@ -315,24 +344,28 @@ const Settings = ({navigation}) => {
           <View style={styles.mySitesHead}>
             <Text style={styles.mainHeading}>My Sites</Text>
           </View>
-          {sites.map((item, index) => (
-            <TouchableOpacity
-              onPress={() => handleSiteInformation(item)}
-              key={`mySites_${index}`}
-              style={styles.mySiteNameContainer}>
-              <Text style={styles.mySiteName}>{item.name || item.guid}</Text>
+          {[...(sites?.polygon || []), ...(sites?.point || [])]?.map(
+            (item, index) => (
               <TouchableOpacity
-                onPress={evt => handleSiteRadius(evt, item.guid)}
-                style={[styles.dropDownRadius, {paddingHorizontal: 15}]}>
-                <Text style={styles.siteRadius}>
-                  {!(item.radius === 'inside')
-                    ? `within ${item.radius}`
-                    : 'inside'}
+                onPress={() => handleSiteInformation(item)}
+                key={`mySites_${index}`}
+                style={styles.mySiteNameContainer}>
+                <Text style={styles.mySiteName}>
+                  {item?.name || item?.guid}
                 </Text>
-                <DropdownArrow />
+                <TouchableOpacity
+                  onPress={evt => handleSiteRadius(evt, item?.guid)}
+                  style={[styles.dropDownRadius]}>
+                  <Text style={styles.siteRadius}>
+                    {!(item?.radius === 'inside') || item?.radius === null
+                      ? `within ${item?.radius}`
+                      : 'inside'}
+                  </Text>
+                  <DropdownArrow />
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+            ),
+          )}
         </View>
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
@@ -363,7 +396,7 @@ const Settings = ({navigation}) => {
               </TouchableOpacity>
             </View>
             <View style={styles.emailContainer}>
-              {emails.map((item, i) => (
+              {alertListPreferences?.email?.map((item, i) => (
                 <View
                   key={`emails_${i}`}
                   style={[
@@ -375,12 +408,14 @@ const Settings = ({navigation}) => {
                       <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
                     </TouchableOpacity>
                     <Text style={[styles.mySiteName, {marginLeft: 10}]}>
-                      {item?.email}
+                      {item?.destination}
                     </Text>
                   </View>
                   <Switch
-                    value={item.enabled}
-                    onValueChange={val => handleEmailNotify(i, val)}
+                    value={item?.isEnabled}
+                    onValueChange={val =>
+                      handleNotifySwitch({guid: item.guid}, val)
+                    }
                   />
                 </View>
               ))}
@@ -400,7 +435,7 @@ const Settings = ({navigation}) => {
               </TouchableOpacity>
             </View>
             <View style={styles.emailContainer}>
-              {whatsapp.map((item, i) => (
+              {alertListPreferences?.whatsapp?.map((item, i) => (
                 <View
                   key={`emails_${i}`}
                   style={[
@@ -412,25 +447,56 @@ const Settings = ({navigation}) => {
                       <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
                     </TouchableOpacity>
                     <Text style={[styles.mySiteName, {marginLeft: 10}]}>
-                      {item?.contact}
+                      {item?.destination}
                     </Text>
                   </View>
                   <Switch
-                    value={item.enabled}
-                    onValueChange={val => handleWhatsappNotify(i, val)}
+                    value={item?.isEnabled}
+                    onValueChange={val =>
+                      handleNotifySwitch({guid: item.guid}, val)
+                    }
                   />
                 </View>
               ))}
             </View>
           </View>
-          <View style={styles.mySiteNameContainer}>
-            <View style={styles.mobileContainer}>
-              <SmsIcon />
-              <Text style={[styles.smallHeading, {marginLeft: 13}]}>Sms</Text>
+          {/* sms */}
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <SmsIcon />
+                <Text style={[styles.smallHeading, {marginLeft: 13}]}>Sms</Text>
+              </View>
+              <TouchableOpacity onPress={handleAddSms}>
+                <AddIcon />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={handleAddSms}>
-              <AddIcon />
-            </TouchableOpacity>
+            <View style={styles.emailContainer}>
+              {alertListPreferences?.sms?.map((item, i) => (
+                <View
+                  key={`emails_${i}`}
+                  style={[
+                    styles.emailSubContainer,
+                    {justifyContent: 'space-between'},
+                  ]}>
+                  <View style={styles.emailSubContainer}>
+                    <TouchableOpacity
+                      onPress={() => handleRemoveWhatsapp(item.guid)}>
+                      <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+                    </TouchableOpacity>
+                    <Text style={[styles.mySiteName, {marginLeft: 10}]}>
+                      {item?.destination}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={item?.isEnabled}
+                    onValueChange={val =>
+                      handleNotifySwitch({guid: item.guid}, val)
+                    }
+                  />
+                </View>
+              ))}
+            </View>
           </View>
         </View>
         {/* Warning */}
@@ -542,17 +608,27 @@ const Settings = ({navigation}) => {
           <View style={styles.warningSubContainer}>
             <PlanetLogo />
             <Text style={styles.warningText2}>
-              <Text style={styles.primaryUnderline}>FireAlert</Text> is a
-              project of the{' '}
-              <Text style={styles.primaryUnderline}>
+              <Text
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.PP_FIRE_ALERT)}>
+                FireAlert
+              </Text>{' '}
+              is a project of the{' '}
+              <Text
+                onPress={_handleEcoWeb(WEB_URLS.PP_ORG)}
+                style={styles.primaryUnderline}>
                 Plant-for-the-Planet Foundation
               </Text>
               , a non-profit organisation dedicated to restoring and conserving
               the world’s forests.{'\n\n'}
               <Text>
                 By using this app, you agree to our{' '}
-                <Text style={styles.primaryUnderline}>Terms & Conditions</Text>.
-                <Text style={styles.primaryUnderline}> Disclaimer</Text>.
+                <Text
+                  style={styles.primaryUnderline}
+                  onPress={_handleEcoWeb(WEB_URLS.PP_TERMS_CON)}>
+                  Terms & Conditions
+                </Text>
+                .<Text style={styles.primaryUnderline}> Disclaimer</Text>.
               </Text>
             </Text>
           </View>
@@ -560,51 +636,42 @@ const Settings = ({navigation}) => {
             <NasaLogo />
             <Text style={styles.warningText2}>
               We gratefully acknowledge the use of data and from NASA's{' '}
-              <Text style={styles.primaryUnderline}>
+              <Text
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.FIRMS)}>
                 {' '}
                 Information for Resource Management System (FIRMS)
               </Text>
               , part of NASA's Earth Observing System Data and Information
               System (EOSDIS). {'\n\n'}We thank the scientists and engineers who
-              built <Text style={styles.primaryUnderline}>MODIS, VIIRS</Text>{' '}
-              and <Text style={styles.primaryUnderline}>Landsat</Text>. We
-              appreciate NASA’s dedication to sharing data. This project is not
-              affiliated with NASA.{' '}
+              built{' '}
+              <Text
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.MODIS)}>
+                MODIS,
+              </Text>{' '}
+              <Text
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.VIIRS)}>
+                VIIRS
+              </Text>{' '}
+              and{' '}
+              <Text
+                style={styles.primaryUnderline}
+                onPress={_handleEcoWeb(WEB_URLS.LANDSAT)}>
+                Landsat
+              </Text>
+              . We appreciate NASA’s dedication to sharing data. This project is
+              not affiliated with NASA.{' '}
               <Text style={styles.primaryUnderline}>FIRMS Disclaimer</Text>. 
             </Text>
           </View>
         </View>
-        {dropDownModal ? (
-          <>
-            <TouchableOpacity
-              style={styles.overlay}
-              onPress={() => setDropDownModal(false)}
-            />
-            <View
-              style={[
-                styles.dropDownModal,
-                {
-                  top: pageXY.y + 15,
-                  right: 40,
-                },
-              ]}>
-              {RADIUS_ARR.map((item, index) => (
-                <TouchableOpacity
-                  key={`RADIUS_ARR_${index}`}
-                  onPress={() => handleSelectRadius(item.value)}>
-                  <Text style={styles.siteRadiusText}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        ) : null}
         {/* site information modal */}
-        <Modal visible={sitesInfoModal} animationType={'slide'} transparent>
-          <TouchableOpacity
-            activeOpacity={0}
-            onPress={() => setSitesInfoModal(false)}
-            style={styles.modalLayer}
-          />
+        <BottomSheet
+          isVisible={sitesInfoModal}
+          backdropColor={Colors.BLACK + '80'}
+          onBackdropPress={() => setSitesInfoModal(false)}>
           <View style={[styles.modalContainer, styles.commonPadding]}>
             <View style={styles.modalHeader} />
             <View style={styles.siteTitleCon}>
@@ -627,26 +694,66 @@ const Settings = ({navigation}) => {
               <Text style={styles.siteActionText}>Delete Site</Text>
             </TouchableOpacity>
           </View>
-        </Modal>
+        </BottomSheet>
         <Modal
           visible={siteNameModalVisible}
           animationType={'slide'}
           transparent>
-          <View style={styles.siteModalStyle}>
-            <FloatingInput
-              value={siteName}
-              label={'Site Name'}
-              onChangeText={setSiteName}
-            />
-            <CustomButton
-              title="Continue"
-              onPress={handleEditSiteInfo}
-              style={styles.btnContinueSiteModal}
-              titleStyle={styles.title}
-            />
-          </View>
+          <KeyboardAvoidingView
+            {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+            style={styles.siteModalStyle}>
+            <TouchableOpacity
+              onPress={handleCloseSiteModal}
+              style={styles.crossContainer}>
+              <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+            </TouchableOpacity>
+            <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+              Enter Site Name
+            </Text>
+            <View
+              style={[
+                styles.siteModalStyle,
+                {justifyContent: 'space-between'},
+              ]}>
+              <FloatingInput
+                autoFocus
+                isFloat={false}
+                value={siteName}
+                onChangeText={setSiteName}
+              />
+              <CustomButton
+                title="Continue"
+                onPress={handleEditSiteInfo}
+                style={styles.btnContinueSiteModal}
+                titleStyle={styles.title}
+              />
+            </View>
+          </KeyboardAvoidingView>
         </Modal>
       </ScrollView>
+      {dropDownModal ? (
+        <>
+          <TouchableOpacity
+            style={styles.overlay}
+            onPress={() => setDropDownModal(false)}
+          />
+          <View
+            style={[
+              styles.dropDownModal,
+              {
+                top: pageXY.y + 15,
+              },
+            ]}>
+            {RADIUS_ARR.map((item, index) => (
+              <TouchableOpacity
+                key={`RADIUS_ARR_${index}`}
+                onPress={() => handleSelectRadius(item.value)}>
+                <Text style={styles.siteRadiusText}>{item.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      ) : null}
     </SafeAreaView>
   );
 };
@@ -656,6 +763,9 @@ export default Settings;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContainer: {
+    paddingBottom: 100,
   },
   modalContainer: {
     bottom: 0,
@@ -695,15 +805,6 @@ const styles = StyleSheet.create({
   },
   myProjects: {
     marginTop: 20,
-  },
-  backIcon: {
-    width: 40,
-    height: 25,
-    paddingRight: 20,
-    marginBottom: 10,
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   mySites: {
     marginTop: 50,
@@ -751,7 +852,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dropDownModal: {
-    top: 100,
+    right: 40,
     paddingVertical: 15,
     paddingHorizontal: 25,
     borderWidth: 1,
@@ -805,6 +906,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.BLACK,
     paddingVertical: 5,
+    width: SCREEN_WIDTH / 2.5,
   },
   smallHeading: {
     fontSize: Typography.FONT_SIZE_16,
@@ -909,9 +1011,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
   },
   btnContinueSiteModal: {
-    marginTop: 18,
+    position: 'absolute',
+    bottom: 40,
   },
   title: {
     color: Colors.WHITE,
+  },
+  crossContainer: {
+    width: 25,
+    marginTop: 60,
+    marginHorizontal: 40,
+  },
+  heading: {
+    marginTop: 20,
+    marginBottom: 10,
+    fontSize: Typography.FONT_SIZE_24,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
   },
 });

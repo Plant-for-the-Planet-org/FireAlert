@@ -222,7 +222,6 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				4FF01E7FF39EEDC18EB0D04F /* [CP] Embed Pods Frameworks */,
 				C261C32495430A1CC9882403 /* [CP] Copy Pods Resources */,
-				521BE15429B8CB5A0073CB34 /* Run Script */,
 			);
 			buildRules = (
 			);
@@ -353,25 +352,6 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
-		};
-		521BE15429B8CB5A0073CB34 /* Run Script */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.env",
-			);
-			name = "Run Script";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Look for a global file named 'mapbox' or '.mapbox' within the home directory\ntoken_file=~/.env\ntoken=\"$(cat $token_file 2>/dev/null)\"\nif [ \"$token\" ]; then\n  plutil -replace MBXAccessToken -string $token \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\nelse\n  echo 'warning: Missing Mapbox access token'\n  open 'https://account.mapbox.com/access-tokens/'\n  echo \"warning: Get an access token from <https://account.mapbox.com/access-tokens/>, then create a new file at $token_file or $token_file2 that contains the access token.\"\nfi\n";
 		};
 		898646D89714F11717B9CCA6 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;

@@ -3,6 +3,12 @@ import {Switch as RNSwitch} from 'react-native-switch';
 
 import {Colors} from '../../styles';
 
+const toggleWidth = 35;
+const circleSize = 20;
+const switchWidthMultiplier = toggleWidth / circleSize;
+const multiplierFix =
+  circleSize / ((circleSize * switchWidthMultiplier - circleSize) / 2);
+
 const Switch = ({value = false, onValueChange}) => (
   <RNSwitch
     value={value}
@@ -10,8 +16,11 @@ const Switch = ({value = false, onValueChange}) => (
     disabled={false}
     activeText={'On'}
     inActiveText={'Off'}
-    circleSize={25}
     barHeight={14}
+    circleSize={circleSize}
+    switchLeftPx={multiplierFix}
+    switchRightPx={multiplierFix}
+    switchWidthMultiplier={switchWidthMultiplier}
     circleBorderWidth={3}
     backgroundActive={'#E5BFB7'}
     backgroundInactive={'#E0E0E076'}
@@ -26,9 +35,6 @@ const Switch = ({value = false, onValueChange}) => (
     outerCircleStyle={{}} // style for outer animated circle
     renderActiveText={false}
     renderInActiveText={false}
-    switchLeftPx={2} // denominator for logic when sliding to TRUE position. Higher number = more space from RIGHT of the circle to END of the slider
-    switchRightPx={2} // denominator for logic when sliding to FALSE position. Higher number = more space from LEFT of the circle to BEGINNING of the slider
-    switchWidthMultiplier={2} // multiplied by the `circleSize` prop to calculate total width of the Switch
     switchBorderRadius={30} // Sets the border Radius of the switch slider. If unset, it remains the circleSize.
   />
 );

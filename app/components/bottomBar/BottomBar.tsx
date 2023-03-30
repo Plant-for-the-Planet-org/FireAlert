@@ -23,7 +23,7 @@ import {
 import {Colors, Typography} from '../../styles';
 import {plusIcon} from '../../assets/svgs/plusIcon';
 
-let {width} = Dimensions.get('window');
+let {width, height} = Dimensions.get('window');
 const IS_ANDROID = Platform.OS === 'android';
 
 const buttonWidth = 64;
@@ -76,33 +76,40 @@ const getPath = (): string => {
 
 const d = getPath();
 
-interface IBottomBarProps {
-  onMapPress: any;
-  onListPress: any;
-}
-
-const AddOptions = () => {
+const AddOptions = ({onReqClose, onPressCallback}) => {
   const navigation = useNavigation();
   const addOptions = [
     {
       svgXML: locationIcon,
       title: 'Select Location',
-      onPress: () => {},
+      onPress: () => {
+        navigation.navigate('SelectLocation');
+        onPressCallback();
+      },
     },
     {
       svgXML: polygonIcon,
       title: 'Create Polygon',
-      onPress: () => navigation.navigate('CreatePolygon'),
+      onPress: () => {
+        navigation.navigate('CreatePolygon');
+        onPressCallback();
+      },
     },
     {
       svgXML: uploadIcon,
       title: 'Upload Polygon',
-      onPress: () => {},
+      onPress: () => {
+        navigation.navigate('UploadPolygon');
+        onPressCallback();
+      },
     },
   ];
 
   return (
-    <View style={styles.addOptionsParent}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onReqClose}
+      style={styles.addOptionsParent}>
       <View style={styles.addOptionsContainer}>
         {addOptions.length > 0
           ? addOptions.map((option: any, index: number) => (
@@ -124,14 +131,11 @@ const AddOptions = () => {
             ))
           : []}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
-const BottomBar = ({
-  onMapPress: onMenuPress,
-  onListPress: onTreeInventoryPress,
-}: IBottomBarProps) => {
+const BottomBar = ({...props}) => {
   const [selected, setSelected] = useState(0);
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [spinValue] = useState(new Animated.Value(0));
@@ -164,16 +168,16 @@ const BottomBar = ({
 
   const handleMap = () => {
     setSelected(0);
-    onMenuPress();
+    props.navigation.navigate('Home');
   };
 
   const handleList = () => {
-    // setSelected(1);
-    onTreeInventoryPress();
+    setSelected(1);
+    props.navigation.navigate('Settings');
   };
 
   return (
-    <>
+    <SafeAreaView>
       <View style={styles.bottomBarContainer}>
         <Svg
           width={width * 2 + tabWidth}
@@ -196,12 +200,15 @@ const BottomBar = ({
           onPress={handleMap}>
           <View style={styles.tabIconCon}>
             <MapIcon
-              fill={!selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
+              fill={selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
             />
             <Text
               style={[
                 styles.tabText,
-                {color: !selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR},
+                {
+                  color:
+                    selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
+                },
               ]}>
               Map
             </Text>
@@ -214,12 +221,15 @@ const BottomBar = ({
           onPress={handleList}>
           <View style={styles.tabIconCon}>
             <ListIcon
-              fill={selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
+              fill={selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
             />
             <Text
               style={[
                 styles.tabText,
-                {color: selected ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR},
+                {
+                  color:
+                    selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
+                },
               ]}>
               Settings
             </Text>
@@ -227,8 +237,12 @@ const BottomBar = ({
         </TouchableOpacity>
         <SafeAreaView style={styles.safeArea} />
       </View>
-      {showAddOptions ? <AddOptions /> : []}
-    </>
+      {showAddOptions ? (
+        <AddOptions onReqClose={onAddPress} onPressCallback={onAddPress} />
+      ) : (
+        []
+      )}
+    </SafeAreaView>
   );
 };
 
@@ -302,11 +316,15 @@ const styles = StyleSheet.create({
     bottom: tabbarHeight + 42,
     left: 0,
     right: 0,
+    bottom: 0,
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    height,
   },
   addOptionsContainer: {
     width: 257,
     borderRadius: 14,
+    marginBottom: 130,
     backgroundColor: Colors.WHITE,
     justifyContent: 'center',
     alignItems: 'flex-start',
