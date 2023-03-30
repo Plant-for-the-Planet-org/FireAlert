@@ -16,6 +16,7 @@ import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
+import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
@@ -58,6 +59,7 @@ import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {highlightWave} from '../../assets/animation/lottie';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -402,7 +404,8 @@ const Home = ({navigation}) => {
           <MapboxGL.PointAnnotation
             title={'title'}
             coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}>
-            <View style={styles.alertSpot} />
+            {/* <View style={styles.alertSpot} /> */}
+            {/* <Lottie source={require()} autoPlay loop /> */}
           </MapboxGL.PointAnnotation>
         ) : null}
         {renderMapSource()}
