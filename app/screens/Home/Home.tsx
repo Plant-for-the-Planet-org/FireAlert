@@ -285,18 +285,17 @@ const Home = ({navigation}) => {
         title={title}
         onSelected={e => {
           setSelectedAlert(alerts[counter]), console.log(e);
+          camera.current.setCamera({
+            centerCoordinate: [
+              alerts[counter]?.latitude,
+              alerts[counter]?.longitude,
+            ],
+            padding: {paddingBottom: SCREEN_HEIGHT / 4},
+            zoomLevel: ZOOM_LEVEL,
+            animationDuration: ANIMATION_DURATION,
+          });
         }}
         coordinate={coordinate}>
-        {/* <View
-          style={[
-            {
-              backgroundColor:
-                Colors.GRADIENT_PRIMARY + `${alerts[counter]?.confidence}`,
-            },
-            styles.alertSpot,
-          ]}
-        />
-       */}
         {getFireIcon(daysFromToday(alerts[counter]?.eventDate))}
       </MapboxGL.PointAnnotation>
     );
@@ -403,12 +402,7 @@ const Home = ({navigation}) => {
           <MapboxGL.PointAnnotation
             title={'title'}
             coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}>
-            <View
-              style={[
-                styles.alertSpot,
-                {borderWidth: 2, borderColor: Colors.BLACK},
-              ]}
-            />
+            <View style={styles.alertSpot} />
           </MapboxGL.PointAnnotation>
         ) : null}
         {renderMapSource()}
@@ -682,6 +676,8 @@ const styles = StyleSheet.create({
   alertSpot: {
     width: 25,
     height: 25,
+    borderWidth: 2,
+    borderColor: Colors.BLACK,
   },
   satelliteInfoCon: {
     marginTop: 30,
