@@ -58,8 +58,8 @@ import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 import {highlightWave} from '../../assets/animation/lottie';
+import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -286,7 +286,6 @@ const Home = ({navigation}) => {
         key={id}
         title={title}
         onSelected={e => {
-          setSelectedAlert(alerts[counter]), console.log(e);
           camera.current.setCamera({
             centerCoordinate: [
               alerts[counter]?.latitude,
@@ -296,6 +295,9 @@ const Home = ({navigation}) => {
             zoomLevel: ZOOM_LEVEL,
             animationDuration: ANIMATION_DURATION,
           });
+          setTimeout(() => {
+            setSelectedAlert(alerts[counter]), console.log(e);
+          }, ANIMATION_DURATION);
         }}
         coordinate={coordinate}>
         {getFireIcon(daysFromToday(alerts[counter]?.eventDate))}
@@ -401,12 +403,24 @@ const Home = ({navigation}) => {
           />
         )}
         {Object.keys(selectedAlert).length ? (
-          <MapboxGL.PointAnnotation
-            title={'title'}
-            coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}>
-            {/* <View style={styles.alertSpot} /> */}
-            {/* <Lottie source={require()} autoPlay loop /> */}
-          </MapboxGL.PointAnnotation>
+          // <MapboxGL.PointAnnotation
+          //   title={'title'}
+          //   coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}>
+          //   <View style={styles.alertSpot} />
+
+          // </MapboxGL.PointAnnotation>
+          <Lottie
+            style={{
+              width: 150,
+              height: 150,
+              position: 'absolute',
+              top: 75,
+              left: 40.5,
+            }}
+            source={highlightWave}
+            autoPlay
+            loop
+          />
         ) : null}
         {renderMapSource()}
         {renderAnnotations(true)}
