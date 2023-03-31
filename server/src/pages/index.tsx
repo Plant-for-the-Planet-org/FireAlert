@@ -9,7 +9,6 @@ import { api } from "~/utils/api";
 import Sites from "~/Components/SiteComponent";
 
 const Home: NextPage = () => {
-  const hello = api.example.hello.useQuery({ text: "from tRPC" });
   const { data: sessionData } = useSession();
 
   const idToken = sessionData?.user?.id_token;
@@ -37,9 +36,6 @@ const Home: NextPage = () => {
       <main className={styles.main}>
         <div className={styles.container}>
           <div className={styles.showcaseContainer}>
-            <p className={styles.showcaseText}>
-              {hello.data ? hello.data.greeting : "Loading tRPC query..."}
-            </p>
             <AuthShowcase />
           </div>
         </div>
@@ -53,10 +49,10 @@ export default Home;
 const AuthShowcase: React.FC = () => {
   const { data: sessionData } = useSession();
 
-  const { data: secretMessage } = api.example.getSecretMessage.useQuery(
-    undefined, // no input
-    { enabled: sessionData?.user !== undefined },
-  );
+  // const { data: secretMessage } = api.example.getSecretMessage.useQuery(
+  //   undefined, // no input
+  //   { enabled: sessionData?.user !== undefined },
+  // );
 
 
 
@@ -64,10 +60,6 @@ const AuthShowcase: React.FC = () => {
 
   return (
     <div className={styles.authContainer}>
-      <p className={styles.showcaseText}>
-        {sessionData && <span>Logged in as {sessionData.user.id} {sessionData.user.name} {sessionData.user.email} {sessionData.user.image} {sessionData.expires}</span>}
-        {secretMessage && <span> - {secretMessage}</span>}
-      </p>
       <Sites />
       <button
         className={styles.loginButton}

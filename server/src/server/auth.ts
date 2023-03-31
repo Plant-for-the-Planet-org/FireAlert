@@ -1,20 +1,16 @@
-import { type GetServerSidePropsContext } from "next";
+import {type GetServerSidePropsContext} from 'next';
 import {
   getServerSession,
   type NextAuthOptions,
   type DefaultSession,
-} from "next-auth";
-import Auth0Provider from "next-auth/providers/auth0"
+} from 'next-auth';
+import Auth0Provider from 'next-auth/providers/auth0';
 
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { env } from "~/env.mjs";
-import { prisma } from "~/server/db";
-import { signIn, signOut } from "next-auth/react";
-import { getToken, JWT } from "next-auth/jwt";
-import { Account, User } from "@prisma/client";
-import jwt, {type JwtPayload} from 'jsonwebtoken'
-import { setCookie, destroyCookie } from 'nookies';
-
+import {PrismaAdapter} from '@next-auth/prisma-adapter';
+import {env} from '~/env.mjs';
+import {prisma} from '~/server/db';
+import {Account, User} from '@prisma/client';
+import jwt, {type JwtPayload} from 'jsonwebtoken';
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -22,7 +18,7 @@ import { setCookie, destroyCookie } from 'nookies';
  *
  * @see https://next-auth.js.org/getting-started/typescript#module-augmentation
  */
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session extends DefaultSession {
     user: {
       id: string;
@@ -31,9 +27,12 @@ declare module "next-auth" {
       token_type?: string;
       // ...other properties
       // role: UserRole;
-    } & DefaultSession["user"],
+    } & DefaultSession['user'];
+    account: {
+      providerAccountId: string;
+    } & Account['account'];
   }
-
+  interface Account {}
 
   interface User {
     // ...other properties
@@ -48,76 +47,65 @@ declare module "next-auth" {
  * @see https://next-auth.js.org/configuration/options
  */
 export const authOptions: NextAuthOptions = {
-
   session: {
-    strategy: 'jwt'
+    strategy: 'jwt',
   },
-  
+
   callbacks: {
-    // async session({ session, user, token}) {
-    //   if (session.user) {
-    //     const id_token = token.id_token as string;
-    //     const token_type = token.token_type as string;
+    session: async ({session, token}) => {
+      console.log(
+        `Session Callback, ${JSON.stringify(session)} ${JSON.stringify(token)}`,
+      );
+      console.log(`Token id is ${token.id_token}`); // token.id is undefined!
 
-    //     session.user.id = user.id;
-    //     session.user.roles = user.roles;
-    //     session.token.id_token = id_token;
-    //     session.token.token_type = token_type;
-        
-    //     // session.user.role = user.role; <-- put other properties on the session here
-    //   }
-    //   // Seems like this runs at each login
-    //   console.log(`Session is ${JSON.stringify(session)}`)
-    //   return session;
-    // },
-
-    session: async({session, token}) => {
-      console.log(`Session Callback, ${JSON.stringify(session)} ${JSON.stringify(token)}`)
-      console.log(`Token id is ${token.id_token}`) // token.id is undefined!
-      
       const user = session.user as User;
       const id_token = token.id_token as string;
       const token_type = token.token_type as string;
       const roles = user.roles as string;
+      const providerAccountId = token.providerAccountId as string;
+      // const decodedToken = jwt.decode(id_token)
+      // console.log(`The decoded token is ${JSON.stringify(decodedToken)}`)
 
-      const decodedToken = jwt.decode(id_token)
-      console.log(`The decoded token is ${JSON.stringify(decodedToken)}`)
-      
       return {
         ...session,
         user: {
           ...session.user,
           id_token: id_token,
           token_type: token_type,
-          roles: roles
-        }
-      }
+          roles: roles,
+        },
+        account: {
+          providerAccountId: providerAccountId,
+        },
+      };
     },
 
-    jwt: async({token, user, account}) => {
-      console.log('JWT Callback', {token, user, account})
-      if(user && account) {
-        const u = user as unknown as User
-        const a = account as unknown as Account
+    jwt: async ({token, user, account}) => {
+      console.log('JWT Callback', {token, user, account});
+      if (user && account) {
+        const u = user as unknown as User;
+        const a = account as unknown as Account;
 
         const id_token = a.id_token as string;
         const token_type = a.token_type as string;
+        const providerAccountId = a.providerAccountId as string;
         const roles = u.roles as string;
         return {
           ...token,
           id_token: id_token,
           token_type: token_type,
-          roles: roles
-        }
+          roles: roles,
+          providerAccountId: providerAccountId,
+        };
       }
-      return token
+      return token;
     },
 
-    signIn: async({account}) => {
-      const token = account?.id_token
+    signIn: async ({account}) => {
+      const token = account?.id_token;
       // TODO: I have to somehow add the token to cookies!
       // SOLUTION: I couldn't do it with every successful sign in, but when the page loaded, I added token in cookie in index.tsx
-      return true
+      return true;
     },
   },
 
@@ -135,9 +123,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: env.AUTH0_CLIENT_SECRET,
       // NextAuth uses issuer as AUTH0_DOMAIN
       issuer: env.AUTH0_DOMAIN,
-    })
-
-
+    }),
 
     /**
      * ...add more providers here.
@@ -151,13 +137,12 @@ export const authOptions: NextAuthOptions = {
   ],
 
   events: {
-    // 
-    async signIn(message){
-
-      console.log('Checking signin')
-      console.log(message.account?.id_token)
-    }
-  }
+    //
+    async signIn(message) {
+      console.log('Checking signin');
+      console.log(message.account?.id_token);
+    },
+  },
 };
 
 /**
@@ -166,8 +151,8 @@ export const authOptions: NextAuthOptions = {
  * @see https://next-auth.js.org/configuration/nextjs
  */
 export const getServerAuthSession = (ctx: {
-  req: GetServerSidePropsContext["req"];
-  res: GetServerSidePropsContext["res"];
+  req: GetServerSidePropsContext['req'];
+  res: GetServerSidePropsContext['res'];
 }) => {
   return getServerSession(ctx.req, ctx.res, authOptions);
 };

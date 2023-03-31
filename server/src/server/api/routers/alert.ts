@@ -3,7 +3,7 @@ import { createAlertSchema, params as alertParams, updateAlertSchema } from '../
 import { params as siteParams} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
-    protectedProcedure,
+    protectedNormalApiProcedure,
 } from "~/server/api/trpc";
 import { Alert } from "@prisma/client";
 import { randomUUID } from "crypto";
@@ -11,7 +11,7 @@ import { randomUUID } from "crypto";
 
 export const alertRouter = createTRPCRouter({
 
-    createAlertMethod: protectedProcedure
+    createAlertMethod: protectedNormalApiProcedure
         .input(createAlertSchema)
         .mutation(async ({ ctx, input }) => {
             try {
@@ -44,7 +44,7 @@ export const alertRouter = createTRPCRouter({
             }
         }),
     
-    getAlertsForSite: protectedProcedure
+    getAlertsForSite: protectedNormalApiProcedure
         .input(siteParams)
         .query(async({ ctx, input }) => {
             try{
@@ -62,7 +62,7 @@ export const alertRouter = createTRPCRouter({
             }
     }),
 
-    getAlertsForUser: protectedProcedure
+    getAlertsForUser: protectedNormalApiProcedure
         .input(siteParams)
         .query(async({ctx, input})=>{
             try{
@@ -89,7 +89,7 @@ export const alertRouter = createTRPCRouter({
             }
         }), 
     
-    getAlert: protectedProcedure
+    getAlert: protectedNormalApiProcedure
         .input(alertParams)
         .query(async({ctx, input}) => {
             try{
@@ -105,7 +105,7 @@ export const alertRouter = createTRPCRouter({
             }
         }),
 
-    updateAlert: protectedProcedure
+    updateAlert: protectedNormalApiProcedure
         .input(updateAlertSchema)
         .mutation(async({ctx, input}) => {
             try{
@@ -128,7 +128,7 @@ export const alertRouter = createTRPCRouter({
             }
         }),
 
-    deleteAlert: protectedProcedure
+    deleteAlert: protectedNormalApiProcedure
         .input(alertParams)
         .mutation(async({ctx, input}) => {
             try{

@@ -2,13 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { createSiteSchema, params, updateSiteSchema } from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
-    protectedProcedure,
+    protectedNormalApiProcedure,
 } from "~/server/api/trpc";
 
 
 export const siteRouter = createTRPCRouter({
 
-    createSite: protectedProcedure
+    createSite: protectedNormalApiProcedure
         .input(createSiteSchema)
         .mutation(async ({ ctx, input }) => {
             try {
@@ -36,7 +36,7 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-    getAllSites: protectedProcedure
+    getAllSites: protectedNormalApiProcedure
         .query(async({ ctx }) => {
             try{
                 const sites = await ctx.prisma.site.findMany({
@@ -57,7 +57,7 @@ export const siteRouter = createTRPCRouter({
             } 
         }),
     
-    getSite: protectedProcedure
+    getSite: protectedNormalApiProcedure
         .input(params)
         .query(async({ctx, input}) => {
             try{
@@ -77,7 +77,7 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-    updateSite: protectedProcedure
+    updateSite: protectedNormalApiProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input}) => {
             try{
@@ -100,7 +100,7 @@ export const siteRouter = createTRPCRouter({
             }
         }),
     
-    deleteSite: protectedProcedure
+    deleteSite: protectedNormalApiProcedure
         .input(params)
         .mutation(async ({ctx, input}) => {
             try{
