@@ -10,7 +10,7 @@
     "dev": "dotenv -- turbo run dev"
   },
   "workspaces": [
-    "packages/*"
+    "apps/*"
   ],
   "dependencies": {
     "dotenv-cli": "^7.1.0",
