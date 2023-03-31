@@ -1,5 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "com.facebook.react"
+project.ext.defaultEnvFile ="/Users/macbookpro/Projects/FireAlert/.env"
 project.ext.envConfigFiles = [
   staging   : ".env.staging",
   release: ".env.production",
