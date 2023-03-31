@@ -2,13 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { params, updateUserSchema } from '../zodSchemas/user.schema'
 import {
     createTRPCRouter,
-    protectedProcedure,
-    adminProcedure,
+    protectedUserApiProcedure,
 } from "~/server/api/trpc";
 
 export const userRouter = createTRPCRouter({
     // getUser can be called only by the admin
-    getUser: protectedProcedure
+    getUser: protectedUserApiProcedure
         .input(params)
         .query(async({ctx, input}) => {
             try{
@@ -28,7 +27,7 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    updateUser: protectedProcedure
+    updateUser: protectedUserApiProcedure
         .input(updateUserSchema)
         .mutation(async ({ ctx, input}) => {
             try{
@@ -51,7 +50,7 @@ export const userRouter = createTRPCRouter({
             }
         }),
     
-    deleteUser: adminProcedure
+    deleteUser: protectedUserApiProcedure
         .input(params)
         .mutation(async ({ctx, input}) => {
             try{

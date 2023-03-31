@@ -9,11 +9,8 @@ import Auth0Provider from "next-auth/providers/auth0"
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { env } from "~/env.mjs";
 import { prisma } from "~/server/db";
-import { signIn, signOut } from "next-auth/react";
-import { getToken, JWT } from "next-auth/jwt";
 import { Account, User } from "@prisma/client";
 import jwt, {type JwtPayload} from 'jsonwebtoken'
-import { setCookie, destroyCookie } from 'nookies';
 
 
 /**
@@ -32,6 +29,9 @@ declare module "next-auth" {
       // ...other properties
       // role: UserRole;
     } & DefaultSession["user"],
+    account: {
+      providerAccountId: string;
+    } & DefaultSession["account"],
   }
 
 
@@ -54,22 +54,6 @@ export const authOptions: NextAuthOptions = {
   },
   
   callbacks: {
-    // async session({ session, user, token}) {
-    //   if (session.user) {
-    //     const id_token = token.id_token as string;
-    //     const token_type = token.token_type as string;
-
-    //     session.user.id = user.id;
-    //     session.user.roles = user.roles;
-    //     session.token.id_token = id_token;
-    //     session.token.token_type = token_type;
-        
-    //     // session.user.role = user.role; <-- put other properties on the session here
-    //   }
-    //   // Seems like this runs at each login
-    //   console.log(`Session is ${JSON.stringify(session)}`)
-    //   return session;
-    // },
 
     session: async({session, token}) => {
       console.log(`Session Callback, ${JSON.stringify(session)} ${JSON.stringify(token)}`)
@@ -79,9 +63,9 @@ export const authOptions: NextAuthOptions = {
       const id_token = token.id_token as string;
       const token_type = token.token_type as string;
       const roles = user.roles as string;
-
-      const decodedToken = jwt.decode(id_token)
-      console.log(`The decoded token is ${JSON.stringify(decodedToken)}`)
+      const providerAccountId = token.providerAccountId as string;
+      // const decodedToken = jwt.decode(id_token)
+      // console.log(`The decoded token is ${JSON.stringify(decodedToken)}`)
       
       return {
         ...session,
@@ -90,6 +74,9 @@ export const authOptions: NextAuthOptions = {
           id_token: id_token,
           token_type: token_type,
           roles: roles
+        },
+        account: {
+          providerAccountId: providerAccountId
         }
       }
     },
@@ -102,12 +89,14 @@ export const authOptions: NextAuthOptions = {
 
         const id_token = a.id_token as string;
         const token_type = a.token_type as string;
+        const providerAccountId = a.providerAccountId as string;
         const roles = u.roles as string;
         return {
           ...token,
           id_token: id_token,
           token_type: token_type,
-          roles: roles
+          roles: roles,
+          providerAccountId: providerAccountId
         }
       }
       return token

@@ -1,5 +1,4 @@
 import { createTRPCRouter } from "~/server/api/trpc";
-import { exampleRouter } from "~/server/api/routers/example";
 import { siteRouter } from "~/server/api/routers/site";
 import { alertMethodRouter } from "~/server/api/routers/alertMethod";
 import { alertRouter } from "~/server/api/routers/alert";
@@ -10,7 +9,6 @@ import { alertRouter } from "~/server/api/routers/alert";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  example: exampleRouter,
   site: siteRouter,
   alertMethod: alertMethodRouter,
   alert: alertRouter,
