@@ -7,7 +7,9 @@
   "author": "Plant-for-the-Planet <info@plant-for-the-planet.org>",
   "license": "MIT",
   "scripts": {
-    "dev": "dotenv -- turbo run dev"
+    "dev": "dotenv -- turbo run dev",
+    "nativeapp": "yarn workspace @firealert/nativeapp",
+    "server": "yarn workspace @firealert/server"    
   },
   "workspaces": [
     "apps/*"
