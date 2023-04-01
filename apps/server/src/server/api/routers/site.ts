@@ -38,6 +38,7 @@ export const siteRouter = createTRPCRouter({
 
     getAllSites: protectedProcedure
         .query(async({ ctx }) => {
+            console.log(`Inside getAllSites`)
             try{
                 const sites = await ctx.prisma.site.findMany({
                     where: {

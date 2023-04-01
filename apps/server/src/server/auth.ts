@@ -54,34 +54,12 @@ export const authOptions: NextAuthOptions = {
   },
   
   callbacks: {
-    // async session({ session, user, token}) {
-    //   if (session.user) {
-    //     const id_token = token.id_token as string;
-    //     const token_type = token.token_type as string;
 
-    //     session.user.id = user.id;
-    //     session.user.roles = user.roles;
-    //     session.token.id_token = id_token;
-    //     session.token.token_type = token_type;
-        
-    //     // session.user.role = user.role; <-- put other properties on the session here
-    //   }
-    //   // Seems like this runs at each login
-    //   console.log(`Session is ${JSON.stringify(session)}`)
-    //   return session;
-    // },
-
-    session: async({session, token}) => {
-      console.log(`Session Callback, ${JSON.stringify(session)} ${JSON.stringify(token)}`)
-      console.log(`Token id is ${token.id_token}`) // token.id is undefined!
-      
+    session: async({session, token}) => {  
       const user = session.user as User;
       const id_token = token.id_token as string;
       const token_type = token.token_type as string;
       const roles = user.roles as string;
-
-      const decodedToken = jwt.decode(id_token)
-      console.log(`The decoded token is ${JSON.stringify(decodedToken)}`)
       
       return {
         ...session,
@@ -95,7 +73,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     jwt: async({token, user, account}) => {
-      console.log('JWT Callback', {token, user, account})
       if(user && account) {
         const u = user as unknown as User
         const a = account as unknown as Account
@@ -111,13 +88,6 @@ export const authOptions: NextAuthOptions = {
         }
       }
       return token
-    },
-
-    signIn: async({account}) => {
-      const token = account?.id_token
-      // TODO: I have to somehow add the token to cookies!
-      // SOLUTION: I couldn't do it with every successful sign in, but when the page loaded, I added token in cookie in index.tsx
-      return true
     },
   },
 
@@ -149,15 +119,6 @@ export const authOptions: NextAuthOptions = {
      * @see https://next-auth.js.org/providers/github
      */
   ],
-
-  events: {
-    // 
-    async signIn(message){
-
-      console.log('Checking signin')
-      console.log(message.account?.id_token)
-    }
-  }
 };
 
 /**

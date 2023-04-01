@@ -19,26 +19,27 @@ import { type Session } from "next-auth";
 
 import { getServerAuthSession } from "../../server/auth";
 import { prisma } from "../../server/db";
+const jwksClient = require('jwks-rsa');
+const jwt = require('jsonwebtoken');
 
+// interface Token extends JwtPayload {
+//   "https://app.plant-for-the-planet.org/email": string;
+//   "https://app.plant-for-the-planet.org/email_verified": boolean;
+//   azp: string;
+// }
+
+// interface Jwt {
+//   header: JwtHeader;
+//   payload: Token | string; // Updated to use the Token interface as payload type
+//   signature: string;
+// }
 
 
 type CreateContextOptions = {
   session: Session | null;
-  decodedToken: DecodedToken | null;
+  req: NextApiRequest;
 };
 
-interface DecodedToken extends JwtPayload {
-  given_name: string;
-  family_name: string;
-  nickname: string;
-  name: string;
-  picture: string;
-  locale: string;
-  updated_at: string;
-  email: string;
-  email_verified: boolean;
-  sid: string;
-}
 
 
 /**
@@ -54,7 +55,7 @@ interface DecodedToken extends JwtPayload {
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     session: opts.session,
-    decodedToken: opts.decodedToken,
+    req: opts.req,
     prisma,
   };
 };
@@ -68,12 +69,6 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const { req, res } = opts;
 
-  // Get token from the headers
-  // const token = req.headers.authorization?.split(' ')[1];
-  const decodedToken = getToken({req});
-
-
-  console.log(`Token from getToken ${JSON.stringify(decodedToken)}`)
 
 
   // when getUser api call is made:
@@ -85,29 +80,25 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   // if user does not exist, create the new user with the information from the access token. 
   // then add then return the user in the api call
 
-  
+
 
   // when any other api call is made:
   // verify if token is valid, and signed using getToken()
   // decode the token! 
   // check if sub from the token already exists as a providerAccountId from account table, 
+  // if user is invalid, and route is profile, 
   // use sub as user guid
-  // if user exists (go to line 91)
-  // if user does not exist, throw a 401 error. 
+  // if user exists (go to line 91) // compare user from the sub to the database
+  // if user does not exist,
+  // and route is not profile, throw a 401 error. 
+  // else add user to the database
   // then return the data that belongs to the user
-
-
-  if (typeof decodedToken === 'string'){
-    throw new TRPCError({message: 'decodedToken was string!', code:'BAD_REQUEST'})
-  }
-
-  console.log(`Will this run if there is no token in the header? ${decodedToken}`)
 
   const session = await getServerAuthSession({ req, res });
 
   return createInnerTRPCContext({
-    session,
-    decodedToken
+    req,
+    session
   });
 };
 
@@ -121,8 +112,8 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import jwt, {type JwtPayload} from 'jsonwebtoken'
-import { getToken } from "next-auth/jwt";
+import {checkTokenIsValid} from '../../utils/token'
+import { NextApiRequest } from "next";
 
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
@@ -160,65 +151,56 @@ export const createTRPCRouter = t.router;
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
+
+
 export const publicProcedure = t.procedure;
 
 /** Reusable middleware that enforces users are logged in before running the procedure. */
-const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
-  // Add alternative method to make sure that a user can also be authorized with http-authorization-header using bearer token
-  console.log(`This is session from protected procedure ${JSON.stringify(ctx.session)}`)
-  if (!ctx.session || !ctx.session.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
+
+const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
+  let passTokenToNext = false;
+  let decodedToken;
+
+  console.log(`check1: ${ctx.req.headers.authorization}`)
+
+  if (ctx.req.headers.authorization) {
+      const access_token = ctx.req.headers.authorization.replace('Bearer ', '');
+      console.log(`Access token from enforceUserIsAuthed: ${access_token}`)
+
+      if (!access_token) {
+          passTokenToNext = false;
+      } else {
+          try {
+              decodedToken = await checkTokenIsValid(access_token);
+              console.log(`decodedToken: ${JSON.stringify(decodedToken)}`);
+              passTokenToNext = true;
+              console.log(`Check PassTokenToNext: ${passTokenToNext}`);
+          } catch (error) {
+              throw new TRPCError({ code: "UNAUTHORIZED", message: `Invalid Token` });
+          }
+      }
   }
-  return next({
-    ctx: {
-      // infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user },
-    },
-  });
+
+  if (passTokenToNext && decodedToken) {
+      return next({
+          ctx: {
+              token: {
+                  ...decodedToken
+              },
+          }
+      });
+  } else {
+      if (!ctx.session || !ctx.session.user) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: `Invalid Session` });
+      }
+      return next({
+          ctx: {
+              // infers the `session` as non-nullable
+              session: { ...ctx.session, user: ctx.session.user },
+          },
+      });
+  }
 });
-
-const enforceUserIsUser = t.middleware(({ ctx, next }) => {
-
-  // check if sub from the token already exists as a providerAccountId from account table, 
-  // use sub as user guid
-  // if user exists (go to line 81)
-  // if user does not exist, create the new user with the information from the access token. 
-  // then add then return the user in the api call
-
-  if(ctx.decodedToken?.sub === ctx.session?.account.providerAccountId){
-    //Aashish: I need to make account be available in context
-    // use sub as user guid
-  }
-  
-
-  
-  if(ctx.decodedToken?.email !== ctx.session?.user.email){
-    throw new TRPCError({ code: 'UNAUTHORIZED'})
-  }
-
-
-
-  console.log('Passed all checks!')
-
-  return next({
-    ctx: {
-      session: { ...ctx.session, user: ctx.session!.user}
-    }
-  })
-})
-
-const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
-  if (ctx.session?.user.roles !== 'ADMIN') {
-    throw new TRPCError({ code: 'UNAUTHORIZED'})
-  }
-  return next({
-    ctx: {
-      session: { ...ctx.session, user: ctx.session.user }
-    }
-  })
-})
-
-
 /**
  * Protected (authenticated) procedure
  *
@@ -227,6 +209,4 @@ const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(enforceUserIsUser);
-
-export const adminProcedure = t.procedure.use(enforceUserIsAdmin);
+export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);

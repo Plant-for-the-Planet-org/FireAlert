@@ -24,9 +24,6 @@ const Home: NextPage = () => {
     console.log(err)
   }
 
-  console.log(`This is the id_token from index.tsx file ${idToken}`)
-
-
   return (
     <>
       <Head>
@@ -57,10 +54,6 @@ const AuthShowcase: React.FC = () => {
     undefined, // no input
     { enabled: sessionData?.user !== undefined },
   );
-
-
-
-  { console.log(`Logged in session data from index.tsx ${JSON.stringify(sessionData)}`) }
 
   return (
     <div className={styles.authContainer}>

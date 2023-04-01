@@ -3,7 +3,6 @@ import { params, updateUserSchema } from '../zodSchemas/user.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
-    adminProcedure,
 } from "../../../server/api/trpc";
 
 export const userRouter = createTRPCRouter({
@@ -51,7 +50,7 @@ export const userRouter = createTRPCRouter({
             }
         }),
     
-    deleteUser: adminProcedure
+    deleteUser: protectedProcedure
         .input(params)
         .mutation(async ({ctx, input}) => {
             try{
@@ -72,5 +71,7 @@ export const userRouter = createTRPCRouter({
         }),
     
 });
+
+export type UserRouter = typeof userRouter
 
 
