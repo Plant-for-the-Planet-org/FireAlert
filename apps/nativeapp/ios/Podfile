@@ -27,7 +27,7 @@ end
 target 'FireAlert' do
   config = use_native_modules!
 
-  pod 'SRSRadialGradient', :path => '../node_modules/react-native-radial-gradient/ios'
+  pod 'SRSRadialGradient', :path => '../../../node_modules/react-native-radial-gradient/ios'
 
   # Flags change depending on the env values.
   flags = get_default_flags()
@@ -45,7 +45,7 @@ target 'FireAlert' do
     # you should disable the next line.
     :flipper_configuration => FlipperConfiguration.enabled(["Debug"], {'Flipper' => '0.163.0'}),
     # An absolute path to your application root.
-    :app_path => "#{Pod::Config.instance.installation_root}/.."
+    :app_path => "#{Pod::Config.instance.installation_root}/../../.."
   )
 
   target 'FireAlertTests' do
@@ -59,12 +59,13 @@ target 'FireAlert' do
 
   post_install do |installer|
     $RNMapboxMaps.post_install(installer)
-    react_native_post_install(
-      installer,
-      # Set `mac_catalyst_enabled` to `true` in order to apply patches
-      # necessary for Mac Catalyst builds
-      :mac_catalyst_enabled => false
-    )
+    # THIS DOES NOT WORK WITH THE CURRENT PATH
+    #react_native_post_install(
+    #  installer,
+    #  # Set `mac_catalyst_enabled` to `true` in order to apply patches
+    #  # necessary for Mac Catalyst builds
+    #  :mac_catalyst_enabled => false
+    #)
     __apply_Xcode_12_5_M1_post_install_workaround(installer)
   end
 end
