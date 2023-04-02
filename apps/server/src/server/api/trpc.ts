@@ -21,8 +21,10 @@ import { getServerAuthSession } from "../../server/auth";
 import { prisma } from "../../server/db";
 const jwksClient = require('jwks-rsa');
 const jwt = require('jsonwebtoken');
+// const { JwtHeader, JwtPayload } = require('@types/jsonwebtoken');
 
-// interface Token extends JwtPayload {
+
+// interface Token extends  JwtPayload {
 //   "https://app.plant-for-the-planet.org/email": string;
 //   "https://app.plant-for-the-planet.org/email_verified": boolean;
 //   azp: string;
@@ -161,11 +163,8 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
   let passTokenToNext = false;
   let decodedToken;
 
-  console.log(`check1: ${ctx.req.headers.authorization}`)
-
   if (ctx.req.headers.authorization) {
       const access_token = ctx.req.headers.authorization.replace('Bearer ', '');
-      console.log(`Access token from enforceUserIsAuthed: ${access_token}`)
 
       if (!access_token) {
           passTokenToNext = false;
@@ -174,9 +173,8 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
               decodedToken = await checkTokenIsValid(access_token);
               console.log(`decodedToken: ${JSON.stringify(decodedToken)}`);
               passTokenToNext = true;
-              console.log(`Check PassTokenToNext: ${passTokenToNext}`);
           } catch (error) {
-              throw new TRPCError({ code: "UNAUTHORIZED", message: `Invalid Token` });
+              throw new TRPCError({ code: "UNAUTHORIZED", message: `${error}` });
           }
       }
   }
@@ -190,9 +188,11 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
           }
       });
   } else {
+      console.log(`Authorization header was not provided, moving to session logic`)
       if (!ctx.session || !ctx.session.user) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: `Invalid Session` });
       }
+      console.log(`Session was present, next on middleware ${ctx.session.user.name}`)
       return next({
           ctx: {
               // infers the `session` as non-nullable

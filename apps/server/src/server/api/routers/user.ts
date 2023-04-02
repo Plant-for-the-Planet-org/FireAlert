@@ -6,7 +6,6 @@ import {
 } from "../../../server/api/trpc";
 
 export const userRouter = createTRPCRouter({
-    // getUser can be called only by the admin
     getUser: protectedProcedure
         .input(params)
         .query(async({ctx, input}) => {
