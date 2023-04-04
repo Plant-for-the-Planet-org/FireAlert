@@ -26,15 +26,5 @@ export const checkTokenIsValid = async (token: string) => {
     return jwt.verify(token, signingKey, options);
 };
 
-
-// "https://app.plant-for-the-planet.org/email_verified":true,
-// ctx.token = {"https://app.plant-for-the-planet.org/email":"sagar@aryal.me",
-// "sub":"google-oauth2|100896438959294892699",
-// "iss":"https://accounts.plant-for-the-planet.org/",
-// "https://planetapp.eu.auth0.com/userinfo"],
-// "aud":["urn:plant-for-the-planet",
-// "azp":"Y7sMIeKHYT0P9rS3d4ICJZVzZWGyN7Zq",
-// "iat":1680275204,"exp":1680448004,
-// "scope":"openid profile email offline_access"}
   
 

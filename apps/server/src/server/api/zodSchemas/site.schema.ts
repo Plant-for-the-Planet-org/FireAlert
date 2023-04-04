@@ -10,7 +10,7 @@ export const createSiteSchema = z.object({
     }),
     radius: z.string(),
     isMonitored: z.boolean().optional(),
-    userId: z.string(),
+    userId: z.string().optional(),
     projectId: z.string().optional(),
 })
 

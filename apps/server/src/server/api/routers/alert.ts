@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { createAlertSchema, params as alertParams, updateAlertSchema } from '../zodSchemas/alert.schema'
-import { params as siteParams} from '../zodSchemas/site.schema'
+import { params as siteParams } from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -43,83 +43,118 @@ export const alertRouter = createTRPCRouter({
                 });
             }
         }),
-    
+
     getAlertsForSite: protectedProcedure
         .input(siteParams)
-        .query(async({ ctx, input }) => {
-            try{
+        .query(async ({ ctx, input }) => {
+            try {
                 const alertsForSite = await ctx.prisma.alert.findMany({
                     where: {
                         siteId: input.siteId,
                     }
                 })
-                return{
+                return {
                     status: 'success',
                     data: alertsForSite,
                 }
-            }catch (error){
+            } catch (error) {
                 console.log(error)
             }
-    }),
+        }),
 
     getAlertsForUser: protectedProcedure
-        .input(siteParams)
-        .query(async({ctx, input})=>{
-            try{
-                const alertsForUser: Alert[]= []
-                const sites = await ctx.prisma.site.findMany({
-                    where:{
-                        userId: ctx.session.user.id,
+        .query(async ({ ctx }) => {
+            try {
+                let userId: string;
+
+                // Check if user is authenticated with token
+                if (ctx.token) {
+                    const account = await ctx.prisma.account.findFirst({
+                        where: {
+                            providerAccountId: ctx.token.sub,
+                        },
+                        select: {
+                            userId: true,
+                        },
+                    });
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
                     }
-                })
-                sites.map(async(site) => {
+                    userId = account.userId;
+                } else if (ctx.session) { // Check if user is authenticated with session
+                    userId = ctx.session.user.id;
+                } else { // User is not authenticated
+                    throw new TRPCError({
+                        code: 'UNAUTHORIZED',
+                        message: 'Missing authentication credentials',
+                    });
+                }
+
+                const alertsForUser: Alert[] = [];
+                const sites = await ctx.prisma.site.findMany({
+                    where: {
+                        userId,
+                    },
+                });
+
+                // Fetch alerts for each site
+                for (const site of sites) {
                     const alertsForEachSite = await ctx.prisma.alert.findMany({
                         where: {
                             siteId: site.id,
-                        }
-                    }) 
-                    alertsForUser.push(...alertsForEachSite)
-                })
-                return{
+                        },
+                    });
+                    alertsForUser.push(...alertsForEachSite);
+                }
+
+                return {
                     status: 'success',
                     data: alertsForUser,
-                }
-            }catch (error){
-                console.log(error)
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to fetch alerts for user',
+                });
             }
-        }), 
-    
+        }),
+
+
     getAlert: protectedProcedure
         .input(alertParams)
-        .query(async({ctx, input}) => {
-            try{
+        .query(async ({ ctx, input }) => {
+            try {
                 const alert = await ctx.prisma.alert.findFirst({
-                    where: {id: input.alertId}
+                    where: { id: input.alertId }
                 })
-                return{
+                return {
                     status: 'success',
                     data: alert,
                 }
-            }catch(error){
+            } catch (error) {
                 console.log(error)
             }
         }),
 
     updateAlert: protectedProcedure
         .input(updateAlertSchema)
-        .mutation(async({ctx, input}) => {
-            try{
+        .mutation(async ({ ctx, input }) => {
+            try {
                 const paramsInput = input.params
                 const body = input.body
                 const updatedAlert = await ctx.prisma.alert.update({
-                    where: {id: paramsInput.alertId},
+                    where: { id: paramsInput.alertId },
                     data: body,
                 })
-                return{
+                return {
                     status: 'success',
                     data: updatedAlert,
                 }
-            }catch(error){
+            } catch (error) {
                 console.log(error)
                 throw new TRPCError({
                     code: 'NOT_FOUND',
@@ -130,16 +165,16 @@ export const alertRouter = createTRPCRouter({
 
     deleteAlert: protectedProcedure
         .input(alertParams)
-        .mutation(async({ctx, input}) => {
-            try{
+        .mutation(async ({ ctx, input }) => {
+            try {
                 const deletedAlert = await ctx.prisma.alert.delete({
-                    where: {id:input.alertId}
+                    where: { id: input.alertId }
                 })
                 return {
                     status: 'success',
                     data: deletedAlert
                 }
-            }catch (error){
+            } catch (error) {
                 console.log(error)
                 throw new TRPCError({
                     code: 'NOT_FOUND',
