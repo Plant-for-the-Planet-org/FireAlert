@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "android": "ENVFILE=.env react-native run-android --variant --no-packager 'developDebug'",
-    "ios": "react-native run-ios --no-packager",
+    "ios": "ENVFILE=../../.env react-native run-ios --no-packager",
     "start": "react-native start",
     "test": "jest",
     "lint": "eslint app --fix",

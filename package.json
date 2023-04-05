@@ -2,7 +2,6 @@
   "name": "fire-alert",
   "version": "1.0.0",
   "private": true,
-  "main": "index.js",
   "repository": "https://github.com/Plant-for-the-Planet-org/FireAlert.git",
   "author": "Plant-for-the-Planet <info@plant-for-the-planet.org>",
   "license": "MIT",
