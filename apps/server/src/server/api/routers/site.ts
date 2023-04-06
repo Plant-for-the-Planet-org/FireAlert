@@ -12,6 +12,7 @@ export const siteRouter = createTRPCRouter({
     .input(createSiteSchema)
     .mutation(async ({ ctx, input }) => {
         // Check if user is authenticated
+        console.log('inside mutation createSite')
         if (!ctx.token && !ctx.session) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -20,6 +21,7 @@ export const siteRouter = createTRPCRouter({
         }
         // Token logic
         if (ctx.token) {
+            console.log('Got into token logic in createSite')
             try {
                 // Find the account that has that sub
                 const account = await ctx.prisma.account.findFirst({
@@ -30,6 +32,12 @@ export const siteRouter = createTRPCRouter({
                         userId: true,
                     }
                 });
+                if (!account) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Cannot find an account associated with the token",
+                    });
+                }
                 // Use the account, and create a new site with the userId that we got from account
                 const site = await ctx.prisma.site.create({
                     data: {
@@ -37,7 +45,7 @@ export const siteRouter = createTRPCRouter({
                         geometry: input.geometry,
                         radius: input.radius,
                         isMonitored: input.isMonitored,
-                        userId: account!.userId,
+                        userId: account.userId,
                     }
                 });
                 return {
@@ -98,10 +106,16 @@ export const siteRouter = createTRPCRouter({
                             userId: true,
                         }
                     })
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
+                    }
                     //use the account, and find the sites that have userId that we got from account
                     const site = await ctx.prisma.site.findMany({
                         where: {
-                            userId: account?.userId,
+                            userId: account.userId,
                         }
                     })
                     return {
@@ -167,10 +181,16 @@ export const siteRouter = createTRPCRouter({
                             userId: true,
                         }
                     })
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
+                    }
                     //use the account, and find the site that has userId that we got from account
                     const site = await ctx.prisma.site.findFirst({
                         where: {
-                            userId: account?.userId,
+                            userId: account.userId,
                             id: input.siteId
                         }
                     })
@@ -245,10 +265,16 @@ export const siteRouter = createTRPCRouter({
                             userId: true,
                         }
                     });
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
+                    }
                     // Use the account, and find the site that has userId that we got from account
                     const updatedSite = await ctx.prisma.site.update({
                         where: {
-                            userId: account?.userId,
+                            userId: account.userId,
                             id: input.params.siteId
                         },
                         data: input.body,
@@ -311,10 +337,16 @@ export const siteRouter = createTRPCRouter({
                             userId: true,
                         },
                     });
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
+                    }
                     // Use the account, and find the site that has userId that we got from account
                     const deletedSite = await ctx.prisma.site.delete({
                         where: {
-                            userId: account?.userId,
+                            userId: account.userId,
                             id: input.siteId,
                         },
                     });

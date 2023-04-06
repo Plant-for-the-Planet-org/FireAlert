@@ -8,15 +8,7 @@ import { httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
-
-
-
-import { type AppRouter } from "~/server/api/root";
-
-
-//TODO: need to get this from cookies! (Cookies -> JWTToken)
-const token = "" // NEED TO GET THIS TOKEN FROM THE COOKIE!
-const bearerToken = 'Bearer ' + token;
+import { type AppRouter } from "../../src/server/api/root";
 
 
 const getBaseUrl = () => {
@@ -28,11 +20,6 @@ const getBaseUrl = () => {
 /** A set of type-safe react-query hooks for your tRPC API. */
 export const api = createTRPCNext<AppRouter>({
   config({ctx}) {
-
-    // const session = getSe
-    // I can use context here to get
-    //ctx.req
-    //ctx.res
 
     return {
       /**

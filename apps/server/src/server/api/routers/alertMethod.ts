@@ -31,6 +31,12 @@ export const alertMethodRouter = createTRPCRouter({
                             userId: true,
                         }
                     });
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
+                    }
                     // Use the account, and create a new alert method with the userId that we got from account
                     const alertMethod = await ctx.prisma.alertMethod.create({
                         data: {
@@ -41,7 +47,7 @@ export const alertMethodRouter = createTRPCRouter({
                             isEnabled: input.isEnabled,
                             deviceType: input.deviceType,
                             notificationToken: input.notificationToken,
-                            userId: account!.userId,
+                            userId: account.userId,
                         }
                     })
                     return {
@@ -109,9 +115,15 @@ export const alertMethodRouter = createTRPCRouter({
                             userId: true,
                         }
                     });
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
+                    }
                     const alertMethods = await ctx.prisma.alertMethod.findMany({
                         where: {
-                            userId: account?.userId,
+                            userId: account.userId,
                         }
                     });
                     return {
@@ -177,10 +189,16 @@ export const alertMethodRouter = createTRPCRouter({
                             userId: true,
                         }
                     })
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
+                    }
                     //use the account, and find the alertMethod that has userId that we got from account
                     const alertMethod = await ctx.prisma.alertMethod.findFirst({
                         where: {
-                            userId: account?.userId,
+                            userId: account.userId,
                             id: input.alertMethodId
                         }
                     })
@@ -255,29 +273,28 @@ export const alertMethodRouter = createTRPCRouter({
                             userId: true,
                         }
                     })
-                    try {
-                        const updatedAlertMethod = await ctx.prisma.alertMethod.update({
-                            where: {
-                                id: input.params.alertMethodId,
-                                userId: account!.userId,
-                            },
-                            data: input.body,
-                        })
-                        return {
-                            status: 'success',
-                            data: updatedAlertMethod,
-                        }
-                    } catch (error) {
+                    if (!account) {
                         throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: `${error}`,
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
                         });
+                    }
+                    const updatedAlertMethod = await ctx.prisma.alertMethod.update({
+                        where: {
+                            id: input.params.alertMethodId,
+                            userId: account.userId,
+                        },
+                        data: input.body,
+                    })
+                    return {
+                        status: 'success',
+                        data: updatedAlertMethod,
                     }
                 } catch (error) {
                     console.log(error)
                     throw new TRPCError({
                         code: "NOT_FOUND",
-                        message: 'Account Error',
+                        message: `${error}`,
                     });
                 }
             } else {
@@ -327,29 +344,27 @@ export const alertMethodRouter = createTRPCRouter({
                             userId: true,
                         },
                     });
-                    try {
-                        const deletedAlertMethod = await ctx.prisma.alertMethod.delete({
-                            where: {
-                                id: input.alertMethodId,
-                                userId: account?.userId
-                            },
-                        });
-                        return {
-                            status: "success",
-                            data: deletedAlertMethod,
-                        };
-                    } catch (error) {
-                        console.log(error);
+                    if (!account) {
                         throw new TRPCError({
                             code: "NOT_FOUND",
-                            message: `${error}`,
+                            message: "Cannot find an account associated with the token",
                         });
                     }
+                    const deletedAlertMethod = await ctx.prisma.alertMethod.delete({
+                        where: {
+                            id: input.alertMethodId,
+                            userId: account?.userId
+                        },
+                    });
+                    return {
+                        status: "success",
+                        data: deletedAlertMethod,
+                    };
                 } catch (error) {
                     console.log(error);
                     throw new TRPCError({
                         code: "NOT_FOUND",
-                        message: "Cannot delete alert method",
+                        message: `${error}`,
                     });
                 }
             } else {
