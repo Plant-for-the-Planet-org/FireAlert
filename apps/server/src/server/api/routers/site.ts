@@ -4,314 +4,172 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../../../server/api/trpc";
+import { getUserIdByToken } from "../../../utils/token";
+import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 
+interface TRPCContext extends InnerTRPCContext {
+    token: PPJwtPayload;
+}
+type checkUserHasSitePermissionArgs = {
+    ctx: TRPCContext; // the TRPC context object
+    siteId: string; // the ID of the site to be updated
+    userId: string; // the ID of the user attempting to update the site
+};
+
+// Compares the User in session or token with the Site that is being Read, Updated or Deleted
+const checkUserHasSitePermission = async ({ ctx, siteId, userId }: checkUserHasSitePermissionArgs) => {
+    const siteToCRUD = await ctx.prisma.site.findFirst({
+        where: {
+            id: siteId,
+        },
+        select: {
+            userId: true,
+        },
+    });
+    if (!siteToCRUD) {
+        throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Site with that id does not exist, cannot update site",
+        });
+    }
+    if (siteToCRUD.userId !== userId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You are not authorized to update this site",
+        });
+    }
+};
+
+// const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
 
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
-    .input(createSiteSchema)
-    .mutation(async ({ ctx, input }) => {
-        // Check if user is authenticated
-        console.log('inside mutation createSite')
-        if (!ctx.token && !ctx.session) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "Missing authentication credentials",
-            });
-        }
-        // Token logic
-        if (ctx.token) {
-            console.log('Got into token logic in createSite')
+        .input(createSiteSchema)
+        .mutation(async ({ ctx, input }) => {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
+                });
+            }
             try {
-                // Find the account that has that sub
-                const account = await ctx.prisma.account.findFirst({
-                    where: {
-                        providerAccountId: ctx.token.sub,
+                const site = await ctx.prisma.site.create({
+                    data: {
+                        type: input.type,
+                        geometry: input.geometry,
+                        radius: input.radius,
+                        isMonitored: input.isMonitored,
+                        userId: userId,
                     },
-                    select: {
-                        userId: true,
-                    }
-                });
-                if (!account) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "Cannot find an account associated with the token",
-                    });
-                }
-                // Use the account, and create a new site with the userId that we got from account
-                const site = await ctx.prisma.site.create({
-                    data: {
-                        type: input.type,
-                        geometry: input.geometry,
-                        radius: input.radius,
-                        isMonitored: input.isMonitored,
-                        userId: account.userId,
-                    }
                 });
                 return {
-                    status: 'success',
+                    status: "success",
                     data: site,
-                }
+                };
             } catch (error) {
-                console.log(error)
+                console.log(error);
                 throw new TRPCError({
-                    code: 'CONFLICT',
-                    message: 'Probably, site with that siteId already exists!'
+                    code: "CONFLICT",
+                    message: "Probably, site with that siteId already exists!",
                 });
             }
-        } else {
-            // When token is not there, default to session logic
-            try {
-                const site = await ctx.prisma.site.create({
-                    data: {
-                        type: input.type,
-                        geometry: input.geometry,
-                        radius: input.radius,
-                        isMonitored: input.isMonitored,
-                        userId: ctx.session!.user.id,
-                    }
-                });
-                return {
-                    status: 'success',
-                    data: site,
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: 'CONFLICT',
-                    message: 'Probably, site with that siteId already exists!'
-                });
-            }
-        }
-    }),
+        }),
 
     getAllSites: protectedProcedure
         .query(async ({ ctx }) => {
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found in session",
                 });
             }
-            if (ctx.token) {
-                // token logic
-                console.log(`The sub is: ${ctx.token.sub}`)
-                try {
-                    //find the account that has that sub
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        }
-                    })
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
+            try {
+                const sites = await ctx.prisma.site.findMany({
+                    where: {
+                        userId: userId,
                     }
-                    //use the account, and find the sites that have userId that we got from account
-                    const site = await ctx.prisma.site.findMany({
-                        where: {
-                            userId: account.userId,
-                        }
-                    })
-                    return {
-                        status: 'success',
-                        data: site,
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Account Error',
-                    });
+                })
+                return {
+                    status: 'success',
+                    data: sites,
                 }
-
-            } else {
-                // session logic
-                const userId = ctx.session?.user?.id;
-                if (!userId) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "User ID not found in session",
-                    });
-                }
-                try {
-                    const sites = await ctx.prisma.site.findMany({
-                        where: {
-                            userId: userId,
-                        }
-                    })
-                    return {
-                        status: 'success',
-                        data: sites,
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Sites Not Found',
-                    });
-                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: 'Sites Not Found',
+                });
             }
         }),
 
     getSite: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
-            //token logic
-            if (ctx.token) {
-                try {
-                    //find the account that has that sub
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        }
-                    })
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
+            try {
+                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
+                const site = await ctx.prisma.site.findFirst({
+                    where: {
+                        id: input.siteId
                     }
-                    //use the account, and find the site that has userId that we got from account
-                    const site = await ctx.prisma.site.findFirst({
-                        where: {
-                            userId: account.userId,
-                            id: input.siteId
-                        }
-                    })
-                    if (site) {
-                        return {
-                            status: 'success',
-                            data: site,
-                        }
-                    } else {
-                        throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Cannot find a site with that siteId for the user associated with the token!'
-                        });
+                })
+                if (site) {
+                    return {
+                        status: 'success',
+                        data: site,
                     }
-                } catch (error) {
-                    console.log(error)
+                } else {
                     throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Account Error',
+                        code: 'NOT_FOUND',
+                        message: `Cannot find a site with that siteId for the user associated with the ${ctx.token ? 'token' : 'session'}!`
                     });
                 }
-            } else {
-                //when token is not there, default to session logic
-                console.log(`Inside getSite, the sub is ${ctx.token}`)
-                try {
-                    const site = await ctx.prisma.site.findFirst({
-                        where: {
-                            id: input.siteId,
-                            userId: ctx.session!.user.id
-                        }
-                    })
-                    if (site) {
-                        return {
-                            status: 'success',
-                            data: site,
-                        }
-                    } else {
-                        throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Cannot find a site with that siteId for the user associated with the session!'
-                        });
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Cannot get site',
-                    });
-                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: 'Cannot get site',
+                });
             }
         }),
 
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
-            // Token logic
-            if (ctx.token) {
-                try {
-                    // Find the account that has that sub
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        }
-                    });
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    // Use the account, and find the site that has userId that we got from account
-                    const updatedSite = await ctx.prisma.site.update({
-                        where: {
-                            userId: account.userId,
-                            id: input.params.siteId
-                        },
-                        data: input.body,
-                    });
-                    return {
-                        status: 'success',
-                        data: updatedSite,
-                    };
-                } catch (error) {
-                    console.log(error);
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Site with those id does not exist, cannot update site',
-                    });
-                }
-            } else {
-                // When token is not there, default to session logic
-                console.log(`Inside updateSite, the sub is ${ctx.token}`);
-                try {
-                    const updatedSite = await ctx.prisma.site.update({
-                        where: {
-                            id: input.params.siteId,
-                            userId: ctx.session!.user.id
-                        },
-                        data: input.body,
-                    });
-                    return {
-                        status: 'success',
-                        data: updatedSite,
-                    };
-                } catch (error) {
-                    console.log(error);
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Site with those id does not exist, cannot update site',
-                    });
-                }
+            try {
+                await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
+                const updatedSite = await ctx.prisma.site.update({
+                    where: {
+                        id: input.params.siteId
+                    },
+                    data: input.body,
+                });
+                return {
+                    status: 'success',
+                    data: updatedSite,
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: 'An error occurred while updating the site',
+                });
             }
         }),
 
@@ -319,59 +177,29 @@ export const siteRouter = createTRPCRouter({
         .input(params)
         .mutation(async ({ ctx, input }) => {
             // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
             try {
-                // Token logic
-                if (ctx.token) {
-                    // Find the account that has that sub
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        },
-                    });
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    // Use the account, and find the site that has userId that we got from account
-                    const deletedSite = await ctx.prisma.site.delete({
-                        where: {
-                            userId: account.userId,
-                            id: input.siteId,
-                        },
-                    });
-                    return {
-                        status: "success",
-                        data: deletedSite,
-                    };
-                } else {
-                    // When token is not there, default to session logic
-                    const deletedSite = await ctx.prisma.site.delete({
-                        where: {
-                            id: input.siteId,
-                            userId: ctx.session!.user.id,
-                        },
-                    });
-                    return {
-                        status: "success",
-                        data: deletedSite,
-                    };
-                }
+                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
+                const deletedSite = await ctx.prisma.site.delete({
+                    where: {
+                        id: input.siteId,
+                    },
+                });
+                return {
+                    status: "success",
+                    data: deletedSite,
+                };
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "Cannot delete site",
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: 'An error occurred while deleting the site',
                 });
             }
         }),

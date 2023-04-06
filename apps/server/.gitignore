@@ -41,4 +41,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-backend_logic.md
+check.ts

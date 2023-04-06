@@ -5,6 +5,44 @@ import {
     protectedProcedure,
 } from "../../../server/api/trpc";
 import { randomUUID } from "crypto";
+import { getUserIdByToken } from "../../../utils/token";
+import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
+
+
+interface TRPCContext extends InnerTRPCContext {
+    token: PPJwtPayload;
+}
+
+
+type checkUserHasAlertMethodPermissionArgs = {
+    ctx: TRPCContext; // the TRPC context object
+    alertMethodId: string; // the ID of the site to be updated
+    userId: string; // the ID of the user attempting to update the site
+};
+
+// Compares the User in session or token with the AlertMethod that is being Read, Updated or Deleted
+const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, userId }: checkUserHasAlertMethodPermissionArgs) => {
+    const alertMethodToCRUD = await ctx.prisma.alertMethod.findFirst({
+        where: {
+            id: alertMethodId,
+        },
+        select: {
+            userId: true,
+        },
+    });
+    if (!alertMethodToCRUD) {
+        throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "AlertMethod with that id does not exist, cannot update alertMethod",
+        });
+    }
+    if (alertMethodToCRUD.userId !== userId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You are not authorized to update this alertMethod",
+        });
+    }
+};
 
 
 export const alertMethodRouter = createTRPCRouter({
@@ -12,382 +50,164 @@ export const alertMethodRouter = createTRPCRouter({
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
-            // Token logic
-            if (ctx.token) {
-                try {
-                    // Find the account that has that sub
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        }
-                    });
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    // Use the account, and create a new alert method with the userId that we got from account
-                    const alertMethod = await ctx.prisma.alertMethod.create({
-                        data: {
-                            guid: "almt_" + randomUUID(),
-                            method: input.method,
-                            destination: input.destination,
-                            isVerified: input.isVerified,
-                            isEnabled: input.isEnabled,
-                            deviceType: input.deviceType,
-                            notificationToken: input.notificationToken,
-                            userId: account.userId,
-                        }
-                    })
-                    return {
-                        status: 'success',
-                        data: {
-                            alertMethod,
-                        }
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: 'CONFLICT',
-                        message: 'Probably, alertMethod with that alertMethodId already exists!'
-                    });
-                }
-            } else {
-                // When token is not there, default to session logic
-                try {
-                    const alertMethod = await ctx.prisma.alertMethod.create({
-                        data: {
-                            guid: "almt_" + randomUUID(),
-                            method: input.method,
-                            destination: input.destination,
-                            isVerified: input.isVerified,
-                            isEnabled: input.isEnabled,
-                            deviceType: input.deviceType,
-                            notificationToken: input.notificationToken,
-                            userId: ctx.session!.user.id,
-                        }
-                    })
-                    return {
-                        status: 'success',
-                        data: {
-                            alertMethod,
-                        }
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: 'CONFLICT',
-                        message: 'Probably, alertMethod with that alertMethodId already exists!'
-                    });
-                }
+            try {
+                const alertMethod = await ctx.prisma.alertMethod.create({
+                    data: {
+                        guid: 'almt_' + randomUUID(),
+                        method: input.method,
+                        destination: input.destination,
+                        isVerified: input.isVerified,
+                        isEnabled: input.isEnabled,
+                        deviceType: input.deviceType,
+                        notificationToken: input.notificationToken,
+                        userId: userId,
+                    },
+                });
+                return {
+                    status: 'success',
+                    data: {
+                        alertMethod,
+                    },
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: `Something went wrong: ${error}`,
+                });
             }
         }),
-
 
     getAllAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
-            if (ctx.token) {
-                // token logic
-                console.log(`The sub is: ${ctx.token.sub}`);
-                try {
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        }
-                    });
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
+            try {
+                const alertMethods = await ctx.prisma.alertMethod.findMany({
+                    where: {
+                        userId: userId,
                     }
-                    const alertMethods = await ctx.prisma.alertMethod.findMany({
-                        where: {
-                            userId: account.userId,
-                        }
-                    });
-                    return {
-                        status: 'success',
-                        data: alertMethods,
-                    };
-                } catch (error) {
-                    console.log(error);
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Account Error',
-                    });
-                }
-            } else {
-                // session logic
-                const userId = ctx.session?.user?.id;
-                if (!userId) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "User ID not found in session",
-                    });
-                }
-                try {
-                    const alertMethods = await ctx.prisma.alertMethod.findMany({
-                        where: {
-                            userId: userId,
-                        }
-                    });
-                    return {
-                        status: 'success',
-                        data: alertMethods,
-                    };
-                } catch (error) {
-                    console.log(error);
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Maybe the userid had an error',
-                    });
-                }
+                });
+                return {
+                    status: 'success',
+                    data: alertMethods,
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: 'Alert methods not found',
+                });
             }
         }),
-
 
     getAlertMethod: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
-            //token logic
-            if (ctx.token) {
-                try {
-                    //find the account that has that sub
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        }
-                    })
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    //use the account, and find the alertMethod that has userId that we got from account
-                    const alertMethod = await ctx.prisma.alertMethod.findFirst({
-                        where: {
-                            userId: account.userId,
-                            id: input.alertMethodId
-                        }
-                    })
-                    if (alertMethod) {
-                        return {
-                            status: 'success',
-                            data: alertMethod,
-                        }
-                    } else {
-                        throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Cannot find an alert method with that alertMethodId for the user associated with the token!'
-                        });
-                    }
-                } catch (error) {
-                    console.log(error)
+            await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
+            try {
+                const alertMethod = await ctx.prisma.alertMethod.findFirst({
+                    where: {
+                        id: input.alertMethodId,
+                    },
+                });
+                if (alertMethod) {
+                    return {
+                        status: 'success',
+                        data: alertMethod,
+                    };
+                } else {
                     throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Account Error',
+                        code: 'NOT_FOUND',
+                        message: `Cannot find an alert method with that alertMethodId for the user associated with the ${ctx.token ? 'token' : 'session'}!`,
                     });
                 }
-            } else {
-                //when token is not there, default to session logic
-                console.log(`Inside getAlertMethod, the sub is ${ctx.token}`)
-                try {
-                    const alertMethod = await ctx.prisma.alertMethod.findFirst({
-                        where: {
-                            id: input.alertMethodId,
-                            userId: ctx.session!.user.id
-                        }
-                    })
-                    if (alertMethod) {
-                        return {
-                            status: 'success',
-                            data: alertMethod,
-                        }
-                    } else {
-                        throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Cannot find an alert method with that alertMethodId for the user associated with the session!'
-                        });
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Cannot get alert method',
-                    });
-                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: 'Cannot get alert method',
+                });
             }
         }),
-
 
     updateAlertMethod: protectedProcedure
         .input(updateAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
-            //token logic
-            if (ctx.token) {
-                try {
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        }
-                    })
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    const updatedAlertMethod = await ctx.prisma.alertMethod.update({
-                        where: {
-                            id: input.params.alertMethodId,
-                            userId: account.userId,
-                        },
-                        data: input.body,
-                    })
-                    return {
-                        status: 'success',
-                        data: updatedAlertMethod,
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: `${error}`,
-                    });
-                }
-            } else {
-                //when token is not there, default to session logic
-                console.log(`Inside updateAlertMethod, the sub is ${ctx.token}`)
-                try {
-                    const updatedAlertMethod = await ctx.prisma.alertMethod.update({
-                        where: {
-                            id: input.params.alertMethodId,
-                            userId: ctx.session?.user.id
-                        },
-                        data: input.body,
-                    })
-                    return {
-                        status: 'success',
-                        data: updatedAlertMethod,
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: `${error}`,
-                    });
-                }
+            await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: userId });
+            try {
+                const updatedAlertMethod = await ctx.prisma.alertMethod.update({
+                    where: {
+                        id: input.params.alertMethodId
+                    },
+                    data: input.body,
+                });
+                return {
+                    status: 'success',
+                    data: updatedAlertMethod,
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: 'An error occurred while updating the alert method',
+                });
             }
         }),
-
 
     deleteAlertMethod: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
-            // Token logic
-            if (ctx.token) {
-                try {
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        },
-                    });
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    const deletedAlertMethod = await ctx.prisma.alertMethod.delete({
-                        where: {
-                            id: input.alertMethodId,
-                            userId: account?.userId
-                        },
-                    });
-                    return {
-                        status: "success",
-                        data: deletedAlertMethod,
-                    };
-                } catch (error) {
-                    console.log(error);
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: `${error}`,
-                    });
-                }
-            } else {
-                // Session logic
-                try {
-                    const deletedAlertMethod = await ctx.prisma.alertMethod.delete({
-                        where: {
-                            id: input.alertMethodId,
-                            userId: ctx.session?.user.id
-                        },
-                    });
-                    return {
-                        status: "success",
-                        data: deletedAlertMethod,
-                    };
-                } catch (error) {
-                    console.log(error);
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "Cannot delete alert method",
-                    });
-                }
+            await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
+            try {
+                const deletedAlertMethod = await ctx.prisma.alertMethod.delete({
+                    where: {
+                        id: input.alertMethodId,
+                    },
+                });
+                return {
+                    status: "success",
+                    data: deletedAlertMethod,
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: 'An error occurred while deleting the alert method',
+                });
             }
         }),
-
 });

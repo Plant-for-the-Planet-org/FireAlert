@@ -18,7 +18,7 @@ export interface JwtPayload {
   jti?: string | undefined;
 }
 
-interface PPJwtPayload extends JwtPayload {
+export interface PPJwtPayload extends JwtPayload {
   "https://app.plant-for-the-planet.org/email": string;
   "https://app.plant-for-the-planet.org/email_verified": boolean;
   azp: string;
@@ -69,7 +69,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 
   return createInnerTRPCContext({
     req,
-    session
+    session,
   });
 };
 
@@ -105,7 +105,6 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
   let decodedToken: PPJwtPayload | undefined = undefined;
   if (ctx.req.headers.authorization) {
     const access_token = ctx.req.headers.authorization.replace("Bearer ", "");
-
     if (!access_token) {
       passTokenToNext = false;
     } else {
@@ -116,15 +115,12 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
         } else {
           decodedToken = decoded as PPJwtPayload;
         }
-        console.log(`decodedToken: ${JSON.stringify(decodedToken)}`);
         passTokenToNext = true;
       } catch (error) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: `${error}` });
       }
     }
   }
-
-  console.log(`passTokenToNext: ${passTokenToNext}`);
   if (passTokenToNext && decodedToken) {
     return next({
       ctx: {
@@ -134,11 +130,9 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
       },
     });
   } else {
-    console.log(`Authorization header was not provided, moving to session logic`);
     if (!ctx.session || !ctx.session.user) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: `Invalid Session` });
     }
-    console.log(`Session was present, next on middleware ${ctx.session.user.name}`);
     return next({
       ctx: {
         // infers the `session` as non-nullable
@@ -150,3 +144,5 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
 
 
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+
+export type InnerTRPCContext = ReturnType<typeof createInnerTRPCContext>;
