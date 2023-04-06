@@ -6,7 +6,7 @@ import { useCookies } from "react-cookie"
 
 
 import { api } from "../utils/api";
-import Sites from "../Components/SiteComponent";
+import Sites from "../Components/Site/SiteComponent";
 
 const Home: NextPage = () => {
   const { data: sessionData } = useSession();
@@ -22,7 +22,7 @@ const Home: NextPage = () => {
         <div className={styles.container}>
           <div className={styles.showcaseContainer}>
             <p className={styles.showcaseText}>
-              Loading tRPC query...
+              Fire Alert Dummy Frontend
             </p>
             <AuthShowcase />
           </div>
