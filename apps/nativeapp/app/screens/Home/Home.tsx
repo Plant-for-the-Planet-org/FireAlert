@@ -58,8 +58,8 @@ import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 import {highlightWave} from '../../assets/animation/lottie';
+import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -405,7 +405,7 @@ const Home = ({navigation}) => {
             title={'title'}
             coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}>
             {/* <View style={styles.alertSpot} /> */}
-            {/* <Lottie source={require()} autoPlay loop /> */}
+            <Lottie source={highlightWave} autoPlay loop />
           </MapboxGL.PointAnnotation>
         ) : null}
         {renderMapSource()}
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 152 : 152,
+    top: 152,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
