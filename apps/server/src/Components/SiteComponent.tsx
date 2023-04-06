@@ -51,7 +51,6 @@ const CreateSiteForm: React.FC = () => {
 
                         const geometry = { type: type, coordinates: coordinates }
                         postSite.mutate({
-                            userId: session.user?.id,
                             type: type,
                             geometry: geometry,
                             radius: radius,
