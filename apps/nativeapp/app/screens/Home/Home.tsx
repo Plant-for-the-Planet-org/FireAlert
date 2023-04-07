@@ -286,7 +286,6 @@ const Home = ({navigation}) => {
         key={id}
         title={title}
         onSelected={e => {
-          setSelectedAlert(alerts[counter]), console.log(e);
           camera.current.setCamera({
             centerCoordinate: [
               alerts[counter]?.latitude,
@@ -296,6 +295,10 @@ const Home = ({navigation}) => {
             zoomLevel: ZOOM_LEVEL,
             animationDuration: ANIMATION_DURATION,
           });
+          setTimeout(
+            () => setSelectedAlert(alerts[counter]),
+            ANIMATION_DURATION,
+          );
         }}
         coordinate={coordinate}>
         {getFireIcon(daysFromToday(alerts[counter]?.eventDate))}
@@ -402,16 +405,18 @@ const Home = ({navigation}) => {
         )}
         {Object.keys(selectedAlert).length ? (
           <MapboxGL.PointAnnotation
+            id="highlighted_alert"
             title={'title'}
-            coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}>
-            {/* <View style={styles.alertSpot} /> */}
-            <Lottie source={highlightWave} autoPlay loop />
-          </MapboxGL.PointAnnotation>
+            coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}
+          />
         ) : null}
         {renderMapSource()}
         {renderAnnotations(true)}
         {renderAnnotations(false)}
       </MapboxGL.MapView>
+      {Object.keys(selectedAlert).length ? (
+        <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
+      ) : null}
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <AlertModal
@@ -677,10 +682,12 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
   alertSpot: {
-    width: 25,
-    height: 25,
-    borderWidth: 2,
-    borderColor: Colors.BLACK,
+    top: 75,
+    width: 150,
+    zIndex: 20,
+    left: 40.5,
+    height: 150,
+    position: 'absolute',
   },
   satelliteInfoCon: {
     marginTop: 30,
