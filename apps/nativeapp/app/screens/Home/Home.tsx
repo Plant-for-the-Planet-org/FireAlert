@@ -379,8 +379,6 @@ const Home = ({navigation}) => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location]);
 
-  console.log(selectedAlert);
-
   return (
     <>
       <MapboxGL.MapView

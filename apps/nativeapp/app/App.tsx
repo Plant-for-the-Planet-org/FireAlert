@@ -13,32 +13,37 @@ import {MapLayerProvider} from './global/reducers/mapLayers';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
+const httpBatchLinkArgs = {
+  url: 'http://localhost:3000/api/trpc',
+  // You can pass any HTTP headers you wish here
+  async headers() {
+    return {
+      authorization: `Bearer ${store.getState().loginSlice.accessToken}`,
+    };
+  },
+};
+
 function App(): JSX.Element {
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
     trpc.createClient({
-      links: [
-        httpBatchLink({
-          url: 'http://localhost:3000/trpc',
-          // You can pass any HTTP headers you wish here
-          async headers() {
-            return {
-              authorization: getAuthCookie(),
-            };
-          },
-        }),
-      ],
+      links: [httpBatchLink(httpBatchLinkArgs)],
     }),
   );
+
   return (
     <Auth0Provider
       domain={Config.AUTH0_DOMAIN}
       clientId={Config.AUTH0_CLIENT_ID}>
-      <Provider store={store}>
-        <MapLayerProvider>
-          <AppNavigator />
-        </MapLayerProvider>
-      </Provider>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <Provider store={store}>
+            <MapLayerProvider>
+              <AppNavigator />
+            </MapLayerProvider>
+          </Provider>
+        </QueryClientProvider>
+      </trpc.Provider>
     </Auth0Provider>
   );
 }
