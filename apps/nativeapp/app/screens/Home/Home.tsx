@@ -282,7 +282,7 @@ const Home = ({navigation}) => {
     const title = `Longitude: ${alerts[counter]?.latitude} Latitude: ${alerts[counter]?.longitude}`;
     return (
       <MapboxGL.PointAnnotation
-        id={'alert_fire'}
+        id={id}
         key={id}
         title={title}
         onSelected={e => {
@@ -358,7 +358,6 @@ const Home = ({navigation}) => {
       }}>
       <MapboxGL.FillLayer
         id={'polyFill'}
-        layerIndex={2}
         style={{
           fillColor: Colors.WHITE,
           fillOpacity: 0.4,
@@ -379,6 +378,8 @@ const Home = ({navigation}) => {
   useEffect(() => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location]);
+
+  console.log(selectedAlert);
 
   return (
     <>
@@ -403,13 +404,6 @@ const Home = ({navigation}) => {
             onUpdate={data => setLocation(data)}
           />
         )}
-        {Object.keys(selectedAlert).length ? (
-          <MapboxGL.PointAnnotation
-            id="highlighted_alert"
-            title={'title'}
-            coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}
-          />
-        ) : null}
         {renderMapSource()}
         {renderAnnotations(true)}
         {renderAnnotations(false)}
@@ -682,12 +676,12 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
   alertSpot: {
-    top: 75,
     width: 150,
     zIndex: 20,
-    left: 40.5,
     height: 150,
     position: 'absolute',
+    top: IS_ANDROID ? 130 : 75,
+    left: IS_ANDROID ? 61.5 : 40.5,
   },
   satelliteInfoCon: {
     marginTop: 30,
