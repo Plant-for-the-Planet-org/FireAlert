@@ -55,6 +55,7 @@ import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {useAppDispatch, useAppSelector} from '../../hooks';
+import {FONT_FAMILY_BOLD} from '../../styles/typography';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -549,11 +550,11 @@ const Settings = ({navigation}) => {
           </View>
         </View>
         {/* Polar-Orbiting Satellites */}
-        <View style={[styles.myNotifications, styles.commonPadding]}>
-          <Text style={styles.mainHeading}>Polar-Orbiting Satellites</Text>
+        <View style={[styles.polarOrbitMainContainer, styles.commonPadding]}>
+          <Text style={styles.subHeading}>Polar-Orbiting Satellites</Text>
           <Text style={styles.desc}>Delayed detection but very reliable</Text>
           <View style={styles.geostationaryInfoContainer}>
-            <Text style={styles.desc}>VIIRS</Text>
+            <Text style={styles.descBold}>VIIRS</Text>
             <View style={styles.iconContainer}>
               <BellIcon />
               <Text style={styles.geoDesc}>Checks Eevery ~12 hours</Text>
@@ -570,7 +571,7 @@ const Settings = ({navigation}) => {
             </View>
           </View>
           <View style={styles.geostationaryInfoContainer}>
-            <Text style={styles.desc}>MODIS</Text>
+            <Text style={styles.descBold}>MODIS</Text>
             <View style={styles.iconContainer}>
               <BellIcon />
               <Text style={styles.geoDesc}>Checks every 1-2 days</Text>
@@ -585,7 +586,7 @@ const Settings = ({navigation}) => {
             </View>
           </View>
           <View style={styles.geostationaryInfoContainer}>
-            <Text style={styles.desc}>LANDSAT</Text>
+            <Text style={styles.descBold}>LANDSAT</Text>
             <View style={styles.iconContainer}>
               <BellIcon />
               <Text style={styles.geoDesc}>Checks every ~8 days</Text>
@@ -601,68 +602,73 @@ const Settings = ({navigation}) => {
           </View>
         </View>
         {/* warning */}
-        <View style={styles.warningContainer}>
-          <View style={styles.warningSubContainer}>
+        <View style={[styles.warningContainer, {marginTop: 73}]}>
+          <View style={[styles.warnLogo, styles.boxShadow]}>
             <PlanetLogo />
-            <Text style={styles.warningText2}>
+          </View>
+          <Text style={styles.warningText2}>
+            <Text
+              style={styles.primaryUnderline}
+              onPress={_handleEcoWeb(WEB_URLS.PP_FIRE_ALERT)}>
+              FireAlert
+            </Text>{' '}
+            is a project of the{' '}
+            <Text
+              onPress={_handleEcoWeb(WEB_URLS.PP_ORG)}
+              style={styles.primaryUnderline}>
+              Plant-for-the-Planet Foundation
+            </Text>
+            , a non-profit organisation dedicated to restoring and conserving
+            the world’s forests.{'\n\n'}
+            <Text>
+              By using this app, you agree to our{' '}
               <Text
                 style={styles.primaryUnderline}
-                onPress={_handleEcoWeb(WEB_URLS.PP_FIRE_ALERT)}>
-                FireAlert
-              </Text>{' '}
-              is a project of the{' '}
-              <Text
-                onPress={_handleEcoWeb(WEB_URLS.PP_ORG)}
-                style={styles.primaryUnderline}>
-                Plant-for-the-Planet Foundation
+                onPress={_handleEcoWeb(WEB_URLS.PP_TERMS_CON)}>
+                Terms & Conditions
               </Text>
-              , a non-profit organisation dedicated to restoring and conserving
-              the world’s forests.{'\n\n'}
-              <Text>
-                By using this app, you agree to our{' '}
-                <Text
-                  style={styles.primaryUnderline}
-                  onPress={_handleEcoWeb(WEB_URLS.PP_TERMS_CON)}>
-                  Terms & Conditions
-                </Text>
-                .<Text style={styles.primaryUnderline}> Disclaimer</Text>.
-              </Text>
+              .
             </Text>
-          </View>
-          <View style={[styles.warningSubContainer, {marginTop: 50}]}>
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.warningContainer,
+            {backgroundColor: '#EB57571A', marginTop: 65},
+          ]}>
+          <View style={[styles.warnLogo, styles.boxShadow, {paddingRight: 14}]}>
             <NasaLogo />
-            <Text style={styles.warningText2}>
-              We gratefully acknowledge the use of data and from NASA's{' '}
-              <Text
-                style={styles.primaryUnderline}
-                onPress={_handleEcoWeb(WEB_URLS.FIRMS)}>
-                {' '}
-                Information for Resource Management System (FIRMS)
-              </Text>
-              , part of NASA's Earth Observing System Data and Information
-              System (EOSDIS). {'\n\n'}We thank the scientists and engineers who
-              built{' '}
-              <Text
-                style={styles.primaryUnderline}
-                onPress={_handleEcoWeb(WEB_URLS.MODIS)}>
-                MODIS,
-              </Text>{' '}
-              <Text
-                style={styles.primaryUnderline}
-                onPress={_handleEcoWeb(WEB_URLS.VIIRS)}>
-                VIIRS
-              </Text>{' '}
-              and{' '}
-              <Text
-                style={styles.primaryUnderline}
-                onPress={_handleEcoWeb(WEB_URLS.LANDSAT)}>
-                Landsat
-              </Text>
-              . We appreciate NASA’s dedication to sharing data. This project is
-              not affiliated with NASA.{' '}
-              <Text style={styles.primaryUnderline}>FIRMS Disclaimer</Text>. 
-            </Text>
           </View>
+          <Text style={styles.warningText2}>
+            We gratefully acknowledge the use of data and from NASA's{' '}
+            <Text
+              style={styles.secondaryUnderline}
+              onPress={_handleEcoWeb(WEB_URLS.FIRMS)}>
+              {' '}
+              Information for Resource Management System (FIRMS)
+            </Text>
+            , part of NASA's Earth Observing System Data and Information System
+            (EOSDIS). {'\n\n'}We thank the scientists and engineers who built{' '}
+            <Text
+              style={styles.secondaryUnderline}
+              onPress={_handleEcoWeb(WEB_URLS.MODIS)}>
+              MODIS,
+            </Text>{' '}
+            <Text
+              style={styles.secondaryUnderline}
+              onPress={_handleEcoWeb(WEB_URLS.VIIRS)}>
+              VIIRS
+            </Text>{' '}
+            and{' '}
+            <Text
+              style={styles.secondaryUnderline}
+              onPress={_handleEcoWeb(WEB_URLS.LANDSAT)}>
+              Landsat
+            </Text>
+            . We appreciate NASA’s dedication to sharing data. This project is
+            not affiliated with NASA.{' '}
+            <Text style={styles.secondaryUnderline}>FIRMS Disclaimer</Text>. 
+          </Text>
         </View>
         {/* site information modal */}
         <BottomSheet
@@ -964,9 +970,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   warningContainer: {
-    marginTop: 35,
-    padding: 35,
-    backgroundColor: Colors.GRADIENT_PRIMARY + '12',
+    borderRadius: 12,
+    paddingTop: 57,
+    paddingBottom: 20,
+    marginHorizontal: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#2196531A',
+  },
+  warnLogo: {
+    position: 'absolute',
+    top: -40,
+    backgroundColor: Colors.WHITE,
+    padding: 18,
+    borderRadius: SCREEN_WIDTH,
+    width: 82,
+    height: 82,
+    justifyContent: 'center',
+    alignSelf: 'center',
+    alignItems: 'center',
   },
   alertWarningContainer: {
     marginTop: 32,
@@ -1008,7 +1029,7 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
   },
   warningText2: {
-    width: 240,
+    width: 288,
     marginLeft: 10,
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
@@ -1030,6 +1051,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4.62,
     elevation: 8,
   },
+  polarOrbitMainContainer: {
+    marginTop: 32,
+    marginHorizontal: 16,
+    backgroundColor: Colors.WHITE,
+    paddingVertical: 20,
+    borderRadius: 12,
+  },
   geostationaryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1039,6 +1067,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: Typography.FONT_SIZE_12,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    color: Colors.PLANET_DARK_GRAY,
+  },
+  descBold: {
+    marginTop: 10,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.PLANET_DARK_GRAY,
   },
   geostationaryInfoContainer: {
@@ -1053,8 +1087,12 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   primaryUnderline: {
-    textDecorationLine: 'underline',
-    color: Colors.GRADIENT_PRIMARY,
+    fontFamily: FONT_FAMILY_BOLD,
+    color: '#68B030',
+  },
+  secondaryUnderline: {
+    fontFamily: FONT_FAMILY_BOLD,
+    color: '#EB5757',
   },
   siteTitleCon: {
     marginTop: 16,
@@ -1106,5 +1144,16 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_24,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+  },
+  boxShadow: {
+    // shadow
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
   },
 });
