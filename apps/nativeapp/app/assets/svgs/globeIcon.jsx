@@ -1,39 +1,26 @@
-import * as React from "react"
-import Svg, { Path } from "react-native-svg"
+import * as React from 'react';
+import Svg, {Path, G, Defs, ClipPath} from 'react-native-svg';
 
 function GlobeIcon(props) {
   return (
     <Svg
-      width={22}
-      height={24}
-      viewBox="0 0 22 24"
+      width={20}
+      height={21}
+      viewBox="0 0 20 21"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
-      <Path
-        d="M11 22.235c5.523 0 10-4.588 10-10.247C21 6.328 16.523 1.74 11 1.74S1 6.328 1 11.988c0 5.659 4.477 10.247 10 10.247z"
-        stroke="#4F4F4F"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M7 2.765h1A29.808 29.808 0 008 21.21H7m7-18.445a29.808 29.808 0 010 18.445"
-        stroke="#4F4F4F"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M2 16.086v-1.024a27.775 27.775 0 0018 0v1.024M2 8.914a27.775 27.775 0 0118 0"
-        stroke="#4F4F4F"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      {...props}>
+      <Path transform="translate(0 .202)" fill="#fff" d="M0 0H20V20H0z" />
+      <G clipPath="url(#clip0_848_10896)" fill="#4F4F4F">
+        <Path d="M9.5 4.202c.217 0 .432.01.645.03.935.55 1.525 2.19 1.757 3.093a15.501 15.501 0 00-4.8 0c.231-.904.822-2.543 1.757-3.092.21-.02.424-.031.642-.031zM11.492 4.513a6.514 6.514 0 014.196 4.197c-.851-.618-1.966-1-2.97-1.228-.226-1.002-.608-2.117-1.226-2.969zM15.969 10.059a6.569 6.569 0 010 1.288c-.549.935-2.19 1.525-3.092 1.757.25-1.562.25-3.238 0-4.8.902.231 2.543.82 3.092 1.755zM15.688 12.694a6.52 6.52 0 01-4.196 4.198c.618-.852 1-1.967 1.227-2.97 1.003-.228 2.118-.609 2.97-1.228zM10.143 17.17a6.57 6.57 0 01-1.288 0c-.935-.548-1.525-2.19-1.757-3.091 1.561.249 3.24.249 4.8 0-.23.902-.82 2.543-1.755 3.092zM7.508 16.892a6.52 6.52 0 01-4.196-4.198c.851.618 1.966 1 2.969 1.227.227 1.003.61 2.117 1.227 2.97zM3.031 11.345a6.567 6.567 0 010-1.286C3.58 9.124 5.22 8.533 6.123 8.3c-.25 1.562-.25 3.24 0 4.801-.902-.232-2.543-.822-3.092-1.757zM3.312 8.71a6.513 6.513 0 014.196-4.197c-.618.852-1 1.967-1.227 2.97-1.003.226-2.118.609-2.97 1.227zM12.075 8.127a14.633 14.633 0 00-5.152 0 14.706 14.706 0 000 5.15c1.657.305 3.495.305 5.152 0a14.624 14.624 0 000-5.15z" />
+      </G>
+      <Defs>
+        <ClipPath id="clip0_848_10896">
+          <Path fill="#fff" transform="translate(3 4.202)" d="M0 0H13V13H0z" />
+        </ClipPath>
+      </Defs>
     </Svg>
-  )
+  );
 }
 
-export default GlobeIcon
+export default GlobeIcon;

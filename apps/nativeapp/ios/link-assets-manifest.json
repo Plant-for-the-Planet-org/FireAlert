@@ -40,6 +40,10 @@
     {
       "path": "app/assets/fonts/OpenSans-SemiBoldItalic.ttf",
       "sha1": "b59e91cb19bc660ffbe3bd12501b4781196a8312"
+    },
+    {
+      "path": "app/assets/fonts/Oswald-Bold.ttf",
+      "sha1": "c78f08069c66a9256f766179ebbc4458a936f6e5"
     }
   ]
 }

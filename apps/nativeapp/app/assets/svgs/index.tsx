@@ -20,6 +20,7 @@ import PencilIcon from './pencilIcon.jsx';
 import {uploadIcon} from './uploadIcon.js';
 import {locationIcon} from './locationIcon';
 import UploadCloud from './uploadCloud.jsx';
+import WarningIcon from './warningIcon.jsx';
 import DistanceIcon from './distanceIcon.jsx';
 import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.jsx';
@@ -57,6 +58,7 @@ export {
   uploadIcon,
   UploadCloud,
   polygonIcon,
+  WarningIcon,
   locationIcon,
   BlueFireIcon,
   DistanceIcon,

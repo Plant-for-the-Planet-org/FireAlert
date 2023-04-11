@@ -1,39 +1,22 @@
-import * as React from "react"
-import Svg, { Path } from "react-native-svg"
+import * as React from 'react';
+import Svg, {Path} from 'react-native-svg';
 
 function BellIcon(props) {
   return (
     <Svg
-      width={18}
-      height={24}
-      viewBox="0 0 18 24"
+      width={20}
+      height={20}
+      viewBox="0 0 20 20"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
+      {...props}>
+      <Path fill="#fff" d="M0 0H20V20H0z" />
       <Path
-        d="M8.998 2.939c-3.29 0-5.964 2.74-5.964 6.111v2.944c0 .621-.259 1.568-.567 2.098l-1.143 1.946c-.706 1.201-.219 2.536 1.074 2.984a20.322 20.322 0 0013.19 0c1.203-.407 1.73-1.864 1.074-2.984l-1.143-1.946c-.298-.53-.557-1.477-.557-2.098V9.05c0-3.361-2.684-6.111-5.964-6.111z"
-        stroke="#4F4F4F"
-        strokeWidth={2}
-        strokeMiterlimit={10}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M10.837 3.234a6.559 6.559 0 00-3.678 0 1.975 1.975 0 011.839-1.283c.835 0 1.55.53 1.839 1.283z"
-        stroke="#4F4F4F"
-        strokeWidth={2}
-        strokeMiterlimit={10}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M11.98 19.389c0 1.68-1.342 3.056-2.982 3.056-.815 0-1.57-.347-2.107-.897a3.104 3.104 0 01-.875-2.16"
-        stroke="#4F4F4F"
-        strokeWidth={2}
-        strokeMiterlimit={10}
+        d="M15.737 12.43c-.423-.664-.69-1.407-.69-2.202V8.655c0-2.6-1.52-4.553-3.876-5.066V2.96c0-.53-.409-.96-.91-.96h-.518c-.502 0-.91.43-.91.96v.629c-2.338.53-3.874 2.482-3.874 5.066v1.573c0 .795-.266 1.557-.69 2.202-.175.264-.269.577-.269.909v.134c0 .893.69 1.62 1.537 1.62h8.927c.847 0 1.536-.727 1.536-1.62v-.134a1.632 1.632 0 00-.263-.91zM10.01 18c1.197 0 2.147-1.024 2.168-2.288H7.841C7.863 16.976 8.812 18 10.01 18z"
+        fill="#4F4F4F"
       />
     </Svg>
-  )
+  );
 }
 
-export default BellIcon
+export default BellIcon;

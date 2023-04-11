@@ -38,6 +38,7 @@ import {
   MapOutlineIcon,
   TrashOutlineIcon,
   TrashSolidIcon,
+  WarningIcon,
 } from '../../assets/svgs';
 import {
   editSite,
@@ -424,7 +425,7 @@ const Settings = ({navigation}) => {
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
-                <Text style={[styles.smallHeading]}>WhatsApp</Text>
+                <Text style={styles.smallHeading}>WhatsApp</Text>
               </View>
               <TouchableOpacity onPress={handleAddWhatsapp}>
                 <AddIcon />
@@ -438,18 +439,20 @@ const Settings = ({navigation}) => {
                     styles.emailSubContainer,
                     {justifyContent: 'space-between'},
                   ]}>
+                  <Text style={styles.myEmailName}>{item?.destination}</Text>
                   <View style={styles.emailSubContainer}>
-                    <TouchableOpacity onPress={() => handleRemoveWhatsapp(i)}>
-                      <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+                    <Switch
+                      value={item?.isEnabled}
+                      onValueChange={val =>
+                        handleNotifySwitch({guid: item.guid}, val)
+                      }
+                    />
+                    <TouchableOpacity
+                      style={{marginLeft: 20}}
+                      onPress={() => handleRemoveWhatsapp(i)}>
+                      <TrashSolidIcon />
                     </TouchableOpacity>
-                    <Text style={[styles.mySiteName]}>{item?.destination}</Text>
                   </View>
-                  <Switch
-                    value={item?.isEnabled}
-                    onValueChange={val =>
-                      handleNotifySwitch({guid: item.guid}, val)
-                    }
-                  />
                 </View>
               ))}
             </View>
@@ -459,7 +462,7 @@ const Settings = ({navigation}) => {
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <SmsIcon />
-                <Text style={[styles.smallHeading]}>Sms</Text>
+                <Text style={styles.smallHeading}>Sms</Text>
               </View>
               <TouchableOpacity onPress={handleAddSms}>
                 <AddIcon />
@@ -473,61 +476,63 @@ const Settings = ({navigation}) => {
                     styles.emailSubContainer,
                     {justifyContent: 'space-between'},
                   ]}>
+                  <Text style={styles.myEmailName}>{item?.destination}</Text>
                   <View style={styles.emailSubContainer}>
+                    <Switch
+                      value={item?.isEnabled}
+                      onValueChange={val =>
+                        handleNotifySwitch({guid: item.guid}, val)
+                      }
+                    />
                     <TouchableOpacity
+                      style={{marginLeft: 20}}
                       onPress={() => handleRemoveWhatsapp(item.guid)}>
-                      <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+                      <TrashSolidIcon />
                     </TouchableOpacity>
-                    <Text style={[styles.mySiteName]}>{item?.destination}</Text>
                   </View>
-                  <Switch
-                    value={item?.isEnabled}
-                    onValueChange={val =>
-                      handleNotifySwitch({guid: item.guid}, val)
-                    }
-                  />
                 </View>
               ))}
             </View>
           </View>
         </View>
         {/* Warning */}
-        <View style={styles.warningContainer}>
-          <Text style={styles.warningHeading}>
-            ⚠️ Warning{'\n'} Not all fires detected
-          </Text>
-          <Text style={styles.warningText}>
-            You should not rely on FireAlert exclusively. Many fires will not be
-            detected by the system, for instance if is cloudy or the fire is
-            relatively small.
-          </Text>
-          <Text style={styles.warningText}>
-            Active fire/thermal anomalies may be from fire, hot smoke,
-            agriculture, gas flares, volcanoes or other sources. FAQs
-          </Text>
-          <Text style={styles.warningText}>
-            Sun glint or bright water can cause false alarms.
-          </Text>
-          <Text style={styles.warningText}>
-            Fires must be relatively large to be detected by the main systems.
-            For instance, MODIS usually detects both flaming and smouldering
-            fires 1000 m2 in size. Under ideal conditions, flaming fires one
-            tenth this size can be detected.
-          </Text>
+        <View style={styles.alertWarningContainer}>
+          <View style={styles.warningHeader}>
+            <WarningIcon />
+            <Text style={styles.warning}>WARNING!</Text>
+          </View>
+          <View style={styles.alertWarningSubContainer}>
+            <Text style={styles.warningHeading}>Not all fires detected</Text>
+            <Text style={styles.warningText}>
+              You should not rely on FireAlert exclusively. Many fires will not
+              be detected by the system, for instance if is cloudy or the fire
+              is relatively small.
+            </Text>
+            <Text style={styles.warningText}>
+              Active fire/thermal anomalies may be from fire, hot smoke,
+              agriculture, gas flares, volcanoes or other sources. FAQs
+            </Text>
+            <Text style={styles.warningText}>
+              Sun glint or bright water can cause false alarms.
+            </Text>
+            <Text style={styles.warningText}>
+              Fires must be relatively large to be detected by the main systems.
+              For instance, MODIS usually detects both flaming and smouldering
+              fires 1000 m2 in size. Under ideal conditions, flaming fires one
+              tenth this size can be detected.
+            </Text>
+          </View>
         </View>
         {/* geoStationary */}
-        <View style={[styles.myNotifications, styles.commonPadding]}>
+        <View style={[styles.geostationaryMainContainer, styles.commonPadding]}>
           <View style={styles.geostationaryContainer}>
-            <Text style={styles.mainHeading}>Geostationary</Text>
+            <Text style={styles.subHeading}>Geostationary</Text>
             <Switch
               value={mobileNotify}
               onValueChange={val => setMobileNotify(val)}
             />
           </View>
-          <Text style={styles.desc}>
-            Quick but many false alarms{' '}
-            <Text style={{color: Colors.GRADIENT_PRIMARY}}>[BETA] </Text>
-          </Text>
+          <Text style={styles.desc}>Quick but many false alarms [BETA]</Text>
           <View style={styles.geostationaryInfoContainer}>
             <View style={styles.iconContainer}>
               <BellIcon />
@@ -790,6 +795,12 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
   },
+  subHeading: {
+    fontSize: Typography.FONT_SIZE_16,
+    fontWeight: Typography.FONT_WEIGHT_BOLD,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
   ppLink: {
     color: Colors.PRIMARY,
   },
@@ -927,11 +938,11 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH / 2.5,
   },
   myEmailName: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.PLANET_DARK_GRAY,
     paddingVertical: 5,
     width: SCREEN_WIDTH / 1.6,
+    color: Colors.PLANET_DARK_GRAY,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
   smallHeading: {
     fontSize: Typography.FONT_SIZE_16,
@@ -957,16 +968,41 @@ const styles = StyleSheet.create({
     padding: 35,
     backgroundColor: Colors.GRADIENT_PRIMARY + '12',
   },
+  alertWarningContainer: {
+    marginTop: 32,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    backgroundColor: Colors.GRADIENT_PRIMARY + '12',
+  },
+  alertWarningSubContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  warningHeader: {
+    height: 61,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    justifyContent: 'center',
+    backgroundColor: Colors.GRADIENT_PRIMARY,
+  },
+  warning: {
+    marginLeft: 10,
+    color: Colors.WHITE,
+    fontSize: Typography.FONT_SIZE_25,
+    fontFamily: Typography.FONT_FAMILY_OSWALD_BOLD,
+  },
   warningSubContainer: {
     flexDirection: 'row',
   },
   warningHeading: {
-    fontSize: Typography.FONT_SIZE_16,
+    fontSize: Typography.FONT_SIZE_20,
     fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.TEXT_COLOR,
+    color: Colors.PLANET_DARK_GRAY,
   },
   warningText: {
-    marginTop: 30,
+    marginTop: 22,
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
@@ -978,19 +1014,35 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
   },
+  geostationaryMainContainer: {
+    marginTop: 32,
+    marginHorizontal: 16,
+    backgroundColor: Colors.WHITE,
+    paddingVertical: 20,
+    borderRadius: 12,
+    // shadow
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
+  },
   geostationaryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   desc: {
-    marginTop: 7,
-    fontSize: Typography.FONT_SIZE_14,
+    marginTop: 10,
+    fontSize: Typography.FONT_SIZE_12,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
-    color: Colors.TEXT_COLOR,
+    color: Colors.PLANET_DARK_GRAY,
   },
   geostationaryInfoContainer: {
-    marginTop: 20,
+    marginTop: 10,
   },
   iconContainer: {
     marginTop: 13,
@@ -998,7 +1050,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   geoDesc: {
-    marginLeft: 15,
+    marginLeft: 5,
   },
   primaryUnderline: {
     textDecorationLine: 'underline',
