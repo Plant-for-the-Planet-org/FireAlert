@@ -3,6 +3,7 @@ import {
   View,
   Modal,
   Platform,
+  StatusBar,
   StyleSheet,
   ScrollView,
   Dimensions,
@@ -36,6 +37,7 @@ import {
   DropdownArrow,
   MapOutlineIcon,
   TrashOutlineIcon,
+  TrashSolidIcon,
 } from '../../assets/svgs';
 import {
   editSite,
@@ -55,6 +57,8 @@ import {useAppDispatch, useAppSelector} from '../../hooks';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+const IS_ANDROID = Platform.OS === 'android';
 
 const PROJECTS = [
   {
@@ -291,6 +295,10 @@ const Settings = ({navigation}) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar
+        barStyle={'dark-content'}
+        backgroundColor={Colors.TRANSPARENT}
+      />
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
@@ -299,15 +307,9 @@ const Settings = ({navigation}) => {
         {/* my projects */}
         <View style={[styles.myProjects, styles.commonPadding]}>
           <Text style={styles.mainHeading}>
-            My Projects{' '}
+            My Projects via{' '}
             <Text style={styles.ppLink}>
-              {' '}
-              via{' '}
-              <Text
-                style={styles.underLine}
-                onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>
-                pp.eco
-              </Text>{' '}
+              <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
             </Text>
           </Text>
           {projects.map((item, index) => (
@@ -373,9 +375,7 @@ const Settings = ({navigation}) => {
           <View style={styles.mySiteNameContainer}>
             <View style={styles.mobileContainer}>
               <PhoneIcon />
-              <Text style={[styles.smallHeading, {marginLeft: 13}]}>
-                Mobile
-              </Text>
+              <Text style={[styles.smallHeading]}>Mobile</Text>
             </View>
             <Switch
               value={mobileNotify}
@@ -387,9 +387,7 @@ const Settings = ({navigation}) => {
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <EmailIcon />
-                <Text style={[styles.smallHeading, {marginLeft: 13}]}>
-                  Email
-                </Text>
+                <Text style={[styles.smallHeading]}>Email</Text>
               </View>
               <TouchableOpacity onPress={handleAddEmail}>
                 <AddIcon />
@@ -403,20 +401,20 @@ const Settings = ({navigation}) => {
                     styles.emailSubContainer,
                     {justifyContent: 'space-between'},
                   ]}>
+                  <Text style={styles.myEmailName}>{item?.destination}</Text>
                   <View style={styles.emailSubContainer}>
-                    <TouchableOpacity onPress={() => handleRemoveEmail(i)}>
-                      <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+                    <Switch
+                      value={item?.isEnabled}
+                      onValueChange={val =>
+                        handleNotifySwitch({guid: item.guid}, val)
+                      }
+                    />
+                    <TouchableOpacity
+                      style={{marginLeft: 20}}
+                      onPress={() => handleRemoveEmail(i)}>
+                      <TrashSolidIcon />
                     </TouchableOpacity>
-                    <Text style={[styles.mySiteName, {marginLeft: 10}]}>
-                      {item?.destination}
-                    </Text>
                   </View>
-                  <Switch
-                    value={item?.isEnabled}
-                    onValueChange={val =>
-                      handleNotifySwitch({guid: item.guid}, val)
-                    }
-                  />
                 </View>
               ))}
             </View>
@@ -426,9 +424,7 @@ const Settings = ({navigation}) => {
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
-                <Text style={[styles.smallHeading, {marginLeft: 13}]}>
-                  WhatsApp
-                </Text>
+                <Text style={[styles.smallHeading]}>WhatsApp</Text>
               </View>
               <TouchableOpacity onPress={handleAddWhatsapp}>
                 <AddIcon />
@@ -446,9 +442,7 @@ const Settings = ({navigation}) => {
                     <TouchableOpacity onPress={() => handleRemoveWhatsapp(i)}>
                       <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
                     </TouchableOpacity>
-                    <Text style={[styles.mySiteName, {marginLeft: 10}]}>
-                      {item?.destination}
-                    </Text>
+                    <Text style={[styles.mySiteName]}>{item?.destination}</Text>
                   </View>
                   <Switch
                     value={item?.isEnabled}
@@ -465,7 +459,7 @@ const Settings = ({navigation}) => {
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <SmsIcon />
-                <Text style={[styles.smallHeading, {marginLeft: 13}]}>Sms</Text>
+                <Text style={[styles.smallHeading]}>Sms</Text>
               </View>
               <TouchableOpacity onPress={handleAddSms}>
                 <AddIcon />
@@ -484,9 +478,7 @@ const Settings = ({navigation}) => {
                       onPress={() => handleRemoveWhatsapp(item.guid)}>
                       <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
                     </TouchableOpacity>
-                    <Text style={[styles.mySiteName, {marginLeft: 10}]}>
-                      {item?.destination}
-                    </Text>
+                    <Text style={[styles.mySiteName]}>{item?.destination}</Text>
                   </View>
                   <Switch
                     value={item?.isEnabled}
@@ -763,7 +755,8 @@ export default Settings;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.WHITE,
+    backgroundColor: Colors.BACKGROUND,
+    paddingTop: IS_ANDROID ? StatusBar.currentHeight : 0,
   },
   scrollContainer: {
     paddingBottom: 100,
@@ -789,17 +782,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.GRAY_MEDIUM,
   },
   commonPadding: {
-    paddingHorizontal: 30,
+    paddingHorizontal: 16,
   },
   mainHeading: {
-    fontSize: Typography.FONT_SIZE_24,
+    fontSize: Typography.FONT_SIZE_20,
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
   },
   ppLink: {
-    fontSize: Typography.FONT_SIZE_18,
-    fontWeight: Typography.FONT_WEIGHT_REGULAR,
+    color: Colors.PRIMARY,
   },
   underLine: {
     textDecorationLine: 'underline',
@@ -808,17 +800,26 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   mySites: {
-    marginTop: 50,
+    marginTop: 32,
   },
   myNotifications: {
-    marginTop: 50,
+    marginTop: 32,
   },
   projectsInfo: {
-    padding: 15,
-    marginTop: 17,
-    borderWidth: 1,
+    marginTop: 24,
     borderRadius: 12,
-    borderColor: Colors.GRAY_MEDIUM,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.WHITE,
+    // shadow
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
   },
   projectsNameInfo: {
     flexDirection: 'row',
@@ -826,7 +827,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   projectsName: {
-    fontSize: Typography.FONT_SIZE_18,
+    fontSize: Typography.FONT_SIZE_16,
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
@@ -838,13 +839,13 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   sitesName: {
-    fontSize: Typography.FONT_SIZE_18,
+    fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
   },
   siteRadius: {
-    fontSize: Typography.FONT_SIZE_16,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.GRADIENT_PRIMARY,
   },
   dropDownRadius: {
@@ -879,14 +880,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   mySiteNameMainContainer: {
-    marginTop: 17,
-    borderWidth: 1,
+    marginTop: 24,
     borderRadius: 12,
-    borderColor: Colors.GRAY_MEDIUM,
     justifyContent: 'space-between',
+    backgroundColor: Colors.WHITE,
+    // shadow
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
   },
   mySiteNameSubContainer: {
-    marginTop: 17,
+    marginTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -894,26 +903,42 @@ const styles = StyleSheet.create({
   },
   mySiteNameContainer: {
     padding: 16,
-    marginTop: 17,
-    borderWidth: 1,
+    marginTop: 24,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: Colors.GRAY_MEDIUM,
     justifyContent: 'space-between',
+    backgroundColor: Colors.WHITE,
+    // shadow
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
   },
   mySiteName: {
     fontSize: Typography.FONT_SIZE_16,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.BLACK,
+    fontWeight: Typography.FONT_WEIGHT_BOLD,
+    color: Colors.PLANET_DARK_GRAY,
     paddingVertical: 5,
     width: SCREEN_WIDTH / 2.5,
+  },
+  myEmailName: {
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    color: Colors.PLANET_DARK_GRAY,
+    paddingVertical: 5,
+    width: SCREEN_WIDTH / 1.6,
   },
   smallHeading: {
     fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.TEXT_COLOR,
+    color: Colors.PLANET_DARK_GRAY,
     paddingVertical: 5,
+    marginLeft: 12,
   },
   mobileContainer: {
     flexDirection: 'row',

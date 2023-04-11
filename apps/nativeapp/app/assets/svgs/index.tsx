@@ -32,6 +32,7 @@ import LocationPinIcon from './locationPin.jsx';
 import MapOutlineIcon from './mapOutlineIcon.jsx';
 import OrangeFireIcon from './orangeFireIcon.jsx';
 import PurpleFireIcon from './purpleFireIcon.jsx';
+import TrashSolidIcon from './trashSolidIcon.jsx';
 import TrashOutlineIcon from './trashOutlineIcon.jsx';
 
 export {
@@ -68,6 +69,7 @@ export {
   MapOutlineIcon,
   OrangeFireIcon,
   PurpleFireIcon,
+  TrashSolidIcon,
   LocationPinIcon,
   TrashOutlineIcon,
 };
