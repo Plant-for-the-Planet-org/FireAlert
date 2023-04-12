@@ -257,7 +257,14 @@ const Home = ({navigation}) => {
   const handleGoogleRedirect = () => {
     const lat = Number.parseFloat(selectedAlert?.latitude);
     const lng = Number.parseFloat(selectedAlert?.longitude);
-    handleLink(`https://maps.google.com/?q=${lat},${lng}`);
+    const scheme = Platform.select({ios: 'maps:0,0?q=', android: 'geo:0,0?q='});
+    const latLng = `${lat},${lng}`;
+    const label = selectedAlert?.site;
+    const url = Platform.select({
+      ios: `${scheme}${label}@${latLng}`,
+      android: `${scheme}${latLng}(${label})`,
+    });
+    handleLink(url);
   };
 
   const handleLayer = () => setVisible(true);
@@ -270,9 +277,6 @@ const Home = ({navigation}) => {
 
   const onPressPerDeniedAlertPrimaryBtn = () => checkPermission();
   const onPressPerDeniedAlertSecondaryBtn = () => checkPermission();
-
-  const onListPress = () => navigation.navigate('Settings');
-  const onMapPress = () => {};
 
   const handleCloseProfileModal = () => setProfileEditModal(false);
 

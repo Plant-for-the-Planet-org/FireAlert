@@ -68,7 +68,7 @@ const FloatingInput = props => {
       />
       {verifier ? (
         !verified ? (
-          <ActivityIndicator />
+          <ActivityIndicator color={Colors.PRIMARY} />
         ) : (
           <View style={styles.verified} />
         )

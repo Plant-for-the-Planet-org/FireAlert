@@ -9,7 +9,7 @@
     "test": "jest",
     "lint": "eslint app --fix",
     "lint:errors": "eslint app --quiet",
-    "release": "react-native run-android --variant 'productionRelease'"
+    "releaseInstall": "react-native run-android --variant 'productionRelease'"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.18.0",
