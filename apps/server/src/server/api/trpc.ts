@@ -103,8 +103,9 @@ export const publicProcedure = t.procedure;
 const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
   let passTokenToNext = false;
   let decodedToken: PPJwtPayload | undefined = undefined;
+  let access_token: string | undefined = undefined;
   if (ctx.req.headers.authorization) {
-    const access_token = ctx.req.headers.authorization.replace("Bearer ", "");
+    access_token = ctx.req.headers.authorization.replace("Bearer ", "");
     if (!access_token) {
       passTokenToNext = false;
     } else {
@@ -126,6 +127,7 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
       ctx: {
         token: {
           ...decodedToken,
+          access_token,
         },
       },
     });
