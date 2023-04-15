@@ -1,118 +1,153 @@
 .form-container {
-    display: flex;
-    flex-direction: column;
-    margin: 1rem;
-  }
-  
-  .form-container label {
-    margin-bottom: 0.5rem;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  margin: 1rem;
+  width: 95%;
+  align-items: left;
+  flex-grow: 1;
+}
+
+.form-container label {
+  margin-bottom: 0.5rem;
+}
+
+.form-container input {
+  margin-bottom: 1rem;
+  padding: 0.5rem 1rem ;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.form-container button {
+  background-color: #1f6510;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-card {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: 1rem;
+  padding: 1rem;
+  width: 50%;
+  flex-grow: 1;
+
+}
+
+.form-card h2{
+  text-align: center;
+}
+
+@media only screen and (min-width: 768px) and (max-width: 900px){
   .form-container input {
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    border-radius: 4px;
-    border: 1px solid #ccc;
+    width: 100%;
   }
-  
-  .form-container button {
-    background-color: #0070f3;
-    color: #fff;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
+  .form-card {
+    width: 70%;
   }
-  
+}
 
+@media only screen and (max-width: 767px) {
+  .form-container input {
+    width: 100%;
+  }
+  .form-card{
+    width: 90%;
+  }
+}
 
+.sitesContainer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 20px;
+}
+
+@media screen and (max-width: 768px) {
   .sitesContainer {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 20px;
-  }
-  
-  @media screen and (max-width: 768px) {
-    .sitesContainer {
-      flex-direction: column;
-    }
-  }
-  
-  .siteCard {
-    display: flex;
     flex-direction: column;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
-    width: calc(33.33% - 20px);
-    padding: 10px;
-    transition: all 0.3s ease;
   }
-  
-  @media screen and (max-width: 1024px) {
-    .siteCard {
-      width: calc(50% - 20px);
-    }
-  }
-  
-  @media screen and (max-width: 768px) {
-    .siteCard {
-      width: calc(100% - 20px);
-    }
-  }
-  
-  .siteHeader {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #eee;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 10px;
-  }
-  
-  .siteHeaderText {
-    font-size: 1.2rem;
-    color: black;
-    margin: 0;
-  }
-  
-  .siteBody {
-    background-color: #f7f7f7;
-    padding: 10px;
-    border-radius: 5px;
-    flex-grow: 1;
-    margin-bottom: 10px;
-  }
-  
-  .siteContent {
-    color: black;
-  }
-  
-  .siteButtons {
-    display: flex;
-  }
-  
-  .siteEditButton {
-    flex-grow: 1;
-    background-color: #2196f3;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-    margin-right: 10px;
-    transition: all 0.3
-  }
+}
 
-  .siteDeleteButton {
-    flex-grow: 1;
-    background-color: #2196f3;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-    margin-right: 10px;
-    transition: all 0.3
+.siteCard {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
+  width: calc(33.33% - 20px);
+  padding: 10px;
+  transition: all 0.3s ease;
+}
+
+@media screen and (max-width: 1024px) {
+  .siteCard {
+    width: calc(50% - 20px);
   }
+}
+
+@media screen and (max-width: 768px) {
+  .siteCard {
+    width: calc(100% - 20px);
+  }
+}
+
+.siteHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #eee;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+.siteHeaderText {
+  font-size: 1.2rem;
+  color: black;
+  margin: 0;
+}
+
+.siteBody {
+  background-color: #f7f7f7;
+  padding: 10px;
+  border-radius: 5px;
+  flex-grow: 1;
+  margin-bottom: 10px;
+}
+
+.siteContent {
+  color: black;
+}
+
+.siteButtons {
+  display: flex;
+}
+
+.siteEditButton {
+  flex-grow: 1;
+  background-color: #1072c3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  margin-right: 10px;
+  transition: all 0.3;
+}
+
+.siteDeleteButton {
+  flex-grow: 1;
+  background-color: #b82d11;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  margin-right: 10px;
+  transition: all 0.3;
+}

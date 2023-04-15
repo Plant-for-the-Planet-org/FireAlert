@@ -3,7 +3,7 @@ import { createSiteSchema, params, updateSiteSchema } from '../zodSchemas/site.s
 import {
     createTRPCRouter,
     protectedProcedure,
-} from "../../../server/api/trpc";
+} from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 
@@ -39,8 +39,6 @@ const checkUserHasSitePermission = async ({ ctx, siteId, userId }: checkUserHasS
         });
     }
 };
-
-// const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
 
 export const siteRouter = createTRPCRouter({
 

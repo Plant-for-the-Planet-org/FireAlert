@@ -4,7 +4,7 @@ import { params as siteParams } from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
-} from "../../../server/api/trpc";
+} from "../trpc";
 import { Alert } from "@prisma/client";
 import { randomUUID } from "crypto";
 

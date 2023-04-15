@@ -21,9 +21,9 @@ const Home: NextPage = () => {
       <main className={styles.main}>
         <div className={styles.container}>
           <div className={styles.showcaseContainer}>
-            <p className={styles.showcaseText}>
+            <h1 className={styles.showcaseText}>
               Fire Alert Dummy Frontend
-            </p>
+            </h1>
             <AuthShowcase />
           </div>
         </div>
@@ -41,7 +41,7 @@ const AuthShowcase: React.FC = () => {
   return (
     <div className={styles.authContainer}>
       <p className={styles.showcaseText}>
-        {sessionData && <span>Logged in as {sessionData.user.id} {sessionData.user.name} {sessionData.user.email} {sessionData.user.image} {sessionData.expires}</span>}
+        {sessionData && <span>Logged in as {sessionData.user.email} </span>}
       </p>
       <Sites />
       <button

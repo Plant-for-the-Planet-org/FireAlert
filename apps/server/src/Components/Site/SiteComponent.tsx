@@ -9,14 +9,14 @@ import styles from './SiteComponent.module.css';
 
 
 const Sites: React.FC = () => {
-    const { data: sessionData, status } = useSession();
+    const { status } = useSession();
 
     if (status !== "authenticated") return null;
 
     return (
         <>
-            <ShowSites />
             <CreateSiteForm />
+            <ShowSites />
         </>
     )
 }
@@ -46,53 +46,55 @@ const CreateSiteForm: React.FC = () => {
     return (
         <>
             {session ? (
-                <form className={styles['form-container']}
-                    onSubmit={(event) => {
-                        event.preventDefault()
-                        const coordinates = makeCoordinates(unarrayedCoordinates)
+                <div className={styles['form-card']}>
+                    <h2>Create Site</h2>
+                    <form className={styles['form-container']}
+                        onSubmit={(event) => {
+                            event.preventDefault()
+                            const coordinates = makeCoordinates(unarrayedCoordinates)
 
-                        const geometry = { type: type, coordinates: coordinates }
-                        postSite.mutate({
-                            type: type,
-                            geometry: geometry,
-                            radius: radius,
-                        })
-                        setType('')
-                        setUnarrayedCoordinates('')
-                        setRadius('')
-                    }}>
-                    <label htmlFor="type">Type:</label>
-                    <input
-                        type="text"
-                        placeholder="type"
-                        value={type}
-                        onChange={(event) => setType(event.target.value)}
-                        id="type"
-                    />
-                    <label htmlFor="unarrayed-coordinates">Unarrayed Coordinates:</label>
-                    <input
-                        type="text"
-                        placeholder="unarrayed coordinates"
-                        value={unarrayedCoordinates}
-                        onChange={(event) => setUnarrayedCoordinates(event.target.value)}
-                        id="unarrayed-coordinates"
-                    />
-                    <label htmlFor="radius">Radius:</label>
-                    <input
-                        type="text"
-                        placeholder="radius"
-                        value={radius}
-                        onChange={(event) => setRadius(event.target.value)}
-                        id="radius"
-                    />
-                    <button type='submit'>Submit</button>
-                </form>
+                            const geometry = { type: type, coordinates: coordinates }
+                            postSite.mutate({
+                                type: type,
+                                geometry: geometry,
+                                radius: radius,
+                            })
+                            setType('')
+                            setUnarrayedCoordinates('')
+                            setRadius('')
+                        }}>
+                        <label htmlFor="type">Type:</label>
+                        <input
+                            type="text"
+                            placeholder="type"
+                            value={type}
+                            onChange={(event) => setType(event.target.value)}
+                            id="type"
+                        />
+                        <label htmlFor="unarrayed-coordinates">Unarrayed Coordinates:</label>
+                        <input
+                            type="text"
+                            placeholder="unarrayed coordinates"
+                            value={unarrayedCoordinates}
+                            onChange={(event) => setUnarrayedCoordinates(event.target.value)}
+                            id="unarrayed-coordinates"
+                        />
+                        <label htmlFor="radius">Radius:</label>
+                        <input
+                            type="text"
+                            placeholder="radius"
+                            value={radius}
+                            onChange={(event) => setRadius(event.target.value)}
+                            id="radius"
+                        />
+                        <button type='submit'>Submit</button>
+                    </form>
+                </div>
+
             ) : (
                 <p>Not LoggedIn</p>
             )}
         </>
-
-
     )
 }
 
@@ -110,7 +112,7 @@ const ShowSites: React.FC = () => {
 
     const handleDelete = async (siteId: string) => {
         try {
-            await deleteSite.mutate({siteId});
+            await deleteSite.mutate({ siteId });
         } catch (error) {
             console.log(error);
         }
