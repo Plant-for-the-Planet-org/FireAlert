@@ -179,6 +179,7 @@ export const userRouter = createTRPCRouter({
                 const projectsFromPP = await fetchProjectsWithSitesForUser(bearer_token)
                 for (const projectFromPP of projectsFromPP) {
                     const { sites: sitesFromPPProject, id: projectId, lastUpdated: projectLastUpdatedFormPP, name: projectNameFormPP, slug: projectSlugFormPP } = projectFromPP;
+                    const tpoId = projectFromPP.tpo.id
                     const projectFromDatabase = await ctx.prisma.project.findFirst({
                         where: {
                             id: projectId
@@ -186,6 +187,15 @@ export const userRouter = createTRPCRouter({
                     })
                     if (!projectFromDatabase) {
                         // Add that new project from pp to database
+                        await ctx.prisma.project.create({
+                            data: {
+                                id: projectId,
+                                userId: user.id,
+                                lastUpdated: projectLastUpdatedFormPP,
+                                name: projectNameFormPP,
+                                slug: projectSlugFormPP,
+                            },
+                        });
                     }
                     const sitesFromDBProject = await ctx.prisma.site.findMany({
                         where: {
@@ -211,7 +221,7 @@ export const userRouter = createTRPCRouter({
                             name: projectNameFormPP,
                             slug: projectSlugFormPP,
                         })
-                        const tpoId = projectFromDatabase.tpo.id
+                        
                         for (const siteFromPP of sitesFromPPProject) {
                             const { geometry, type, radius } = siteFromPP;
                             const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = siteFromPP.properties;
