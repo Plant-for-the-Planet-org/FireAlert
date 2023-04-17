@@ -68,7 +68,7 @@ model User {
 
     alertMethods AlertMethod[]
     sites        Site[]
-    projects    Project[]
+    projects     Project[]
 }
 
 enum Role {
@@ -112,19 +112,19 @@ model Site {
     deletedAt   DateTime?
     projectId   String?
     lastUpdated DateTime?
-    userId String
-    user   User   @relation(fields: [userId], references: [id])
+    userId      String
+    user        User      @relation(fields: [userId], references: [id])
 
     alerts Alert[]
 }
 
 model Project {
-    id  String @id 
-    name String
-    slug String?
-    userId String
+    id          String    @id
+    name        String
+    slug        String?
     lastUpdated DateTime?
-    user User @relation((fields: [userId], references: [id]))
+    userId      String
+    user        User      @relation(fields: [userId], references: [id])
 }
 
 model Alert {
