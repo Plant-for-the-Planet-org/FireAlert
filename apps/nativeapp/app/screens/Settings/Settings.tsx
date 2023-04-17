@@ -511,7 +511,15 @@ const Settings = ({navigation}) => {
             </Text>
             <Text style={styles.warningText}>
               Active fire/thermal anomalies may be from fire, hot smoke,
-              agriculture, gas flares, volcanoes or other sources. FAQs
+              agriculture, gas flares, volcanoes or other sources.{' '}
+              <Text
+                style={[
+                  styles.secondaryUnderline,
+                  {textDecorationLine: 'underline'},
+                ]}
+                onPress={_handleEcoWeb(WEB_URLS.FIRMS_FAQ)}>
+                FAQs
+              </Text>
             </Text>
             <Text style={styles.warningText}>
               Sun glint or bright water can cause false alarms.
@@ -557,7 +565,7 @@ const Settings = ({navigation}) => {
             <Text style={styles.descBold}>VIIRS</Text>
             <View style={styles.iconContainer}>
               <BellIcon />
-              <Text style={styles.geoDesc}>Checks Eevery ~12 hours</Text>
+              <Text style={styles.geoDesc}>Checks every ~12 hours</Text>
             </View>
             <View style={styles.iconContainer}>
               <GlobeIcon />
@@ -667,7 +675,12 @@ const Settings = ({navigation}) => {
             </Text>
             . We appreciate NASA’s dedication to sharing data. This project is
             not affiliated with NASA.{' '}
-            <Text style={styles.secondaryUnderline}>FIRMS Disclaimer</Text>. 
+            <Text
+              style={styles.secondaryUnderline}
+              onPress={_handleEcoWeb(WEB_URLS.FIRMS_DISCLAIMER)}>
+              FIRMS Disclaimer
+            </Text>
+            . 
           </Text>
         </View>
         {/* site information modal */}
@@ -1057,6 +1070,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
     paddingVertical: 20,
     borderRadius: 12,
+    // shadow
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
   },
   geostationaryContainer: {
     flexDirection: 'row',
@@ -1150,9 +1172,9 @@ const styles = StyleSheet.create({
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
-      height: 6,
+      height: 8,
     },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4.62,
     elevation: 8,
   },

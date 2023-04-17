@@ -682,8 +682,8 @@ const styles = StyleSheet.create({
     zIndex: 20,
     height: 150,
     position: 'absolute',
-    top: IS_ANDROID ? 130 : 75,
-    left: IS_ANDROID ? 61.5 : 40.5,
+    bottom: IS_ANDROID ? SCREEN_HEIGHT / 3.56 : SCREEN_HEIGHT / 5.85,
+    alignSelf: 'center',
   },
   satelliteInfoCon: {
     marginTop: 30,
