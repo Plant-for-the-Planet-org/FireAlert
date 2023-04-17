@@ -96,9 +96,13 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 
 export const createTRPCRouter = t.router;
 
-export const publicProcedure = t.procedure;
+const passCtxToNext = t.middleware(async({ctx, next})=> {
+  return next({
+    ctx
+  })
+})
 
-
+export const publicProcedure = t.procedure.use(passCtxToNext);
 
 const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
   let passTokenToNext = false;
