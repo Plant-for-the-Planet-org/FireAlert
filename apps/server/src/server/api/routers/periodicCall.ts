@@ -58,7 +58,7 @@ export const periodicCallRouter = createTRPCRouter({
                         id: projectId,
                     },
                 });
-                if (projectFromDatabase.lastUpdated !== projectLastUpdatedFormPP) {
+                if (projectFromDatabase!.lastUpdated !== projectLastUpdatedFormPP) {
                     // If there is a project, and last updated has changed, update the entire project and sites
                     await ctx.prisma.project.update({
                         where: {
@@ -70,7 +70,7 @@ export const periodicCallRouter = createTRPCRouter({
                             slug: projectSlugFormPP,
                         },
                     });
-                    const tpoId = projectFromDatabase.tpo.id;
+                    const tpoId = projectFromPP.tpo.id;
                     const sitesFromDBProject = await ctx.prisma.site.findMany({
                         where: {
                             projectId: projectId,
@@ -79,7 +79,7 @@ export const periodicCallRouter = createTRPCRouter({
                     const siteIdsFromPP = sitesFromPPProject.map((site) => site.properties.id);
                     // Loop through sites in DB and delete sites not found in PP
                     for (const siteFromDBProject of sitesFromDBProject) {
-                        if (!siteIdsFromPP.includes(siteFromDB.id)) {
+                        if (!siteIdsFromPP.includes(siteFromDBProject.id)) {
                             await ctx.prisma.site.delete({
                                 where: {
                                     id: siteFromDBProject.id,
@@ -105,7 +105,7 @@ export const periodicCallRouter = createTRPCRouter({
                                     radius: radius,
                                     userId: tpoId,
                                     projectId: projectId,
-                                    lastUpdated: lastUpdated.date,
+                                    lastUpdated: siteLastUpdatedFromPP.date,
                                 },
                             });
                         } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {

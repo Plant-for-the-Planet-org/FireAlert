@@ -3,8 +3,10 @@ import { updateUserSchema } from '../zodSchemas/user.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
+    publicProcedure,
 } from "../trpc";
 import { Alert, Site } from "@prisma/client";
+import { getUserIdByToken } from "../../../utils/token";
 
 const checkIfUserIsPlanetRO = async (bearer_token: string) => {
     // send a request to https://app.plant-for-the-planet.org/app/profile with authorization headers of Bearer token using bearer_token
@@ -38,6 +40,16 @@ const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
     return data;
 }
 
+const checkUserHasUserPermission = async ({ userIdInput, userIdRequestingPermission }: { userIdInput: string; userIdRequestingPermission: string }) => {
+    if (userIdInput !== userIdRequestingPermission) {
+        // The user is not authorized to perform actions on another user
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You are not authorized to perform actions on this user",
+        });
+    }
+};
+
 export const userRouter = createTRPCRouter({
 
     signUp: protectedProcedure
@@ -45,7 +57,6 @@ export const userRouter = createTRPCRouter({
             // Get the access token
             const access_token = ctx.token.access_token
             const bearer_token = "Bearer " + access_token
-
             // check if this user already exists in the database // If yes, throw a TRPC Error
             const existingUser = await ctx.prisma.user.findFirst({
                 where: {
@@ -58,10 +69,8 @@ export const userRouter = createTRPCRouter({
                     message: "User Already Exists, Please use the Login route instead",
                 });
             }
-
             // Check if the user requesting access is PlanetRO
             const isPlanetRO = await checkIfUserIsPlanetRO(bearer_token)
-
             // If not planetRO // create the User
             if (!isPlanetRO) {
                 const user = await ctx.prisma.user.create({
@@ -78,10 +87,8 @@ export const userRouter = createTRPCRouter({
                     data: user,
                 };
             }
-
             // Else, create user, create project, and create sites associated with that user in the pp.
             const projects = await fetchProjectsWithSitesForUser(bearer_token)
-
             // Add each project to the database, with siteId and UserId
             // For each sites in each project, add the site in the database.
             // For each project, filter out the sites in that project with siteId, geometry, type, radius. 
@@ -212,16 +219,19 @@ export const userRouter = createTRPCRouter({
                             });
                         }
                     }
-
                     // I need to find if there are any sitesFromDBProject that needs to be deleted, if it is missing from sitesFromPPProject
                     // If there is a project, and last updated has changed, update the entire site and projects
-                    if (projectFromDatabase.lastUpdated !== projectLastUpdatedFormPP) {
+                    if (projectFromDatabase!.lastUpdated !== projectLastUpdatedFormPP) {
                         await ctx.prisma.project.update({
-                            lastUpdated: projectLastUpdatedFormPP,
-                            name: projectNameFormPP,
-                            slug: projectSlugFormPP,
+                            where: {
+                                id: projectId
+                            },
+                            data: {
+                                lastUpdated: projectLastUpdatedFormPP,
+                                name: projectNameFormPP,
+                                slug: projectSlugFormPP,
+                            }
                         })
-                        
                         for (const siteFromPP of sitesFromPPProject) {
                             const { geometry, type, radius } = siteFromPP;
                             const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = siteFromPP.properties;
@@ -239,7 +249,7 @@ export const userRouter = createTRPCRouter({
                                         radius: radius,
                                         userId: tpoId,
                                         projectId: projectId,
-                                        lastUpdated: lastUpdated.date,
+                                        lastUpdated: siteLastUpdatedFromPP.date,
                                     },
                                 });
                             } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
@@ -275,8 +285,6 @@ export const userRouter = createTRPCRouter({
                     }
                 }
             }
-
-
             // Then Fetch all the sites, projects, alertMethods, and alerts associated with the user from the database
             const sites = await ctx.prisma.site.findMany({
                 where: {
@@ -315,160 +323,102 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    getUser: protectedProcedure
+    getAllUsers: protectedProcedure
         .query(async ({ ctx }) => {
-            // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            try {
+                const users = await ctx.prisma.user.findMany()
+                return {
+                    status: 'success',
+                    data: users,
+                }
+            } catch (error) {
+                console.log(error)
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: 'Users Not found',
                 });
-            }
-
-            //token logic
-            if (ctx.token) {
-                try {
-                    //find the account that has that sub
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        }
-                    })
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    //use the account, and find the user that has userId that we got from account
-                    const user = await ctx.prisma.user.findFirst({
-                        where: {
-                            id: account.userId,
-                        }
-                    })
-                    if (user) {
-                        return {
-                            status: 'success',
-                            data: user,
-                        }
-                    } else {
-                        throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Cannot find a user associated with the token!'
-                        });
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Account Error',
-                    });
-                }
-            } else {
-                //when token is not there, default to session logic
-                try {
-                    const user = await ctx.prisma.user.findFirst({
-                        where: {
-                            id: ctx.session!.user.id
-                        }
-                    })
-                    if (user) {
-                        return {
-                            status: 'success',
-                            data: user,
-                        }
-                    } else {
-                        throw new TRPCError({
-                            code: 'NOT_FOUND',
-                            message: 'Cannot find a user associated with the session!'
-                        });
-                    }
-                } catch (error) {
-                    console.log(error)
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'Cannot get user',
-                    });
-                }
             }
         }),
 
+    getUser: protectedProcedure
+        .query(async ({ ctx, input }) => {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
+                });
+            }
+            try {
+                const user = await ctx.prisma.user.findFirst({
+                    where: {
+                        id: userId
+                    }
+                })
+                if (user) {
+                    return {
+                        status: 'success',
+                        data: user,
+                    }
+                } else {
+                    throw new TRPCError({
+                        code: 'NOT_FOUND',
+                        message: `Cannot find a user with that userId!`
+                    });
+                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: 'Cannot get user',
+                });
+            }
+        }),
 
     updateUser: protectedProcedure
         .input(updateUserSchema)
         .mutation(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            if (!ctx.token && !ctx.session) {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
                 throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "Missing authentication credentials",
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
                 });
             }
-
-            //token logic
-            if (ctx.token) {
-                try {
-                    //find the account that has that sub
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        },
-                    });
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    const updatedUser = await ctx.prisma.user.update({
-                        where: { id: account.userId },
-                        data: input.body,
-                    });
-                    return {
-                        status: "success",
-                        data: updatedUser,
-                    };
-                } catch (error) {
-                    console.log(error);
-                    throw new TRPCError({
-                        code: "INTERNAL_SERVER_ERROR",
-                        message: "Cannot update user with token",
-                    });
-                }
-            } else {
-                //when token is not there, default to session logic
-                console.log(`Inside updateUser, the sub is ${ctx.token}`);
-                try {
-                    const updatedUser = await ctx.prisma.user.update({
-                        where: { id: ctx.session!.user.id },
-                        data: input.body,
-                    });
-                    return {
-                        status: "success",
-                        data: updatedUser,
-                    };
-                } catch (error) {
-                    console.log(error);
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "Cannot update that user!",
-                    });
-                }
+            try {
+                const updatedUser = await ctx.prisma.user.update({
+                    where: {
+                        id: userId
+                    },
+                    data: input.body,
+                });
+                return {
+                    status: 'success',
+                    data: updatedUser,
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: 'An error occurred while updating the user',
+                });
             }
         }),
 
-
     deleteUser: protectedProcedure
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ ctx }) => {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "User ID not found",
+                });
+            }
             try {
                 const deletedUser = await ctx.prisma.user.delete({
-                    where: { id: ctx.session?.user.id }
+                    where: {
+                        id: userId,
+                    }
                 })
                 return {
                     status: 'success',
@@ -477,12 +427,70 @@ export const userRouter = createTRPCRouter({
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
-                    code: 'NOT_FOUND',
-                    message: 'Probably user with that Id is not found, so cannot delete user'
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'An error occured while deleting the user'
                 });
             }
         }),
 
+    fetchAllDataForUser: protectedProcedure
+        .query(async ({ ctx }) => {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if (!userId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "User ID not found in session",
+                });
+            }
+            try {
+                const user = await ctx.prisma.user.findFirst({
+                    where: {
+                        id: userId,
+                    }
+                })
+                const sites = await ctx.prisma.site.findMany({
+                    where: {
+                        userId: userId,
+                    }
+                })
+                const projects = await ctx.prisma.project.findMany({
+                    where: {
+                        userId: userId,
+                    }
+                })
+                const alertMethods = await ctx.prisma.alertMethod.findMany({
+                    where: {
+                        userId: userId,
+                    }
+                })
+                const alerts: Alert[] = [];
+                for (const site of sites) {
+                    const alertsForEachSite = await ctx.prisma.alert.findMany({
+                        where: {
+                            siteId: site.id,
+                        },
+                    });
+                    alerts.push(...alertsForEachSite);
+                }
+                // then return sites, projects, alertMethods, and alerts for that user
+                return {
+                    status: "success",
+                    data: {
+                        user,
+                        sites,
+                        projects,
+                        alertMethods,
+                        alerts,
+                    },
+                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
+                });
+            }
+        })
 });
 
 export type UserRouter = typeof userRouter

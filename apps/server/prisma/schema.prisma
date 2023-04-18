@@ -114,8 +114,8 @@ model Site {
     lastUpdated DateTime?
     userId      String
     user        User      @relation(fields: [userId], references: [id])
-
-    alerts Alert[]
+    project     Project?  @relation(fields: [projectId], references: [id])
+    alerts      Alert[]
 }
 
 model Project {
@@ -125,6 +125,7 @@ model Project {
     lastUpdated DateTime?
     userId      String
     user        User      @relation(fields: [userId], references: [id])
+    sites       Site[]
 }
 
 model Alert {
