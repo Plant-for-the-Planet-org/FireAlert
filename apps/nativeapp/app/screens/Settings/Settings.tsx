@@ -323,21 +323,29 @@ const Settings = ({navigation}) => {
                   onValueChange={val => handleSwitch(index, val)}
                 />
               </View>
+              {item?.sites?.length > 0 && <View style={{marginTop: 30}} />}
               {item.enabled && item.sites
                 ? item.sites.map((sites, index) => (
-                    <View key={`sites_${index}`} style={styles.sitesInProjects}>
-                      <Text style={styles.sitesName}>{sites.name}</Text>
-                      <TouchableOpacity
-                        onPress={evt => handleRadius(evt, item.id, sites.id)}
-                        style={styles.dropDownRadius}>
-                        <Text style={styles.siteRadius}>
-                          {sites.radius
-                            ? `within ${sites.radius} km`
-                            : 'inside'}
-                        </Text>
-                        <DropdownArrow />
-                      </TouchableOpacity>
-                    </View>
+                    <>
+                      <View
+                        key={`sites_${index}`}
+                        style={styles.sitesInProjects}>
+                        <Text style={styles.sitesName}>{sites.name}</Text>
+                        <TouchableOpacity
+                          onPress={evt => handleRadius(evt, item.id, sites.id)}
+                          style={styles.dropDownRadius}>
+                          <Text style={styles.siteRadius}>
+                            {sites.radius
+                              ? `within ${sites.radius} km`
+                              : 'inside'}
+                          </Text>
+                          <DropdownArrow />
+                        </TouchableOpacity>
+                      </View>
+                      {item?.sites?.length - 1 !== index && (
+                        <View style={styles.separator} />
+                      )}
+                    </>
                   ))
                 : null}
             </View>
@@ -397,27 +405,32 @@ const Settings = ({navigation}) => {
             </View>
             <View style={styles.emailContainer}>
               {alertListPreferences?.email?.map((item, i) => (
-                <View
-                  key={`emails_${i}`}
-                  style={[
-                    styles.emailSubContainer,
-                    {justifyContent: 'space-between'},
-                  ]}>
-                  <Text style={styles.myEmailName}>{item?.destination}</Text>
-                  <View style={styles.emailSubContainer}>
-                    <Switch
-                      value={item?.isEnabled}
-                      onValueChange={val =>
-                        handleNotifySwitch({guid: item.guid}, val)
-                      }
-                    />
-                    <TouchableOpacity
-                      style={{marginLeft: 20}}
-                      onPress={() => handleRemoveEmail(i)}>
-                      <TrashSolidIcon />
-                    </TouchableOpacity>
+                <>
+                  <View
+                    key={`emails_${i}`}
+                    style={[
+                      styles.emailSubContainer,
+                      {justifyContent: 'space-between'},
+                    ]}>
+                    <Text style={styles.myEmailName}>{item?.destination}</Text>
+                    <View style={styles.emailSubContainer}>
+                      <Switch
+                        value={item?.isEnabled}
+                        onValueChange={val =>
+                          handleNotifySwitch({guid: item.guid}, val)
+                        }
+                      />
+                      <TouchableOpacity
+                        style={{marginLeft: 20}}
+                        onPress={() => handleRemoveEmail(i)}>
+                        <TrashSolidIcon />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
+                  {alertListPreferences?.email?.length - 1 !== i && (
+                    <View style={[styles.separator, {marginVertical: 12}]} />
+                  )}
+                </>
               ))}
             </View>
           </View>
@@ -434,27 +447,32 @@ const Settings = ({navigation}) => {
             </View>
             <View style={styles.emailContainer}>
               {alertListPreferences?.whatsapp?.map((item, i) => (
-                <View
-                  key={`emails_${i}`}
-                  style={[
-                    styles.emailSubContainer,
-                    {justifyContent: 'space-between'},
-                  ]}>
-                  <Text style={styles.myEmailName}>{item?.destination}</Text>
-                  <View style={styles.emailSubContainer}>
-                    <Switch
-                      value={item?.isEnabled}
-                      onValueChange={val =>
-                        handleNotifySwitch({guid: item.guid}, val)
-                      }
-                    />
-                    <TouchableOpacity
-                      style={{marginLeft: 20}}
-                      onPress={() => handleRemoveWhatsapp(i)}>
-                      <TrashSolidIcon />
-                    </TouchableOpacity>
+                <>
+                  <View
+                    key={`emails_${i}`}
+                    style={[
+                      styles.emailSubContainer,
+                      {justifyContent: 'space-between'},
+                    ]}>
+                    <Text style={styles.myEmailName}>{item?.destination}</Text>
+                    <View style={styles.emailSubContainer}>
+                      <Switch
+                        value={item?.isEnabled}
+                        onValueChange={val =>
+                          handleNotifySwitch({guid: item.guid}, val)
+                        }
+                      />
+                      <TouchableOpacity
+                        style={{marginLeft: 20}}
+                        onPress={() => handleRemoveWhatsapp(i)}>
+                        <TrashSolidIcon />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
+                  {alertListPreferences?.whatsapp?.length - 1 !== i && (
+                    <View style={[styles.separator, {marginVertical: 12}]} />
+                  )}
+                </>
               ))}
             </View>
           </View>
@@ -471,27 +489,32 @@ const Settings = ({navigation}) => {
             </View>
             <View style={styles.emailContainer}>
               {alertListPreferences?.sms?.map((item, i) => (
-                <View
-                  key={`emails_${i}`}
-                  style={[
-                    styles.emailSubContainer,
-                    {justifyContent: 'space-between'},
-                  ]}>
-                  <Text style={styles.myEmailName}>{item?.destination}</Text>
-                  <View style={styles.emailSubContainer}>
-                    <Switch
-                      value={item?.isEnabled}
-                      onValueChange={val =>
-                        handleNotifySwitch({guid: item.guid}, val)
-                      }
-                    />
-                    <TouchableOpacity
-                      style={{marginLeft: 20}}
-                      onPress={() => handleRemoveWhatsapp(item.guid)}>
-                      <TrashSolidIcon />
-                    </TouchableOpacity>
+                <>
+                  <View
+                    key={`emails_${i}`}
+                    style={[
+                      styles.emailSubContainer,
+                      {justifyContent: 'space-between'},
+                    ]}>
+                    <Text style={styles.myEmailName}>{item?.destination}</Text>
+                    <View style={styles.emailSubContainer}>
+                      <Switch
+                        value={item?.isEnabled}
+                        onValueChange={val =>
+                          handleNotifySwitch({guid: item.guid}, val)
+                        }
+                      />
+                      <TouchableOpacity
+                        style={{marginLeft: 20}}
+                        onPress={() => handleRemoveWhatsapp(item.guid)}>
+                        <TrashSolidIcon />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
+                  {alertListPreferences?.sms?.length - 1 !== i && (
+                    <View style={[styles.separator, {marginVertical: 12}]} />
+                  )}
+                </>
               ))}
             </View>
           </View>
@@ -866,7 +889,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 18,
   },
   sitesName: {
     fontSize: Typography.FONT_SIZE_14,
@@ -975,10 +997,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emailContainer: {
-    padding: 16,
+    marginTop: 25,
+    paddingHorizontal: 16,
+    marginBottom: 20,
   },
   emailSubContainer: {
-    marginVertical: 5,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -1177,5 +1200,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4.62,
     elevation: 8,
+  },
+  separator: {
+    height: 0.5,
+    width: '100%',
+    marginVertical: 15,
+    backgroundColor: '#e0e0e0',
   },
 });
