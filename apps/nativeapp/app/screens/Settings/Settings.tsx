@@ -47,15 +47,14 @@ import {
 } from '../../redux/slices/sites/siteSlice';
 import {
   getAlertsPreferences,
-  deleteAlertPreferences,
   updateAlertPreferences,
 } from '../../redux/slices/alerts/alertSlice';
 
 import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
-import {useAppDispatch, useAppSelector} from '../../hooks';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
+import {useAppDispatch, useAppSelector} from '../../hooks';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -1065,8 +1064,6 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
   },
   warningText2: {
-    width: 288,
-    marginLeft: 10,
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
@@ -1199,7 +1196,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.05,
     shadowRadius: 4.62,
-    elevation: 8,
+    elevation: 5,
   },
   separator: {
     height: 0.5,
