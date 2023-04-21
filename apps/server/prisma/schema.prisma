@@ -61,7 +61,7 @@ model User {
     deletedAt       DateTime?
     isVerified      Boolean?
     signupDate      DateTime  @default(now())
-    roles           Role      @default(USER)
+    roles           Role      @default(ROLE_CLIENT)
 
     accounts Account[]
     sessions Session[]
@@ -72,9 +72,9 @@ model User {
 }
 
 enum Role {
-    USER
-    ADMIN
-    ROLE_BACKEND
+    ROLE_CLIENT
+    ROLE_ADMIN
+    ROLE_SUPPORT
 }
 
 model VerificationToken {

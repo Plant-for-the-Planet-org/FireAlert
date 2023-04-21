@@ -29,12 +29,16 @@ export const periodicCallRouter = createTRPCRouter({
                 (projectId) => !ppListFiltered.some((project) => project.id === projectId)
             );
             if (projectsIdsToDelete.length) {
-                await ctx.prisma.site.deleteMany({
+                await ctx.prisma.site.updateMany({
                     where: {
                         projectId: {
                             in: projectsIdsToDelete,
                         },
                     },
+                    data: {
+                        deletedAt: new Date(),
+                        projectId: null
+                    }
                 });
                 await ctx.prisma.project.deleteMany({
                     where: {
@@ -80,10 +84,14 @@ export const periodicCallRouter = createTRPCRouter({
                     // Loop through sites in DB and delete sites not found in PP
                     for (const siteFromDBProject of sitesFromDBProject) {
                         if (!siteIdsFromPP.includes(siteFromDBProject.id)) {
-                            await ctx.prisma.site.delete({
+                            await ctx.prisma.site.update({
                                 where: {
                                     id: siteFromDBProject.id,
                                 },
+                                data: {
+                                    projectId: null,
+                                    deletedAt: new Date(),
+                                }
                             });
                         }
                     }

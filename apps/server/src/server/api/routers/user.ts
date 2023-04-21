@@ -212,10 +212,14 @@ export const userRouter = createTRPCRouter({
                     const siteIdsFromPP = sitesFromPPProject.map(site => site.properties.id);
                     for (const siteFromDB of sitesFromDBProject) {
                         if (!siteIdsFromPP.includes(siteFromDB.id)) {
-                            await ctx.prisma.site.delete({
+                            await ctx.prisma.site.update({
                                 where: {
                                     id: siteFromDB.id,
                                 },
+                                data: {
+                                    deletedAt: new Date(),
+                                    projectId: null
+                                }
                             });
                         }
                     }
@@ -282,6 +286,15 @@ export const userRouter = createTRPCRouter({
                                 id: projectFromDB.id,
                             },
                         });
+                        await ctx.prisma.site.updateMany({
+                            where: {
+                                projectId: projectFromDB.id
+                            },
+                            data: {
+                                deletedAt: new Date(),
+                                projectId: null,
+                            }
+                        })
                     }
                 }
             }
@@ -323,7 +336,7 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    getAllUsers: protectedProcedure
+    getAllUsers: protectedProcedure // TODO: make this admin procedure
         .query(async ({ ctx }) => {
             try {
                 const users = await ctx.prisma.user.findMany()
@@ -432,65 +445,6 @@ export const userRouter = createTRPCRouter({
                 });
             }
         }),
-
-    fetchAllDataForUser: protectedProcedure
-        .query(async ({ ctx }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found in session",
-                });
-            }
-            try {
-                const user = await ctx.prisma.user.findFirst({
-                    where: {
-                        id: userId,
-                    }
-                })
-                const sites = await ctx.prisma.site.findMany({
-                    where: {
-                        userId: userId,
-                    }
-                })
-                const projects = await ctx.prisma.project.findMany({
-                    where: {
-                        userId: userId,
-                    }
-                })
-                const alertMethods = await ctx.prisma.alertMethod.findMany({
-                    where: {
-                        userId: userId,
-                    }
-                })
-                const alerts: Alert[] = [];
-                for (const site of sites) {
-                    const alertsForEachSite = await ctx.prisma.alert.findMany({
-                        where: {
-                            siteId: site.id,
-                        },
-                    });
-                    alerts.push(...alertsForEachSite);
-                }
-                // then return sites, projects, alertMethods, and alerts for that user
-                return {
-                    status: "success",
-                    data: {
-                        user,
-                        sites,
-                        projects,
-                        alertMethods,
-                        alerts,
-                    },
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        })
 });
 
 export type UserRouter = typeof userRouter
