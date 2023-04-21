@@ -428,9 +428,12 @@ export const userRouter = createTRPCRouter({
                 });
             }
             try {
-                const deletedUser = await ctx.prisma.user.delete({
+                const deletedUser = await ctx.prisma.user.update({
                     where: {
                         id: userId,
+                    },
+                    data: {
+                        deletedAt: new Date()
                     }
                 })
                 return {
