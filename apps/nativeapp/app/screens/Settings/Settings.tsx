@@ -32,13 +32,14 @@ import {
   EmailIcon,
   PlanetLogo,
   PencilIcon,
+  WarningIcon,
   DistanceIcon,
   WhatsAppIcon,
   DropdownArrow,
+  TrashSolidIcon,
   MapOutlineIcon,
   TrashOutlineIcon,
-  TrashSolidIcon,
-  WarningIcon,
+  VerificationWarning,
 } from '../../assets/svgs';
 import {
   editSite,
@@ -413,12 +414,21 @@ const Settings = ({navigation}) => {
                     ]}>
                     <Text style={styles.myEmailName}>{item?.destination}</Text>
                     <View style={styles.emailSubContainer}>
-                      <Switch
-                        value={item?.isEnabled}
-                        onValueChange={val =>
-                          handleNotifySwitch({guid: item.guid}, val)
-                        }
-                      />
+                      {item?.isVerified ? (
+                        <Switch
+                          value={item?.isEnabled}
+                          onValueChange={val =>
+                            handleNotifySwitch({guid: item.guid}, val)
+                          }
+                        />
+                      ) : (
+                        <View style={styles.verifiedChips}>
+                          <VerificationWarning />
+                          <Text style={styles.verifiedTxt}>
+                            Verification Required
+                          </Text>
+                        </View>
+                      )}
                       <TouchableOpacity
                         style={{marginLeft: 20}}
                         onPress={() => handleRemoveEmail(i)}>
@@ -455,12 +465,21 @@ const Settings = ({navigation}) => {
                     ]}>
                     <Text style={styles.myEmailName}>{item?.destination}</Text>
                     <View style={styles.emailSubContainer}>
-                      <Switch
-                        value={item?.isEnabled}
-                        onValueChange={val =>
-                          handleNotifySwitch({guid: item.guid}, val)
-                        }
-                      />
+                      {item?.isVerified ? (
+                        <Switch
+                          value={item?.isEnabled}
+                          onValueChange={val =>
+                            handleNotifySwitch({guid: item.guid}, val)
+                          }
+                        />
+                      ) : (
+                        <View style={styles.verifiedChips}>
+                          <VerificationWarning />
+                          <Text style={styles.verifiedTxt}>
+                            Verification Required
+                          </Text>
+                        </View>
+                      )}
                       <TouchableOpacity
                         style={{marginLeft: 20}}
                         onPress={() => handleRemoveWhatsapp(i)}>
@@ -497,12 +516,21 @@ const Settings = ({navigation}) => {
                     ]}>
                     <Text style={styles.myEmailName}>{item?.destination}</Text>
                     <View style={styles.emailSubContainer}>
-                      <Switch
-                        value={item?.isEnabled}
-                        onValueChange={val =>
-                          handleNotifySwitch({guid: item.guid}, val)
-                        }
-                      />
+                      {item?.isVerified ? (
+                        <Switch
+                          value={item?.isEnabled}
+                          onValueChange={val =>
+                            handleNotifySwitch({guid: item.guid}, val)
+                          }
+                        />
+                      ) : (
+                        <View style={styles.verifiedChips}>
+                          <VerificationWarning />
+                          <Text style={styles.verifiedTxt}>
+                            Verification Required
+                          </Text>
+                        </View>
+                      )}
                       <TouchableOpacity
                         style={{marginLeft: 20}}
                         onPress={() => handleRemoveWhatsapp(item.guid)}>
@@ -979,10 +1007,11 @@ const styles = StyleSheet.create({
   },
   myEmailName: {
     paddingVertical: 5,
-    width: SCREEN_WIDTH / 1.6,
+    maxWidth: SCREEN_WIDTH / 2,
     color: Colors.PLANET_DARK_GRAY,
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
+    paddingRight: 10,
   },
   smallHeading: {
     fontSize: Typography.FONT_SIZE_16,
@@ -1203,5 +1232,19 @@ const styles = StyleSheet.create({
     width: '100%',
     marginVertical: 15,
     backgroundColor: '#e0e0e0',
+  },
+  verifiedChips: {
+    backgroundColor: '#F2994A20',
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  verifiedTxt: {
+    marginLeft: 2,
+    fontSize: 8,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
   },
 });

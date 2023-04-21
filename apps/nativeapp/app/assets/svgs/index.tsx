@@ -35,6 +35,7 @@ import OrangeFireIcon from './orangeFireIcon.jsx';
 import PurpleFireIcon from './purpleFireIcon.jsx';
 import TrashSolidIcon from './trashSolidIcon.jsx';
 import TrashOutlineIcon from './trashOutlineIcon.jsx';
+import VerificationWarning from './verificationWarning.jsx';
 
 export {
   Logo,
@@ -74,4 +75,5 @@ export {
   TrashSolidIcon,
   LocationPinIcon,
   TrashOutlineIcon,
+  VerificationWarning,
 };
