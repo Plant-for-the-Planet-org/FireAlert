@@ -1,8 +1,8 @@
 import React from 'react';
 import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
-import {StatusBar, StyleSheet, View} from 'react-native';
 import RadialGradient from 'react-native-radial-gradient';
+import {Dimensions, StatusBar, StyleSheet, View} from 'react-native';
 
 import {Colors} from '../../styles';
 import {Logo} from '../../assets/svgs';
@@ -15,8 +15,10 @@ import {
 import {CustomButton} from '../../components';
 import {storeData} from '../../utils/localStorage';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
 const RADIUS = 200;
-const CENTER_ARR = [187.5, 270.6];
+const CENTER_ARR = [SCREEN_WIDTH / 2, 270.6];
 const GRADIENT_ARR = [Colors.PRIMARY_DARK, Colors.GRADIENT_PRIMARY];
 
 const Login = ({navigation}) => {
@@ -114,15 +116,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  crossContainer: {
-    position: 'absolute',
-    top: 40,
-    left: 32,
-  },
   logoContainer: {
     position: 'absolute',
     top: 198,
-    left: 102,
+    width: SCREEN_WIDTH,
+    alignItems: 'center',
   },
   btnContainer: {
     top: 551,
