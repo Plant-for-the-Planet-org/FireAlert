@@ -1,10 +1,16 @@
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
 const fetchAllProjectsWithSites = async () => {
     const response = await fetch("https://app-staging.plant-for-the-planet.org/app/projects?_scope=extended");
     const data = await response.json();
     return data;
+}
+
+function subtractDays(date: Date, days: number): Date {
+    const copy = new Date(date.getTime());
+    copy.setDate(date.getDate() - days);
+    return copy;
 }
 
 export const periodicCallRouter = createTRPCRouter({
@@ -13,16 +19,13 @@ export const periodicCallRouter = createTRPCRouter({
         .mutation(async ({ ctx }) => {
             // Get all the projects from PP
             const projectsFromPP = await fetchAllProjectsWithSites()
-
             // Get all projects from DB
             const projectsFromDB = await ctx.prisma.project.findMany()
-
             // Filter PP list to only contain projects that are in DB
             const ppListFiltered = projectsFromPP.filter(
                 (projectFromPP) =>
                     projectsFromDB.some((projectFromDB) => projectFromDB.id === projectFromPP.id)
             );
-
             // Check for projects in DB that are not in PP and delete them
             const dbProjectsIds = projectsFromDB.map((project) => project.id);
             const projectsIdsToDelete = dbProjectsIds.filter(
@@ -133,4 +136,54 @@ export const periodicCallRouter = createTRPCRouter({
                 }
             }
         }),
+
+    permanentlyDeleteUsers: publicProcedure
+        // Permanently deletes users who have been temporarily deleted for more than 14 days
+        .mutation(async ({ ctx }) => {
+            const usersToDelete = await ctx.prisma.user.findMany({
+                where: {
+                    deletedAt: {
+                        not: null,
+                        lt: subtractDays(new Date(), 14),
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            });
+            const userIdsToDelete = usersToDelete.map((user) => user.id);
+            if (userIdsToDelete.length > 0) {
+                await ctx.prisma.site.deleteMany({
+                    where: {
+                        userId: {
+                            in: userIdsToDelete,
+                        }
+                    }
+                });
+                await ctx.prisma.alertMethod.deleteMany({
+                    where: {
+                        userId: {
+                            in: userIdsToDelete,
+                        }
+                    }
+                });
+                await ctx.prisma.project.deleteMany({
+                    where: {
+                        userId: {
+                            in: userIdsToDelete,
+                        }
+                    }
+                });
+                await ctx.prisma.user.deleteMany({
+                    where: {
+                        id: {
+                            in: userIdsToDelete,
+                        },
+                    },
+                });
+            }
+            return { success: true };
+        }),
+
+
 })
