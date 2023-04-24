@@ -1905,9 +1905,10 @@
     redux-thunk "^2.4.2"
     reselect "^4.1.7"
 
-"@rnmapbox/maps@rnmapbox/maps#main":
-  version "10.0.0-rc.6"
-  resolved "git+ssh://git@github.com/rnmapbox/maps.git#46f300a6e98372e2c1c195776f025e0b6da3a4ae"
+"@rnmapbox/maps@^10.0.0":
+  version "10.0.2"
+  resolved "https://registry.yarnpkg.com/@rnmapbox/maps/-/maps-10.0.2.tgz#a5d079613ec220d6b805008f47f98d596ef630e2"
+  integrity sha512-6wp3mMmfYRbraUwvjNYOgUBOfxRYZK+J0tbj91qNcDDi4RB3uB0Dl+l3zmEmar81vKGLtWsqdeTRMegXNmg5SQ==
   dependencies:
     "@turf/along" "6.5.0"
     "@turf/distance" "6.5.0"
@@ -1970,15 +1971,7 @@
   resolved "https://registry.npmjs.org/@tanstack/query-core/-/query-core-4.27.0.tgz"
   integrity sha512-sm+QncWaPmM73IPwFlmWSKPqjdTXZeFf/7aEmWh00z7yl2FjqophPt0dE1EHW9P1giMC5rMviv7OUbSDmWzXXA==
 
-"@tanstack/react-query@^4.20.2":
-  version "4.28.0"
-  resolved "https://registry.npmjs.org/@tanstack/react-query/-/react-query-4.28.0.tgz"
-  integrity sha512-8cGBV5300RHlvYdS4ea+G1JcZIt5CIuprXYFnsWggkmGoC0b5JaqG0fIX3qwDL9PTNkKvG76NGThIWbpXivMrQ==
-  dependencies:
-    "@tanstack/query-core" "4.27.0"
-    use-sync-external-store "^1.2.0"
-
-"@tanstack/react-query@^4.28.0":
+"@tanstack/react-query@^4.20.2", "@tanstack/react-query@^4.28.0":
   version "4.28.0"
   resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-4.28.0.tgz#01cb9969b15cbcbd5dcfcd4b264dc18ef0a35f86"
   integrity sha512-8cGBV5300RHlvYdS4ea+G1JcZIt5CIuprXYFnsWggkmGoC0b5JaqG0fIX3qwDL9PTNkKvG76NGThIWbpXivMrQ==
