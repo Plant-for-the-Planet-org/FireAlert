@@ -80,6 +80,10 @@ PODS:
   - glog (0.3.5)
   - JWTDecode (3.0.1)
   - libevent (2.1.12)
+  - lottie-ios (3.5.0)
+  - lottie-react-native (6.0.0-rc.3):
+    - lottie-ios (~> 3.5.0)
+    - React-Core
   - MapboxCommon (23.4.0)
   - MapboxCoreMaps (10.12.1):
     - MapboxCommon (~> 23.4)
@@ -453,6 +457,7 @@ DEPENDENCIES:
   - FlipperKit/FlipperKitUserDefaultsPlugin (= 0.163.0)
   - FlipperKit/SKIOSNetworkPlugin (= 0.163.0)
   - glog (from `../../../node_modules/react-native/third-party-podspecs/glog.podspec`)
+  - lottie-react-native (from `../../../node_modules/lottie-react-native`)
   - OpenSSL-Universal (= 1.1.1100)
   - RCT-Folly (from `../../../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTRequired (from `../../../node_modules/react-native/Libraries/RCTRequired`)
@@ -513,6 +518,7 @@ SPEC REPOS:
     - fmt
     - JWTDecode
     - libevent
+    - lottie-ios
     - MapboxCommon
     - MapboxCoreMaps
     - MapboxMaps
@@ -536,6 +542,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/React/FBReactNativeSpec"
   glog:
     :podspec: "../../../node_modules/react-native/third-party-podspecs/glog.podspec"
+  lottie-react-native:
+    :path: "../../../node_modules/lottie-react-native"
   RCT-Folly:
     :podspec: "../../../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec"
   RCTRequired:
@@ -638,6 +646,8 @@ SPEC CHECKSUMS:
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
   JWTDecode: 2eed97c2fa46ccaf3049a787004eedf0be474a87
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
+  lottie-ios: c55158d67d0629a260625cc2ded2052b829e3c3e
+  lottie-react-native: 4b07ce6d17647dd24641ae5cd7ae614034318456
   MapboxCommon: 2945d39158111455f353524f3c2ad356bd8d546a
   MapboxCoreMaps: c20f2bb1eb57b328982b1dead1258a5dd3bf09fe
   MapboxMaps: a673c0923f645dc6f90e40bdc034b8567d8dead4
@@ -688,6 +698,6 @@ SPEC CHECKSUMS:
   Yoga: 921eb014669cf9c718ada68b08d362517d564e0c
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
 
-PODFILE CHECKSUM: e30fe668a59707298b9e080de3cb4b0b277a4742
+PODFILE CHECKSUM: 9aa10257369981ec308203bce0e246ca126a03eb
 
 COCOAPODS: 1.11.3

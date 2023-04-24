@@ -16,6 +16,7 @@ import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
+import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
@@ -47,7 +48,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from './permissionAlert/LocationPermissionAlerts';
+} from './PermissionAlert/LocationPermissionAlerts';
 
 import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
@@ -57,6 +58,7 @@ import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
+import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -255,7 +257,14 @@ const Home = ({navigation}) => {
   const handleGoogleRedirect = () => {
     const lat = Number.parseFloat(selectedAlert?.latitude);
     const lng = Number.parseFloat(selectedAlert?.longitude);
-    handleLink(`https://maps.google.com/?q=${lat},${lng}`);
+    const scheme = Platform.select({ios: 'maps:0,0?q=', android: 'geo:0,0?q='});
+    const latLng = `${lat},${lng}`;
+    const label = selectedAlert?.site;
+    const url = Platform.select({
+      ios: `${scheme}${label}@${latLng}`,
+      android: `${scheme}${latLng}(${label})`,
+    });
+    handleLink(url);
   };
 
   const handleLayer = () => setVisible(true);
@@ -269,9 +278,6 @@ const Home = ({navigation}) => {
   const onPressPerDeniedAlertPrimaryBtn = () => checkPermission();
   const onPressPerDeniedAlertSecondaryBtn = () => checkPermission();
 
-  const onListPress = () => navigation.navigate('Settings');
-  const onMapPress = () => {};
-
   const handleCloseProfileModal = () => setProfileEditModal(false);
 
   const renderAnnotation = counter => {
@@ -280,23 +286,25 @@ const Home = ({navigation}) => {
     const title = `Longitude: ${alerts[counter]?.latitude} Latitude: ${alerts[counter]?.longitude}`;
     return (
       <MapboxGL.PointAnnotation
-        id={'alert_fire'}
+        id={id}
         key={id}
         title={title}
         onSelected={e => {
-          setSelectedAlert(alerts[counter]), console.log(e);
+          camera.current.setCamera({
+            centerCoordinate: [
+              alerts[counter]?.latitude,
+              alerts[counter]?.longitude,
+            ],
+            padding: {paddingBottom: SCREEN_HEIGHT / 4},
+            zoomLevel: ZOOM_LEVEL,
+            animationDuration: ANIMATION_DURATION,
+          });
+          setTimeout(
+            () => setSelectedAlert(alerts[counter]),
+            ANIMATION_DURATION,
+          );
         }}
         coordinate={coordinate}>
-        {/* <View
-          style={[
-            {
-              backgroundColor:
-                Colors.GRADIENT_PRIMARY + `${alerts[counter]?.confidence}`,
-            },
-            styles.alertSpot,
-          ]}
-        />
-       */}
         {getFireIcon(daysFromToday(alerts[counter]?.eventDate))}
       </MapboxGL.PointAnnotation>
     );
@@ -354,7 +362,6 @@ const Home = ({navigation}) => {
       }}>
       <MapboxGL.FillLayer
         id={'polyFill'}
-        layerIndex={2}
         style={{
           fillColor: Colors.WHITE,
           fillOpacity: 0.4,
@@ -399,22 +406,13 @@ const Home = ({navigation}) => {
             onUpdate={data => setLocation(data)}
           />
         )}
-        {Object.keys(selectedAlert).length ? (
-          <MapboxGL.PointAnnotation
-            title={'title'}
-            coordinate={[selectedAlert?.latitude, selectedAlert?.longitude]}>
-            <View
-              style={[
-                styles.alertSpot,
-                {borderWidth: 2, borderColor: Colors.BLACK},
-              ]}
-            />
-          </MapboxGL.PointAnnotation>
-        ) : null}
         {renderMapSource()}
         {renderAnnotations(true)}
         {renderAnnotations(false)}
       </MapboxGL.MapView>
+      {Object.keys(selectedAlert).length ? (
+        <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
+      ) : null}
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <AlertModal
@@ -618,7 +616,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 152 : 152,
+    top: 152,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
@@ -680,8 +678,12 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
   alertSpot: {
-    width: 25,
-    height: 25,
+    width: 150,
+    zIndex: 20,
+    height: 150,
+    position: 'absolute',
+    bottom: IS_ANDROID ? SCREEN_HEIGHT / 3.56 : SCREEN_HEIGHT / 5.85,
+    alignSelf: 'center',
   },
   satelliteInfoCon: {
     marginTop: 30,

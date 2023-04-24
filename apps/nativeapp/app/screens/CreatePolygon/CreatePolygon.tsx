@@ -32,7 +32,7 @@ import {locationPermission} from '../../utils/permissions';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
-} from '../home/permissionAlert/LocationPermissionAlerts';
+} from '../Home/PermissionAlert/LocationPermissionAlerts';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {getAccuracyColors} from '../../utils/accuracyColors';

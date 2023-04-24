@@ -8,6 +8,7 @@ export const BLACK = '#000000';
 export const TEXT_COLOR = '#4D5153';
 export const LIGHT_BORDER_COLOR = '#D5D5D5';
 export const DISABLE = '#CCCCCC';
+export const BACKGROUND = '#FAFAFF';
 
 // ACTIONS
 export const SUCCESS = '#2ecc71';
@@ -20,8 +21,11 @@ export const GRAY_MEDIUM = '#E1E2E2';
 export const GRAY_DARK = '#D3D3D3';
 export const GRAY_LIGHTEST = '#707070';
 
-//TRANSPARENT
+// TRANSPARENT
 export const TRANSPARENT = 'transparent';
 
-//GRADIENT
+// GRADIENT
 export const GRADIENT_PRIMARY = '#E86F56';
+
+// PLANET COLORS
+export const PLANET_DARK_GRAY = '#4F4F4F';

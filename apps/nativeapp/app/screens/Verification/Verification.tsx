@@ -2,6 +2,7 @@ import {
   Text,
   View,
   Platform,
+  StatusBar,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
@@ -11,8 +12,10 @@ import React, {useState} from 'react';
 
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
-import {CustomButton, FloatingInput, PhoneInput} from '../../components';
 import {validateEmail} from '../../utils/emailVerifier';
+import {CustomButton, FloatingInput, PhoneInput} from '../../components';
+
+const IS_ANDROID = Platform.OS === 'android';
 
 const Verification = ({navigation, route}) => {
   const {verificationType} = route.params;
@@ -31,7 +34,7 @@ const Verification = ({navigation, route}) => {
     }
   };
 
-  const handleEmail = emailText => {
+  const handleEmail = (emailText: string) => {
     setVerifyingLoader(true);
     if (emailText === '') {
       setVerifyingLoader(false);
@@ -48,6 +51,7 @@ const Verification = ({navigation, route}) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle={'dark-content'} backgroundColor={Colors.WHITE} />
       <KeyboardAvoidingView
         {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
         style={styles.container}>
@@ -89,6 +93,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.WHITE,
+    marginTop: IS_ANDROID ? StatusBar.currentHeight - 15 : 0,
   },
   subContainer: {
     flex: 1,
