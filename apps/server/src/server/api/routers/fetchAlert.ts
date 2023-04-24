@@ -3,7 +3,7 @@ import { fetchAlertSchema} from '../zodSchemas/fetchAlert.schema'
 import {
     createTRPCRouter,
     publicProcedure,
-} from "../../../server/api/trpc";
+} from "../trpc";
 
 
 export const fetchAlertRouter = createTRPCRouter({

@@ -3,7 +3,7 @@ import { createAlertMethodSchema, params, updateAlertMethodSchema } from '../zod
 import {
     createTRPCRouter,
     protectedProcedure,
-} from "../../../server/api/trpc";
+} from "../trpc";
 import { randomUUID } from "crypto";
 import { getUserIdByToken } from "../../../utils/token";
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"

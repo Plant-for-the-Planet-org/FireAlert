@@ -3,7 +3,7 @@ import { createSiteSchema, params, updateSiteSchema } from '../zodSchemas/site.s
 import {
     createTRPCRouter,
     protectedProcedure,
-} from "../../../server/api/trpc";
+} from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 
@@ -15,6 +15,11 @@ type checkUserHasSitePermissionArgs = {
     siteId: string; // the ID of the site to be updated
     userId: string; // the ID of the user attempting to update the site
 };
+
+type checkIfPlanetROSiteArgs = {
+    ctx: TRPCContext; // the TRPC context object
+    siteId: string; // the ID of the site to be updated
+}
 
 // Compares the User in session or token with the Site that is being Read, Updated or Deleted
 const checkUserHasSitePermission = async ({ ctx, siteId, userId }: checkUserHasSitePermissionArgs) => {
@@ -40,7 +45,23 @@ const checkUserHasSitePermission = async ({ ctx, siteId, userId }: checkUserHasS
     }
 };
 
-// const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+const checkIfPlanetROSite = async ({ ctx, siteId }: checkIfPlanetROSiteArgs) => {
+    const siteToCRUD = await ctx.prisma.site.findFirst({
+        where: {
+            id: siteId,
+        },
+        select: {
+            userId: true,
+            projectId: true,
+        },
+    });
+    if (siteToCRUD?.projectId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "This site can only be deleted from planet web app",
+        });
+    }
+}
 
 export const siteRouter = createTRPCRouter({
 
@@ -154,6 +175,7 @@ export const siteRouter = createTRPCRouter({
             }
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
+                await checkIfPlanetROSite({ctx, siteId: input.params.siteId})
                 const updatedSite = await ctx.prisma.site.update({
                     where: {
                         id: input.params.siteId
@@ -186,6 +208,7 @@ export const siteRouter = createTRPCRouter({
             }
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
+                await checkIfPlanetROSite({ctx, siteId: input.siteId})
                 const deletedSite = await ctx.prisma.site.delete({
                     where: {
                         id: input.siteId,

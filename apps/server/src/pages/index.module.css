@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-image: linear-gradient(to bottom, #2e026d, #15162c);
+  background-image: linear-gradient(to bottom, #f1eef5, #e8e8f4);
 }
 
 .container {
@@ -53,7 +53,7 @@
   font-weight: 800;
   letter-spacing: -0.025em;
   margin: 0;
-  color: white;
+  color: black;
 }
 
 @media (min-width: 640px) {
@@ -120,7 +120,7 @@
 }
 
 .showcaseText {
-  color: white;
+  color: black;
   text-align: center;
   font-size: 1.5rem;
   line-height: 2rem;
@@ -136,14 +136,14 @@
 
 .loginButton {
   border-radius: 9999px;
-  background-color: rgb(255 255 255 / 0.1);
+  background-color: rgb(143, 140, 234);
   padding: 0.75rem 2.5rem;
   font-weight: 600;
-  color: white;
+  color: rgb(255, 255, 255);
   text-decoration-line: none;
   transition: background-color 150ms cubic-bezier(0.5, 0, 0.2, 1);
 }
 
 .loginButton:hover {
-  background-color: rgb(255 255 255 / 0.2);
+  background-color: rgba(24, 5, 122);
 }

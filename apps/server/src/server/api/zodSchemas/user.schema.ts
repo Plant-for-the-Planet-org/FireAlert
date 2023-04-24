@@ -1,10 +1,28 @@
 import {z} from 'zod';
 
+// export const createUserSchema = z.object({
+//     id: z.string(),
+//     name: z.string().optional(),
+//     email: z.string().optional(),
+//     emailVerified: z.string().optional(),
+//     isPlanetRO: z.boolean().optional(),
+//     avatar: z.string().optional(),
+//     isVerified: z.boolean().optional(),
+//     roles: z.enum(['USER', 'ADMIN', 'ROLE_BACKEND']),
+// })
+
+// export const params = z.object({
+//     userId: z.string(),
+// })
+
 export const updateUserSchema = z.object({
     body: z.object({
-        isPlanetRO: z.boolean(),
-        avatar: z.string(),
-        isVerified: z.boolean(),
+        name: z.string().optional(),
+        isPlanetRO: z.boolean().optional(),
+        avatar: z.string().optional(),
+        isVerified: z.boolean().optional(),
         roles: z.enum(['USER', 'ADMIN', 'ROLE_BACKEND']),
     }).partial(),
 })
+
+

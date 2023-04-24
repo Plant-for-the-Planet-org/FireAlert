@@ -3,6 +3,7 @@ import { siteRouter } from "../../server/api/routers/site";
 import { alertMethodRouter } from "../../server/api/routers/alertMethod";
 import { alertRouter } from "../../server/api/routers/alert";
 import { userRouter } from "./routers/user";
+import { periodicCallRouter } from "./routers/periodicCall";
 
 /**
  * This is the primary router for your server.
@@ -13,7 +14,8 @@ export const appRouter = createTRPCRouter({
   site: siteRouter,
   alertMethod: alertMethodRouter,
   alert: alertRouter,
-  user: userRouter
+  user: userRouter,
+  periodicCall: periodicCallRouter,
 });
 
 // export type definition of API

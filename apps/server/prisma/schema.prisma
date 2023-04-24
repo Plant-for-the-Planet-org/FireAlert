@@ -53,7 +53,7 @@ model User {
     sub             String?
     name            String?
     email           String?   @unique
-    emailVerified   DateTime?
+    emailVerified   Boolean?
     detectionMethod String?
     isPlanetRO      Boolean?
     image           String?
@@ -61,19 +61,20 @@ model User {
     deletedAt       DateTime?
     isVerified      Boolean?
     signupDate      DateTime  @default(now())
-    roles           Role      @default(USER)
+    roles           Role      @default(ROLE_CLIENT)
 
     accounts Account[]
     sessions Session[]
 
     alertMethods AlertMethod[]
     sites        Site[]
+    projects     Project[]
 }
 
 enum Role {
-    USER
-    ADMIN
-    ROLE_BACKEND
+    ROLE_CLIENT
+    ROLE_ADMIN
+    ROLE_SUPPORT
 }
 
 model VerificationToken {
@@ -110,11 +111,21 @@ model Site {
     lastSynced  DateTime?
     deletedAt   DateTime?
     projectId   String?
+    lastUpdated DateTime?
+    userId      String
+    user        User      @relation(fields: [userId], references: [id])
+    project     Project?  @relation(fields: [projectId], references: [id])
+    alerts      Alert[]
+}
 
-    userId String
-    user   User   @relation(fields: [userId], references: [id])
-
-    alerts Alert[]
+model Project {
+    id          String    @id
+    name        String
+    slug        String?
+    lastUpdated DateTime?
+    userId      String
+    user        User      @relation(fields: [userId], references: [id])
+    sites       Site[]
 }
 
 model Alert {
