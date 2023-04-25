@@ -4,7 +4,6 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { Alert, Site } from "@prisma/client";
 import { getUserIdByToken } from "../../../utils/token";
 
 const checkIfUserIsPlanetRO = async (bearer_token: string) => {
@@ -74,9 +73,6 @@ export const userRouter = createTRPCRouter({
                 }
                 // Else, create user, create project, and create sites associated with that user in the pp.
                 const projects = await fetchProjectsWithSitesForUser(bearer_token)
-                // Add each project to the database, with siteId and UserId
-                // For each sites in each project, add the site in the database.
-                // For each project, filter out the sites in that project with siteId, geometry, type, radius. 
                 let userId;
                 for (const project of projects) {
                     const { sites, id: projectId, lastUpdatedForProject, name: projectName, slug: projectSlug } = project;
@@ -179,7 +175,7 @@ export const userRouter = createTRPCRouter({
                                 });
                             }
                         }
-                        // I need to find if there are any sitesFromDBProject that needs to be deleted, if it is missing from sitesFromPPProject
+                        // Find if there are any sitesFromDBProject that needs to be deleted, if it is missing from sitesFromPPProject
                         // If there is a project, and last updated has changed, update the entire site and projects
                         if (projectFromDatabase!.lastUpdated !== projectLastUpdatedFormPP) {
                             await ctx.prisma.project.update({
