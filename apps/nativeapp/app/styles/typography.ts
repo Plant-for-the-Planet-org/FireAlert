@@ -5,6 +5,7 @@ export const FONT_FAMILY_REGULAR = 'OpenSans-Regular';
 export const FONT_FAMILY_BOLD = 'OpenSans-Bold';
 export const FONT_FAMILY_SEMI_BOLD = 'OpenSans-SemiBold';
 export const FONT_FAMILY_EXTRA_BOLD = 'OpenSans-ExtraBold';
+export const FONT_FAMILY_OSWALD_BOLD = 'Oswald-Bold';
 
 // FONT WEIGHT
 export const FONT_WEIGHT_REGULAR = '400';
@@ -16,6 +17,7 @@ export const FONT_SIZE_30 = scaleFont(30);
 export const FONT_SIZE_27 = scaleFont(27);
 export const FONT_SIZE_22 = scaleFont(22);
 export const FONT_SIZE_24 = scaleFont(24);
+export const FONT_SIZE_25 = scaleFont(25);
 export const FONT_SIZE_20 = scaleFont(20);
 export const FONT_SIZE_18 = scaleFont(18);
 export const FONT_SIZE_16 = scaleFont(16);

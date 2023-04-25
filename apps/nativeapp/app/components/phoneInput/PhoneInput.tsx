@@ -1,8 +1,10 @@
-import {StyleSheet, Text, View} from 'react-native';
 import React, {useEffect, useRef, useState} from 'react';
 import PhoneNoInput from 'react-native-phone-number-input';
+import {StyleSheet, Text, View, Platform} from 'react-native';
 
 import {Colors, Typography} from '../../styles';
+
+const IS_ANDROID = Platform.OS === 'android';
 
 const PhoneInput = ({containerStyle, inputValue}) => {
   const [value, setValue] = useState('');
@@ -43,10 +45,13 @@ const PhoneInput = ({containerStyle, inputValue}) => {
         textContainerStyle={styles.textContainerStyle}
         flagButtonStyle={styles.flagButtonStyle}
         countryPickerButtonStyle={{}}
-        codeTextStyle={styles.textInputStyle}
+        codeTextStyle={{}}
         countryPickerProps={{
           // react-native-country-picker-modal props works here
-          flatListProps: {style: styles.countryPickerModalList},
+          flatListProps: {
+            style: styles.countryPickerModalList,
+            showsVerticalScrollIndicator: false,
+          },
           closeButtonImageStyle: styles.closeButtonImageStyle,
           withAlphaFilter: true,
         }}
@@ -67,10 +72,10 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.18,
     shadowRadius: 0,
-
     elevation: 0,
     borderWidth: 0,
     borderColor: 'transparent',
+    height: 55.5,
   },
   flagButtonStyle: {
     backgroundColor: Colors.GRAY_LIGHT,
@@ -85,13 +90,14 @@ const styles = StyleSheet.create({
     color: Colors.BLACK,
     fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    height: 55,
   },
   countryPickerModalList: {
     paddingHorizontal: 15,
   },
   closeButtonImageStyle: {
-    width: 40,
-    height: 40,
+    width: IS_ANDROID ? 20 : 40,
+    height: IS_ANDROID ? 20 : 40,
     marginLeft: 4,
   },
 });
