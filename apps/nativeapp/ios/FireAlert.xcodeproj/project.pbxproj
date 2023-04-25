@@ -14,6 +14,7 @@
 		1701D0E67E2A45DB93710162 /* OpenSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 79019359690D4046B888F9F6 /* OpenSans-Bold.ttf */; };
 		2EAE3B078C61802909A0081B /* libPods-FireAlert-FireAlertTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AFB297ED664438AFB90BCB8F /* libPods-FireAlert-FireAlertTests.a */; };
 		54B01960090448D3ADC64333 /* OpenSans-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 482DF861E688444092F9B1C5 /* OpenSans-LightItalic.ttf */; };
+		621368F795B745B9B23CE35D /* Oswald-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4CCF31C4F49748A8A7A7D826 /* Oswald-Bold.ttf */; };
 		78E92AD48E1C44E1B7E21776 /* OpenSans-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1EFA0C498F4B4D8D9733C852 /* OpenSans-SemiBoldItalic.ttf */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8449CB5D5E054655A4E3FF9F /* OpenSans-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B0177619C0A5497299108BA2 /* OpenSans-BoldItalic.ttf */; };
@@ -24,7 +25,6 @@
 		D2FE74F6234B4F78AEC8B52B /* OpenSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3AB1C84D4BB348ABA09345FF /* OpenSans-SemiBold.ttf */; };
 		E5D202A90F004AEA8B55CBAE /* OpenSans-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E08DC274CBEC4F56B654397D /* OpenSans-ExtraBold.ttf */; };
 		EC42E560C1204636A994820D /* OpenSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5F3756BF3E1B42959CB58DC3 /* OpenSans-Italic.ttf */; };
-		621368F795B745B9B23CE35D /* Oswald-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4CCF31C4F49748A8A7A7D826 /* Oswald-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,6 +53,7 @@
 		211009C48584097FEFD33E66 /* Pods-FireAlert-FireAlertTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert-FireAlertTests.debug.xcconfig"; path = "Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests.debug.xcconfig"; sourceTree = "<group>"; };
 		3AB1C84D4BB348ABA09345FF /* OpenSans-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-SemiBold.ttf"; path = "../app/assets/fonts/OpenSans-SemiBold.ttf"; sourceTree = "<group>"; };
 		482DF861E688444092F9B1C5 /* OpenSans-LightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-LightItalic.ttf"; path = "../app/assets/fonts/OpenSans-LightItalic.ttf"; sourceTree = "<group>"; };
+		4CCF31C4F49748A8A7A7D826 /* Oswald-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Oswald-Bold.ttf"; path = "../app/assets/fonts/Oswald-Bold.ttf"; sourceTree = "<group>"; };
 		5C544FB421D523B90308DE35 /* Pods-FireAlert.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert.release.xcconfig"; path = "Target Support Files/Pods-FireAlert/Pods-FireAlert.release.xcconfig"; sourceTree = "<group>"; };
 		5F3756BF3E1B42959CB58DC3 /* OpenSans-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Italic.ttf"; path = "../app/assets/fonts/OpenSans-Italic.ttf"; sourceTree = "<group>"; };
 		6E2390D7C2142ACBAE87C679 /* Pods-FireAlert-FireAlertTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert-FireAlertTests.release.xcconfig"; path = "Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests.release.xcconfig"; sourceTree = "<group>"; };
@@ -65,7 +66,6 @@
 		E08DC274CBEC4F56B654397D /* OpenSans-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-ExtraBold.ttf"; path = "../app/assets/fonts/OpenSans-ExtraBold.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F4638578ED557EA3EF9785D6 /* Pods-FireAlert.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert.debug.xcconfig"; path = "Target Support Files/Pods-FireAlert/Pods-FireAlert.debug.xcconfig"; sourceTree = "<group>"; };
-		4CCF31C4F49748A8A7A7D826 /* Oswald-Bold.ttf */ = {isa = PBXFileReference; name = "Oswald-Bold.ttf"; path = "../app/assets/fonts/Oswald-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
