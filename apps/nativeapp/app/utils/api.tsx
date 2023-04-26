@@ -23,7 +23,7 @@ export const TRPCProvider: React.FC<{children: React.ReactNode}> = ({
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: `${Config.API_URL}api/trpc/`,
+          url: `http://localhost:3000/api/trpc`,
           async headers() {
             return {
               authorization: `${store.getState().loginSlice.accessToken}`,

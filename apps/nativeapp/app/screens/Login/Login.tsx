@@ -14,7 +14,6 @@ import {
 } from '../../redux/slices/login/loginSlice';
 import {CustomButton} from '../../components';
 import {storeData} from '../../utils/localStorage';
-import {trpc} from '../../utils/api';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
