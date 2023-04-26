@@ -5,13 +5,12 @@ import {
     protectedProcedure,
 } from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
-import { currentDate } from "../../../utils/date"
 import {checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser} from "../../../utils/fetch"
 
 export const userRouter = createTRPCRouter({
 
     profile: protectedProcedure
-        .mutation(async ({ ctx }) => {
+        .query(async ({ ctx }) => {
             // Get the access token
             const access_token = ctx.token.access_token
             const bearer_token = "Bearer " + access_token
@@ -35,7 +34,7 @@ export const userRouter = createTRPCRouter({
                             name: ctx.token["https://app.plant-for-the-planet.org/email"],
                             email: ctx.token["https://app.plant-for-the-planet.org/email"],
                             emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                            lastLogin: currentDate(new Date(), false),
+                            lastLogin: new Date(),
                         }
                     })
                     return {
@@ -63,7 +62,7 @@ export const userRouter = createTRPCRouter({
                             name: ctx.token["https://app.plant-for-the-planet.org/email"],
                             email: ctx.token["https://app.plant-for-the-planet.org/email"],
                             emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                            lastLogin: currentDate(new Date(), false),
+                            lastLogin: new Date(),
                         }
                     })
                     // Then add all the projects and sites associated with that user in the database
@@ -76,7 +75,7 @@ export const userRouter = createTRPCRouter({
                                 slug: projectSlug,
                                 userId: userId,
                                 id: projectId,
-                                lastUpdated: currentDate(new Date(), false),
+                                lastUpdated: new Date(),
                             }
                         })
                         for (const site of sites) {
@@ -93,7 +92,7 @@ export const userRouter = createTRPCRouter({
                                     radius: siteRadius,
                                     userId: userId,
                                     projectId: projectId,
-                                    lastUpdated: currentDate(new Date(), true),
+                                    lastUpdated: new Date(),
                                 },
                             });
                         }
@@ -116,7 +115,7 @@ export const userRouter = createTRPCRouter({
                             name: ctx.token["https://app.plant-for-the-planet.org/email"],
                             email: ctx.token["https://app.plant-for-the-planet.org/email"],
                             emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                            lastLogin: currentDate(new Date(), false),
+                            lastLogin: new Date(),
                         }
                     })
                     return {
