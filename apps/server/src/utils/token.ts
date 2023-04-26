@@ -33,19 +33,19 @@ export const checkTokenIsValid = async (token: string) => {
 
 // Find the account which has the sub from token and find userId for that account
 export async function getUserIdByToken(ctx: TRPCContext) {
-    const account = await ctx.prisma.account.findFirst({
+    const user = await ctx.prisma.user.findFirst({
         where: {
-            providerAccountId: ctx.token.sub,
+            email: ctx.token["https://app.plant-for-the-planet.org/email"]
         },
         select: {
-            userId: true,
+            id: true,
         },
     });
-    if (!account) {
+    if (!user) {
         throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Cannot find an account associated with the token",
+            message: "Cannot find user associated with the token, make sure the user has logged in atleast once",
         });
     }
-    return account.userId;
+    return user.id;
 }

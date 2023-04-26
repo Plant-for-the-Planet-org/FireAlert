@@ -1,4 +1,4 @@
-// From a string of Coordinates to a number[][] coordinates
+// From a string of Coordinates to a number[][][] coordinates
 export function makeCoordinates(str: string): number[][][] {
     const arr = str.split(',').map((val) => Number(val.trim()));
     const result: number[][] = [];
@@ -10,4 +10,29 @@ export function makeCoordinates(str: string): number[][][] {
         }
     }
     return [result];
+}
+
+
+// Make string of unarrayed coordinates from geojson coordinates
+interface Point {
+    type: 'Point';
+    coordinates: [number, number];
+}
+
+interface LineString {
+    type: 'LineString';
+    coordinates: [number, number][];
+}
+
+interface Polygon {
+    type: 'Polygon';
+    coordinates: [number, number][][];
+}
+
+type Geometry = Point | LineString | Polygon;
+
+export function makeUnarrayedCoordinates(geometry: Geometry): string {
+    const { coordinates } = geometry;
+    const flattened = coordinates.flat();
+    return flattened.join(', ');
 }
