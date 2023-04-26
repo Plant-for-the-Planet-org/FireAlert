@@ -108,12 +108,6 @@ const Home = ({navigation}) => {
 
   const [selectedAlert, setSelectedAlert] = useState({});
 
-  // const {data: sitesData, refetch: refetchSites} =
-  //   trpc.site.getAllSites.useQuery(
-  //     undefined, // no input
-  //     {enabled: true},
-  //   );
-
   const {data: sitesData, refetch: refetchSites} = trpc.user.profile.useQuery(
     undefined, // no input
     {enabled: true},

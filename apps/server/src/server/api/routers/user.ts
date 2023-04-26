@@ -2,7 +2,6 @@ import { TRPCError } from '@trpc/server';
 import { updateUserSchema } from '../zodSchemas/user.schema';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 import { getUserIdByToken } from '../../../utils/token';
-import { currentDate } from '../../../utils/date';
 import {
   checkIfUserIsPlanetRO,
   fetchProjectsWithSitesForUser,
@@ -34,7 +33,7 @@ export const userRouter = createTRPCRouter({
             email: ctx.token['https://app.plant-for-the-planet.org/email'],
             emailVerified:
               ctx.token['https://app.plant-for-the-planet.org/email_verified'],
-            lastLogin: currentDate(new Date(), false),
+            lastLogin: new Date(),
           },
         });
         return {
@@ -63,7 +62,7 @@ export const userRouter = createTRPCRouter({
             email: ctx.token['https://app.plant-for-the-planet.org/email'],
             emailVerified:
               ctx.token['https://app.plant-for-the-planet.org/email_verified'],
-            lastLogin: currentDate(new Date(), false),
+            lastLogin: new Date(),
           },
         });
         // Then add all the projects and sites associated with that user in the database
@@ -81,7 +80,7 @@ export const userRouter = createTRPCRouter({
               slug: projectSlug,
               userId: userId,
               id: projectId,
-              lastUpdated: currentDate(new Date(), false),
+              lastUpdated: new Date(),
             },
           });
           for (const site of sites) {
@@ -98,7 +97,7 @@ export const userRouter = createTRPCRouter({
                 radius: siteRadius,
                 userId: userId,
                 projectId: projectId,
-                lastUpdated: currentDate(new Date(), true),
+                lastUpdated: new Date(),
               },
             });
           }
@@ -122,7 +121,7 @@ export const userRouter = createTRPCRouter({
             email: ctx.token['https://app.plant-for-the-planet.org/email'],
             emailVerified:
               ctx.token['https://app.plant-for-the-planet.org/email_verified'],
-            lastLogin: currentDate(new Date(), false),
+            lastLogin: new Date(),
           },
         });
         return {
