@@ -1,5 +1,5 @@
 // From a string of Coordinates to a number[][] coordinates
-export function makeCoordinates(str: string): number[][] {
+export function makeCoordinates(str: string): number[][][] {
     const arr = str.split(',').map((val) => Number(val.trim()));
     const result: number[][] = [];
 
@@ -9,5 +9,5 @@ export function makeCoordinates(str: string): number[][] {
             result.push(group);
         }
     }
-    return result;
+    return [result];
 }
