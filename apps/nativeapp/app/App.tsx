@@ -14,11 +14,11 @@ import {httpBatchLink} from '@trpc/client';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 const httpBatchLinkArgs = {
-  url: `${Config.NEXT_API_URL}/api/trpc`,
+  url: `http://localhost:3000/api/trpc`,
   // You can pass any HTTP headers you wish here
   async headers() {
     return {
-      authorization: `${store.getState().loginSlice.accessToken}`,
+      authorization: `Bearer ${store.getState().loginSlice.accessToken}`,
     };
   },
 };
