@@ -60,6 +60,7 @@ import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {trpc} from '../../services/trpc';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -106,6 +107,11 @@ const Home = ({navigation}) => {
   >();
 
   const [selectedAlert, setSelectedAlert] = useState({});
+
+  const {data: sitesData, refetch: refetchSites} = trpc.user.profile.useQuery(
+    undefined, // no input
+    {enabled: true},
+  );
 
   const dispatch = useAppDispatch();
   const map = useRef(null);

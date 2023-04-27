@@ -2,19 +2,19 @@ import React, {useState} from 'react';
 import {Provider} from 'react-redux';
 import MapboxGL from '@rnmapbox/maps';
 import Config from 'react-native-config';
-import {httpBatchLink} from '@trpc/client';
 import {Auth0Provider} from 'react-native-auth0';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {store} from './redux/store';
-import {trpc} from './services/trpc';
+import {TRPCProvider} from './utils/api';
 import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
+import {trpc} from './services/trpc';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {httpBatchLink} from '@trpc/client';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
-
 const httpBatchLinkArgs = {
-  url: 'http://localhost:3000/api/trpc',
+  url: `http://localhost:3000/api/trpc`,
   // You can pass any HTTP headers you wish here
   async headers() {
     return {
@@ -30,7 +30,6 @@ function App(): JSX.Element {
       links: [httpBatchLink(httpBatchLinkArgs)],
     }),
   );
-
   return (
     <Auth0Provider
       domain={Config.AUTH0_DOMAIN}
