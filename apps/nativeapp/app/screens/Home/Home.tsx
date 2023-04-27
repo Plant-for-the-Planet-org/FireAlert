@@ -39,6 +39,7 @@ import {
   SatelliteIcon,
   MapOutlineIcon,
   LocationPinIcon,
+  UserPlaceholder,
 } from '../../assets/svgs';
 import {
   editUserProfile,
@@ -60,7 +61,6 @@ import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import {trpc} from '../../services/trpc';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -107,11 +107,6 @@ const Home = ({navigation}) => {
   >();
 
   const [selectedAlert, setSelectedAlert] = useState({});
-
-  const {data: sitesData, refetch: refetchSites} = trpc.user.profile.useQuery(
-    undefined, // no input
-    {enabled: true},
-  );
 
   const dispatch = useAppDispatch();
   const map = useRef(null);
@@ -453,10 +448,14 @@ const Home = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <Image
-          source={{uri: userDetails?.avatar || userDetails?.picture}}
-          style={styles.userAvatar}
-        />
+        {userDetails?.avatar || userDetails?.picture ? (
+          <Image
+            source={{uri: userDetails?.avatar || userDetails?.picture}}
+            style={styles.userAvatar}
+          />
+        ) : (
+          <UserPlaceholder width={30} height={30} />
+        )}
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleLayer}

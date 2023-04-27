@@ -34,6 +34,7 @@ import MapOutlineIcon from './mapOutlineIcon.jsx';
 import OrangeFireIcon from './orangeFireIcon.jsx';
 import PurpleFireIcon from './purpleFireIcon.jsx';
 import TrashSolidIcon from './trashSolidIcon.jsx';
+import UserPlaceholder from './userPlaceholder.jsx';
 import TrashOutlineIcon from './trashOutlineIcon.jsx';
 import VerificationWarning from './verificationWarning.jsx';
 
@@ -74,6 +75,7 @@ export {
   PurpleFireIcon,
   TrashSolidIcon,
   LocationPinIcon,
+  UserPlaceholder,
   TrashOutlineIcon,
   VerificationWarning,
 };

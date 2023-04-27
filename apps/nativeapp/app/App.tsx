@@ -1,3 +1,4 @@
+import superjson from 'superjson';
 import React, {useState} from 'react';
 import {Provider} from 'react-redux';
 import MapboxGL from '@rnmapbox/maps';
@@ -5,16 +6,16 @@ import Config from 'react-native-config';
 import {Auth0Provider} from 'react-native-auth0';
 
 import {store} from './redux/store';
-import {TRPCProvider} from './utils/api';
+import {trpc} from './services/trpc';
+import {httpBatchLink} from '@trpc/client';
 import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
-import {trpc} from './services/trpc';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import {httpBatchLink} from '@trpc/client';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
+
 const httpBatchLinkArgs = {
-  url: `http://localhost:3000/api/trpc`,
+  url: `${Config.NEXT_API_URL}`,
   // You can pass any HTTP headers you wish here
   async headers() {
     return {
@@ -28,6 +29,7 @@ function App(): JSX.Element {
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [httpBatchLink(httpBatchLinkArgs)],
+      transformer: superjson,
     }),
   );
   return (

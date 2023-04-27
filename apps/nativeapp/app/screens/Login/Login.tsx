@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
 import RadialGradient from 'react-native-radial-gradient';
@@ -22,9 +22,11 @@ const CENTER_ARR = [SCREEN_WIDTH / 2, 270.6];
 const GRADIENT_ARR = [Colors.PRIMARY_DARK, Colors.GRADIENT_PRIMARY];
 
 const Login = ({navigation}) => {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const dispatch = useAppDispatch();
 
   const handleLogin = async () => {
+    setIsLoading(true);
     const auth0 = new Auth0({
       domain: Config.AUTH0_DOMAIN,
       clientId: Config.AUTH0_CLIENT_ID,
@@ -41,15 +43,20 @@ const Login = ({navigation}) => {
       )
       .then(cred => {
         const request = {
-          onSuccess: async message => {},
-          onFail: message => {},
+          onSuccess: async message => {
+            dispatch(updateIsLoggedIn(true));
+            storeData('cred', cred);
+            setIsLoading(false);
+          },
+          onFail: message => {
+            setIsLoading(false);
+          },
         };
-        storeData('cred', cred);
-        dispatch(updateIsLoggedIn(true));
         dispatch(updateAccessToken(cred?.accessToken));
         dispatch(getUserDetails(request));
       })
       .catch(err => {
+        setIsLoading(false);
         console.log(err);
       });
   };
@@ -69,7 +76,9 @@ const Login = ({navigation}) => {
           <CustomButton
             title="Log In"
             style={styles.btn}
+            isLoading={isLoading}
             onPress={handleLogin}
+            loaderColor={Colors.PRIMARY}
             titleStyle={styles.titleStyle}
           />
         </View>

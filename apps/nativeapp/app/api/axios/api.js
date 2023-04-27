@@ -1,10 +1,13 @@
 import axios from 'axios';
 import Config from 'react-native-config';
 
+import ApiUrl from '../axios/url';
+
 axios.defaults.timeout = 30000;
 
 export default function fireApi({method, URL, data, header, token}) {
-  URL = Config.API_URL + URL;
+  if (URL === ApiUrl.userDetails) URL = Config.NEXT_API_URL + URL;
+  else URL = Config.API_URL + URL;
   if (method === 'POST') {
     let headers = {
       headers: {

@@ -15,6 +15,7 @@ interface ICustomButtonProps {
   isLoading?: boolean;
   titleStyle?: any;
   disabled?: boolean;
+  loaderColor?: string;
 }
 
 const CustomButton = ({
@@ -24,6 +25,7 @@ const CustomButton = ({
   isLoading,
   titleStyle,
   title = 'Click',
+  loaderColor = Colors.WHITE,
   ...restProps
 }: ICustomButtonProps) => {
   return (
@@ -35,7 +37,7 @@ const CustomButton = ({
       {!isLoading ? (
         <Text style={[styles.title, titleStyle]}>{title}</Text>
       ) : (
-        <ActivityIndicator color={Colors.WHITE} />
+        <ActivityIndicator color={loaderColor} />
       )}
     </TouchableOpacity>
   );
