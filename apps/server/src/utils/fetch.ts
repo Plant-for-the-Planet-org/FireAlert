@@ -35,3 +35,22 @@ export const fetchAllProjectsWithSites = async () => {
     const data = await response.json();
     return data;
 }
+
+type ProfileData = {
+    name: string;
+};
+
+export const getNameFromPPApi = async (
+    bearer_token: string
+): Promise<ProfileData> => {
+    const response = await fetch(
+        "https://app.plant-for-the-planet.org/app/profile",
+        {
+            headers: {
+                Authorization: bearer_token,
+            },
+        }
+    );
+    const data = await response.json();
+    return { name: data.name };
+};
