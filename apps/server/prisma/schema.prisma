@@ -1,16 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
     provider = "prisma-client-js"
 }
 
 datasource db {
     provider = "postgresql"
-    // NOTE: When using postgresql, mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
     url      = env("DATABASE_URL")
 }
 
@@ -103,21 +96,34 @@ model AlertMethod {
 }
 
 model Site {
-    id          String    @id @default(cuid())
-    guid        String?   @unique @default(uuid())
+    id          String      @id @default(cuid())
+    guid        String?     @unique @default(uuid())
     name        String?
-    type        String?
+    type        SiteType?
     geometry    Json?
-    radius      String?
-    isMonitored Boolean?  @default(true)
+    radius      SiteRadius?
+    isMonitored Boolean?    @default(true)
     lastSynced  DateTime?
     deletedAt   DateTime?
     projectId   String?
     lastUpdated DateTime?
     userId      String
-    user        User      @relation(fields: [userId], references: [id])
-    project     Project?  @relation(fields: [projectId], references: [id])
+    user        User        @relation(fields: [userId], references: [id])
+    project     Project?    @relation(fields: [projectId], references: [id])
     alerts      Alert[]
+}
+
+enum SiteType {
+    Point
+    Polygon
+    MultiPolygon
+}
+
+enum SiteRadius {
+    inside
+    within5km
+    within10km
+    within100km
 }
 
 model Project {

@@ -60,12 +60,12 @@ export const getNameFromPPApi = async (bearer_token: string): Promise<string> =>
         }
         if (response.ok) {
             const data = await response.json();
-            if(data.name){
+            if (data.name) {
                 return data.name;
-            }else if(data.firstname && data.lastname){
+            } else if (data.firstname && data.lastname) {
                 const name = data.firstname + " " + data.lastname
                 return name
-            }else if(data.firstname || data.lastname){
+            } else if (data.firstname || data.lastname) {
                 const firstname = data.firstname || ""
                 const lastname = data.lastname || ""
                 const name = firstname + " " + lastname
@@ -75,6 +75,7 @@ export const getNameFromPPApi = async (bearer_token: string): Promise<string> =>
             console.error(`Error fetching profile data: Error: HTTP error! status: ${response.status}`);
             return "";
         }
+        return "";
     } catch (error) {
         console.error(`Error fetching profile data: ${error}`);
         return "";
