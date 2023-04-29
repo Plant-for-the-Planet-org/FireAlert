@@ -1,11 +1,9 @@
-// Here I am just showing how to use tRPC frontend!
-
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { api } from "../../utils/api";
 import { makeCoordinates } from "../../utils/math";
-
 import styles from './SiteComponent.module.css';
+import  SingleSite  from "./SingleSite";
 
 
 const Sites: React.FC = () => {
@@ -25,24 +23,17 @@ const CreateSiteForm: React.FC = () => {
     const [type, setType] = useState('')
     const [unarrayedCoordinates, setUnarrayedCoordinates] = useState('')
     const [radius, setRadius] = useState('')
-
+    const [name, setName] = useState('')
     const { data: session, status } = useSession()
-
-    const utils = api.useContext();
-
     const { data: sites, isLoading, refetch: refetchSites } = api.site.getAllSites.useQuery(
         undefined, // no input
         { enabled: session?.user !== undefined },
     );
-
     const postSite = api.site.createSite.useMutation({
         onSuccess: () => {
             refetchSites()
         }
     })
-
-
-
     return (
         <>
             {session ? (
@@ -58,11 +49,21 @@ const CreateSiteForm: React.FC = () => {
                                 type: type,
                                 geometry: geometry,
                                 radius: radius,
+                                name: name,
                             })
                             setType('')
                             setUnarrayedCoordinates('')
                             setRadius('')
+                            setName('')
                         }}>
+                        <label htmlFor="radius">Name:</label>
+                        <input
+                            type="text"
+                            placeholder="Name"
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                            id="name"
+                        />
                         <label htmlFor="type">Type:</label>
                         <input
                             type="text"
@@ -98,7 +99,10 @@ const CreateSiteForm: React.FC = () => {
     )
 }
 
+
 const ShowSites: React.FC = () => {
+    const [expandingSiteId, setExpandingSiteId] = useState<string | null>(null);
+    const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
     const { data: sessionData } = useSession();
 
     const { data: sites, isLoading, refetch: refetchSites } =
@@ -110,6 +114,14 @@ const ShowSites: React.FC = () => {
         },
     });
 
+    const handleExpand = (siteId: string) => {
+        setExpandingSiteId(siteId);
+    };
+
+    const handleEdit = (siteId: string) => {
+        setEditingSiteId(siteId);
+    };
+
     const handleDelete = async (siteId: string) => {
         try {
             await deleteSite.mutate({ siteId });
@@ -118,41 +130,26 @@ const ShowSites: React.FC = () => {
         }
     };
 
-
     if (isLoading) {
         return <div>Fetching Sites...</div>;
     }
 
-
-
-
     return (
         <div className={styles.sitesContainer}>
             {sites?.data.map((site) => (
-                <div key={site.id} className={styles.siteCard}>
-                    <div className={styles.siteHeader}>
-                        <p className={styles.siteHeaderText}>Site ID: {site.id}</p>
-                    </div>
-                    <div className={styles.siteBody}>
-                        <p className={styles.siteContent}>Type: {site.type}</p>
-                        <p className={styles.siteContent}>{JSON.stringify(site.geometry)}</p>
-                        <p className={styles.siteContent}>Radius: {site.radius}</p>
-                    </div>
-                    <div className={styles.siteButtons}>
-                        <button className={styles.siteEditButton}>Edit</button>
-                        <button
-                            className={styles.siteDeleteButton}
-                            onClick={() => {
-                                handleDelete(site.id);
-                            }}
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            ))
-            }
-        </div >
+                <SingleSite
+                    key={site.id}
+                    site={site}
+                    expandingSiteId={expandingSiteId}
+                    editingSiteId={editingSiteId}
+                    handleExpand={handleExpand}
+                    handleEdit={handleEdit}
+                    handleDelete={handleDelete}
+                    setExpandingSiteId={setExpandingSiteId}
+                    setEditingSiteId={setEditingSiteId}
+                />
+            ))}
+        </div>
     );
 };
 

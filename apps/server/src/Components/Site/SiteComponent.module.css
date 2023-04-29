@@ -36,7 +36,17 @@
   padding: 1rem;
   width: 50%;
   flex-grow: 1;
+}
 
+.form-card-edit {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: 1rem;
+  padding: 1rem;
+  width: 90%;
+  flex-grow: 1;
 }
 
 .form-card h2{
@@ -141,9 +151,31 @@
   transition: all 0.3;
 }
 
+.siteExpandButton {
+  flex-grow: 1;
+  background-color: #08b349;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  margin-right: 10px;
+  transition: all 0.3;
+}
+
 .siteDeleteButton {
   flex-grow: 1;
   background-color: #b82d11;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  margin-right: 10px;
+  transition: all 0.3;
+}
+
+.siteCloseButton {
+  flex-grow: 1;
+  background-color: #691605;
   color: white;
   border: none;
   border-radius: 5px;

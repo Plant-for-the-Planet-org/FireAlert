@@ -79,10 +79,12 @@ export const siteRouter = createTRPCRouter({
                 const site = await ctx.prisma.site.create({
                     data: {
                         type: input.type,
+                        name: input.name,
                         geometry: input.geometry,
                         radius: input.radius,
                         isMonitored: input.isMonitored,
                         userId: userId,
+                        projectId: input.projectId,
                     },
                 });
                 return {

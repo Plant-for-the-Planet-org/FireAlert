@@ -4,13 +4,12 @@ import Head from "next/head";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useCookies } from "react-cookie"
 
-
+ 
 import { api } from "../utils/api";
 import Sites from "../Components/Site/SiteComponent";
 
 const Home: NextPage = () => {
   const { data: sessionData } = useSession();
-
   return (
     <>
       <Head>
@@ -36,12 +35,23 @@ export default Home;
 
 const AuthShowcase: React.FC = () => {
   const { data: sessionData } = useSession();
+  
+  // const {data: userData, refetch: refetchData} = api.user.profile.useQuery(
+  //   undefined,
+  //   {
+  //     enabled: true,
+  //     headers: {
+  //       Authorization: `Bearer ${sessionData?.accessToken}`,
+  //     },
+  //   },
+  // );
 
 
   return (
     <div className={styles.authContainer}>
       <p className={styles.showcaseText}>
         {sessionData && <span>Logged in as {sessionData.user.email} </span>}
+        {/* {userData && <span>Here's the user data {JSON.stringify(userData)} </span> } */}
       </p>
       <Sites />
       <button
