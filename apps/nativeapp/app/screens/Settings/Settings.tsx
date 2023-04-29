@@ -127,7 +127,9 @@ const Settings = ({navigation}) => {
   const {data: sites} = trpc.site.getAllSites.useQuery(undefined, {
     enabled: true,
     retryDelay: 3000,
-    onError: err => {
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    onError: () => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
