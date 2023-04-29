@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import React, {useEffect, useRef, useState} from 'react';
+import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
 
 import {
@@ -27,6 +28,7 @@ import {
   SatelliteDish,
 } from '../../assets/svgs';
 import Map from './MapMarking/Map';
+import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {locationPermission} from '../../utils/permissions';
 import {
@@ -34,10 +36,8 @@ import {
   PermissionDeniedAlert,
 } from '../Home/PermissionAlert/LocationPermissionAlerts';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
-import {useAppDispatch, useAppSelector} from '../../hooks';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import distanceCalculator from '../../utils/distanceCalculator';
-import {addSite, getSites} from '../../redux/slices/sites/siteSlice';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
@@ -85,8 +85,21 @@ const CreatePolygon = ({navigation}) => {
     ],
   });
 
-  const {sites} = useAppSelector(state => state.siteSlice);
-  const dispatch = useAppDispatch();
+  const toast = useToast();
+
+  const postSite = trpc.site.createSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      setLoading(false);
+      setSiteNameModalVisible(false);
+      navigation.navigate('Home');
+    },
+    onError: () => {
+      setLoading(false);
+      setSiteNameModalVisible(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   // generates the alphabets
   const generateAlphabets = () => {
@@ -240,26 +253,7 @@ const CreatePolygon = ({navigation}) => {
       },
       radius: 'inside',
     };
-    const request = {
-      payload,
-      onSuccess: () => {
-        setLoading(false);
-        const req = {
-          onSuccess: () => {},
-          onFail: () => {},
-        };
-        setTimeout(() => {
-          dispatch(getSites(req));
-        }, 500);
-        setSiteNameModalVisible(false);
-        navigation.navigate('Home');
-      },
-      onFail: () => {
-        setLoading(false);
-        setSiteNameModalVisible(false);
-      },
-    };
-    dispatch(addSite(request));
+    postSite.mutate({json: payload});
   };
 
   const addPolygon = () => {

@@ -61,6 +61,7 @@ import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {trpc} from '../../services/trpc';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -88,25 +89,32 @@ const Home = ({navigation}) => {
   const {sites} = useAppSelector(state => state.siteSlice);
   const {alerts} = useAppSelector(state => state.alertSlice);
 
-  const [isInitial, setIsInitial] = useState(true);
-  const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
+  const [isInitial, setIsInitial] = useState<boolean>(true);
+  const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
 
-  const [isPermissionDenied, setIsPermissionDenied] = useState(false);
-  const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
-  const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
+  const [isPermissionDenied, setIsPermissionDenied] = useState<boolean>(false);
+  const [isPermissionBlocked, setIsPermissionBlocked] =
+    useState<boolean>(false);
+  const [isLocationAlertShow, setIsLocationAlertShow] =
+    useState<boolean>(false);
 
-  const [visible, setVisible] = useState(false);
-  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
+  const [profileModalVisible, setProfileModalVisible] =
+    useState<boolean>(false);
 
-  const [profileName, setProfileName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [profileEditModal, setProfileEditModal] = useState(false);
+  const [profileName, setProfileName] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [profileEditModal, setProfileEditModal] = useState<boolean>(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
   >();
 
   const [selectedAlert, setSelectedAlert] = useState({});
+
+  const {data, error} = trpc.site.getAllSites.useQuery(undefined, {
+    enabled: true,
+  });
 
   const dispatch = useAppDispatch();
   const map = useRef(null);
@@ -343,18 +351,17 @@ const Home = ({navigation}) => {
 
     return items;
   };
-
   const renderMapSource = () => (
     <MapboxGL.ShapeSource
       id={'polygon'}
       shape={{
         type: 'FeatureCollection',
         features:
-          sites?.polygon?.map((singleSite, i) => {
+          data?.json?.data.map((singleSite, i) => {
             return {
               type: 'Feature',
               properties: {id: singleSite?.guid},
-              geometry: JSON.parse(singleSite?.geometry),
+              geometry: singleSite?.geometry,
             };
           }) || [],
       }}

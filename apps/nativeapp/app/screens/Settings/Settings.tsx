@@ -56,6 +56,8 @@ import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
+import {trpc} from '../../services/trpc';
+import {useToast} from 'react-native-toast-notifications';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -117,9 +119,18 @@ const Settings = ({navigation}) => {
   const [siteGuid, setSiteGuid] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const {sites} = useAppSelector(state => state.siteSlice);
+  // const {sites} = useAppSelector(state => state.siteSlice);
   const {alertListPreferences} = useAppSelector(state => state.alertSlice);
   const dispatch = useAppDispatch();
+  const toast = useToast();
+
+  const {data: sites} = trpc.site.getAllSites.useQuery(undefined, {
+    enabled: true,
+    retryDelay: 3000,
+    onError: err => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   const handleSwitch = (index, val) => {
     let arr = [...projects];
@@ -356,28 +367,20 @@ const Settings = ({navigation}) => {
           <View style={styles.mySitesHead}>
             <Text style={styles.mainHeading}>My Sites</Text>
           </View>
-          {[...(sites?.polygon || []), ...(sites?.point || [])]?.map(
-            (item, index) => (
+          {sites?.json?.data?.map((item, index) => (
+            <TouchableOpacity
+              onPress={() => handleSiteInformation(item)}
+              key={`mySites_${index}`}
+              style={styles.mySiteNameContainer}>
+              <Text style={styles.mySiteName}>{item?.name || item?.guid}</Text>
               <TouchableOpacity
-                onPress={() => handleSiteInformation(item)}
-                key={`mySites_${index}`}
-                style={styles.mySiteNameContainer}>
-                <Text style={styles.mySiteName}>
-                  {item?.name || item?.guid}
-                </Text>
-                <TouchableOpacity
-                  onPress={evt => handleSiteRadius(evt, item?.guid)}
-                  style={[styles.dropDownRadius]}>
-                  <Text style={styles.siteRadius}>
-                    {!(item?.radius === 'inside') || item?.radius === null
-                      ? `within ${item?.radius}`
-                      : 'inside'}
-                  </Text>
-                  <DropdownArrow />
-                </TouchableOpacity>
+                onPress={evt => handleSiteRadius(evt, item?.guid)}
+                style={[styles.dropDownRadius]}>
+                <Text style={styles.siteRadius}>{item?.radius}</Text>
+                <DropdownArrow />
               </TouchableOpacity>
-            ),
-          )}
+            </TouchableOpacity>
+          ))}
         </View>
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
