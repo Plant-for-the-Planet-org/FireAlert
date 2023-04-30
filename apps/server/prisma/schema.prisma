@@ -58,7 +58,6 @@ model User {
     sites        Site[]
     projects     Project[]
 }
-
 enum Role {
     ROLE_CLIENT
     ROLE_ADMIN
@@ -76,17 +75,26 @@ model VerificationToken {
 // Fire Alert Schema
 
 model AlertMethod {
-    id                String    @id @default(cuid())
-    guid              String?   @unique @default(uuid())
-    method            String?
-    destination       String?
-    isVerified        Boolean?
-    isEnabled         Boolean?
+    id                String                 @id @default(cuid())
+    guid              String                 @unique @default(uuid())
+    method            AlertMethodMethod
+    destination       String
+    isVerified        Boolean                @default(false)
+    isEnabled         Boolean                @default(false)
     deletedAt         DateTime?
-    deviceType        String?
+    deviceType        AlertMethodDeviceType?
     notificationToken String?
     userId            String
-    user              User      @relation(fields: [userId], references: [id])
+    user              User                   @relation(fields: [userId], references: [id])
+}
+enum AlertMethodMethod {
+    email
+    sms
+    device
+}
+enum AlertMethodDeviceType {
+    ios
+    android
 }
 
 model Site {
@@ -106,13 +114,11 @@ model Site {
     project     Project?    @relation(fields: [projectId], references: [id])
     alerts      Alert[]
 }
-
 enum SiteType {
     Point
     Polygon
     MultiPolygon
 }
-
 enum SiteRadius {
     inside
     within5km
