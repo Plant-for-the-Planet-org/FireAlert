@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { createAlertMethodSchema, params, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
+import { createAlertMethodSchema, params, sendVerificationSchema, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -46,6 +46,24 @@ const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, userId }:
 
 
 export const alertMethodRouter = createTRPCRouter({
+
+    sendVerification: protectedProcedure
+        .input(sendVerificationSchema)
+        .mutation(async({ctx, input})=> {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if(input.method === 'email'){
+                const userEmailAddress = input.destination
+                // verification logic for email in onesignal
+            }
+            if(input.method === 'sms'){
+                const userPhoneNumber = input.destination
+                // verification logic for sms in onesignal
+            }
+            if(input.method === 'whatsapp'){
+                const userWhatsAppNumber = input.destination
+                // verification logic for whatsapp in onesignal
+            }
+        }),
 
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)

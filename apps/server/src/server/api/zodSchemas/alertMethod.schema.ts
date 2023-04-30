@@ -14,6 +14,12 @@ export const createAlertMethodSchema = z.object({
     userId: z.string(),
 })
 
+export const sendVerificationSchema = z.object({
+    alertMethodId: z.string(),
+    method: z.string(),
+    destination: z.string(),
+})
+
 export const params = z.object({
     alertMethodId: z.string(),
 })
