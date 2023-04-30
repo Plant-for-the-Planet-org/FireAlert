@@ -1,16 +1,13 @@
-import {z} from 'zod';
+import { z } from 'zod';
 
 export const createAlertMethodSchema = z.object({
-    method: z.string({
-        required_error: 'Method is required!'
-    }),
+    method: z.enum(["email", "sms", "device"]),
     destination: z.string({
         required_error: 'Destination of alert method must be specified'
     }),
-    isVerified: z.boolean(),
-    deviceType: z.string(),
-    isEnabled: z.boolean(),
-    notificationToken: z.string(),
+    isVerified: z.boolean().optional(),
+    isEnabled: z.boolean().optional(),
+    deviceType: z.enum(["ios", "android"]).optional(),
     userId: z.string(),
 })
 
@@ -27,12 +24,11 @@ export const params = z.object({
 export const updateAlertMethodSchema = z.object({
     params,
     body: z.object({
-        method: z.string(),
+        method: z.enum(["email", "sms", "device"]),
         destination: z.string(),
         isVerified: z.boolean(),
-        deviceType: z.string(),
         isEnabled: z.boolean(),
-        notificationToken: z.string(),
+        deviceType: z.enum(["ios", "android"]),
         userId: z.string(),
     }).partial(),
 })

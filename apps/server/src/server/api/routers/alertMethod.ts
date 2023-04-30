@@ -4,7 +4,6 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { randomUUID } from "crypto";
 import { getUserIdByToken } from "../../../utils/token";
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 
@@ -78,13 +77,11 @@ export const alertMethodRouter = createTRPCRouter({
             try {
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
-                        guid: 'almt_' + randomUUID(),
                         method: input.method,
                         destination: input.destination,
                         isVerified: input.isVerified,
                         isEnabled: input.isEnabled,
                         deviceType: input.deviceType,
-                        notificationToken: input.notificationToken,
                         userId: userId,
                     },
                 });
