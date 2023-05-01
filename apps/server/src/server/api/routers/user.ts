@@ -16,12 +16,11 @@ export const userRouter = createTRPCRouter({
                     email: ctx.token["https://app.plant-for-the-planet.org/email"]
                 }
             })
-            const { name = '' } = await getNameFromPPApi(bearer_token);
+            const name = await getNameFromPPApi(bearer_token);
             if (!user) {
                 // SIGNUP FUNCTIONALITY
                 // Check if the user requesting access is PlanetRO
                 const isPlanetRO = await checkIfUserIsPlanetRO(bearer_token)
-                console.log(`Is planet Ro: ${isPlanetRO}`)
                 // If not planetRO // create the User
                 if (!isPlanetRO) {
                     const user = await ctx.prisma.user.create({
@@ -78,7 +77,7 @@ export const userRouter = createTRPCRouter({
                         for (const site of sites) {
                             const { id: siteId, name: siteName, geometry: siteGeometry } = site;
                             const siteType = siteGeometry.type;
-                            const siteRadius = 'Inside'
+                            const siteRadius = 'inside'
                             // Then create sites
                             await ctx.prisma.site.create({
                                 data: {
@@ -156,7 +155,7 @@ export const userRouter = createTRPCRouter({
                 };
             }
         }),
-        
+
     getAllUsers: protectedProcedure // TODO: make this admin procedure
         .query(async ({ ctx }) => {
             try {

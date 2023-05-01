@@ -1,10 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { createAlertMethodSchema, params, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
+import { createAlertMethodSchema, params, sendVerificationSchema, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { randomUUID } from "crypto";
 import { getUserIdByToken } from "../../../utils/token";
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 
@@ -47,6 +46,24 @@ const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, userId }:
 
 export const alertMethodRouter = createTRPCRouter({
 
+    sendVerification: protectedProcedure
+        .input(sendVerificationSchema)
+        .mutation(async({ctx, input})=> {
+            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+            if(input.method === 'email'){
+                const userEmailAddress = input.destination
+                // verification logic for email in onesignal
+            }
+            if(input.method === 'sms'){
+                const userPhoneNumber = input.destination
+                // verification logic for sms in onesignal
+            }
+            if(input.method === 'whatsapp'){
+                const userWhatsAppNumber = input.destination
+                // verification logic for whatsapp in onesignal
+            }
+        }),
+
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
@@ -60,13 +77,11 @@ export const alertMethodRouter = createTRPCRouter({
             try {
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
-                        guid: 'almt_' + randomUUID(),
                         method: input.method,
                         destination: input.destination,
                         isVerified: input.isVerified,
                         isEnabled: input.isEnabled,
                         deviceType: input.deviceType,
-                        notificationToken: input.notificationToken,
                         userId: userId,
                     },
                 });
