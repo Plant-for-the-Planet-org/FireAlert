@@ -121,6 +121,17 @@ const Settings = ({navigation}) => {
   const dispatch = useAppDispatch();
   const toast = useToast();
 
+  const {data: alertPreferences, refetch: refetchAlertPreferences} =
+    trpc.alertMethod.getAllAlertMethods.useQuery(undefined, {
+      enabled: true,
+      retryDelay: 3000,
+      refetchInterval: 10000,
+      refetchIntervalInBackground: true,
+      onError: () => {
+        toast.show('something went wrong', {type: 'danger'});
+      },
+    });
+
   const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
     undefined,
     {
