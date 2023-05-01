@@ -8,7 +8,6 @@ export const createAlertMethodSchema = z.object({
     isVerified: z.boolean().optional(),
     isEnabled: z.boolean().optional(),
     deviceType: z.enum(["ios", "android"]).optional(),
-    userId: z.string(),
 })
 
 export const sendVerificationSchema = z.object({
@@ -29,7 +28,6 @@ export const updateAlertMethodSchema = z.object({
         isVerified: z.boolean(),
         isEnabled: z.boolean(),
         deviceType: z.enum(["ios", "android"]),
-        userId: z.string(),
     }).partial(),
 })
 
