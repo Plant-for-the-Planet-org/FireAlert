@@ -24,7 +24,7 @@ const server = z.object({
   AUTH0_CLIENT_SECRET: z.string(),
   AUTH0_ISSUER: z.string(),
   AUTH0_DOMAIN: z.string(),
-  MAP_KEY: z.string(),
+  MAP_KEY: z.string().optional(),
 });
 
 /**
