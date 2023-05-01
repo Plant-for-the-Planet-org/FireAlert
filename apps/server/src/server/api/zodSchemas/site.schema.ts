@@ -36,7 +36,7 @@ export const params = z.object({
 
 const bodySchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
-    name: z.string().optional(),
+    name: z.string(),
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
     radius: z.enum(["inside", "within5km", "within10km", "within100km"]),
     isMonitored: z.boolean(),
