@@ -11,6 +11,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
 import React, {useCallback, useState} from 'react';
 import {useFocusEffect} from '@react-navigation/native';
@@ -41,11 +42,7 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
 } from '../../assets/svgs';
-import {
-  editSite,
-  getSites,
-  deleteSite,
-} from '../../redux/slices/sites/siteSlice';
+import {editSite, getSites} from '../../redux/slices/sites/siteSlice';
 import {
   getAlertsPreferences,
   updateAlertPreferences,
@@ -116,7 +113,7 @@ const Settings = ({navigation}) => {
   const [pageXY, setPageXY] = useState(null);
   const [mobileNotify, setMobileNotify] = useState(false);
   const [siteName, setSiteName] = useState('');
-  const [siteGuid, setSiteGuid] = useState('');
+  const [siteId, setSiteId] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
   // const {sites} = useAppSelector(state => state.siteSlice);
@@ -124,11 +121,36 @@ const Settings = ({navigation}) => {
   const dispatch = useAppDispatch();
   const toast = useToast();
 
-  const {data: sites} = trpc.site.getAllSites.useQuery(undefined, {
-    enabled: true,
+  const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
+    undefined,
+    {
+      enabled: true,
+      retryDelay: 3000,
+      refetchInterval: 10000,
+      refetchIntervalInBackground: true,
+      onError: () => {
+        toast.show('something went wrong', {type: 'danger'});
+      },
+    },
+  );
+
+  const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
-    refetchInterval: 10000,
-    refetchIntervalInBackground: true,
+    onSuccess: () => {
+      refetchSites();
+      setSitesInfoModal(false);
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const updateSite = trpc.site.updateSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      refetchSites();
+      setSiteNameModalVisible(false);
+    },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
     },
@@ -231,30 +253,12 @@ const Settings = ({navigation}) => {
   const handleEditSite = site => {
     setSitesInfoModal(false);
     setSiteName(site.name);
-    setSiteGuid(site.guid);
+    setSiteId(site.id);
     setTimeout(() => setSiteNameModalVisible(true), 500);
   };
 
   const handleEditSiteInfo = () => {
-    const payload = {
-      name: siteName,
-      guid: siteGuid,
-    };
-    const request = {
-      payload,
-      onSuccess: () => {
-        const req = {
-          onSuccess: () => {},
-          onFail: () => {},
-        };
-        setTimeout(() => {
-          dispatch(getSites(req));
-        }, 500);
-      },
-      onFail: () => {},
-    };
-    dispatch(editSite(request));
-    setSiteNameModalVisible(false);
+    updateSite.mutate({json: {params: {siteId}, body: {name: siteName}}});
   };
 
   const handleAddEmail = () => {
@@ -275,13 +279,8 @@ const Settings = ({navigation}) => {
     });
   };
 
-  const handleDeleteSite = guid => {
-    const request = {
-      params: guid,
-      onSuccess: () => {},
-      onFail: () => {},
-    };
-    dispatch(deleteSite(request));
+  const handleDeleteSite = siteId => {
+    deleteSite.mutate({json: {siteId}});
   };
 
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
@@ -759,10 +758,17 @@ const Settings = ({navigation}) => {
               <Text style={styles.siteActionText}>View on Map</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => handleDeleteSite(selectedSiteInfo?.guid)}
+              disabled={deleteSite?.isLoading}
+              onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
               style={styles.btn}>
-              <TrashOutlineIcon />
-              <Text style={styles.siteActionText}>Delete Site</Text>
+              {deleteSite?.isLoading ? (
+                <ActivityIndicator color={Colors.PRIMARY} />
+              ) : (
+                <>
+                  <TrashOutlineIcon />
+                  <Text style={styles.siteActionText}>Delete Site</Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </BottomSheet>
@@ -794,9 +800,10 @@ const Settings = ({navigation}) => {
               />
               <CustomButton
                 title="Continue"
-                onPress={handleEditSiteInfo}
-                style={styles.btnContinueSiteModal}
                 titleStyle={styles.title}
+                onPress={handleEditSiteInfo}
+                isLoading={updateSite?.isLoading}
+                style={styles.btnContinueSiteModal}
               />
             </View>
           </KeyboardAvoidingView>
