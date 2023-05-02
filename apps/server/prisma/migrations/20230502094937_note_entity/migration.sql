@@ -1,11 +1,17 @@
--- CreateTable
-CREATE TABLE "Example" (
-    "id" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT');
 
-    CONSTRAINT "Example_pkey" PRIMARY KEY ("id")
-);
+-- CreateEnum
+CREATE TYPE "AlertMethodMethod" AS ENUM ('email', 'sms', 'device');
+
+-- CreateEnum
+CREATE TYPE "AlertMethodDeviceType" AS ENUM ('ios', 'android');
+
+-- CreateEnum
+CREATE TYPE "SiteType" AS ENUM ('Point', 'Polygon', 'MultiPolygon');
+
+-- CreateEnum
+CREATE TYPE "SiteRadius" AS ENUM ('inside', 'within5km', 'within10km', 'within100km');
 
 -- CreateTable
 CREATE TABLE "Account" (
@@ -42,14 +48,16 @@ CREATE TABLE "User" (
     "sub" TEXT,
     "name" TEXT,
     "email" TEXT,
-    "emailVerified" TIMESTAMP(3),
+    "emailVerified" BOOLEAN,
     "detectionMethod" TEXT,
     "isPlanetRO" BOOLEAN,
     "image" TEXT,
     "avatar" TEXT,
     "deletedAt" TIMESTAMP(3),
     "isVerified" BOOLEAN,
+    "lastLogin" TIMESTAMP(3),
     "signupDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "roles" "Role" NOT NULL DEFAULT 'ROLE_CLIENT',
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -64,13 +72,13 @@ CREATE TABLE "VerificationToken" (
 -- CreateTable
 CREATE TABLE "AlertMethod" (
     "id" TEXT NOT NULL,
-    "guid" TEXT,
-    "method" TEXT,
-    "destination" TEXT,
-    "isVerified" BOOLEAN,
-    "isEnabled" BOOLEAN,
+    "guid" TEXT NOT NULL,
+    "method" "AlertMethodMethod" NOT NULL,
+    "destination" TEXT NOT NULL,
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "isEnabled" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
-    "deviceType" TEXT,
+    "deviceType" "AlertMethodDeviceType",
     "notificationToken" TEXT,
     "userId" TEXT NOT NULL,
 
@@ -81,16 +89,29 @@ CREATE TABLE "AlertMethod" (
 CREATE TABLE "Site" (
     "id" TEXT NOT NULL,
     "guid" TEXT,
-    "type" TEXT,
+    "name" TEXT,
+    "type" "SiteType",
     "geometry" JSONB,
-    "radius" TEXT,
-    "isMonitored" BOOLEAN,
+    "radius" "SiteRadius" DEFAULT 'inside',
+    "isMonitored" BOOLEAN DEFAULT true,
     "lastSynced" TIMESTAMP(3),
     "deletedAt" TIMESTAMP(3),
-    "projectID" TEXT,
+    "projectId" TEXT,
+    "lastUpdated" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
 
     CONSTRAINT "Site_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Project" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT,
+    "lastUpdated" TIMESTAMP(3),
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -149,6 +170,12 @@ ALTER TABLE "AlertMethod" ADD CONSTRAINT "AlertMethod_userId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "Site" ADD CONSTRAINT "Site_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Site" ADD CONSTRAINT "Site_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Alert" ADD CONSTRAINT "Alert_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
