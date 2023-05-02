@@ -34,6 +34,9 @@ export const params = z.object({
     siteId: z.string(),
 })
 
+export const getSitesWithProjectIdParams = z.object({
+    projectId: z.string(),
+})
 const bodySchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
     name: z.string(),
