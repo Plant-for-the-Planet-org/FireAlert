@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { createSiteSchema, params, updateSiteSchema } from '../zodSchemas/site.schema'
+import { createSiteSchema, getSitesWithProjectIdParams, params, updateSiteSchema } from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -96,6 +96,28 @@ export const siteRouter = createTRPCRouter({
                 throw new TRPCError({
                     code: "CONFLICT",
                     message: "Probably, site with that siteId already exists!",
+                });
+            }
+        }),
+    
+    getAllSitesForProject: protectedProcedure
+        .input(getSitesWithProjectIdParams)
+        .query(async({ctx, input})=> {
+            try {
+                const sitesForProject = await ctx.prisma.site.findMany({
+                    where: {
+                        projectId: input.projectId,
+                    }
+                })
+                return {
+                    status: 'success',
+                    data: sitesForProject,
+                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: 'Sites Not Found',
                 });
             }
         }),
