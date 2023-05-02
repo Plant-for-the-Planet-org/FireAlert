@@ -15,19 +15,19 @@ import {DOMParser} from 'xmldom';
 import RNFS from 'react-native-fs';
 import {kml} from '@tmcw/togeojson';
 import gjv from 'geojson-validation';
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
+import {useToast} from 'react-native-toast-notifications';
 
-import {useAppDispatch} from '../../hooks';
+import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {CustomButton, FloatingInput} from '../../components';
 import {BackArrowIcon, UploadCloud} from '../../assets/svgs';
-import {addSite, getSites} from '../../redux/slices/sites/siteSlice';
 import {fileExtensionExtract} from '../../utils/fileExtensionExtract';
 
 const PICKER_OPTIONS = {
   presentationStyle: 'pageSheet',
   copyTo: 'documentDirectory',
-  type: ['application/vnd.google-earth.kml+xml', 'application/json'],
+  // type: ['application/vnd.google-earth.kml+xml', 'application/json'],
 };
 
 const UploadPolygon = ({navigation}) => {
@@ -36,8 +36,21 @@ const UploadPolygon = ({navigation}) => {
     Array<DocumentPickerResponse> | DirectoryPickerResponse | undefined | null
   >();
   const [validToUpload, setValidToUpload] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const dispatch = useAppDispatch();
+  const toast = useToast();
+
+  const postSite = trpc.site.createSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      setLoading(false);
+      navigation.navigate('Home');
+    },
+    onError: () => {
+      setLoading(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   const handleBack = () => navigation.goBack();
 
@@ -65,35 +78,25 @@ const UploadPolygon = ({navigation}) => {
   };
 
   const addSiteApi = () => {
+    setLoading(true);
     const geometry = {
       type: result?.features[0]?.geometry?.type,
       coordinates: result?.features[0]?.geometry?.coordinates,
     };
-
-    const request = {
-      payload: {
+    postSite.mutate({
+      json: {
         geometry,
-        name: siteName,
         type: result?.features[0]?.geometry?.type,
+        name: siteName,
       },
-      onSuccess: () => {
-        const req = {
-          onSuccess: () => {},
-          onFail: () => {},
-        };
-        setTimeout(() => dispatch(getSites(req)), 1000);
-        navigation.navigate('Home');
-      },
-      onFail: () => {},
-    };
-    dispatch(addSite(request));
+    });
   };
 
   const handleUploadFile = async () => {
     try {
       const pickerResult = await DocumentPicker.pickSingle(PICKER_OPTIONS);
-
       const read = await readFile(pickerResult.uri);
+
       if (fileExtensionExtract(pickerResult?.name) === 'geojson') {
         const geo = JSON.parse(read);
         if (gjv.valid(geo)) {
@@ -103,11 +106,13 @@ const UploadPolygon = ({navigation}) => {
             setResult(geo);
           } else {
             console.warn('single polygon can be uploaded');
+            toast.show('single polygon can be uploaded', {type: 'warning'});
           }
         } else {
           console.warn('wrong Json');
+          toast.show('file contains wrong Json', {type: 'warning'});
         }
-      } else {
+      } else if (fileExtensionExtract(pickerResult?.name) === 'kml') {
         const theKml = new DOMParser().parseFromString(read);
         const converted = kml(theKml);
         if (gjv.valid(converted)) {
@@ -117,10 +122,16 @@ const UploadPolygon = ({navigation}) => {
             setResult(converted);
           } else {
             console.warn('single polygon can be uploaded');
+            toast.show('single polygon can be uploaded', {type: 'warning'});
           }
         } else {
           console.warn('wrong Json');
+          toast.show('file contains wrong Json', {type: 'warning'});
         }
+      } else {
+        setValidToUpload(false);
+        console.log('file not supported');
+        toast.show('file not supported', {type: 'warning'});
       }
     } catch (e) {
       handleError(e);
@@ -157,6 +168,7 @@ const UploadPolygon = ({navigation}) => {
         </View>
       </View>
       <CustomButton
+        isLoading={loading}
         title="Upload Site"
         onPress={addSiteApi}
         disabled={!validToUpload}
