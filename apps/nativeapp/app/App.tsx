@@ -8,7 +8,7 @@ import {ToastProvider} from 'react-native-toast-notifications';
 import {store} from './redux/store';
 import {trpc} from './services/trpc';
 import {httpBatchLink} from '@trpc/client';
-import AppNavigator from './routes/AppNavigator';
+import AppNavigator from './routes/appNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 

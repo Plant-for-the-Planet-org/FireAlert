@@ -49,7 +49,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from './PermissionAlert/LocationPermissionAlerts';
+} from './permissionAlert/locationPermissionAlerts';
 
 import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';

@@ -3,7 +3,7 @@ import {Modal, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
 import {MyLocIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
-import {SELECT_MAP_LAYER} from '../../global/actions/Types';
+import {SELECT_MAP_LAYER} from '../../global/actions/types';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 interface ILayerModalProps {

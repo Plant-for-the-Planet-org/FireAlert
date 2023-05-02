@@ -27,7 +27,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from '../Home/PermissionAlert/LocationPermissionAlerts';
+} from '../home/permissionAlert/locationPermissionAlerts';
 
 import {
   AlertModal,

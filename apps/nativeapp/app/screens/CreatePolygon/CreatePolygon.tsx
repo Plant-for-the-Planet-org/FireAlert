@@ -27,14 +27,14 @@ import {
   MyLocIcon,
   SatelliteDish,
 } from '../../assets/svgs';
-import Map from './MapMarking/Map';
+import Map from './mapMarking/map';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {locationPermission} from '../../utils/permissions';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
-} from '../Home/PermissionAlert/LocationPermissionAlerts';
+} from '../home/permissionAlert/locationPermissionAlerts';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import {getAccuracyColors} from '../../utils/accuracyColors';
 import distanceCalculator from '../../utils/distanceCalculator';
