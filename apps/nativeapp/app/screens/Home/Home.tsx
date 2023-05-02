@@ -19,6 +19,7 @@ import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
 import React, {useEffect, useRef, useState} from 'react';
+import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
 
 import {
@@ -52,6 +53,7 @@ import {
 } from './permissionAlert/locationPermissionAlerts';
 
 import {WEB_URLS} from '../../constants';
+import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {daysFromToday} from '../../utils/moment';
 import {clearAll} from '../../utils/localStorage';
@@ -61,7 +63,6 @@ import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import {trpc} from '../../services/trpc';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -112,13 +113,32 @@ const Home = ({navigation}) => {
 
   const [selectedAlert, setSelectedAlert] = useState({});
 
-  const {data, error} = trpc.site.getAllSites.useQuery(undefined, {
+  const {data} = trpc.site.getAllSites.useQuery(undefined, {
     enabled: true,
   });
 
+  const toast = useToast();
   const dispatch = useAppDispatch();
   const map = useRef(null);
   const camera = useRef<MapboxGL.Camera | null>(null);
+
+  const updateUser = trpc.user.updateUser.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      const request = {
+        onSuccess: async message => {},
+        onFail: message => {},
+      };
+      setLoading(false);
+      setProfileEditModal(false);
+      dispatch(getUserDetails(request));
+    },
+    onError: () => {
+      setLoading(false);
+      setProfileEditModal(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   // recenter the map to the current coordinates of user location
   const onPressMyLocationIcon = (
@@ -233,26 +253,9 @@ const Home = ({navigation}) => {
   const handleEditProfileName = () => {
     setLoading(true);
     const payload = {
-      name: profileName,
-      guid: userDetails?.guid,
+      name: profileName.trim(),
     };
-    const request = {
-      payload,
-      onSuccess: () => {
-        setLoading(false);
-        setProfileEditModal(false);
-        const req = {
-          onSuccess: () => {},
-          onFail: () => {},
-        };
-        setTimeout(() => dispatch(getUserDetails(req)), 500);
-      },
-      onFail: () => {
-        setLoading(false);
-        setProfileEditModal(false);
-      },
-    };
-    dispatch(editUserProfile(request));
+    updateUser.mutate({json: {body: payload}});
   };
 
   const handlePencil = () => {

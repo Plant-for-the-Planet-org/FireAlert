@@ -10,11 +10,12 @@ import {
   SafeAreaView,
   RefreshControl,
   TouchableOpacity,
-  KeyboardAvoidingView,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import React, {useCallback, useState} from 'react';
 import {useFocusEffect} from '@react-navigation/native';
+import {useToast} from 'react-native-toast-notifications';
 
 import {
   Switch,
@@ -42,19 +43,18 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
 } from '../../assets/svgs';
-import {editSite, getSites} from '../../redux/slices/sites/siteSlice';
 import {
   getAlertsPreferences,
   updateAlertPreferences,
 } from '../../redux/slices/alerts/alertSlice';
+import {editSite, getSites} from '../../redux/slices/sites/siteSlice';
 
+import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {trpc} from '../../services/trpc';
-import {useToast} from 'react-native-toast-notifications';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
