@@ -7,8 +7,6 @@ import { makeDetectionCoordinates } from "../../../utils/turf";
 
 
 
-// TODO: add detectionCoordinates in updateROProjectsAndSitesForOneUser procedures?
-// TODO: add updateSite logic in updateROProjectsAndSitesForOneUser procedure
 // TODO: test all three procedures
 export const periodicCallRouter = createTRPCRouter({
 
@@ -250,6 +248,7 @@ export const periodicCallRouter = createTRPCRouter({
                     for (const siteFromPP of sitesFromPPProject) {
                         const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP, geometry } = siteFromPP;
                         const radius = 'inside'
+                        const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
                         const siteFromDatabase = await ctx.prisma.site.findUnique({
                             where: {
                                 id: siteIdFromPP,
@@ -262,8 +261,22 @@ export const periodicCallRouter = createTRPCRouter({
                                     type: type,
                                     geometry: geometry,
                                     radius: radius,
+                                    detectionCoordinates: detectionCoordinates,
                                     userId: userId,
                                     projectId: projectId,
+                                    lastUpdated: siteLastUpdatedFromPP.date,
+                                },
+                            });
+                        }else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
+                            await ctx.prisma.site.update({
+                                where: {
+                                    id: siteIdFromPP
+                                },
+                                data: {
+                                    type: type,
+                                    geometry: geometry,
+                                    radius: radius,
+                                    detectionCoordinates: detectionCoordinates,
                                     lastUpdated: siteLastUpdatedFromPP.date,
                                 },
                             });

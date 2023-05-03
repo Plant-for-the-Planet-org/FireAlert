@@ -112,12 +112,34 @@ export const siteRouter = createTRPCRouter({
                 const sitesForProject = await ctx.prisma.site.findMany({
                     where: {
                         projectId: input.projectId,
+                    },
+                    select: {
+                        id: true,
+                        guid: true,
+                        name: true,
+                        type: true,
+                        geometry: true,
+                        radius: true,
+                        isMonitored: true,
+                        lastSynced: true,
+                        deletedAt: true,
+                        projectId: true,
+                        lastUpdated: true,
+                        userId: true,
                     }
                 })
                 return {
                     status: 'success',
                     data: sitesForProject,
-                }
+                };
+                // const sitesWithPointType = sitesForProject.filter((site) => site.type === "Point");
+                // const sitesWithPolygonType = sitesForProject.filter((site) => site.type === "Polygon");
+                // const sitesWithMultiPolygonType = sitesForProject.filter((site) => site.type === "MultiPolygon");
+                // return {
+                //     point: sitesWithPointType,
+                //     polygon: sitesWithPolygonType,
+                //     multiPolygon: sitesWithMultiPolygonType,
+                // };                
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
@@ -140,17 +162,39 @@ export const siteRouter = createTRPCRouter({
                 const sites = await ctx.prisma.site.findMany({
                     where: {
                         userId: userId,
+                    },
+                    select: {
+                        id: true,
+                        guid: true,
+                        name: true,
+                        type: true,
+                        geometry: true,
+                        radius: true,
+                        isMonitored: true,
+                        lastSynced: true,
+                        deletedAt: true,
+                        projectId: true,
+                        lastUpdated: true,
+                        userId: true,
                     }
                 })
                 return {
                     status: 'success',
                     data: sites,
-                }
+                };
+                // const sitesWithPointType = sites.filter((site) => site.type === "Point");
+                // const sitesWithPolygonType = sites.filter((site) => site.type === "Polygon");
+                // const sitesWithMultiPolygonType = sites.filter((site) => site.type === "MultiPolygon");
+                // return {
+                //     point: sitesWithPointType,
+                //     polygon: sitesWithPolygonType,
+                //     multiPolygon: sitesWithMultiPolygonType,
+                // };
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: `${error}`,                    
+                    message: `${error}`,
                 });
             }
         }),
@@ -192,7 +236,6 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-    //TODO: test updateSite
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input }) => {

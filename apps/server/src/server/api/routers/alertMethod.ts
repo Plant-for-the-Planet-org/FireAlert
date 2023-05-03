@@ -119,6 +119,14 @@ export const alertMethodRouter = createTRPCRouter({
                     status: 'success',
                     data: alertMethods,
                 };
+                // const alertMethodsWithMethodEmail = alertMethods.filter((alertMethod) => alertMethod.method === "email");
+                // const alertMethodsWithMethodSMS = alertMethods.filter((alertMethod) => alertMethod.method === "sms");
+                // const alertMethodsWithMethodDevice = alertMethods.filter((alertMethod) => alertMethod.method === "device");
+                // return {
+                //     email: alertMethodsWithMethodEmail,
+                //     sms: alertMethodsWithMethodSMS,
+                //     device: alertMethodsWithMethodDevice,
+                // };
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
