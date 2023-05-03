@@ -7,39 +7,45 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import React from 'react';
+import React, {useState} from 'react';
+import {useToast} from 'react-native-toast-notifications';
 
+import {trpc} from '../../services/trpc';
+import {useCountdown} from '../../hooks';
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {CustomButton, OtpInput} from '../../components';
-import {useAppDispatch, useCountdown} from '../../hooks';
-import {createAlertPreferences} from '../../redux/slices/alerts/alertSlice';
 
 const Otp = ({navigation, route}) => {
+  const [loading, setLoading] = useState<boolean>(false);
   const {verificationType, phoneInput, newEmail} = route.params;
 
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const count = useCountdown(30);
 
   const handleClose = () => navigation.goBack();
 
+  const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      setLoading(false);
+      navigation.navigate('Settings');
+    },
+    onError: () => {
+      setLoading(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
   const handleContinue = () => {
-    const req = {
-      payload: {
-        method: String(verificationType).toLowerCase(),
-        destination:
-          verificationType === 'Whatsapp' || verificationType === 'Sms'
-            ? phoneInput
-            : newEmail,
-        isVerified: true,
-        isEnabled: true,
-      },
-      onSuccess: () => {
-        navigation.navigate('Settings');
-      },
-      onFail: () => {},
+    setLoading(true);
+    const payload = {
+      method: String(verificationType).toLowerCase(),
+      destination: verificationType === 'Sms' ? phoneInput : newEmail,
+      isVerified: false,
+      isEnabled: false,
     };
-    dispatch(createAlertPreferences(req));
+    createAlertPreference.mutate({json: payload});
   };
 
   return (
@@ -67,6 +73,7 @@ const Otp = ({navigation, route}) => {
           </TouchableOpacity>
           <CustomButton
             title="Continue"
+            isLoading={loading}
             style={styles.btnContinue}
             titleStyle={styles.title}
             onPress={handleContinue}

@@ -13,9 +13,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
-import React, {useCallback, useState} from 'react';
 import {useFocusEffect} from '@react-navigation/native';
 import {useToast} from 'react-native-toast-notifications';
+import React, {useCallback, useMemo, useState} from 'react';
 
 import {
   Switch,
@@ -51,10 +51,11 @@ import {editSite, getSites} from '../../redux/slices/sites/siteSlice';
 
 import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
+import {useAppDispatch} from '../../hooks';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
-import {useAppDispatch, useAppSelector} from '../../hooks';
+import {categorizedRes} from '../../utils/categorizedData';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -116,8 +117,6 @@ const Settings = ({navigation}) => {
   const [siteId, setSiteId] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // const {sites} = useAppSelector(state => state.siteSlice);
-  const {alertListPreferences} = useAppSelector(state => state.alertSlice);
   const dispatch = useAppDispatch();
   const toast = useToast();
 
@@ -131,6 +130,10 @@ const Settings = ({navigation}) => {
         toast.show('something went wrong', {type: 'danger'});
       },
     });
+  const formattedAlertPreferences = useMemo(
+    () => categorizedRes(alertPreferences?.json?.data || [], 'method'),
+    [categorizedRes, alertPreferences],
+  );
 
   const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
     undefined,
@@ -150,6 +153,16 @@ const Settings = ({navigation}) => {
     onSuccess: () => {
       refetchSites();
       setSitesInfoModal(false);
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      refetchAlertPreferences();
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -243,18 +256,9 @@ const Settings = ({navigation}) => {
     dispatch(updateAlertPreferences(request));
   };
 
-  const handleRemoveEmail = guid => {
-    const request = {
-      params: () => {
-        guid;
-      },
-      onSuccess: () => {},
-      onFail: () => {},
-    };
-    // dispatch(deleteAlertPreferences(request));
+  const handleRemoveAlertMethod = alertMethodId => {
+    deleteAlertMethod.mutate({json: {alertMethodId}});
   };
-
-  const handleRemoveWhatsapp = guid => {};
 
   const handleSiteInformation = item => {
     setSelectedSiteInfo(item);
@@ -419,7 +423,7 @@ const Settings = ({navigation}) => {
               </TouchableOpacity>
             </View>
             <View style={styles.emailContainer}>
-              {alertListPreferences?.email?.map((item, i) => (
+              {formattedAlertPreferences?.email?.map((item, i) => (
                 <>
                   <View
                     key={`emails_${i}`}
@@ -446,63 +450,12 @@ const Settings = ({navigation}) => {
                       )}
                       <TouchableOpacity
                         style={{marginLeft: 20}}
-                        onPress={() => handleRemoveEmail(i)}>
+                        onPress={() => handleRemoveAlertMethod(item?.id)}>
                         <TrashSolidIcon />
                       </TouchableOpacity>
                     </View>
                   </View>
-                  {alertListPreferences?.email?.length - 1 !== i && (
-                    <View style={[styles.separator, {marginVertical: 12}]} />
-                  )}
-                </>
-              ))}
-            </View>
-          </View>
-          {/* whatsapp */}
-          <View style={styles.mySiteNameMainContainer}>
-            <View style={styles.mySiteNameSubContainer}>
-              <View style={styles.mobileContainer}>
-                <WhatsAppIcon />
-                <Text style={styles.smallHeading}>WhatsApp</Text>
-              </View>
-              <TouchableOpacity onPress={handleAddWhatsapp}>
-                <AddIcon />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.emailContainer}>
-              {alertListPreferences?.whatsapp?.map((item, i) => (
-                <>
-                  <View
-                    key={`emails_${i}`}
-                    style={[
-                      styles.emailSubContainer,
-                      {justifyContent: 'space-between'},
-                    ]}>
-                    <Text style={styles.myEmailName}>{item?.destination}</Text>
-                    <View style={styles.emailSubContainer}>
-                      {item?.isVerified ? (
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({guid: item.guid}, val)
-                          }
-                        />
-                      ) : (
-                        <View style={styles.verifiedChips}>
-                          <VerificationWarning />
-                          <Text style={styles.verifiedTxt}>
-                            Verification Required
-                          </Text>
-                        </View>
-                      )}
-                      <TouchableOpacity
-                        style={{marginLeft: 20}}
-                        onPress={() => handleRemoveWhatsapp(i)}>
-                        <TrashSolidIcon />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  {alertListPreferences?.whatsapp?.length - 1 !== i && (
+                  {formattedAlertPreferences?.email?.length - 1 !== i && (
                     <View style={[styles.separator, {marginVertical: 12}]} />
                   )}
                 </>
@@ -521,7 +474,7 @@ const Settings = ({navigation}) => {
               </TouchableOpacity>
             </View>
             <View style={styles.emailContainer}>
-              {alertListPreferences?.sms?.map((item, i) => (
+              {formattedAlertPreferences?.sms?.map((item, i) => (
                 <>
                   <View
                     key={`emails_${i}`}
@@ -548,12 +501,12 @@ const Settings = ({navigation}) => {
                       )}
                       <TouchableOpacity
                         style={{marginLeft: 20}}
-                        onPress={() => handleRemoveWhatsapp(item.guid)}>
+                        onPress={() => handleRemoveAlertMethod(item?.id)}>
                         <TrashSolidIcon />
                       </TouchableOpacity>
                     </View>
                   </View>
-                  {alertListPreferences?.sms?.length - 1 !== i && (
+                  {formattedAlertPreferences?.sms?.length - 1 !== i && (
                     <View style={[styles.separator, {marginVertical: 12}]} />
                   )}
                 </>
