@@ -117,6 +117,7 @@ const Settings = ({navigation}) => {
   const [siteName, setSiteName] = useState('');
   const [siteId, setSiteId] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
 
   const dispatch = useAppDispatch();
   const toast = useToast();
@@ -162,7 +163,11 @@ const Settings = ({navigation}) => {
 
   const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
+    onSuccess: data => {
+      const loadingArr = delAlertMethodArr.filter(
+        el => el !== data?.json?.data?.id,
+      );
+      setDelAlertMethodArr(loadingArr);
       refetchAlertPreferences();
     },
     onError: () => {
@@ -243,6 +248,7 @@ const Settings = ({navigation}) => {
   };
 
   const handleRemoveAlertMethod = alertMethodId => {
+    setDelAlertMethodArr(prevState => [...prevState, alertMethodId]);
     deleteAlertMethod.mutate({json: {alertMethodId}});
   };
 
@@ -274,14 +280,8 @@ const Settings = ({navigation}) => {
     });
   };
 
-  const handleAddWhatsapp = () => {
-    navigation.navigate('Verification', {
-      verificationType: 'Whatsapp',
-    });
-  };
-
-  const handleDeleteSite = siteId => {
-    deleteSite.mutate({json: {siteId}});
+  const handleDeleteSite = (id: string) => {
+    deleteSite.mutate({json: {siteId: id}});
   };
 
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
@@ -441,8 +441,16 @@ const Settings = ({navigation}) => {
                       )}
                       <TouchableOpacity
                         style={{marginLeft: 20}}
+                        disabled={delAlertMethodArr.includes(item?.id)}
                         onPress={() => handleRemoveAlertMethod(item?.id)}>
-                        <TrashSolidIcon />
+                        {delAlertMethodArr.includes(item?.id) ? (
+                          <ActivityIndicator
+                            size={'small'}
+                            color={Colors.PRIMARY}
+                          />
+                        ) : (
+                          <TrashSolidIcon />
+                        )}
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -490,10 +498,16 @@ const Settings = ({navigation}) => {
                           </Text>
                         </View>
                       )}
+
                       <TouchableOpacity
                         style={{marginLeft: 20}}
+                        disabled={delAlertMethodArr.includes(item?.id)}
                         onPress={() => handleRemoveAlertMethod(item?.id)}>
-                        <TrashSolidIcon />
+                        {delAlertMethodArr.includes(item?.id) ? (
+                          <ActivityIndicator color={Colors.PRIMARY} />
+                        ) : (
+                          <TrashSolidIcon />
+                        )}
                       </TouchableOpacity>
                     </View>
                   </View>
