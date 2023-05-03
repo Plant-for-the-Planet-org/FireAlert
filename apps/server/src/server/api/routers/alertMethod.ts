@@ -95,7 +95,7 @@ export const alertMethodRouter = createTRPCRouter({
                 console.log(error);
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
-                    message: `Something went wrong: ${error}`,
+                    message: `${error}`,
                 });
             }
         }),
@@ -120,10 +120,10 @@ export const alertMethodRouter = createTRPCRouter({
                     data: alertMethods,
                 };
             } catch (error) {
-                console.log(error);
+                console.log(error)
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: 'Alert methods not found',
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
                 });
             }
         }),
@@ -159,8 +159,8 @@ export const alertMethodRouter = createTRPCRouter({
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: 'Cannot get alert method',
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
                 });
             }
         }),
@@ -188,10 +188,10 @@ export const alertMethodRouter = createTRPCRouter({
                     data: updatedAlertMethod,
                 };
             } catch (error) {
-                console.log(error);
+                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: 'An error occurred while updating the alert method',
+                    message: `${error}`,
                 });
             }
         }),
@@ -218,10 +218,10 @@ export const alertMethodRouter = createTRPCRouter({
                     data: deletedAlertMethod,
                 };
             } catch (error) {
-                console.log(error);
+                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: 'An error occurred while deleting the alert method',
+                    message: `${error}`,
                 });
             }
         }),

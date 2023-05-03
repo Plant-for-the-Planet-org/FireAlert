@@ -1,0 +1,1 @@
+// Make sure to find the distance between the point where the fire is, compared to the site that User has subscribed to.
