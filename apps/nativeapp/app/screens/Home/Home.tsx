@@ -18,7 +18,7 @@ import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
 
@@ -63,6 +63,7 @@ import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {categorizedRes} from '../../utils/categorizedData';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -87,7 +88,6 @@ const Home = ({navigation}) => {
   const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
   const {userDetails} = useAppSelector(state => state.loginSlice);
-  const {sites} = useAppSelector(state => state.siteSlice);
   const {alerts} = useAppSelector(state => state.alertSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
@@ -113,9 +113,13 @@ const Home = ({navigation}) => {
 
   const [selectedAlert, setSelectedAlert] = useState({});
 
-  const {data} = trpc.site.getAllSites.useQuery(undefined, {
+  const {data: sites} = trpc.site.getAllSites.useQuery(undefined, {
     enabled: true,
   });
+  const formattedSites = useMemo(
+    () => categorizedRes(sites?.json?.data || [], 'type'),
+    [categorizedRes, sites],
+  );
 
   const toast = useToast();
   const dispatch = useAppDispatch();
@@ -323,16 +327,17 @@ const Home = ({navigation}) => {
   };
 
   const renderSelectedPoint = counter => {
-    const id = sites?.point[counter]?.guid;
-    const coordinate = JSON.parse(sites?.point[counter]?.geometry)?.coordinates;
+    const id = formattedSites?.point[counter]?.guid;
+    const coordinate = formattedSites?.point[counter]?.geometry?.coordinates;
     const title = `Longitude: ${coordinate[0]} Latitude: ${coordinate[1]}`;
+    console.log(title, 'title');
     return (
       <MapboxGL.PointAnnotation
         id={id}
         key={id}
         title={title}
         // onSelected={e => {
-        //   setSelectedAlert(sites?.point[counter]), console.log(e);
+        //   setSelectedAlert(formattedSites?.point[counter]), console.log(e);
         // }}
         coordinate={coordinate}>
         <SvgXml xml={active_marker} style={styles.markerImage} />
@@ -342,7 +347,7 @@ const Home = ({navigation}) => {
 
   const renderAnnotations = isAlert => {
     const items = [];
-    const arr = isAlert ? alerts : sites?.point;
+    const arr = isAlert ? alerts : formattedSites?.point;
 
     for (let i = 0; i < arr?.length; i++) {
       {
@@ -360,7 +365,7 @@ const Home = ({navigation}) => {
       shape={{
         type: 'FeatureCollection',
         features:
-          data?.json?.data.map((singleSite, i) => {
+          formattedSites?.polygon?.map((singleSite, i) => {
             return {
               type: 'Feature',
               properties: {id: singleSite?.guid},
@@ -373,6 +378,7 @@ const Home = ({navigation}) => {
       }}>
       <MapboxGL.FillLayer
         id={'polyFill'}
+        layerIndex={2}
         style={{
           fillColor: Colors.WHITE,
           fillOpacity: 0.4,

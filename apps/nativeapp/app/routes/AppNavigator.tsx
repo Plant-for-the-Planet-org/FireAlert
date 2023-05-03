@@ -5,19 +5,14 @@ import SplashScreen from 'react-native-splash-screen';
 import {NavigationContainer} from '@react-navigation/native';
 
 import {
-  updateIsLoggedIn,
-  updateUserDetails,
-  updateAccessToken,
   getUserDetails,
+  updateIsLoggedIn,
+  updateAccessToken,
 } from '../redux/slices/login/loginSlice';
-import {
-  getAlerts,
-  getAlertsPreferences,
-} from '../redux/slices/alerts/alertSlice';
 import {getData} from '../utils/localStorage';
 import {CommonStack, SignInStack} from './stack';
 import {useAppDispatch, useAppSelector} from '../hooks';
-import {getSites} from '../redux/slices/sites/siteSlice';
+import {getAlerts} from '../redux/slices/alerts/alertSlice';
 
 export default function AppNavigator() {
   const {isLoggedIn} = useAppSelector(state => state.loginSlice);
@@ -48,9 +43,7 @@ export default function AppNavigator() {
         onSuccess: () => {},
         onFail: () => {},
       };
-      dispatch(getSites(request));
       dispatch(getAlerts(request));
-      dispatch(getAlertsPreferences(request));
     }
   }, [isLoggedIn]);
 
