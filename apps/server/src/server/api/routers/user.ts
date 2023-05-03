@@ -1,8 +1,9 @@
 import { TRPCError } from '@trpc/server';
 import { updateUserSchema } from '../zodSchemas/user.schema';
-import { createTRPCRouter, protectedProcedure } from '../trpc';
+import { adminProcedure, createTRPCRouter, protectedProcedure } from '../trpc';
 import { getUserIdByToken } from '../../../utils/token';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
+import { makeDetectionCoordinates } from '../../../utils/turf';
 
 export const userRouter = createTRPCRouter({
     profile: protectedProcedure
@@ -78,6 +79,7 @@ export const userRouter = createTRPCRouter({
                             const { id: siteId, name: siteName, geometry: siteGeometry } = site;
                             const siteType = siteGeometry.type;
                             const siteRadius = 'inside'
+                            const detectionCoordinates = makeDetectionCoordinates(siteGeometry,siteRadius)
                             // Then create sites
                             await ctx.prisma.site.create({
                                 data: {
@@ -86,6 +88,7 @@ export const userRouter = createTRPCRouter({
                                     type: siteType,
                                     geometry: siteGeometry,
                                     radius: siteRadius,
+                                    detectionCoordinates: detectionCoordinates,
                                     userId: userId,
                                     projectId: projectId,
                                     lastUpdated: new Date(),
@@ -156,7 +159,7 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    getAllUsers: protectedProcedure // TODO: make this admin procedure
+    getAllUsers: adminProcedure
         .query(async ({ ctx }) => {
             try {
                 const users = await ctx.prisma.user.findMany();
@@ -165,10 +168,10 @@ export const userRouter = createTRPCRouter({
                     data: users,
                 };
             } catch (error) {
-                console.log(error);
+                console.log(error)
                 throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: 'Users Not found',
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
                 });
             }
         }),
@@ -201,10 +204,10 @@ export const userRouter = createTRPCRouter({
                 });
             }
         } catch (error) {
-            console.log(error);
+            console.log(error)
             throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'Cannot get user',
+                code: "INTERNAL_SERVER_ERROR",
+                message: `${error}`,
             });
         }
     }),
@@ -233,10 +236,10 @@ export const userRouter = createTRPCRouter({
                     data: updatedUser,
                 };
             } catch (error) {
-                console.log(error);
+                console.log(error)
                 throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: 'An error occurred while updating the user',
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
                 });
             }
         }),
@@ -265,10 +268,10 @@ export const userRouter = createTRPCRouter({
                 data: deletedUser,
             };
         } catch (error) {
-            console.log(error);
+            console.log(error)
             throw new TRPCError({
-                code: 'INTERNAL_SERVER_ERROR',
-                message: 'An error occured while deleting the user',
+                code: "INTERNAL_SERVER_ERROR",
+                message: `${error}`,
             });
         }
     }),

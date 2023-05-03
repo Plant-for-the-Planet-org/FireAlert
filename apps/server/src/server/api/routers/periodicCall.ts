@@ -2,11 +2,14 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, fetchAllProjectsWithSites } from "../../../utils/fetch"
 import { subtractDays } from "../../../utils/date"
+import { makeDetectionCoordinates } from "../../../utils/turf";
 
 
 
 
-
+// TODO: add detectionCoordinates in updateROProjectsAndSitesForOneUser procedures?
+// TODO: add updateSite logic in updateROProjectsAndSitesForOneUser procedure
+// TODO: test all three procedures
 export const periodicCallRouter = createTRPCRouter({
 
     updateROProjectsAndSitesForAllUsers: publicProcedure
@@ -101,6 +104,7 @@ export const periodicCallRouter = createTRPCRouter({
                                 id: siteIdFromPP,
                             }
                         })
+                        const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
                         if (!siteFromDatabase) {
                             // create a new site based on the info
                             await ctx.prisma.site.create({
@@ -108,6 +112,7 @@ export const periodicCallRouter = createTRPCRouter({
                                     type: type,
                                     geometry: geometry,
                                     radius: radius,
+                                    detectionCoordinates: detectionCoordinates,
                                     userId: tpoId,
                                     projectId: projectId,
                                     lastUpdated: siteLastUpdatedFromPP.date,
@@ -122,6 +127,7 @@ export const periodicCallRouter = createTRPCRouter({
                                     type: type,
                                     geometry: geometry,
                                     radius: radius,
+                                    detectionCoordinates: detectionCoordinates,
                                     lastUpdated: siteLastUpdatedFromPP.date,
                                 },
                             });
