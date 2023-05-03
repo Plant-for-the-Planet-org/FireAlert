@@ -99,9 +99,10 @@ const MY_SITES = [
 ];
 
 const RADIUS_ARR = [
-  {name: 'within 100 km', value: 100},
-  {name: 'within 10 km', value: 10},
-  {name: 'inside', value: null},
+  {name: 'within 100 km', value: 'within100km'},
+  {name: 'within 10 km', value: 'within10km'},
+  {name: 'within 5 km', value: 'within5km'},
+  {name: 'inside', value: 'inside'},
 ];
 
 const Settings = ({navigation}) => {
@@ -196,24 +197,9 @@ const Settings = ({navigation}) => {
       arr[filteredProjects].sites[filteredSites].radius = val;
       setProjects(arr);
     } else {
-      const payload = {
-        radius: val !== null ? `${val}km` : 'inside',
-        guid: pageXY?.siteId,
-      };
-      const request = {
-        payload,
-        onSuccess: () => {
-          const req = {
-            onSuccess: () => {},
-            onFail: () => {},
-          };
-          setTimeout(() => {
-            dispatch(getSites(req));
-          }, 500);
-        },
-        onFail: () => {},
-      };
-      dispatch(editSite(request));
+      updateSite.mutate({
+        json: {params: {siteId: pageXY?.siteId}, body: {radius: val}},
+      });
     }
     setDropDownModal(false);
   };
@@ -388,11 +374,16 @@ const Settings = ({navigation}) => {
               onPress={() => handleSiteInformation(item)}
               key={`mySites_${index}`}
               style={styles.mySiteNameContainer}>
-              <Text style={styles.mySiteName}>{item?.name || item?.guid}</Text>
+              <Text style={styles.mySiteName}>{item?.name || item?.id}</Text>
               <TouchableOpacity
-                onPress={evt => handleSiteRadius(evt, item?.guid)}
+                onPress={evt => handleSiteRadius(evt, item?.id)}
                 style={[styles.dropDownRadius]}>
-                <Text style={styles.siteRadius}>{item?.radius}</Text>
+                <Text style={styles.siteRadius}>
+                  {
+                    RADIUS_ARR.filter(({value}) => item?.radius === value)[0]
+                      ?.name
+                  }
+                </Text>
                 <DropdownArrow />
               </TouchableOpacity>
             </TouchableOpacity>

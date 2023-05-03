@@ -18,9 +18,9 @@ import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
-import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   LayerModal,
@@ -43,7 +43,6 @@ import {
   UserPlaceholder,
 } from '../../assets/svgs';
 import {
-  editUserProfile,
   getUserDetails,
   updateIsLoggedIn,
 } from '../../redux/slices/login/loginSlice';
@@ -61,9 +60,9 @@ import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
+import {categorizedRes} from '../../utils/categorizedData';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import {categorizedRes} from '../../utils/categorizedData';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -87,8 +86,8 @@ const ANIMATION_DURATION = 1000;
 const Home = ({navigation}) => {
   const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
-  const {userDetails} = useAppSelector(state => state.loginSlice);
   const {alerts} = useAppSelector(state => state.alertSlice);
+  const {userDetails} = useAppSelector(state => state.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
