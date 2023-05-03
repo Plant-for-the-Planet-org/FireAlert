@@ -29,17 +29,20 @@ interface FireAlert {
     daynight: string;
 }
 
+type TurfMultiPolygonOrPolygon = turf.helpers.Feature<turf.helpers.MultiPolygon, turf.helpers.Properties> | turf.helpers.Feature<turf.helpers.Polygon, turf.helpers.Properties>
+
+
 // TODO: Handle errors in the populateAlerts route
 export const alertRouter = createTRPCRouter({
 
     populateAlerts: publicProcedure
         .query(async ({ ctx }) => {
-            try{
+            try {
                 const today: Date = new Date();
                 const year: number = today.getFullYear();
                 const month: number = today.getMonth() + 1;
                 const day: number = today.getDate();
-    
+
                 const currentDate: string = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                 let sites: Site[] = [];
                 try {
@@ -57,7 +60,7 @@ export const alertRouter = createTRPCRouter({
                         message: "Error getting sites from database",
                     });
                 }
-    
+
                 for (const source of sources) {
                     const response = await fetch(
                         `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${env.MAP_KEY}/${source}/-180,-90,180,90/1/${currentDate}`
@@ -87,11 +90,15 @@ export const alertRouter = createTRPCRouter({
                         for (const record of records) {
                             const recordPoint = [parseFloat(record.longitude), parseFloat(record.latitude)];
                             const pt = turf.point(recordPoint);
-    
+                            let py: TurfMultiPolygonOrPolygon;
                             for (const site of sites) {
                                 const siteBufferedCoordinates = site.detectionCoordinates;
                                 try {
-                                    const py = turf.polygon(siteBufferedCoordinates);
+                                    if (site.type === 'MultiPolygon') {
+                                        py = turf.multiPolygon(siteBufferedCoordinates)
+                                    } else if (site.type === 'Polygon') {
+                                        py = turf.polygon(siteBufferedCoordinates);
+                                    }
                                     const isAlertInsideSite = turf.booleanPointInPolygon(pt, py);
                                     if (isAlertInsideSite) {
                                         async function existingAlertsForSite(siteId: string): Promise<Alert[] | false> {
@@ -116,7 +123,6 @@ export const alertRouter = createTRPCRouter({
                                             );
                                             // If there is an alert like that, update it, else create it.
                                             if (existingAlertToBeUpdated) {
-                                                console.log('updating alert')
                                                 await ctx.prisma.alert.update({
                                                     where: {
                                                         id: existingAlertToBeUpdated.id,
@@ -160,7 +166,7 @@ export const alertRouter = createTRPCRouter({
                     status: 'success',
                     message: 'successfully populated alerts'
                 }
-            }catch(error){
+            } catch (error) {
                 console.log(error);
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",

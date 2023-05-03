@@ -24,11 +24,13 @@ export function makeDetectionCoordinates(geometry:Geometry, radius: string):Dete
     }else if(radius === 'within100km'){
         radiusInMeters = 100000;
     }
-    if(geometry.type === 'Point'){
+    if (geometry.type === 'Point') {
         bufferCoordinates = turf.point(geometry.coordinates)
-    }else{
+    } else if (geometry.type === 'Polygon') {
         bufferCoordinates = turf.polygon(geometry.coordinates)
-    }    
+    } else if (geometry.type === 'MultiPolygon') {
+        bufferCoordinates = turf.multiPolygon(geometry.coordinates)
+    }
     const bufferOutput = turf.buffer(bufferCoordinates, radiusInMeters, { units: 'meters' });
     return bufferOutput.geometry.coordinates
 }
