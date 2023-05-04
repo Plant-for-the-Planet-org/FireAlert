@@ -49,7 +49,7 @@ const Otp = ({navigation, route}) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
         style={styles.container}>
@@ -61,16 +61,18 @@ const Otp = ({navigation, route}) => {
         </Text>
         <View style={styles.subContainer}>
           <OtpInput />
-          <TouchableOpacity style={styles.resendOtpBtn}>
+          <View style={styles.resendOtpBtn}>
             {count === 0 ? (
-              <Text style={[styles.resendOtp, styles.link]}>Resend Otp</Text>
+              <TouchableOpacity>
+                <Text style={[styles.resendOtp, styles.link]}>Resend Otp</Text>
+              </TouchableOpacity>
             ) : (
               <Text style={styles.resendOtp}>
                 Verification Code will expires in{' '}
                 <Text style={styles.link}>{count}</Text>
               </Text>
             )}
-          </TouchableOpacity>
+          </View>
           <CustomButton
             title="Continue"
             isLoading={loading}
@@ -80,7 +82,7 @@ const Otp = ({navigation, route}) => {
           />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -125,7 +127,7 @@ const styles = StyleSheet.create({
   },
   crossContainer: {
     width: 25,
-    marginTop: 20,
+    marginTop: 60,
     marginHorizontal: 40,
   },
   link: {

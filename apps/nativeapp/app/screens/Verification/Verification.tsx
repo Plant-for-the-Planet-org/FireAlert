@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import React, {useState} from 'react';
+import {useToast} from 'react-native-toast-notifications';
 
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
@@ -19,20 +20,28 @@ const IS_ANDROID = Platform.OS === 'android';
 
 const Verification = ({navigation, route}) => {
   const {verificationType} = route.params;
-  const [newEmail, setNewEmail] = useState('');
-  const [verifyingLoader, setVerifyingLoader] = useState(false);
-  const [verified, setVerified] = useState(false);
-  const [phoneInput, setPhoneInput] = useState(null);
+  const [newEmail, setNewEmail] = useState<string>('');
+  const [verified, setVerified] = useState<boolean>(false);
+  const [isValidNum, setIsValidNum] = useState<boolean>(false);
+  const [phoneInput, setPhoneInput] = useState<string | null>(null);
+  const [verifyingLoader, setVerifyingLoader] = useState<boolean>(false);
+
+  const toast = useToast();
 
   const handleClose = () => navigation.goBack();
 
   const handleVerify = () => {
-    if (verificationType === 'Whatsapp' || verificationType === 'Sms') {
+    if (verificationType === 'Sms') {
+      if (!isValidNum) {
+        return toast.show('Incorrect Number', {type: 'warning'});
+      }
       navigation.navigate('Otp', {verificationType, phoneInput});
     } else {
       navigation.navigate('Otp', {verificationType, newEmail});
     }
   };
+
+  console.log(verificationType);
 
   const handleEmail = (emailText: string) => {
     setVerifyingLoader(true);
@@ -50,7 +59,7 @@ const Verification = ({navigation, route}) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle={'dark-content'} backgroundColor={Colors.WHITE} />
       <KeyboardAvoidingView
         {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
@@ -64,6 +73,7 @@ const Verification = ({navigation, route}) => {
         <View style={styles.subContainer}>
           {verificationType === 'Whatsapp' || verificationType === 'Sms' ? (
             <PhoneInput
+              valid={setIsValidNum}
               inputValue={setPhoneInput}
               containerStyle={styles.containerStyle}
             />
@@ -80,10 +90,11 @@ const Verification = ({navigation, route}) => {
             onPress={handleVerify}
             style={styles.btnContinue}
             titleStyle={styles.title}
+            disabled={verificationType === 'Email' && !verified}
           />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -97,7 +108,6 @@ const styles = StyleSheet.create({
   },
   subContainer: {
     flex: 1,
-    justifyContent: 'space-between',
   },
   btnContinue: {
     position: 'absolute',
@@ -117,7 +127,7 @@ const styles = StyleSheet.create({
   },
   crossContainer: {
     width: 25,
-    marginTop: 20,
+    marginTop: 60,
     marginHorizontal: 40,
     // alignSelf: 'flex-end',
   },
