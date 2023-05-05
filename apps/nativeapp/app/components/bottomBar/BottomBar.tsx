@@ -64,12 +64,14 @@ const getPath = (): string => {
   const right = shape
     .line()
     .x(d => d[0])
-    .y(d => d[1])([
-    [width + 5 + tabWidth, 0],
-    [width * 2 + tabWidth, 0],
-    [width * 2 + tabWidth, tabbarHeight],
-    [0, tabbarHeight],
-    [0, 0],
+    .y(d => d[1])
+    .curve(shape.curveBasis)([
+    [width * 2 + tabWidth - 25, 0],
+    [width * 2 + tabWidth + 15, 0],
+    [width * 2 + tabWidth, tabbarHeight + width],
+    [0, tabbarHeight + width],
+    [-15, 0],
+    [25, 0],
   ]);
   return `${left} ${tab} ${right}`;
 };

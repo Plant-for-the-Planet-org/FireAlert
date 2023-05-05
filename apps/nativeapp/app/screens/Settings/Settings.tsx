@@ -365,30 +365,32 @@ const Settings = ({navigation}) => {
           ))}
         </View>
         {/* my sites */}
-        <View style={[styles.mySites, styles.commonPadding]}>
-          <View style={styles.mySitesHead}>
-            <Text style={styles.mainHeading}>My Sites</Text>
-          </View>
-          {sites?.json?.data?.map((item, index) => (
-            <TouchableOpacity
-              onPress={() => handleSiteInformation(item)}
-              key={`mySites_${index}`}
-              style={styles.mySiteNameContainer}>
-              <Text style={styles.mySiteName}>{item?.name || item?.id}</Text>
+        {sites?.json?.data?.length > 0 ? (
+          <View style={[styles.mySites, styles.commonPadding]}>
+            <View style={styles.mySitesHead}>
+              <Text style={styles.mainHeading}>My Sites</Text>
+            </View>
+            {sites?.json?.data?.map((item, index) => (
               <TouchableOpacity
-                onPress={evt => handleSiteRadius(evt, item?.id)}
-                style={[styles.dropDownRadius]}>
-                <Text style={styles.siteRadius}>
-                  {
-                    RADIUS_ARR.filter(({value}) => item?.radius === value)[0]
-                      ?.name
-                  }
-                </Text>
-                <DropdownArrow />
+                onPress={() => handleSiteInformation(item)}
+                key={`mySites_${index}`}
+                style={styles.mySiteNameContainer}>
+                <Text style={styles.mySiteName}>{item?.name || item?.id}</Text>
+                <TouchableOpacity
+                  onPress={evt => handleSiteRadius(evt, item?.id)}
+                  style={[styles.dropDownRadius]}>
+                  <Text style={styles.siteRadius}>
+                    {
+                      RADIUS_ARR.filter(({value}) => item?.radius === value)[0]
+                        ?.name
+                    }
+                  </Text>
+                  <DropdownArrow />
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : null}
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>

@@ -478,7 +478,7 @@ const Home = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon fill={Colors.TEXT_COLOR} />
+        <LayerIcon />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
