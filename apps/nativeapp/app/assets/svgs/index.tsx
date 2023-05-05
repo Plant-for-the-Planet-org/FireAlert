@@ -13,6 +13,7 @@ import MyLocIcon from './myLocIcon.jsx';
 import PhoneIcon from './phoneIcon.jsx';
 import EmailIcon from './emailIcon.jsx';
 import GlobeIcon from './globeIcon.jsx';
+import LayerCheck from './layerCheck.jsx';
 import LogoutIcon from './logoutIcon.jsx';
 import PlanetLogo from './planetLogo.jsx';
 import {polygonIcon} from './polygonIcon';
@@ -54,6 +55,7 @@ export {
   LayerIcon,
   MyLocIcon,
   GlobeIcon,
+  LayerCheck,
   PencilIcon,
   PlanetLogo,
   LogoutIcon,

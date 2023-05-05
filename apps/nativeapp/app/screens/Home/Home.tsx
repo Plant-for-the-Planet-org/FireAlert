@@ -469,7 +469,7 @@ const Home = ({navigation}) => {
             style={styles.userAvatar}
           />
         ) : (
-          <UserPlaceholder width={30} height={30} />
+          <UserPlaceholder />
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -478,7 +478,7 @@ const Home = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={20} height={20} fill={Colors.TEXT_COLOR} />
+        <LayerIcon fill={Colors.TEXT_COLOR} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -616,38 +616,34 @@ const styles = StyleSheet.create({
   },
   myLocationIcon: {
     right: 16,
-    width: 45,
-    height: 45,
     borderWidth: 1,
     borderRadius: 100,
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 72 : 92,
+    bottom: IS_ANDROID ? 72 : 101,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   layerIcon: {
     right: 16,
-    width: 45,
-    height: 45,
     borderWidth: 1,
     borderRadius: 100,
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: 152,
+    top: 108,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   avatarContainer: {
-    width: 45,
-    height: 45,
-    top: 90,
+    width: 32,
+    height: 32,
+    top: 66,
   },
   userAvatar: {
-    width: 45,
-    height: 45,
+    width: 31,
+    height: 31,
     borderRadius: 100,
   },
   modalContainer: {

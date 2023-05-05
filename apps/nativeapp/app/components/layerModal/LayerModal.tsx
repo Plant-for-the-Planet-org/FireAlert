@@ -1,7 +1,7 @@
 import React, {memo} from 'react';
 import {Modal, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
-import {MyLocIcon} from '../../assets/svgs';
+import {LayerCheck} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {SELECT_MAP_LAYER} from '../../global/actions/types';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
@@ -35,8 +35,18 @@ const LayerModal = ({visible, onRequestClose = () => {}}: ILayerModalProps) => {
               <TouchableOpacity
                 onPress={() => selectMapLayer(item?.value)}
                 style={styles.layerTextContainer}>
-                <Text style={styles.layerText}>{item?.title}</Text>
-                {item?.value === state && <MyLocIcon width={20} height={20} />}
+                <Text
+                  style={[
+                    styles.layerText,
+                    item?.value === state && {
+                      fontFamily: Typography.FONT_FAMILY_BOLD,
+
+                      color: Colors.GRADIENT_PRIMARY,
+                    },
+                  ]}>
+                  {item?.title}
+                </Text>
+                {item?.value === state && <LayerCheck />}
               </TouchableOpacity>
               {layers.length - 1 !== index && <View style={styles.separator} />}
             </View>
@@ -55,11 +65,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   subContainer: {
-    top: 150,
-    right: 54,
-    width: '50%',
-    borderRadius: 10,
+    top: 108,
+    right: 62,
+    width: 169,
+    borderRadius: 12,
     backgroundColor: Colors.WHITE,
+    paddingVertical: 6,
     // shadow
     shadowColor: '#000',
     shadowOffset: {
@@ -72,19 +83,19 @@ const styles = StyleSheet.create({
   },
   layerText: {
     color: Colors.TEXT_COLOR,
-    fontSize: Typography.FONT_SIZE_16,
+    fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
   separator: {
-    height: 1,
-    width: '100%',
-    backgroundColor: Colors.GRAY_LIGHT,
+    height: 0.4,
+    marginHorizontal: 16,
+    backgroundColor: '#BDBDBD',
   },
   layerTextContainer: {
-    padding: 10,
+    padding: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     justifyContent: 'space-between',
   },
 });

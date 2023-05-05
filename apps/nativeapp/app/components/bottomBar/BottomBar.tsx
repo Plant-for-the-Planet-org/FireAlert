@@ -26,8 +26,8 @@ import {plusIcon} from '../../assets/svgs/plusIcon';
 let {width, height} = Dimensions.get('window');
 const IS_ANDROID = Platform.OS === 'android';
 
-const buttonWidth = 64;
-const buttonGutter = 10;
+const buttonWidth = 60;
+const buttonGutter = 12;
 const extraHeight = IS_ANDROID ? 0 : 20;
 const tabbarHeight = 60 + extraHeight;
 
@@ -50,14 +50,14 @@ const getPath = (): string => {
     .y(d => d[1])
     .curve(shape.curveBasis)([
     [width - 5, 0],
-    [width, 0],
-    [width + 5, 5],
+    [width + 5, -5],
+    [width + 5, 0],
     [width + 7, curveHeight / 2],
     [width + tabWidth / 2 - 16, curveHeight],
     [width + tabWidth / 2 + 16, curveHeight],
     [width + tabWidth - 7, curveHeight / 2],
-    [width + tabWidth - 5, 5],
-    [width + tabWidth, 0],
+    [width + tabWidth - 5, 0],
+    [width + tabWidth - 5, -5],
     [width + 5 + tabWidth, 0],
   ]);
 
@@ -107,7 +107,7 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
 
   return (
     <TouchableOpacity
-      activeOpacity={0.9}
+      activeOpacity={1}
       onPress={onReqClose}
       style={styles.addOptionsParent}>
       <View style={styles.addOptionsContainer}>
@@ -124,9 +124,6 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
                   </View>
                   <Text style={styles.text}>{option.title}</Text>
                 </TouchableOpacity>
-                {addOptions.length - 1 !== index && (
-                  <View style={styles.separator} />
-                )}
               </View>
             ))
           : []}
@@ -182,13 +179,13 @@ const BottomBar = ({...props}) => {
         <Svg
           width={width * 2 + tabWidth}
           height={tabbarHeight}
-          style={styles.bottomBar}
-          strokeWidth="1"
-          stroke={Colors.GRAY_LIGHT}>
+          style={styles.bottomBar}>
           <Path {...{d}} fill={Colors.WHITE} />
         </Svg>
         {/* add button */}
-        <TouchableOpacity style={styles.addButton} onPress={() => onAddPress()}>
+        <TouchableOpacity
+          style={[styles.addButton, styles.boxShadow]}
+          onPress={() => onAddPress()}>
           <Animated.View style={animatedScaleStyle}>
             <SvgXml xml={plusIcon} />
           </Animated.View>
@@ -199,18 +196,15 @@ const BottomBar = ({...props}) => {
           style={[styles.left, styles.tabButton]}
           onPress={handleMap}>
           <View style={styles.tabIconCon}>
-            <MapIcon
-              fill={selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
-            />
+            <MapIcon fill={selected === 0 ? Colors.DEEP_PRIMARY : '#828282'} />
             <Text
               style={[
                 styles.tabText,
                 {
-                  color:
-                    selected === 0 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
+                  color: selected === 0 ? Colors.DEEP_PRIMARY : '#828282',
                 },
               ]}>
-              Map
+              Explore
             </Text>
           </View>
         </TouchableOpacity>
@@ -220,15 +214,12 @@ const BottomBar = ({...props}) => {
           style={[styles.right, styles.tabButton]}
           onPress={handleList}>
           <View style={styles.tabIconCon}>
-            <ListIcon
-              fill={selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR}
-            />
+            <ListIcon fill={selected === 1 ? Colors.DEEP_PRIMARY : '#828282'} />
             <Text
               style={[
                 styles.tabText,
                 {
-                  color:
-                    selected === 1 ? Colors.DEEP_PRIMARY : Colors.TEXT_COLOR,
+                  color: selected === 1 ? Colors.DEEP_PRIMARY : '#828282',
                 },
               ]}>
               Settings
@@ -305,7 +296,7 @@ const styles = StyleSheet.create({
     width: buttonWidth,
     height: buttonWidth,
     borderRadius: 60,
-    backgroundColor: Colors.DEEP_PRIMARY,
+    backgroundColor: Colors.WHITE,
     left: width + buttonGutter,
     elevation: 4,
     justifyContent: 'center',
@@ -313,7 +304,6 @@ const styles = StyleSheet.create({
   },
   addOptionsParent: {
     position: 'absolute',
-    bottom: tabbarHeight + 42,
     left: 0,
     right: 0,
     bottom: 0,
@@ -322,32 +312,39 @@ const styles = StyleSheet.create({
     height,
   },
   addOptionsContainer: {
-    width: 257,
+    width: 229,
     borderRadius: 14,
     marginBottom: 130,
     backgroundColor: Colors.WHITE,
     justifyContent: 'center',
     alignItems: 'flex-start',
     elevation: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
   },
   addButtonOptionWrap: {
     borderRadius: 8,
   },
   addButtonOption: {
+    marginVertical: 10,
+    backgroundColor: Colors.GRADIENT_PRIMARY + '24',
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    width: 193,
+    height: 44,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.GRADIENT_PRIMARY + '14',
   },
   icon: {
     height: 48,
     width: 48,
-    marginRight: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
-    fontSize: Typography.FONT_SIZE_18,
+    fontSize: Typography.FONT_SIZE_16,
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     color: Colors.TEXT_COLOR,
   },
@@ -355,5 +352,16 @@ const styles = StyleSheet.create({
     height: 1,
     width: 257,
     backgroundColor: Colors.GRAY_LIGHT,
+  },
+  boxShadow: {
+    // shadow
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4.62,
+    elevation: 5,
   },
 });
