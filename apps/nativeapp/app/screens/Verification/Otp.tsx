@@ -3,7 +3,6 @@ import {
   View,
   Platform,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';

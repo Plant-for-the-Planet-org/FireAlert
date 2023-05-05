@@ -4,7 +4,6 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
@@ -40,8 +39,6 @@ const Verification = ({navigation, route}) => {
       navigation.navigate('Otp', {verificationType, newEmail});
     }
   };
-
-  console.log(verificationType);
 
   const handleEmail = (emailText: string) => {
     setVerifyingLoader(true);
