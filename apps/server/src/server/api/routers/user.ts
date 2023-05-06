@@ -34,6 +34,15 @@ export const userRouter = createTRPCRouter({
                             lastLogin: new Date(),
                         }
                     })
+                    await ctx.prisma.alertMethod.create({
+                        data: {
+                            method: 'email',
+                            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
+                            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+                            isEnabled: false,
+                            userId: user.id
+                        }
+                    })
                     return {
                         id: user.id,
                         guid: user.guid,
@@ -60,6 +69,15 @@ export const userRouter = createTRPCRouter({
                             email: ctx.token["https://app.plant-for-the-planet.org/email"],
                             emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
                             lastLogin: new Date(),
+                        }
+                    })
+                    await ctx.prisma.alertMethod.create({
+                        data: {
+                            method: 'email',
+                            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
+                            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+                            isEnabled: false,
+                            userId: createdUser.id
                         }
                     })
                     // Then add all the projects and sites associated with that user in the database
@@ -115,6 +133,15 @@ export const userRouter = createTRPCRouter({
                             email: ctx.token["https://app.plant-for-the-planet.org/email"],
                             emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
                             lastLogin: new Date(),
+                        }
+                    })
+                    await ctx.prisma.alertMethod.create({
+                        data: {
+                            method: 'email',
+                            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
+                            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+                            isEnabled: false,
+                            userId: user.id
                         }
                     })
                     return {
