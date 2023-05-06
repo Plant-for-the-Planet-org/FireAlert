@@ -11,7 +11,10 @@ CREATE TYPE "AlertMethodDeviceType" AS ENUM ('ios', 'android');
 CREATE TYPE "SiteType" AS ENUM ('Point', 'Polygon', 'MultiPolygon');
 
 -- CreateEnum
-CREATE TYPE "SiteRadius" AS ENUM ('inside', 'within5km', 'within10km', 'within100km');
+CREATE TYPE "AlertDetectedBy" AS ENUM ('MODIS', 'VIIRS', 'LANDSAT', 'GEOSTATIONARY');
+
+-- CreateEnum
+CREATE TYPE "AlertConfidence" AS ENUM ('high', 'medium', 'low');
 
 -- CreateTable
 CREATE TABLE "Account" (
@@ -49,7 +52,7 @@ CREATE TABLE "User" (
     "name" TEXT,
     "email" TEXT,
     "emailVerified" BOOLEAN,
-    "detectionMethod" TEXT,
+    "useGeostationary" BOOLEAN NOT NULL DEFAULT false,
     "isPlanetRO" BOOLEAN,
     "image" TEXT,
     "avatar" TEXT,
@@ -90,10 +93,11 @@ CREATE TABLE "Site" (
     "id" TEXT NOT NULL,
     "guid" TEXT,
     "name" TEXT,
-    "type" "SiteType",
-    "geometry" JSONB,
-    "radius" "SiteRadius" DEFAULT 'inside',
-    "isMonitored" BOOLEAN DEFAULT true,
+    "type" "SiteType" NOT NULL,
+    "geometry" JSONB NOT NULL,
+    "detectionCoordinates" JSONB NOT NULL,
+    "radius" INTEGER NOT NULL DEFAULT 0,
+    "isMonitored" BOOLEAN NOT NULL DEFAULT true,
     "lastSynced" TIMESTAMP(3),
     "deletedAt" TIMESTAMP(3),
     "projectId" TEXT,
@@ -117,15 +121,15 @@ CREATE TABLE "Project" (
 -- CreateTable
 CREATE TABLE "Alert" (
     "id" TEXT NOT NULL,
-    "guid" TEXT,
-    "type" TEXT,
-    "eventDate" TIMESTAMP(3),
-    "detectedBy" TEXT,
-    "confidence" INTEGER,
-    "latitude" DOUBLE PRECISION,
-    "longitude" DOUBLE PRECISION,
-    "frp" DOUBLE PRECISION,
-    "isRead" BOOLEAN,
+    "guid" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "eventDate" TEXT NOT NULL,
+    "detectedBy" "AlertDetectedBy" NOT NULL,
+    "confidence" "AlertConfidence" NOT NULL,
+    "latitude" DOUBLE PRECISION NOT NULL,
+    "longitude" DOUBLE PRECISION NOT NULL,
+    "frp" DOUBLE PRECISION NOT NULL,
+    "isDelivered" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
     "siteId" TEXT NOT NULL,
 
@@ -152,6 +156,9 @@ CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationTok
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AlertMethod_guid_key" ON "AlertMethod"("guid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AlertMethod_destination_key" ON "AlertMethod"("destination");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Site_guid_key" ON "Site"("guid");
