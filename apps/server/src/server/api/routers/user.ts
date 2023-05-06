@@ -34,6 +34,15 @@ export const userRouter = createTRPCRouter({
                             lastLogin: new Date(),
                         }
                     })
+                    await ctx.prisma.alertMethod.create({
+                        data: {
+                            method: 'email',
+                            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
+                            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+                            isEnabled: false,
+                            userId: user.id
+                        }
+                    })
                     return {
                         id: user.id,
                         guid: user.guid,
@@ -42,6 +51,7 @@ export const userRouter = createTRPCRouter({
                         avatar: user.avatar,
                         isPlanetRO: user.isPlanetRO,
                         lastLogin: user.lastLogin,
+                        useGeostationary: user.useGeostationary
                     };
                 }
                 // Else, create user, create project, and create sites associated with that user in the pp.
@@ -62,6 +72,15 @@ export const userRouter = createTRPCRouter({
                             lastLogin: new Date(),
                         }
                     })
+                    await ctx.prisma.alertMethod.create({
+                        data: {
+                            method: 'email',
+                            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
+                            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+                            isEnabled: false,
+                            userId: createdUser.id
+                        }
+                    })
                     // Then add all the projects and sites associated with that user in the database
                     for (const project of projects) {
                         const { id: projectId, name: projectName, slug: projectSlug, sites } = project.properties;
@@ -78,7 +97,7 @@ export const userRouter = createTRPCRouter({
                         for (const site of sites) {
                             const { id: siteId, name: siteName, geometry: siteGeometry } = site;
                             const siteType = siteGeometry.type;
-                            const siteRadius = 'inside'
+                            const siteRadius = 0;
                             const detectionCoordinates = makeDetectionCoordinates(siteGeometry,siteRadius)
                             // Then create sites
                             await ctx.prisma.site.create({
@@ -104,6 +123,8 @@ export const userRouter = createTRPCRouter({
                         avatar: createdUser.avatar,
                         isPlanetRO: createdUser.isPlanetRO,
                         lastLogin: createdUser.lastLogin,
+                        useGeostationary: createdUser.useGeostationary
+
                     };
                 } else {
                     // When new user is planetRO but doesn't have any projects
@@ -117,6 +138,15 @@ export const userRouter = createTRPCRouter({
                             lastLogin: new Date(),
                         }
                     })
+                    await ctx.prisma.alertMethod.create({
+                        data: {
+                            method: 'email',
+                            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
+                            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+                            isEnabled: false,
+                            userId: user.id
+                        }
+                    })
                     return {
                         id: user.id,
                         guid: user.guid,
@@ -125,6 +155,7 @@ export const userRouter = createTRPCRouter({
                         avatar: user.avatar,
                         isPlanetRO: user.isPlanetRO,
                         lastLogin: user.lastLogin,
+                        useGeostationary: user.useGeostationary
                     };
                 }
             } else {
@@ -155,6 +186,7 @@ export const userRouter = createTRPCRouter({
                     avatar: user.avatar,
                     isPlanetRO: user.isPlanetRO,
                     lastLogin: user.lastLogin,
+                    useGeostationary: user.useGeostationary
                 };
             }
         }),
@@ -194,9 +226,15 @@ export const userRouter = createTRPCRouter({
             });
             if (user) {
                 return {
-                    status: 'success',
-                    data: user,
-                };
+                    id: user.id,
+                    guid: user.guid,
+                    email: user.email,
+                    name: user.name,
+                    avatar: user.avatar,
+                    isPlanetRO: user.isPlanetRO,
+                    lastLogin: user.lastLogin,
+                    useGeostationary: user.useGeostationary
+                };;
             } else {
                 throw new TRPCError({
                     code: 'NOT_FOUND',
@@ -232,9 +270,15 @@ export const userRouter = createTRPCRouter({
                     data: input.body,
                 });
                 return {
-                    status: 'success',
-                    data: updatedUser,
-                };
+                    id: updatedUser.id,
+                    guid: updatedUser.guid,
+                    email: updatedUser.email,
+                    name: updatedUser.name,
+                    avatar: updatedUser.avatar,
+                    isPlanetRO: updatedUser.isPlanetRO,
+                    lastLogin: updatedUser.lastLogin,
+                    useGeostationary: updatedUser.useGeostationary
+                };;
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
@@ -265,7 +309,7 @@ export const userRouter = createTRPCRouter({
             });
             return {
                 status: 'success',
-                data: deletedUser,
+                message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 14 days`,
             };
         } catch (error) {
             console.log(error)

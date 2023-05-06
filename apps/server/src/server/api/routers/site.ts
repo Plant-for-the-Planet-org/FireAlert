@@ -58,10 +58,9 @@ const checkIfPlanetROSite = async ({ ctx, siteId }: checkIfPlanetROSiteArgs) => 
         },
     });
     if (siteToCRUD?.projectId) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "This site can only be deleted from planet web app",
-        });
+        return true
+    } else {
+        return false
     }
 }
 
@@ -178,18 +177,31 @@ export const siteRouter = createTRPCRouter({
                         userId: true,
                     }
                 })
+
+                const sitesWithProjectName = await Promise.all(sites.map(async (site) => {
+                    if (site.projectId) {
+                        const project = await ctx.prisma.project.findFirst({
+                            where: {
+                                id: site.projectId
+                            },
+                            select: {
+                                name: true
+                            }
+                        })
+                        const projectName = project?.name;
+                        return {
+                            ...site,
+                            projectName
+                        };
+                    }
+                    return {
+                        ...site,
+                    };
+                }));
                 return {
                     status: 'success',
-                    data: sites,
+                    data: sitesWithProjectName,
                 };
-                // const sitesWithPointType = sites.filter((site) => site.type === "Point");
-                // const sitesWithPolygonType = sites.filter((site) => site.type === "Polygon");
-                // const sitesWithMultiPolygonType = sites.filter((site) => site.type === "MultiPolygon");
-                // return {
-                //     point: sitesWithPointType,
-                //     polygon: sitesWithPolygonType,
-                //     multiPolygon: sitesWithMultiPolygonType,
-                // };
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
@@ -248,7 +260,7 @@ export const siteRouter = createTRPCRouter({
             }
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
-                await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
+                const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
 
                 const site = await ctx.prisma.site.findUnique({
                     where: {
@@ -295,6 +307,10 @@ export const siteRouter = createTRPCRouter({
                             message: "Invalid input: 'type' property must match the 'type' property of the 'geometry' object",
                         });
                     }
+                }
+                if (isPlanetROSite) {
+                    const { geometry, type, name, projectId, ...rest } = updatedData;
+                    updatedData = rest;
                 }
                 // If none of them is there, then just update:
                 const updatedSite = await ctx.prisma.site.update({

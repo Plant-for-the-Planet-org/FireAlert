@@ -10,7 +10,8 @@ import { makeDetectionCoordinates } from "../../../utils/turf";
 // TODO: test all three procedures
 export const periodicCallRouter = createTRPCRouter({
 
-    updateROProjectsAndSitesForAllUsers: publicProcedure
+    // TODO: debug the variables when fetched from pp
+    syncProjectsAndSitesForAllROUsers: publicProcedure
         .mutation(async ({ ctx }) => {
             // Get all the projects from PP
             const projectsFromPP = await fetchAllProjectsWithSites()
@@ -95,19 +96,20 @@ export const periodicCallRouter = createTRPCRouter({
                     }
                     // Loop through sites in PP and update or create new sites in DB
                     for (const siteFromPP of sitesFromPPProject) {
-                        const { geometry, type, radius } = siteFromPP;
+                        const { geometry} = siteFromPP;
                         const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = siteFromPP.properties;
                         const siteFromDatabase = await ctx.prisma.site.findUnique({
                             where: {
                                 id: siteIdFromPP,
                             }
                         })
+                        const radius = 0
                         const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
                         if (!siteFromDatabase) {
                             // create a new site based on the info
                             await ctx.prisma.site.create({
                                 data: {
-                                    type: type,
+                                    type: geometry.type,
                                     geometry: geometry,
                                     radius: radius,
                                     detectionCoordinates: detectionCoordinates,
@@ -122,7 +124,7 @@ export const periodicCallRouter = createTRPCRouter({
                                     id: siteIdFromPP
                                 },
                                 data: {
-                                    type: type,
+                                    type: geometry.type,
                                     geometry: geometry,
                                     radius: radius,
                                     detectionCoordinates: detectionCoordinates,
@@ -183,7 +185,7 @@ export const periodicCallRouter = createTRPCRouter({
             return { success: true };
         }),
 
-    updateProjectsAndSiteForOneUser: protectedProcedure
+    syncProjectsAndSiteForOneROUser: protectedProcedure
         .mutation(async ({ ctx }) => {
             // Get the access token
             const access_token = ctx.token.access_token
@@ -247,7 +249,8 @@ export const periodicCallRouter = createTRPCRouter({
                     // Similarly for each site, find if there are sites that are missing in db, if yes, add that site to db
                     for (const siteFromPP of sitesFromPPProject) {
                         const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP, geometry } = siteFromPP;
-                        const radius = 'inside'
+                        const radius = 0
+                        const type = geometry.type
                         const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
                         const siteFromDatabase = await ctx.prisma.site.findUnique({
                             where: {

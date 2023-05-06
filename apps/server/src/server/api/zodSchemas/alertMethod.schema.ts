@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import phone from 'phone'
 
 export const createAlertMethodSchema = z.object({
     method: z.enum(["email", "sms", "device"]),
@@ -8,12 +9,20 @@ export const createAlertMethodSchema = z.object({
     isVerified: z.boolean().optional(),
     isEnabled: z.boolean().optional(),
     deviceType: z.enum(["ios", "android"]).optional(),
+}).refine((obj) => {
+    if (obj.method === 'sms') {
+        // Check if the destination is a valid phone number in E.164 format
+        const {isValid} = phone(obj.destination)
+        return isValid;
+    }
+    return true; // Return true for other methods
+}, {
+    message: 'Must be a valid phone number in E.164 format when the method is "sms"'
 })
 
-export const sendVerificationSchema = z.object({
+export const verifySchema = z.object({
     alertMethodId: z.string(),
-    method: z.string(),
-    destination: z.string(),
+    notificationToken: z.string()
 })
 
 export const params = z.object({

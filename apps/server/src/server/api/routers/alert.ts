@@ -10,9 +10,9 @@ import { env } from "../../../env.mjs";
 import { parse } from 'csv-parse'
 import * as turf from '@turf/turf';
 import { Alert, Site } from "@prisma/client";
-const sources = ['MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP']
+const sources = ['MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP', 'LANDSAT_NRT']
 
-interface FireAlert {
+interface MODISAndVIIRS {
     latitude: string;
     longitude: string;
     bright_ti4: string;
@@ -28,6 +28,24 @@ interface FireAlert {
     frp: string;
     daynight: string;
 }
+interface LANDSAT {
+    latitude: string;
+    longitude: string;
+    path: string;
+    row: string;
+    scan: string;
+    track: string;
+    acq_date: string;
+    acq_time: string;
+    satellite: string;
+    confidence: string;
+    daynight: string;
+}
+type DetectedBy = 'MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY'
+
+
+interface FireAlert extends MODISAndVIIRS, LANDSAT {}
+
 
 type TurfMultiPolygonOrPolygon = turf.helpers.Feature<turf.helpers.MultiPolygon, turf.helpers.Properties> | turf.helpers.Feature<turf.helpers.Polygon, turf.helpers.Properties>
 
@@ -62,6 +80,14 @@ export const alertRouter = createTRPCRouter({
                 }
 
                 for (const source of sources) {
+                    let detectedBy:DetectedBy;
+                    if(source === 'MODIS_NRT' || source === 'MODIS_SP'){
+                        detectedBy = 'MODIS'
+                    }else if(source === 'VIIRS_SNPP_NRT' || source === 'VIIRS_SNPP_SP' || source ===  'VIIRS_NOAA20_NRT'){
+                        detectedBy = 'VIIRS'
+                    }else if(source === 'LANDSAT_NRT'){
+                        detectedBy = 'LANDSAT'
+                    }
                     const response = await fetch(
                         `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${env.MAP_KEY}/${source}/-180,-90,180,90/1/${currentDate}`
                     );
@@ -87,6 +113,10 @@ export const alertRouter = createTRPCRouter({
                                 message: "No records found",
                             };
                         }
+                        // TODO: Logic to delete alerts - don't delete the alerts    
+                        // TODO: multi-threaded (Pull all nasa alerts in a separate table, then read that and compare with site)                 
+
+                        // Add alerts
                         for (const record of records) {
                             const recordPoint = [parseFloat(record.longitude), parseFloat(record.latitude)];
                             const pt = turf.point(recordPoint);
@@ -101,55 +131,79 @@ export const alertRouter = createTRPCRouter({
                                     }
                                     const isAlertInsideSite = turf.booleanPointInPolygon(pt, py);
                                     if (isAlertInsideSite) {
-                                        async function existingAlertsForSite(siteId: string): Promise<Alert[] | false> {
-                                            const existingAlerts = await ctx.prisma.alert.findMany({
-                                                where: {
-                                                    siteId: siteId
-                                                }
-                                            })
-                                            if (existingAlerts) {
-                                                return existingAlerts
+                                        let confidenceLevel: string;
+                                        // Assign confidence level based on record.instrument and record.confidence
+                                        if (detectedBy === 'MODIS') {
+                                            switch (record.confidence) {
+                                                case 'h':
+                                                    confidenceLevel = 'high';
+                                                    break;
+                                                case 'm':
+                                                    confidenceLevel = 'medium';
+                                                    break;
+                                                case 'l':
+                                                    confidenceLevel = 'low';
+                                                    break;
                                             }
-                                            return false
-                                        }
-                                        const existingAlertsList = await existingAlertsForSite(site.id)
-                                        if (existingAlertsList) {
-                                            // There will only be one alert that has that particular lat, long, and instrument 
-                                            const existingAlertToBeUpdated = existingAlertsList.find(
-                                                (alert) =>
-                                                    alert.latitude === parseFloat(record.latitude) &&
-                                                    alert.longitude === parseFloat(record.longitude) &&
-                                                    alert.detectedBy === record.instrument
-                                            );
-                                            // If there is an alert like that, update it, else create it.
-                                            if (existingAlertToBeUpdated) {
-                                                await ctx.prisma.alert.update({
-                                                    where: {
-                                                        id: existingAlertToBeUpdated.id,
-                                                    },
-                                                    // QUESTION: When to update, and how? 
-                                                    // TODO: Confirm when to update, and delete!
-                                                    data: {
-                                                        eventDate: record.acq_date,
-                                                        confidence: record.confidence,
-                                                        frp: parseFloat(record.frp),
-                                                    },
-                                                });
-                                            } else {
-                                                await ctx.prisma.alert.create({
-                                                    data: {
-                                                        type: "fire",
-                                                        eventDate: record.acq_date,
-                                                        detectedBy: record.instrument,
-                                                        confidence: record.confidence,
-                                                        latitude: parseFloat(record.latitude),
-                                                        longitude: parseFloat(record.longitude),
-                                                        frp: parseFloat(record.frp),
-                                                        siteId: site.id,
-                                                    },
-                                                });
+                                        } else if (detectedBy === 'VIIRS') {
+                                            switch (record.confidence) {
+                                                case 'h':
+                                                    confidenceLevel = 'high';
+                                                    break;
+                                                case 'n':
+                                                    confidenceLevel = 'medium';
+                                                    break;
+                                                case 'l':
+                                                    confidenceLevel = 'low';
+                                                    break;
+                                            }
+                                        } else if (detectedBy === 'LANDSAT') {
+                                            switch (record.confidence) {
+                                                case 'H':
+                                                    confidenceLevel = 'high';
+                                                    break;
+                                                case 'M':
+                                                    confidenceLevel = 'medium';
+                                                    break;
+                                                case 'L':
+                                                    confidenceLevel = 'low';
+                                                    break;
+                                            }
+                                        } else if (detectedBy === 'GEOSTATIONARY') {
+                                            switch (record.confidence) {
+                                                case '10':
+                                                case '30':
+                                                case '11':
+                                                case '31':
+                                                case '13':
+                                                case '33':
+                                                case '14':
+                                                case '34':
+                                                    confidenceLevel = 'high';
+                                                    break;
+                                                case '12':
+                                                    confidenceLevel = 'medium';
+                                                    break;
+                                                case '15':
+                                                case '35':
+                                                    confidenceLevel = 'low';
+                                                    break;
                                             }
                                         }
+                                        await ctx.prisma.alert.create({
+                                            data: {
+                                                type: "fire",
+                                                eventDate: record.acq_date,
+                                                detectedBy: detectedBy,
+                                                confidence: confidenceLevel,
+                                                latitude: parseFloat(record.latitude),
+                                                longitude: parseFloat(record.longitude),
+                                                frp: parseFloat(record.frp),
+                                                siteId: site.id,
+                                            },
+                                        });
+                                        // TODO: Find out where the alert is, inside or outside the site coordinates (possibly make a new data field that says how far the alert is compared to the site polygon)
+                                        //TODO: Send an alert notification to the user regarding the fire alert
                                     }
                                 } catch (error) {
                                     console.error(error);
@@ -174,7 +228,6 @@ export const alertRouter = createTRPCRouter({
                 });
             }
         }),
-    // TODO: What to do for deleting alerts? How to determine which alert to delete?
 
     getAlertsForSite: protectedProcedure
         .input(siteParams)
