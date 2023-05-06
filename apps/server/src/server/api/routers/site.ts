@@ -178,18 +178,29 @@ export const siteRouter = createTRPCRouter({
                         userId: true,
                     }
                 })
+
+                const sitesWithProjectName = await Promise.all(sites.map(async (site) => {
+                    let projectName = null;
+                    if (site.projectId) {
+                        const project = await ctx.prisma.project.findFirst({
+                            where: {
+                                id: site.projectId
+                            },
+                            select: {
+                                name: true
+                            }
+                        })
+                        projectName = project?.name;
+                    }
+                    return {
+                        ...site,
+                        projectName
+                    };
+                }));
                 return {
                     status: 'success',
-                    data: sites,
+                    data: sitesWithProjectName,
                 };
-                // const sitesWithPointType = sites.filter((site) => site.type === "Point");
-                // const sitesWithPolygonType = sites.filter((site) => site.type === "Polygon");
-                // const sitesWithMultiPolygonType = sites.filter((site) => site.type === "MultiPolygon");
-                // return {
-                //     point: sitesWithPointType,
-                //     polygon: sitesWithPolygonType,
-                //     multiPolygon: sitesWithMultiPolygonType,
-                // };
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
