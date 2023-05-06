@@ -35,21 +35,21 @@ model Session {
 }
 
 model User {
-    id              String    @id @default(cuid())
-    guid            String?   @unique @default(uuid())
-    sub             String?
-    name            String?
-    email           String?   @unique
-    emailVerified   Boolean?
-    detectionMethod String?
-    isPlanetRO      Boolean?
-    image           String?
-    avatar          String?
-    deletedAt       DateTime?
-    isVerified      Boolean?
-    lastLogin       DateTime?
-    signupDate      DateTime  @default(now())
-    roles           Role      @default(ROLE_CLIENT)
+    id               String    @id @default(cuid())
+    guid             String?   @unique @default(uuid())
+    sub              String?
+    name             String?
+    email            String?   @unique
+    emailVerified    Boolean?
+    useGeostationary Boolean   @default(false)
+    isPlanetRO       Boolean?
+    image            String?
+    avatar           String?
+    deletedAt        DateTime?
+    isVerified       Boolean?
+    lastLogin        DateTime?
+    signupDate       DateTime  @default(now())
+    roles            Role      @default(ROLE_CLIENT)
 
     accounts Account[]
     sessions Session[]
@@ -79,7 +79,7 @@ model AlertMethod {
     id                String                 @id @default(cuid())
     guid              String                 @unique @default(uuid())
     method            AlertMethodMethod
-    destination       String
+    destination       String                 @unique
     isVerified        Boolean                @default(false)
     isEnabled         Boolean                @default(false)
     deletedAt         DateTime?
@@ -101,21 +101,21 @@ enum AlertMethodDeviceType {
 }
 
 model Site {
-    id                   String      @id @default(cuid())
-    guid                 String?     @unique @default(uuid())
+    id                   String    @id @default(cuid())
+    guid                 String?   @unique @default(uuid())
     name                 String?
     type                 SiteType
     geometry             Json
     detectionCoordinates Json
-    radius               Int         @default(0)
-    isMonitored          Boolean     @default(true)
+    radius               Int       @default(0)
+    isMonitored          Boolean   @default(true)
     lastSynced           DateTime?
     deletedAt            DateTime?
     projectId            String?
     lastUpdated          DateTime?
     userId               String
-    user                 User        @relation(fields: [userId], references: [id])
-    project              Project?    @relation(fields: [projectId], references: [id])
+    user                 User      @relation(fields: [userId], references: [id])
+    project              Project?  @relation(fields: [projectId], references: [id])
     alerts               Alert[]
 }
 
@@ -136,18 +136,49 @@ model Project {
 }
 
 model Alert {
-    id         String    @id @default(cuid())
-    guid       String    @unique @default(uuid())
-    type       String
-    eventDate  String
-    detectedBy String
-    confidence String
-    latitude   Float
-    longitude  Float
-    frp        Float
-    isRead     Boolean   @default(false)
-    deletedAt  DateTime?
-
-    siteId String
-    site   Site   @relation(fields: [siteId], references: [id])
+    id          String          @id @default(cuid())
+    guid        String          @unique @default(uuid())
+    type        String
+    eventDate   String
+    detectedBy  AlertDetectedBy
+    confidence  AlertConfidence
+    latitude    Float
+    longitude   Float
+    frp         Float
+    isDelivered Boolean         @default(false)
+    deletedAt   DateTime?
+    siteId      String
+    site        Site            @relation(fields: [siteId], references: [id])
 }
+
+enum AlertDetectedBy {
+    MODIS
+    VIIRS
+    LANDSAT
+    GEOSTATIONARY
+}
+
+enum AlertConfidence {
+    high
+    medium
+    low
+}
+
+// model SessionLog {
+//     id            Int      @id @default(autoincrement())
+//     created       DateTime
+//     userId        String
+//     defaultLocale String
+//     headers       String
+//     host          String
+//     locale        String
+//     method        String
+//     query         String
+//     requestUri    String
+//     requestBody   String
+//     responseBody  String
+//     scheme        String
+//     sessionId     String
+//     statusCode    Int
+//     userName      String?
+// }
