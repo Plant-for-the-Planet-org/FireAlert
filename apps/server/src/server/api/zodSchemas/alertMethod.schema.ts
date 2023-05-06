@@ -20,10 +20,9 @@ export const createAlertMethodSchema = z.object({
     message: 'Must be a valid phone number in E.164 format when the method is "sms"'
 })
 
-export const sendVerificationSchema = z.object({
+export const verifySchema = z.object({
     alertMethodId: z.string(),
-    method: z.string(),
-    destination: z.string(),
+    notificationToken: z.string()
 })
 
 export const params = z.object({

@@ -1,12 +1,14 @@
 import { TRPCError } from "@trpc/server";
-import { createAlertMethodSchema, params, sendVerificationSchema, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
+import { createAlertMethodSchema, params, updateAlertMethodSchema, verifySchema } from '../zodSchemas/alertMethod.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
+import { generate5DigitOTP } from '../../../utils/math'
+import { sendEmail, sendSMS, sendPushNotification } from '../../../utils/sendMessage';
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
-
+import { env } from "../../../env.mjs";
 
 interface TRPCContext extends InnerTRPCContext {
     token: PPJwtPayload;
@@ -47,20 +49,97 @@ const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, userId }:
 export const alertMethodRouter = createTRPCRouter({
 
     sendVerification: protectedProcedure
-        .input(sendVerificationSchema)
-        .mutation(async({ctx, input})=> {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if(input.method === 'email'){
-                const userEmailAddress = input.destination
-                // verification logic for email in onesignal
+        .input(params)
+        .mutation(async ({ ctx, input }) => {
+            const otp = generate5DigitOTP()
+            const message = `Your FireAlert Verification OTP is ${otp}`
+            const alertMethod = await ctx.prisma.alertMethod.findFirst({
+                where: {
+                    id: input.alertMethodId
+                }
+            })
+            if (!alertMethod) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "AlertMethod with that AlertMethod Id not found",
+                });
             }
-            if(input.method === 'sms'){
-                const userPhoneNumber = input.destination
-                // verification logic for sms in onesignal
+            if (alertMethod.isVerified) {
+                return {
+                    message: 'User is already verified'
+                }
             }
-            if(input.method === 'whatsapp'){
-                const userWhatsAppNumber = input.destination
-                // verification logic for whatsapp in onesignal
+            await ctx.prisma.alertMethod.update({
+                where: {
+                    id: input.alertMethodId
+                },
+                data: {
+                    notificationToken: otp
+                }
+            })
+            const destination = alertMethod.destination
+            const method = alertMethod.method
+            if (method === 'email') {
+                const emailAddress = destination
+                const emailSent = await sendEmail(emailAddress, "FireAlert Verification", message);
+                if (emailSent) {
+                    return { status: 200, message: "Code sent to user" };
+                }
+            } else if (method === 'sms') {
+                const phoneNumber = destination
+                const smsSent = await sendSMS(phoneNumber, message);
+                if (smsSent) {
+                    return { status: 200, message: "Code sent to user" };
+                }
+            } else if (method === 'device') {
+                const deviceType = alertMethod.deviceType
+                const pushTokenIdentifier = destination
+                if (deviceType === 'ios') {
+                    const iosPushSent = await sendPushNotification(pushTokenIdentifier, message);
+                    if (iosPushSent) {
+                        return { status: 200, message: "Code sent to user" };
+                    }
+                } else if (deviceType === 'android') {
+                    const androidPushSent = await sendPushNotification(pushTokenIdentifier, message);
+                    if (androidPushSent) {
+                        return { status: 200, message: "Code sent to user" };
+                    }
+                }
+            }
+        }),
+
+    verify: protectedProcedure
+        .input(verifySchema)
+        .mutation(async ({ ctx, input }) => {
+            const alertMethod = await ctx.prisma.alertMethod.findFirst({
+                where: {
+                    id: input.alertMethodId
+                }
+            })
+            if (!alertMethod) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "AlertMethod with that AlertMethod Id not found",
+                });
+            }
+            if (alertMethod.notificationToken === input.notificationToken) {
+                await ctx.prisma.alertMethod.update({
+                    where: {
+                        id: input.alertMethodId
+                    },
+                    data: {
+                        isVerified: true
+                    }
+                })
+                return {
+                    status: 400,
+                    message: 'Validation Successful'
+                }
+            } else {
+                return {
+                    status: 406,
+                    message: 'incorrect token'
+                }
             }
         }),
 
@@ -94,7 +173,7 @@ export const alertMethodRouter = createTRPCRouter({
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
-                    code: 'BAD_REQUEST',
+                    code: 'INTERNAL_SERVER_ERROR',
                     message: `${error}`,
                 });
             }
@@ -119,14 +198,6 @@ export const alertMethodRouter = createTRPCRouter({
                     status: 'success',
                     data: alertMethods,
                 };
-                // const alertMethodsWithMethodEmail = alertMethods.filter((alertMethod) => alertMethod.method === "email");
-                // const alertMethodsWithMethodSMS = alertMethods.filter((alertMethod) => alertMethod.method === "sms");
-                // const alertMethodsWithMethodDevice = alertMethods.filter((alertMethod) => alertMethod.method === "device");
-                // return {
-                //     email: alertMethodsWithMethodEmail,
-                //     sms: alertMethodsWithMethodSMS,
-                //     device: alertMethodsWithMethodDevice,
-                // };
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
