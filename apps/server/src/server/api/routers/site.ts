@@ -58,10 +58,9 @@ const checkIfPlanetROSite = async ({ ctx, siteId }: checkIfPlanetROSiteArgs) => 
         },
     });
     if (siteToCRUD?.projectId) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "This site can only be deleted from planet web app",
-        });
+        return true
+    }else{
+        return false
     }
 }
 
@@ -261,7 +260,7 @@ export const siteRouter = createTRPCRouter({
             }
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
-                await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
+                const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
 
                 const site = await ctx.prisma.site.findUnique({
                     where: {
@@ -309,6 +308,10 @@ export const siteRouter = createTRPCRouter({
                         });
                     }
                 }
+                if (isPlanetROSite) {
+                    const { geometry, type, name,projectId, ...rest } = updatedData;
+                    updatedData = rest;
+                  }
                 // If none of them is there, then just update:
                 const updatedSite = await ctx.prisma.site.update({
                     where: {
