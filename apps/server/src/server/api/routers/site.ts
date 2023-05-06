@@ -59,7 +59,7 @@ const checkIfPlanetROSite = async ({ ctx, siteId }: checkIfPlanetROSiteArgs) => 
     });
     if (siteToCRUD?.projectId) {
         return true
-    }else{
+    } else {
         return false
     }
 }
@@ -309,9 +309,9 @@ export const siteRouter = createTRPCRouter({
                     }
                 }
                 if (isPlanetROSite) {
-                    const { geometry, type, name,projectId, ...rest } = updatedData;
+                    const { geometry, type, name, projectId, ...rest } = updatedData;
                     updatedData = rest;
-                  }
+                }
                 // If none of them is there, then just update:
                 const updatedSite = await ctx.prisma.site.update({
                     where: {
