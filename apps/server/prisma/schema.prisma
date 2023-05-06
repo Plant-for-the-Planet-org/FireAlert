@@ -107,7 +107,7 @@ model Site {
     type                 SiteType
     geometry             Json
     detectionCoordinates Json
-    radius               SiteRadius? @default(inside)
+    radius               Int         @default(0)
     isMonitored          Boolean     @default(true)
     lastSynced           DateTime?
     deletedAt            DateTime?
@@ -123,13 +123,6 @@ enum SiteType {
     Point
     Polygon
     MultiPolygon
-}
-
-enum SiteRadius {
-    inside
-    within5km
-    within10km
-    within100km
 }
 
 model Project {

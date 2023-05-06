@@ -20,7 +20,7 @@ export const createSiteSchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
     name: z.string().optional(),
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
-    radius: z.enum(["inside", "within5km", "within10km", "within100km"]).optional(),
+    radius: z.number().optional(),
     isMonitored: z.boolean().optional(),
     userId: z.string().optional(),
     projectId: z.string().nullable().optional(),
@@ -41,7 +41,7 @@ const bodySchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
     name: z.string(),
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
-    radius: z.enum(["inside", "within5km", "within10km", "within100km"]),
+    radius: z.number(),
     isMonitored: z.boolean(),
     projectId: z.string().nullable(),
 }).partial().refine((obj) => {

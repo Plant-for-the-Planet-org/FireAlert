@@ -78,7 +78,7 @@ export const userRouter = createTRPCRouter({
                         for (const site of sites) {
                             const { id: siteId, name: siteName, geometry: siteGeometry } = site;
                             const siteType = siteGeometry.type;
-                            const siteRadius = 'inside'
+                            const siteRadius = 0;
                             const detectionCoordinates = makeDetectionCoordinates(siteGeometry,siteRadius)
                             // Then create sites
                             await ctx.prisma.site.create({

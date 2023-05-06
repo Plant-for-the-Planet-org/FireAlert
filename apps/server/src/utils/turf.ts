@@ -10,20 +10,15 @@ interface Geometry {
   }
 type DetectionCoordinates = Array<Array<[number, number] | [number, number, number?]>>; 
 
-export function makeDetectionCoordinates(geometry:Geometry, radius: string):DetectionCoordinates {
-    let radiusInMeters = 0;
+export function makeDetectionCoordinates(geometry:Geometry, radius: number):DetectionCoordinates {
+    let radiusInMeters = radius;
     let bufferCoordinates;
-    if(geometry.type === 'Point' && radius === 'inside'){
+    if(geometry.type === 'Point' && radius === 0){
         radiusInMeters = 5000;
-    }else if((geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') && radius === 'inside'){
+    }else if((geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') && radius === 0){
         radiusInMeters = 0;
-    }else if(radius === 'within5km'){
-        radiusInMeters = 50000;
-    }else if(radius === 'within10km'){
-        radiusInMeters = 10000;
-    }else if(radius === 'within100km'){
-        radiusInMeters = 100000;
     }
+
     if (geometry.type === 'Point') {
         bufferCoordinates = turf.point(geometry.coordinates)
     } else if (geometry.type === 'Polygon') {

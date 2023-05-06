@@ -180,7 +180,6 @@ export const siteRouter = createTRPCRouter({
                 })
 
                 const sitesWithProjectName = await Promise.all(sites.map(async (site) => {
-                    let projectName = null;
                     if (site.projectId) {
                         const project = await ctx.prisma.project.findFirst({
                             where: {
@@ -190,11 +189,14 @@ export const siteRouter = createTRPCRouter({
                                 name: true
                             }
                         })
-                        projectName = project?.name;
+                        const projectName = project?.name;
+                        return {
+                            ...site,
+                            projectName
+                        };
                     }
                     return {
                         ...site,
-                        projectName
                     };
                 }));
                 return {
