@@ -24,7 +24,13 @@ const server = z.object({
   AUTH0_CLIENT_SECRET: z.string(),
   AUTH0_ISSUER: z.string(),
   AUTH0_DOMAIN: z.string(),
-  MAP_KEY: z.string().optional(),
+  MAP_KEY: z.string(),
+  ONESIGNAL_APP_ID: z.string(),
+  ONESIGNAL_REST_API_KEY: z.string(),
+  TWILIO_ACCOUNT_SID: z.string(),
+  TWILIO_AUTH_TOKEN: z.string(),
+  TWILIO_PHONE_NUMBER: z.string(),
+  SENDGRID_API_KEY:z.string(),
 });
 
 /**
@@ -51,7 +57,12 @@ const processEnv = {
   AUTH0_ISSUER: process.env.AUTH0_ISSUER,
   AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
   MAP_KEY: process.env.MAP_KEY,
-  
+  ONESIGNAL_APP_ID: process.env.ONESIGNAL_APP_ID,
+  ONESIGNAL_REST_API_KEY: process.env.ONESIGNAL_REST_API_KEY,
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
+  SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };
 
