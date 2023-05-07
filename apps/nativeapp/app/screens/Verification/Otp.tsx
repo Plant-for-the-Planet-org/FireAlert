@@ -63,7 +63,9 @@ const Otp = ({navigation, route}) => {
           <View style={styles.resendOtpBtn}>
             {count === 0 ? (
               <TouchableOpacity>
-                <Text style={[styles.resendOtp, styles.link]}>Resend Otp</Text>
+                <Text style={[styles.resendOtp, styles.link]}>
+                  Get a new code
+                </Text>
               </TouchableOpacity>
             ) : (
               <Text style={styles.resendOtp}>

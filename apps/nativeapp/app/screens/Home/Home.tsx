@@ -18,6 +18,7 @@ import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
 import React, {useEffect, useMemo, useRef, useState} from 'react';
@@ -41,6 +42,7 @@ import {
   MapOutlineIcon,
   LocationPinIcon,
   UserPlaceholder,
+  CopyIcon,
 } from '../../assets/svgs';
 import {
   getUserDetails,
@@ -280,6 +282,10 @@ const Home = ({navigation}) => {
       android: `${scheme}${latLng}(${label})`,
     });
     handleLink(url);
+  };
+
+  const _copyToClipboard = loc => () => {
+    Clipboard.setString(JSON.stringify(loc));
   };
 
   const handleLayer = () => setVisible(true);
@@ -541,20 +547,33 @@ const Home = ({navigation}) => {
               </Text>
             </View>
           </View>
-          <View style={styles.satelliteInfoCon}>
-            <View style={styles.satelliteIcon}>
-              <LocationPinIcon />
+          <View
+            style={[
+              styles.satelliteInfoCon,
+              {justifyContent: 'space-between'},
+            ]}>
+            <View style={styles.satelliteInfoLeft}>
+              <View style={styles.satelliteIcon}>
+                <LocationPinIcon />
+              </View>
+              <View style={styles.satelliteInfo}>
+                <Text style={styles.satelliteText}>LOCATION</Text>
+                <Text style={styles.eventDate}>
+                  {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
+                  {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
+                </Text>
+                <Text style={styles.confidence}>
+                  {selectedAlert?.confidence}% alert confidence
+                </Text>
+              </View>
             </View>
-            <View style={styles.satelliteInfo}>
-              <Text style={styles.satelliteText}>LOCATION</Text>
-              <Text style={styles.eventDate}>
-                {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
-                {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
-              </Text>
-              <Text style={styles.confidence}>
-                {selectedAlert?.confidence}% alert confidence
-              </Text>
-            </View>
+            <TouchableOpacity
+              onPress={_copyToClipboard([
+                Number.parseFloat(selectedAlert?.latitude),
+                Number.parseFloat(selectedAlert?.longitude),
+              ])}>
+              <CopyIcon />
+            </TouchableOpacity>
           </View>
           <View style={styles.satelliteInfoCon}>
             <View style={styles.satelliteIcon}>
@@ -703,6 +722,10 @@ const styles = StyleSheet.create({
   },
   satelliteInfoCon: {
     marginTop: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  satelliteInfoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },

@@ -112,7 +112,7 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
       activeOpacity={1}
       onPress={onReqClose}
       style={styles.addOptionsParent}>
-      <View style={styles.addOptionsContainer}>
+      <View style={[styles.addOptionsContainer, styles.boxShadow]}>
         {addOptions.length > 0
           ? addOptions.map((option: any, index: number) => (
               <View
