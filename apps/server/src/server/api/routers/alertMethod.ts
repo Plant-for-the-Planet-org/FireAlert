@@ -6,9 +6,10 @@ import {
 } from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
 import { generate5DigitOTP } from '../../../utils/math'
-import { sendEmail, sendSMS, sendPushNotification } from '../../../utils/sendMessage';
+import { sendEmail } from '../../../utils/notification/sendEmail';
+import { sendSMS } from '../../../utils/notification/sendSMS';
+import { sendPushNotification } from '../../../utils/notification/sendPush'
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
-import { env } from "../../../env.mjs";
 
 interface TRPCContext extends InnerTRPCContext {
     token: PPJwtPayload;
