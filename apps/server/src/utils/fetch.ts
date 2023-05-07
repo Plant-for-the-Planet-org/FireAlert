@@ -3,7 +3,7 @@ export const checkIfUserIsPlanetRO = async (
 ): Promise<boolean> => {
     try {
         const response = await fetch(
-            "https://app-staging.plant-for-the-planet.org/app/profile",
+            "https://app-staging.plant-for-the-planet.org/app/profile", //TODO: Put app-staging.plant-for-the-planet.org into .env
             {
                 headers: {
                     Authorization: bearer_token,

@@ -7,19 +7,18 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-// Necessary for Next auth
 model Account {
     id                String  @id @default(cuid())
     userId            String
     type              String
     provider          String
     providerAccountId String
-    refresh_token     String? @db.Text
-    access_token      String? @db.Text
+    refresh_token     String?
+    access_token      String?
     expires_at        Int?
     token_type        String?
     scope             String?
-    id_token          String? @db.Text
+    id_token          String?
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -35,34 +34,26 @@ model Session {
 }
 
 model User {
-    id               String    @id @default(cuid())
-    guid             String?   @unique @default(uuid())
+    id               String        @id @default(cuid())
+    guid             String?       @unique @default(uuid())
     sub              String?
     name             String?
-    email            String?   @unique
+    email            String?       @unique
     emailVerified    Boolean?
-    useGeostationary Boolean   @default(false)
+    useGeostationary Boolean       @default(false)
     isPlanetRO       Boolean?
     image            String?
     avatar           String?
     deletedAt        DateTime?
     isVerified       Boolean?
     lastLogin        DateTime?
-    signupDate       DateTime  @default(now())
-    roles            Role      @default(ROLE_CLIENT)
-
-    accounts Account[]
-    sessions Session[]
-
-    alertMethods AlertMethod[]
-    sites        Site[]
-    projects     Project[]
-}
-
-enum Role {
-    ROLE_CLIENT
-    ROLE_ADMIN
-    ROLE_SUPPORT
+    signupDate       DateTime      @default(now())
+    roles            Role          @default(ROLE_CLIENT)
+    accounts         Account[]
+    alertMethods     AlertMethod[]
+    projects         Project[]
+    sessions         Session[]
+    sites            Site[]
 }
 
 model VerificationToken {
@@ -72,8 +63,6 @@ model VerificationToken {
 
     @@unique([identifier, token])
 }
-
-// Fire Alert Schema
 
 model AlertMethod {
     id                String                 @id @default(cuid())
@@ -87,17 +76,6 @@ model AlertMethod {
     notificationToken String?
     userId            String
     user              User                   @relation(fields: [userId], references: [id])
-}
-
-enum AlertMethodMethod {
-    email
-    sms
-    device
-}
-
-enum AlertMethodDeviceType {
-    ios
-    android
 }
 
 model Site {
@@ -114,15 +92,9 @@ model Site {
     projectId            String?
     lastUpdated          DateTime?
     userId               String
-    user                 User      @relation(fields: [userId], references: [id])
-    project              Project?  @relation(fields: [projectId], references: [id])
     alerts               Alert[]
-}
-
-enum SiteType {
-    Point
-    Polygon
-    MultiPolygon
+    project              Project?  @relation(fields: [projectId], references: [id])
+    user                 User      @relation(fields: [userId], references: [id])
 }
 
 model Project {
@@ -151,6 +123,29 @@ model Alert {
     site        Site            @relation(fields: [siteId], references: [id])
 }
 
+enum Role {
+    ROLE_CLIENT
+    ROLE_ADMIN
+    ROLE_SUPPORT
+}
+
+enum AlertMethodMethod {
+    email
+    sms
+    device
+}
+
+enum AlertMethodDeviceType {
+    ios
+    android
+}
+
+enum SiteType {
+    Point
+    Polygon
+    MultiPolygon
+}
+
 enum AlertDetectedBy {
     MODIS
     VIIRS
@@ -163,22 +158,3 @@ enum AlertConfidence {
     medium
     low
 }
-
-// model SessionLog {
-//     id            Int      @id @default(autoincrement())
-//     created       DateTime
-//     userId        String
-//     defaultLocale String
-//     headers       String
-//     host          String
-//     locale        String
-//     method        String
-//     query         String
-//     requestUri    String
-//     requestBody   String
-//     responseBody  String
-//     scheme        String
-//     sessionId     String
-//     statusCode    Int
-//     userName      String?
-// }
