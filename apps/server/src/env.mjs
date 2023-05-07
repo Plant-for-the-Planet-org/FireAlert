@@ -30,7 +30,8 @@ const server = z.object({
   TWILIO_ACCOUNT_SID: z.string(),
   TWILIO_AUTH_TOKEN: z.string(),
   TWILIO_PHONE_NUMBER: z.string(),
-  SENDGRID_API_KEY:z.string(),
+  SMTP_URL: z.string(),
+  EMAIL_FROM: z.string(),
 });
 
 /**
@@ -62,7 +63,8 @@ const processEnv = {
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
-  SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
+  SMTP_URL: process.env.SMTP_URL,
+  EMAIL_FROM: process.env.EMAIL_FROM,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };
 
