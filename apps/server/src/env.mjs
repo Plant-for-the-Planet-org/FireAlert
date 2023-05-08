@@ -32,6 +32,7 @@ const server = z.object({
   TWILIO_PHONE_NUMBER: z.string(),
   SMTP_URL: z.string(),
   EMAIL_FROM: z.string(),
+  PLANET_API_URL: z.string(),
 });
 
 /**
@@ -65,6 +66,7 @@ const processEnv = {
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
   SMTP_URL: process.env.SMTP_URL,
   EMAIL_FROM: process.env.EMAIL_FROM,
+  PLANET_API_URL: process.env.PLANET_API_URL,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };
 
