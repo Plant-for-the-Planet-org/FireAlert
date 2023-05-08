@@ -43,11 +43,8 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
 } from '../../assets/svgs';
-import {
-  getAlertsPreferences,
-  updateAlertPreferences,
-} from '../../redux/slices/alerts/alertSlice';
-import {editSite, getSites} from '../../redux/slices/sites/siteSlice';
+import {getAlertsPreferences} from '../../redux/slices/alerts/alertSlice';
+import {getSites} from '../../redux/slices/sites/siteSlice';
 
 import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
@@ -55,7 +52,7 @@ import {useAppDispatch} from '../../hooks';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
-import {categorizedRes} from '../../utils/categorizedData';
+import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -99,10 +96,10 @@ const MY_SITES = [
 ];
 
 const RADIUS_ARR = [
-  {name: 'within 100 km', value: 'within100km'},
-  {name: 'within 10 km', value: 'within10km'},
-  {name: 'within 5 km', value: 'within5km'},
-  {name: 'inside', value: 'inside'},
+  {name: 'within 100 km', value: 100},
+  {name: 'within 10 km', value: 10},
+  {name: 'within 5 km', value: 5},
+  {name: 'inside', value: 0},
 ];
 
 const Settings = ({navigation}) => {
@@ -149,6 +146,10 @@ const Settings = ({navigation}) => {
       },
     },
   );
+  const groupOfSites = useMemo(
+    () => groupSitesAsProject(sites?.json?.data || [], 'projectId'),
+    [groupSitesAsProject, sites],
+  );
 
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
@@ -186,6 +187,18 @@ const Settings = ({navigation}) => {
     },
   });
 
+  const updateAlertPreferences = trpc.alertMethod.updateAlertMethod.useMutation(
+    {
+      retryDelay: 3000,
+      onSuccess: () => {
+        refetchAlertPreferences();
+      },
+      onError: () => {
+        toast.show('something went wrong', {type: 'danger'});
+      },
+    },
+  );
+
   const handleSwitch = (index, val) => {
     let arr = [...projects];
     arr[index].enabled = val;
@@ -194,13 +207,9 @@ const Settings = ({navigation}) => {
 
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
-      let arr = [...projects];
-      const filteredProjects = arr.findIndex(({id}) => id === pageXY.projectId);
-      const filteredSites = arr[filteredProjects].sites?.findIndex(
-        ({id}) => id === pageXY.siteId,
-      );
-      arr[filteredProjects].sites[filteredSites].radius = val;
-      setProjects(arr);
+      updateSite.mutate({
+        json: {params: {siteId: pageXY?.siteId}, body: {radius: val}},
+      });
     } else {
       updateSite.mutate({
         json: {params: {siteId: pageXY?.siteId}, body: {radius: val}},
@@ -229,22 +238,10 @@ const Settings = ({navigation}) => {
   };
 
   const handleNotifySwitch = (data, isEnabled) => {
-    const {guid} = data;
-    const request = {
-      payload: {
-        guid,
-        isEnabled,
-      },
-      onSuccess: () => {
-        const request = {
-          onSuccess: () => {},
-          onFail: () => {},
-        };
-        setTimeout(() => dispatch(getAlertsPreferences(request)), 500);
-      },
-      onFail: () => {},
-    };
-    dispatch(updateAlertPreferences(request));
+    const {alertMethodId} = data;
+    updateAlertPreferences.mutate({
+      json: {params: {alertMethodId}, body: {isEnabled}},
+    });
   };
 
   const handleRemoveAlertMethod = alertMethodId => {
@@ -327,7 +324,7 @@ const Settings = ({navigation}) => {
               <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
             </Text>
           </Text>
-          {projects.map((item, index) => (
+          {groupOfSites.map((item, index) => (
             <View key={`projects_${index}`} style={styles.projectsInfo}>
               <View style={styles.projectsNameInfo}>
                 <Text style={styles.projectsName}>{item.name}</Text>
@@ -337,7 +334,7 @@ const Settings = ({navigation}) => {
                 />
               </View>
               {item?.sites?.length > 0 && <View style={{marginTop: 30}} />}
-              {item.enabled && item.sites
+              {item.sites
                 ? item.sites.map((sites, index) => (
                     <>
                       <View
@@ -370,25 +367,30 @@ const Settings = ({navigation}) => {
             <View style={styles.mySitesHead}>
               <Text style={styles.mainHeading}>My Sites</Text>
             </View>
-            {sites?.json?.data?.map((item, index) => (
-              <TouchableOpacity
-                onPress={() => handleSiteInformation(item)}
-                key={`mySites_${index}`}
-                style={styles.mySiteNameContainer}>
-                <Text style={styles.mySiteName}>{item?.name || item?.id}</Text>
+            {sites?.json?.data
+              ?.filter(site => site?.projectId === null)
+              .map((item, index) => (
                 <TouchableOpacity
-                  onPress={evt => handleSiteRadius(evt, item?.id)}
-                  style={[styles.dropDownRadius]}>
-                  <Text style={styles.siteRadius}>
-                    {
-                      RADIUS_ARR.filter(({value}) => item?.radius === value)[0]
-                        ?.name
-                    }
+                  onPress={() => handleSiteInformation(item)}
+                  key={`mySites_${index}`}
+                  style={styles.mySiteNameContainer}>
+                  <Text style={styles.mySiteName}>
+                    {item?.name || item?.id}
                   </Text>
-                  <DropdownArrow />
+                  <TouchableOpacity
+                    onPress={evt => handleSiteRadius(evt, item?.id)}
+                    style={[styles.dropDownRadius]}>
+                    <Text style={styles.siteRadius}>
+                      {
+                        RADIUS_ARR.filter(
+                          ({value}) => item?.radius === value,
+                        )[0]?.name
+                      }
+                    </Text>
+                    <DropdownArrow />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
+              ))}
           </View>
         ) : null}
         {/* notifications */}
@@ -430,7 +432,7 @@ const Settings = ({navigation}) => {
                         <Switch
                           value={item?.isEnabled}
                           onValueChange={val =>
-                            handleNotifySwitch({guid: item.guid}, val)
+                            handleNotifySwitch({alertMethodId: item.id}, val)
                           }
                         />
                       ) : (
@@ -489,7 +491,7 @@ const Settings = ({navigation}) => {
                         <Switch
                           value={item?.isEnabled}
                           onValueChange={val =>
-                            handleNotifySwitch({guid: item.guid}, val)
+                            handleNotifySwitch({alertMethodId: item.id}, val)
                           }
                         />
                       ) : (

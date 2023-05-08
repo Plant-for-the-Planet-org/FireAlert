@@ -180,7 +180,6 @@ const SelectLocation = ({navigation}) => {
         geometry,
         type: 'Point',
         name: siteName,
-        radius: 'inside',
       },
     });
   };

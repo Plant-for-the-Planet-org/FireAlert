@@ -62,7 +62,7 @@ import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {categorizedRes} from '../../utils/categorizedData';
+import {categorizedRes} from '../../utils/filters';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
@@ -335,7 +335,6 @@ const Home = ({navigation}) => {
     const id = formattedSites?.point[counter]?.guid;
     const coordinate = formattedSites?.point[counter]?.geometry?.coordinates;
     const title = `Longitude: ${coordinate[0]} Latitude: ${coordinate[1]}`;
-    console.log(title, 'title');
     return (
       <MapboxGL.PointAnnotation
         id={id}
@@ -353,7 +352,6 @@ const Home = ({navigation}) => {
   const renderAnnotations = isAlert => {
     const items = [];
     const arr = isAlert ? alerts : formattedSites?.point;
-
     for (let i = 0; i < arr?.length; i++) {
       {
         isAlert
@@ -361,9 +359,9 @@ const Home = ({navigation}) => {
           : items.push(renderSelectedPoint(i));
       }
     }
-
     return items;
   };
+
   const renderMapSource = () => (
     <MapboxGL.ShapeSource
       id={'polygon'}

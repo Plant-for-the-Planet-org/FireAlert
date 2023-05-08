@@ -249,7 +249,6 @@ const CreatePolygon = ({navigation}) => {
         coordinates: [geoJSON.features[0].geometry.coordinates],
         type: 'Polygon',
       },
-      radius: 'inside',
     };
     postSite.mutate({json: payload});
   };
