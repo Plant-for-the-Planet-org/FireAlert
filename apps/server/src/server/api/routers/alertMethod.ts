@@ -6,9 +6,7 @@ import {
 } from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
 import { generate5DigitOTP } from '../../../utils/math'
-import { sendEmail } from '../../../utils/notification/sendEmail';
-import { sendSMS } from '../../../utils/notification/sendSMS';
-import { sendPushNotification } from '../../../utils/notification/sendPush'
+import { sendVerificationCode } from '../../../utils/notification/sendVerificationCode'
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 
 interface TRPCContext extends InnerTRPCContext {
@@ -52,6 +50,61 @@ export const alertMethodRouter = createTRPCRouter({
     sendVerification: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
+
+            const alertMethodId = input.alertMethodId;
+
+            // Get the current date
+            const currentDate = new Date().toISOString().split('T')[0];
+
+            // Check if the verification tracking record exists for the current user and alertMethodId
+            const verificationRecord = await ctx.prisma.verificationTracking.findFirst({
+                where: {
+                    alertMethodId,
+                },
+            });
+
+            if (verificationRecord) {
+                // Check if the date is the same
+                if (verificationRecord.date === currentDate) {
+                    // Check if the attempt count has reached the maximum limit (e.g., 3)
+                    if (verificationRecord.attemptCount >= 3) {
+                        return {
+                            status: 403,
+                            message: 'Exceeded maximum verification attempts for the day',
+                        };
+                    }
+                    // Increment the attempt count
+                    await ctx.prisma.verificationTracking.update({
+                        where: {
+                            id: verificationRecord.id,
+                        },
+                        data: {
+                            attemptCount: verificationRecord.attemptCount + 1,
+                        },
+                    });
+                } else {
+                    // Refresh the attempt count to 1 for a new date
+                    await ctx.prisma.verificationTracking.update({
+                        where: {
+                            id: verificationRecord.id,
+                        },
+                        data: {
+                            date: currentDate,
+                            attemptCount: 1,
+                        },
+                    });
+                }
+            } else {
+                // Create a new verification tracking record
+                await ctx.prisma.verificationTracking.create({
+                    data: {
+                        alertMethodId,
+                        date: currentDate,
+                        attemptCount: 1,
+                    },
+                });
+            }
+
             const otp = generate5DigitOTP()
             const message = `Your FireAlert Verification OTP is ${otp}`
             const alertMethod = await ctx.prisma.alertMethod.findFirst({
@@ -80,33 +133,8 @@ export const alertMethodRouter = createTRPCRouter({
             })
             const destination = alertMethod.destination
             const method = alertMethod.method
-            if (method === 'email') {
-                const emailAddress = destination
-                const emailSent = await sendEmail(emailAddress, "FireAlert Verification", message);
-                if (emailSent) {
-                    return { status: 200, message: "Code sent to user" };
-                }
-            } else if (method === 'sms') {
-                const phoneNumber = destination
-                const smsSent = await sendSMS(phoneNumber, message);
-                if (smsSent) {
-                    return { status: 200, message: "Code sent to user" };
-                }
-            } else if (method === 'device') {
-                const deviceType = alertMethod.deviceType
-                const pushTokenIdentifier = destination
-                if (deviceType === 'ios') {
-                    const iosPushSent = await sendPushNotification(pushTokenIdentifier, message);
-                    if (iosPushSent) {
-                        return { status: 200, message: "Code sent to user" };
-                    }
-                } else if (deviceType === 'android') {
-                    const androidPushSent = await sendPushNotification(pushTokenIdentifier, message);
-                    if (androidPushSent) {
-                        return { status: 200, message: "Code sent to user" };
-                    }
-                }
-            }
+            const deviceType = alertMethod.deviceType ?? undefined
+            await sendVerificationCode(destination, method, deviceType, message)
         }),
 
     verify: protectedProcedure
@@ -155,6 +183,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
             }
             try {
+                const otp = generate5DigitOTP();
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
                         method: input.method,
@@ -163,8 +192,16 @@ export const alertMethodRouter = createTRPCRouter({
                         isEnabled: input.isEnabled,
                         deviceType: input.deviceType,
                         userId: userId,
+                        notificationToken: otp,
                     },
                 });
+                // Send verification code
+                const message = `Your FireAlert Verification OTP is ${otp}`;
+                const destination = alertMethod.destination
+                const method = alertMethod.method
+                const deviceType = alertMethod.deviceType ?? undefined
+                await sendVerificationCode(destination, method, deviceType, message)
+
                 return {
                     status: 'success',
                     data: {
@@ -179,6 +216,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
             }
         }),
+
 
     getAllAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
