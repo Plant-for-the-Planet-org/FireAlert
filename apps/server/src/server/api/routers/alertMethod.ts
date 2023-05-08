@@ -6,9 +6,7 @@ import {
 } from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
 import { generate5DigitOTP } from '../../../utils/math'
-import { sendEmail } from '../../../utils/notification/sendEmail';
-import { sendSMS } from '../../../utils/notification/sendSMS';
-import { sendPushNotification } from '../../../utils/notification/sendPush'
+import { sendVerificationCode } from '../../../utils/notification/sendVerificationCode'
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 
 interface TRPCContext extends InnerTRPCContext {
@@ -135,33 +133,8 @@ export const alertMethodRouter = createTRPCRouter({
             })
             const destination = alertMethod.destination
             const method = alertMethod.method
-            if (method === 'email') {
-                const emailAddress = destination
-                const emailSent = await sendEmail(emailAddress, "FireAlert Verification", message);
-                if (emailSent) {
-                    return { status: 200, message: "Code sent to user" };
-                }
-            } else if (method === 'sms') {
-                const phoneNumber = destination
-                const smsSent = await sendSMS(phoneNumber, message);
-                if (smsSent) {
-                    return { status: 200, message: "Code sent to user" };
-                }
-            } else if (method === 'device') {
-                const deviceType = alertMethod.deviceType
-                const pushTokenIdentifier = destination
-                if (deviceType === 'ios') {
-                    const iosPushSent = await sendPushNotification(pushTokenIdentifier, message);
-                    if (iosPushSent) {
-                        return { status: 200, message: "Code sent to user" };
-                    }
-                } else if (deviceType === 'android') {
-                    const androidPushSent = await sendPushNotification(pushTokenIdentifier, message);
-                    if (androidPushSent) {
-                        return { status: 200, message: "Code sent to user" };
-                    }
-                }
-            }
+            const deviceType = alertMethod.deviceType ?? undefined
+            await sendVerificationCode(destination, method, deviceType, message)
         }),
 
     verify: protectedProcedure
@@ -210,6 +183,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
             }
             try {
+                const otp = generate5DigitOTP();
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
                         method: input.method,
@@ -218,51 +192,15 @@ export const alertMethodRouter = createTRPCRouter({
                         isEnabled: input.isEnabled,
                         deviceType: input.deviceType,
                         userId: userId,
+                        notificationToken: otp,
                     },
                 });
-
                 // Send verification code
-                const otp = generate5DigitOTP();
                 const message = `Your FireAlert Verification OTP is ${otp}`;
-
-                if (input.method === 'email') {
-                    const emailAddress = input.destination;
-                    const emailSent = await sendEmail(emailAddress, "FireAlert Verification", message);
-                    if (!emailSent) {
-                        throw new TRPCError({
-                            code: "INTERNAL_SERVER_ERROR",
-                            message: "Failed to send verification code via email",
-                        });
-                    }
-                } else if (input.method === 'sms') {
-                    const phoneNumber = input.destination;
-                    const smsSent = await sendSMS(phoneNumber, message);
-                    if (!smsSent) {
-                        throw new TRPCError({
-                            code: "INTERNAL_SERVER_ERROR",
-                            message: "Failed to send verification code via SMS",
-                        });
-                    }
-                } else if (input.method === 'device') {
-                    const pushTokenIdentifier = input.destination;
-                    if (input.deviceType === 'ios') {
-                        const iosPushSent = await sendPushNotification(pushTokenIdentifier, message);
-                        if (!iosPushSent) {
-                            throw new TRPCError({
-                                code: "INTERNAL_SERVER_ERROR",
-                                message: "Failed to send verification code via iOS push notification",
-                            });
-                        }
-                    } else if (input.deviceType === 'android') {
-                        const androidPushSent = await sendPushNotification(pushTokenIdentifier, message);
-                        if (!androidPushSent) {
-                            throw new TRPCError({
-                                code: "INTERNAL_SERVER_ERROR",
-                                message: "Failed to send verification code via Android push notification",
-                            });
-                        }
-                    }
-                }
+                const destination = alertMethod.destination
+                const method = alertMethod.method
+                const deviceType = alertMethod.deviceType ?? undefined
+                await sendVerificationCode(destination, method, deviceType, message)
 
                 return {
                     status: 'success',
