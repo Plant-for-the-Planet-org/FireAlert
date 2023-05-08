@@ -65,17 +65,26 @@ model VerificationToken {
 }
 
 model AlertMethod {
-    id                String                 @id @default(cuid())
-    guid              String                 @unique @default(uuid())
-    method            AlertMethodMethod
-    destination       String                 @unique
-    isVerified        Boolean                @default(false)
-    isEnabled         Boolean                @default(false)
-    deletedAt         DateTime?
-    deviceType        AlertMethodDeviceType?
-    notificationToken String?
-    userId            String
-    user              User                   @relation(fields: [userId], references: [id])
+    id                   String                 @id @default(cuid())
+    guid                 String                 @unique @default(uuid())
+    method               AlertMethodMethod
+    destination          String                 @unique
+    isVerified           Boolean                @default(false)
+    isEnabled            Boolean                @default(false)
+    deletedAt            DateTime?
+    deviceType           AlertMethodDeviceType?
+    notificationToken    String?
+    userId               String
+    user                 User                   @relation(fields: [userId], references: [id])
+    verificationTracking VerificationTracking?
+}
+
+model VerificationTracking {
+    id            String      @id @default(cuid())
+    alertMethodId String      @unique
+    date          String
+    attemptCount  Int
+    alertMethod   AlertMethod @relation(fields: [alertMethodId], references: [id])
 }
 
 model Site {

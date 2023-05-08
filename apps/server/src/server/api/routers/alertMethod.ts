@@ -52,6 +52,61 @@ export const alertMethodRouter = createTRPCRouter({
     sendVerification: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
+
+            const alertMethodId = input.alertMethodId;
+
+            // Get the current date
+            const currentDate = new Date().toISOString().split('T')[0];
+
+            // Check if the verification tracking record exists for the current user and alertMethodId
+            const verificationRecord = await ctx.prisma.verificationTracking.findFirst({
+                where: {
+                    alertMethodId,
+                },
+            });
+
+            if (verificationRecord) {
+                // Check if the date is the same
+                if (verificationRecord.date === currentDate) {
+                    // Check if the attempt count has reached the maximum limit (e.g., 3)
+                    if (verificationRecord.attemptCount >= 3) {
+                        return {
+                            status: 403,
+                            message: 'Exceeded maximum verification attempts for the day',
+                        };
+                    }
+                    // Increment the attempt count
+                    await ctx.prisma.verificationTracking.update({
+                        where: {
+                            id: verificationRecord.id,
+                        },
+                        data: {
+                            attemptCount: verificationRecord.attemptCount + 1,
+                        },
+                    });
+                } else {
+                    // Refresh the attempt count to 1 for a new date
+                    await ctx.prisma.verificationTracking.update({
+                        where: {
+                            id: verificationRecord.id,
+                        },
+                        data: {
+                            date: currentDate,
+                            attemptCount: 1,
+                        },
+                    });
+                }
+            } else {
+                // Create a new verification tracking record
+                await ctx.prisma.verificationTracking.create({
+                    data: {
+                        alertMethodId,
+                        date: currentDate,
+                        attemptCount: 1,
+                    },
+                });
+            }
+
             const otp = generate5DigitOTP()
             const message = `Your FireAlert Verification OTP is ${otp}`
             const alertMethod = await ctx.prisma.alertMethod.findFirst({
