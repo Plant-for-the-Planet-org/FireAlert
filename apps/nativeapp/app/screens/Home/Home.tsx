@@ -10,19 +10,22 @@ import {
   StyleSheet,
   BackHandler,
   TouchableOpacity,
-  KeyboardAvoidingView,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
+import centroid from '@turf/centroid';
+import {polygon} from '@turf/helpers';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
+import {useFocusEffect} from '@react-navigation/native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   LayerModal,
@@ -60,11 +63,11 @@ import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {daysFromToday} from '../../utils/moment';
 import {clearAll} from '../../utils/localStorage';
+import {categorizedRes} from '../../utils/filters';
 import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {categorizedRes} from '../../utils/filters';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
@@ -87,7 +90,8 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
-const Home = ({navigation}) => {
+const Home = ({navigation, route}) => {
+  const siteInfo = route?.params;
   const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
   const {alerts} = useAppSelector(state => state.alertSlice);
@@ -143,7 +147,6 @@ const Home = ({navigation}) => {
   const dispatch = useAppDispatch();
   const map = useRef(null);
   const camera = useRef<MapboxGL.Camera | null>(null);
-
   const updateUser = trpc.user.updateUser.useMutation({
     retryDelay: 3000,
     onSuccess: () => {
@@ -185,6 +188,22 @@ const Home = ({navigation}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (siteInfo && isCameraRefVisible && camera?.current?.setCamera) {
+        let center = centroid(polygon(siteInfo?.geometry?.coordinates));
+        const lat = center?.geometry?.coordinates[1];
+        const long = center?.geometry?.coordinates[0];
+        camera.current.setCamera({
+          centerCoordinate: [long, lat],
+          // centerCoordinate: [75.3855852018891, 28.111672923634202],
+          zoomLevel: ZOOM_LEVEL,
+          animationDuration: ANIMATION_DURATION,
+        });
+      }
+    }, [isCameraRefVisible, siteInfo]),
+  );
 
   const handleEditSite = site => {
     setSelectedSite({});

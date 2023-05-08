@@ -89,9 +89,9 @@ export default function Map({
         style={styles.container}
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
-        onRegionIsChanging={onChangeRegionStart}
+        onCameraChanged={onChangeRegionStart}
         attributionPosition={attributionPosition}
-        onRegionDidChange={onChangeRegionComplete}>
+        onMapIdle={onChangeRegionComplete}>
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;

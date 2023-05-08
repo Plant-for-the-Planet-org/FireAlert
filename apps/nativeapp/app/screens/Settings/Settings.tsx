@@ -104,17 +104,19 @@ const RADIUS_ARR = [
 
 const Settings = ({navigation}) => {
   const [projects, setProjects] = useState(PROJECTS);
-  const [mySites, setMySites] = useState(MY_SITES);
-  const [dropDownModal, setDropDownModal] = useState(false);
-  const [sitesInfoModal, setSitesInfoModal] = useState(false);
-  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
-  const [selectedSiteInfo, setSelectedSiteInfo] = useState(null);
-  const [pageXY, setPageXY] = useState(null);
-  const [mobileNotify, setMobileNotify] = useState(false);
-  const [siteName, setSiteName] = useState('');
-  const [siteId, setSiteId] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  const [dropDownModal, setDropDownModal] = useState<boolean>(false);
+  const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
+  const [pageXY, setPageXY] = useState<object | null>(null);
+  const [mobileNotify, setMobileNotify] = useState<boolean>(false);
+  const [siteName, setSiteName] = useState<string | null>('');
+  const [siteId, setSiteId] = useState<string | null>('');
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
+  const [siteNameModalVisible, setSiteNameModalVisible] =
+    useState<boolean>(false);
+  const [selectedSiteInfo, setSelectedSiteInfo] = useState<boolean | null>(
+    null,
+  );
 
   const dispatch = useAppDispatch();
   const toast = useToast();
@@ -284,6 +286,11 @@ const Settings = ({navigation}) => {
 
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
 
+  const _handleViewMap = (siteInfo: object) => () => {
+    setSitesInfoModal(false);
+    navigation.navigate('Home', siteInfo);
+  };
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     const req = {
@@ -342,16 +349,31 @@ const Settings = ({navigation}) => {
                         key={`sites_${index}`}
                         style={styles.sitesInProjects}>
                         <Text style={styles.sitesName}>{sites.name}</Text>
-                        <TouchableOpacity
-                          onPress={evt => handleRadius(evt, item.id, sites.id)}
-                          style={styles.dropDownRadius}>
-                          <Text style={styles.siteRadius}>
-                            {sites.radius
-                              ? `within ${sites.radius} km`
-                              : 'inside'}
-                          </Text>
-                          <DropdownArrow />
-                        </TouchableOpacity>
+                        <View style={styles.rightConPro}>
+                          <TouchableOpacity
+                            onPress={evt =>
+                              handleRadius(evt, item.id, sites.id)
+                            }
+                            style={[styles.dropDownRadius, {marginRight: 5}]}>
+                            <Text style={styles.siteRadius}>
+                              {sites.radius
+                                ? `within ${sites.radius} km`
+                                : 'inside'}
+                            </Text>
+                            <DropdownArrow />
+                          </TouchableOpacity>
+                          <Switch
+                            value={sites?.isMonitored}
+                            onValueChange={val =>
+                              updateSite.mutate({
+                                json: {
+                                  params: {siteId: sites?.id},
+                                  body: {isMonitored: val},
+                                },
+                              })
+                            }
+                          />
+                        </View>
                       </View>
                       {item?.sites?.length - 1 !== index && (
                         <View style={styles.separator} />
@@ -390,6 +412,17 @@ const Settings = ({navigation}) => {
                     </Text>
                     <DropdownArrow />
                   </TouchableOpacity>
+                  <Switch
+                    value={item?.isMonitored}
+                    onValueChange={val =>
+                      updateSite.mutate({
+                        json: {
+                          params: {siteId: item?.id},
+                          body: {isMonitored: val},
+                        },
+                      })
+                    }
+                  />
                 </TouchableOpacity>
               ))}
           </View>
@@ -727,7 +760,9 @@ const Settings = ({navigation}) => {
                 <PencilIcon />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.btn}>
+            <TouchableOpacity
+              onPress={_handleViewMap(selectedSiteInfo)}
+              style={styles.btn}>
               <MapOutlineIcon />
               <Text style={styles.siteActionText}>View on Map</Text>
             </TouchableOpacity>
@@ -897,6 +932,11 @@ const styles = StyleSheet.create({
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
+  },
+  rightConPro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sitesInProjects: {
     flexDirection: 'row',

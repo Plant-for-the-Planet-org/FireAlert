@@ -351,8 +351,8 @@ const SelectLocation = ({navigation}) => {
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
-        onRegionIsChanging={onChangeRegionStart}
-        onRegionDidChange={onChangeRegionComplete}
+        onCameraChanged={onChangeRegionStart}
+        onMapIdle={onChangeRegionComplete}
         attributionPosition={attributionPosition}>
         <MapboxGL.Camera
           ref={el => {
