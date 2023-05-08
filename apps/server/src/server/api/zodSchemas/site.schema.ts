@@ -20,7 +20,7 @@ export const createSiteSchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
     name: z.string().optional(),
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
-    radius: z.number().optional(),
+    radius: z.number().optional().default(0),
     isMonitored: z.boolean().optional(),
     userId: z.string().optional(),
     projectId: z.string().nullable().optional(),

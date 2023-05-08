@@ -78,14 +78,15 @@ export const siteRouter = createTRPCRouter({
                 });
             }
             try {
-                const detectionCoordinates = makeDetectionCoordinates(input.geometry, input.radius)
+                const radius = input.radius ?? 0
+                const detectionCoordinates = makeDetectionCoordinates(input.geometry, radius)
                 const site = await ctx.prisma.site.create({
                     data: {
                         type: input.type,
                         name: input.name,
                         geometry: input.geometry,
                         detectionCoordinates: detectionCoordinates,
-                        radius: input.radius,
+                        radius: radius,
                         isMonitored: input.isMonitored,
                         userId: userId,
                         projectId: input.projectId,
