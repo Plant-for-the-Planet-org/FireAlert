@@ -220,6 +220,50 @@ export const alertMethodRouter = createTRPCRouter({
                         userId: userId,
                     },
                 });
+
+                // Send verification code
+                const otp = generate5DigitOTP();
+                const message = `Your FireAlert Verification OTP is ${otp}`;
+
+                if (input.method === 'email') {
+                    const emailAddress = input.destination;
+                    const emailSent = await sendEmail(emailAddress, "FireAlert Verification", message);
+                    if (!emailSent) {
+                        throw new TRPCError({
+                            code: "INTERNAL_SERVER_ERROR",
+                            message: "Failed to send verification code via email",
+                        });
+                    }
+                } else if (input.method === 'sms') {
+                    const phoneNumber = input.destination;
+                    const smsSent = await sendSMS(phoneNumber, message);
+                    if (!smsSent) {
+                        throw new TRPCError({
+                            code: "INTERNAL_SERVER_ERROR",
+                            message: "Failed to send verification code via SMS",
+                        });
+                    }
+                } else if (input.method === 'device') {
+                    const pushTokenIdentifier = input.destination;
+                    if (input.deviceType === 'ios') {
+                        const iosPushSent = await sendPushNotification(pushTokenIdentifier, message);
+                        if (!iosPushSent) {
+                            throw new TRPCError({
+                                code: "INTERNAL_SERVER_ERROR",
+                                message: "Failed to send verification code via iOS push notification",
+                            });
+                        }
+                    } else if (input.deviceType === 'android') {
+                        const androidPushSent = await sendPushNotification(pushTokenIdentifier, message);
+                        if (!androidPushSent) {
+                            throw new TRPCError({
+                                code: "INTERNAL_SERVER_ERROR",
+                                message: "Failed to send verification code via Android push notification",
+                            });
+                        }
+                    }
+                }
+
                 return {
                     status: 'success',
                     data: {
@@ -234,6 +278,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
             }
         }),
+
 
     getAllAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
