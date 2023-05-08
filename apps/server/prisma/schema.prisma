@@ -68,7 +68,7 @@ model AlertMethod {
     id                   String                 @id @default(cuid())
     guid                 String                 @unique @default(uuid())
     method               AlertMethodMethod
-    destination          String                 @unique
+    destination          String                 
     isVerified           Boolean                @default(false)
     isEnabled            Boolean                @default(false)
     deletedAt            DateTime?
@@ -77,6 +77,8 @@ model AlertMethod {
     userId               String
     user                 User                   @relation(fields: [userId], references: [id])
     verificationTracking VerificationTracking?
+
+    @@unique([destination, userId])
 }
 
 model VerificationTracking {
