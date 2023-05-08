@@ -146,6 +146,7 @@ const Settings = ({navigation}) => {
       },
     },
   );
+
   const groupOfSites = useMemo(
     () => groupSitesAsProject(sites?.json?.data || [], 'projectId'),
     [groupSitesAsProject, sites],

@@ -11,6 +11,7 @@ import {
   BackHandler,
   TouchableOpacity,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
 import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
@@ -43,6 +44,7 @@ import {
   LocationPinIcon,
   UserPlaceholder,
   CopyIcon,
+  TrashOutlineIcon,
 } from '../../assets/svgs';
 import {
   getUserDetails,
@@ -112,11 +114,26 @@ const Home = ({navigation}) => {
     MapboxGL.Location | Geolocation.GeoPosition
   >();
 
-  const [selectedAlert, setSelectedAlert] = useState({});
+  const [selectedAlert, setSelectedAlert] = useState<object | null>({});
+  const [selectedSite, setSelectedSite] = useState<object | null>({});
+  const [siteNameModalVisible, setSiteNameModalVisible] =
+    useState<boolean>(false);
+  const [siteName, setSiteName] = useState<string | null>('');
+  const [siteId, setSiteId] = useState<string | null>('');
 
-  const {data: sites} = trpc.site.getAllSites.useQuery(undefined, {
-    enabled: true,
-  });
+  const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
+    undefined,
+    {
+      enabled: true,
+      retryDelay: 3000,
+      refetchInterval: 10000,
+      refetchIntervalInBackground: true,
+      onError: () => {
+        toast.show('something went wrong', {type: 'danger'});
+      },
+    },
+  );
+
   const formattedSites = useMemo(
     () => categorizedRes(sites?.json?.data || [], 'type'),
     [categorizedRes, sites],
@@ -132,7 +149,9 @@ const Home = ({navigation}) => {
     onSuccess: () => {
       const request = {
         onSuccess: async message => {},
-        onFail: message => {},
+        onFail: () => {
+          toast.show('something went wrong', {type: 'danger'});
+        },
       };
       setLoading(false);
       setProfileEditModal(false);
@@ -144,6 +163,43 @@ const Home = ({navigation}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  const deleteSite = trpc.site.deleteSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      refetchSites();
+      setSelectedSite({});
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const updateSite = trpc.site.updateSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      refetchSites();
+      setSiteNameModalVisible(false);
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const handleEditSite = site => {
+    setSelectedSite({});
+    setSiteName(site.name);
+    setSiteId(site.id);
+    setTimeout(() => setSiteNameModalVisible(true), 500);
+  };
+
+  const handleEditSiteInfo = () => {
+    updateSite.mutate({json: {params: {siteId}, body: {name: siteName}}});
+  };
+
+  const handleDeleteSite = (id: string) => {
+    deleteSite.mutate({json: {siteId: id}});
+  };
 
   // recenter the map to the current coordinates of user location
   const onPressMyLocationIcon = (
@@ -300,6 +356,7 @@ const Home = ({navigation}) => {
   const onPressPerDeniedAlertSecondaryBtn = () => checkPermission();
 
   const handleCloseProfileModal = () => setProfileEditModal(false);
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   const renderAnnotation = counter => {
     const id = alerts[counter]?.guid;
@@ -371,13 +428,25 @@ const Home = ({navigation}) => {
           formattedSites?.polygon?.map((singleSite, i) => {
             return {
               type: 'Feature',
-              properties: {id: singleSite?.guid},
+              properties: {site: singleSite},
               geometry: singleSite?.geometry,
             };
           }) || [],
       }}
       onPress={e => {
-        console.log(e);
+        camera.current.setCamera({
+          centerCoordinate: [
+            e?.coordinates?.longitude,
+            e?.coordinates?.latitude,
+          ],
+          zoomLevel: 10,
+          animationDuration: ANIMATION_DURATION,
+        });
+
+        setTimeout(
+          () => setSelectedSite(e?.features[0]?.properties),
+          ANIMATION_DURATION,
+        );
       }}>
       <MapboxGL.FillLayer
         id={'polyFill'}
@@ -427,7 +496,9 @@ const Home = ({navigation}) => {
           />
         )}
         {renderMapSource()}
+        {/* for alerts */}
         {renderAnnotations(true)}
+        {/* for point sites */}
         {renderAnnotations(false)}
       </MapboxGL.MapView>
       {Object.keys(selectedAlert).length ? (
@@ -590,6 +661,41 @@ const Home = ({navigation}) => {
           </TouchableOpacity>
         </View>
       </BottomSheet>
+      {/* site Info modal */}
+      <BottomSheet
+        isVisible={Object.keys(selectedSite)?.length > 0}
+        backdropColor={Colors.BLACK + '80'}
+        onBackdropPress={() => setSelectedSite({})}>
+        <View style={[styles.modalContainer, styles.commonPadding]}>
+          <View style={styles.modalHeader} />
+          <View style={styles.siteTitleCon}>
+            <Text style={styles.siteTitle}>
+              {selectedSite?.site?.name || selectedSite?.site?.guid}
+            </Text>
+            <TouchableOpacity
+              onPress={() => handleEditSite(selectedSite?.site)}>
+              <PencilIcon />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.btn}>
+            <MapOutlineIcon />
+            <Text style={styles.siteActionText}>View on Map</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            disabled={deleteSite?.isLoading}
+            onPress={() => handleDeleteSite(selectedSite?.site?.id)}
+            style={styles.btn}>
+            {deleteSite?.isLoading ? (
+              <ActivityIndicator color={Colors.PRIMARY} />
+            ) : (
+              <>
+                <TrashOutlineIcon />
+                <Text style={styles.siteActionText}>Delete Site</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
       {/* profile edit modal */}
       <Modal visible={profileEditModal} animationType={'slide'} transparent>
         <KeyboardAvoidingView
@@ -616,6 +722,37 @@ const Home = ({navigation}) => {
               isLoading={loading}
               titleStyle={styles.title}
               onPress={handleEditProfileName}
+              style={styles.btnContinueSiteModal}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+      {/* site edit modal */}
+      <Modal visible={siteNameModalVisible} animationType={'slide'} transparent>
+        <KeyboardAvoidingView
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+          style={styles.siteModalStyle}>
+          <TouchableOpacity
+            onPress={handleCloseSiteModal}
+            style={styles.crossContainer}>
+            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+          </TouchableOpacity>
+          <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+            Enter Site Name
+          </Text>
+          <View
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            <FloatingInput
+              autoFocus
+              isFloat={false}
+              value={siteName}
+              onChangeText={setSiteName}
+            />
+            <CustomButton
+              title="Continue"
+              titleStyle={styles.title}
+              onPress={handleEditSiteInfo}
+              isLoading={updateSite?.isLoading}
               style={styles.btnContinueSiteModal}
             />
           </View>
