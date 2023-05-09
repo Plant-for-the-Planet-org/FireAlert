@@ -40,6 +40,7 @@ import TrashSolidIcon from './trashSolidIcon.jsx';
 import UserPlaceholder from './userPlaceholder.jsx';
 import TrashOutlineIcon from './trashOutlineIcon.jsx';
 import VerificationWarning from './verificationWarning.jsx';
+import DisabledTrashOutlineIcon from './disabledTrashOutlineIcon.jsx';
 
 export {
   Logo,
@@ -84,4 +85,5 @@ export {
   UserPlaceholder,
   TrashOutlineIcon,
   VerificationWarning,
+  DisabledTrashOutlineIcon,
 };

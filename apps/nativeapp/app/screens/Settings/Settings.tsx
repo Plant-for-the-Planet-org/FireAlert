@@ -42,6 +42,7 @@ import {
   MapOutlineIcon,
   TrashOutlineIcon,
   VerificationWarning,
+  DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
 import {getAlertsPreferences} from '../../redux/slices/alerts/alertSlice';
 import {getSites} from '../../redux/slices/sites/siteSlice';
@@ -368,7 +369,7 @@ const Settings = ({navigation}) => {
                 ? item.sites.map((sites, index) => (
                     <>
                       <TouchableOpacity
-                        onPress={() => handleSiteInformation(item)}
+                        onPress={() => handleSiteInformation(sites)}
                         key={`sites_${index}`}
                         style={styles.sitesInProjects}>
                         <Text style={styles.sitesName}>{sites.name}</Text>
@@ -783,9 +784,16 @@ const Settings = ({navigation}) => {
           <View style={[styles.modalContainer, styles.commonPadding]}>
             <View style={styles.modalHeader} />
             <View style={styles.siteTitleCon}>
-              <Text style={styles.siteTitle}>
-                {selectedSiteInfo?.name || selectedSiteInfo?.guid}
-              </Text>
+              <View>
+                {selectedSiteInfo?.projectId && (
+                  <Text style={styles.projectsName}>
+                    {selectedSiteInfo?.projectName || selectedSiteInfo?.guid}
+                  </Text>
+                )}
+                <Text style={styles.siteTitle}>
+                  {selectedSiteInfo?.name || selectedSiteInfo?.guid}
+                </Text>
+              </View>
               <TouchableOpacity
                 disabled={selectedSiteInfo?.projectId !== null}
                 onPress={() => handleEditSite(selectedSiteInfo)}>
@@ -803,16 +811,39 @@ const Settings = ({navigation}) => {
                 deleteSite?.isLoading || selectedSiteInfo?.projectId !== null
               }
               onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
-              style={styles.btn}>
+              style={[
+                styles.btn,
+                selectedSiteInfo?.projectId !== null && {
+                  borderColor: Colors.GRAY_LIGHTEST,
+                },
+              ]}>
               {deleteSite?.isLoading ? (
                 <ActivityIndicator color={Colors.PRIMARY} />
               ) : (
                 <>
-                  <TrashOutlineIcon />
-                  <Text style={styles.siteActionText}>Delete Site</Text>
+                  {selectedSiteInfo?.projectId !== null ? (
+                    <DisabledTrashOutlineIcon />
+                  ) : (
+                    <TrashOutlineIcon />
+                  )}
+                  <Text
+                    style={[
+                      styles.siteActionText,
+                      selectedSiteInfo?.projectId !== null && {
+                        color: Colors.GRAY_LIGHTEST,
+                      },
+                    ]}>
+                    Delete Site
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
+            {selectedSiteInfo?.projectId && (
+              <Text style={styles.projectSyncInfo}>
+                This site is synced from pp.eco. To make changes, please visit
+                the Plant-for-the-Planet Platform.
+              </Text>
+            )}
           </View>
         </BottomSheet>
         <Modal
@@ -895,7 +926,8 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     width: SCREEN_WIDTH,
     position: 'absolute',
-    height: SCREEN_HEIGHT / 3,
+    paddingBottom: 40,
+    // height: SCREEN_HEIGHT / 3,
     backgroundColor: Colors.WHITE,
   },
   modalLayer: {
@@ -1335,5 +1367,12 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     paddingVertical: 15,
     paddingLeft: 10,
+  },
+  projectSyncInfo: {
+    fontSize: 12,
+    marginTop: 16,
+    color: Colors.TEXT_COLOR,
+    fontFamily: Typography.FONT_FAMILY_ITALIC,
+    paddingHorizontal: 10,
   },
 });
