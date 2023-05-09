@@ -19,6 +19,7 @@ import React, {useCallback, useMemo, useState} from 'react';
 
 import {
   Switch,
+  AlertModal,
   BottomSheet,
   CustomButton,
   FloatingInput,
@@ -44,8 +45,8 @@ import {
   VerificationWarning,
   DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
-import {getAlertsPreferences} from '../../redux/slices/alerts/alertSlice';
 import {getSites} from '../../redux/slices/sites/siteSlice';
+import {getAlertsPreferences} from '../../redux/slices/alerts/alertSlice';
 
 import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
@@ -112,6 +113,7 @@ const Settings = ({navigation}) => {
   const [siteName, setSiteName] = useState<string | null>('');
   const [siteId, setSiteId] = useState<string | null>('');
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
@@ -314,6 +316,15 @@ const Settings = ({navigation}) => {
     navigation.navigate('Home', siteInfo);
   };
 
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
+
+  const onDeleteAccount = () => {};
+  const onGoBack = () => setShowDelAccount(false);
+
+  const handleDelAccount = () => {
+    setShowDelAccount(true);
+  };
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     const req = {
@@ -327,8 +338,6 @@ const Settings = ({navigation}) => {
     dispatch(getSites(req));
     dispatch(getAlertsPreferences(req));
   }, []);
-
-  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -776,6 +785,22 @@ const Settings = ({navigation}) => {
             . 
           </Text>
         </View>
+        <TouchableOpacity onPress={handleDelAccount} style={styles.delTextCon}>
+          <Text style={styles.delText}>Delete Account</Text>
+        </TouchableOpacity>
+        {/* Del Account Alert */}
+        <AlertModal
+          visible={showDelAccount}
+          heading={'Delete Account'}
+          message={
+            'If you proceed your account will be scheduled for deletion and will be deleted in 7 days. If you change your mind, please login again to cancel the deletion process.'
+          }
+          primaryBtnText={'Delete'}
+          secondaryBtnText={'Go Back'}
+          onPressPrimaryBtn={onDeleteAccount}
+          onPressSecondaryBtn={onGoBack}
+          showSecondaryButton={true}
+        />
         {/* site information modal */}
         <BottomSheet
           isVisible={sitesInfoModal}
@@ -1209,6 +1234,16 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
+  },
+  delTextCon: {
+    marginTop: 40,
+    alignSelf: 'center',
+  },
+  delText: {
+    fontSize: Typography.FONT_SIZE_20,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: '#EB5757',
+    padding: 10,
   },
   geostationaryMainContainer: {
     marginTop: 32,
