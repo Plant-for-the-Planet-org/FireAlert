@@ -168,6 +168,19 @@ export const alertMethodRouter = createTRPCRouter({
                     message: "User ID not found",
                 });
             }
+            // Check if the user has reached the maximum limit of alert methods (e.g., 5)
+            const alertMethodCount = await ctx.prisma.alertMethod.count({
+                where: {
+                    userId,
+                },
+            });
+
+            if (alertMethodCount >= 5) {
+                return {
+                    status: 403,
+                    message: 'Exceeded maximum alert methods limit',
+                };
+            }
             try {
                 const otp = generate5DigitOTP();
                 const alertMethod = await ctx.prisma.alertMethod.create({
