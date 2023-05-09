@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { queryAlertSchema} from '../zodSchemas/alert.schema'
+import { queryAlertSchema } from '../zodSchemas/alert.schema'
 import { params as siteParams } from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
@@ -212,35 +212,42 @@ export const alertRouter = createTRPCRouter({
             };
         }),
 
-    populateAlerts: publicProcedure
-        .query(async ({ ctx }) => {
-            const allUncheckedfireAlerts = await ctx.prisma.worldFireAlert.findMany({
-                where: {
-                    isChecked: false
-                }
-            })
-            const sites = await ctx.prisma.site.findMany();
-            if (!sites || sites.length === 0) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "There are no sites",
-                });
-            }
+    populateAlerts: publicProcedure.query(async ({ ctx }) => {
+        const allUncheckedfireAlerts = await ctx.prisma.worldFireAlert.findMany({
+            where: {
+                isChecked: false,
+            },
+        });
+
+        const sites = await ctx.prisma.site.findMany();
+        if (!sites || sites.length === 0) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "There are no sites",
+            });
+        }
+
+        await ctx.prisma.$transaction(async (prisma) => {
             for (const uncheckedFireAlert of allUncheckedfireAlerts) {
-                const longitude = uncheckedFireAlert.longitude
-                const latitude = uncheckedFireAlert.latitude
-                const point = [longitude, latitude]
-                const turfPoint = turf.point(point)
+                const longitude = uncheckedFireAlert.longitude;
+                const latitude = uncheckedFireAlert.latitude;
+                const point = [longitude, latitude];
+                const turfPoint = turf.point(point);
                 const createdAlerts = [];
+
                 for (const site of sites) {
                     const siteBufferedCoordinates = site.detectionCoordinates;
                     let turfPolygon: TurfMultiPolygonOrPolygon;
-                    if (site.type === 'MultiPolygon') {
-                        turfPolygon = turf.multiPolygon(siteBufferedCoordinates)
+                    if (site.type === "MultiPolygon") {
+                        turfPolygon = turf.multiPolygon(siteBufferedCoordinates);
                     } else {
                         turfPolygon = turf.polygon(siteBufferedCoordinates);
                     }
-                    const isAlertInsideSite = turf.booleanPointInPolygon(turfPoint, turfPolygon);
+                    const isAlertInsideSite = turf.booleanPointInPolygon(
+                        turfPoint,
+                        turfPolygon
+                    );
+
                     if (isAlertInsideSite) {
                         createdAlerts.push({
                             type: "fire",
@@ -254,21 +261,30 @@ export const alertRouter = createTRPCRouter({
                         });
                     }
                 }
+
                 if (createdAlerts.length > 0) {
-                    await ctx.prisma.alert.createMany({
+                    await prisma.alert.createMany({
                         data: createdAlerts,
                     });
                 }
-                await ctx.prisma.worldFireAlert.update({
+
+                await prisma.worldFireAlert.update({
                     where: {
-                        id: uncheckedFireAlert.id
+                        id: uncheckedFireAlert.id,
                     },
                     data: {
-                        isChecked: true
-                    }
-                })
+                        isChecked: true,
+                    },
+                });
             }
-        }),
+        });
+
+        return {
+            status: "success",
+            message: "Alerts created and world fire alerts updated",
+        };
+    }),
+
 
     // TODO: Find out where the alert is, inside or outside the site coordinates (possibly make a new data field that says how far the alert is compared to the site polygon)
     //`TODO: Send an alert notification to the user regarding the fire alert
