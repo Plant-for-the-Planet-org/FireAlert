@@ -9,6 +9,10 @@ import {
 import { parse } from 'csv-parse'
 import * as turf from '@turf/turf';
 import { Alert } from "@prisma/client";
+import { type InnerTRPCContext, PPJwtPayload } from '../../api/trpc'
+
+interface TRPCContext extends InnerTRPCContext {}
+
 const sources: Source[] = ['MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP', 'LANDSAT_NRT']
 type Source = 'MODIS_NRT' | 'MODIS_SP' | 'VIIRS_NOAA20_NRT' | 'VIIRS_SNPP_NRT' | 'VIIRS_SNPP_SP' | 'LANDSAT_NRT'
 
@@ -58,141 +62,175 @@ interface LANDSAT {
 type DetectedBy = 'MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY'
 type ConfidenceLevel = 'high' | 'medium' | 'low'
 
-interface FireAlert extends MODISAndVIIRS, LANDSAT { }
+interface FireAlert extends MODISAndVIIRS, LANDSAT, GEOSTAT { }
 
 
 type TurfMultiPolygonOrPolygon = turf.helpers.Feature<turf.helpers.MultiPolygon, turf.helpers.Properties> | turf.helpers.Feature<turf.helpers.Polygon, turf.helpers.Properties>
 
+// Helper function to fetch and parse CSV data
+async function fetchAndParseCSV(url: string): Promise<FireAlert[]> {
+    const response = await fetch(url);
+    const csv = await response.text();
+    return new Promise<FireAlert[]>((resolve, reject) => {
+        const parser = parse(csv, { columns: true });
+        const records: FireAlert[] = [];
+        parser.on("readable", function () {
+            let record;
+            while ((record = parser.read())) {
+                records.push(record);
+            }
+        });
+        parser.on("error", function (error) {
+            reject(new Error("Error parsing CSV file: " + error.message));
+        });
+        parser.on("end", function () {
+            resolve(records);
+        });
+    });
+}
 
-// TODO: Handle errors in the populateAlerts route
+// Helper function to process and transform records
+function processRecords(records: FireAlert[], detectedBy: DetectedBy) {
+    return records.map((record) => {
+        const longitude = parseFloat(record.longitude);
+        const latitude = parseFloat(record.latitude);
+        const eventDate = new Date(record.acq_date) ?? new Date();
+        const frp = parseFloat(record.frp) ?? null;
+        let confidenceLevel: ConfidenceLevel;
+
+        // Assign confidence level based on record.instrument and record.confidence
+        if (detectedBy === "MODIS") {
+            switch (record.confidence) {
+                case "h":
+                    confidenceLevel = "high";
+                    break;
+                case "m":
+                    confidenceLevel = "medium";
+                    break;
+                case "l":
+                    confidenceLevel = "low";
+                    break;
+            }
+        } else if (detectedBy === "VIIRS") {
+            switch (record.confidence) {
+                case "h":
+                    confidenceLevel = "high";
+                    break;
+                case "n":
+                    confidenceLevel = "medium";
+                    break;
+                case "l":
+                    confidenceLevel = "low";
+                    break;
+            }
+        } else if (detectedBy === "LANDSAT") {
+            switch (record.confidence) {
+                case "H":
+                    confidenceLevel = "high";
+                    break;
+                case "M":
+                    confidenceLevel = "medium";
+                    break;
+                case "L":
+                    confidenceLevel = "low";
+                    break;
+            }
+        } else if (detectedBy === "GEOSTATIONARY") {
+            switch (record.confidence) {
+                case "10":
+                case "30":
+                case "11":
+                case "31":
+                case "13":
+                case '33':
+                case '14':
+                case '34':
+                    confidenceLevel = "high";
+                    break;
+                case "12":
+                    confidenceLevel = "medium";
+                    break;
+                case "15":
+                case "35":
+                    confidenceLevel = "low";
+                    break;
+            }
+        }
+
+        return {
+            latitude: latitude,
+            longitude: longitude,
+            eventDate: eventDate,
+            confidence: confidenceLevel,
+            detectedBy: detectedBy,
+            frp: frp,
+        };
+    });
+}
+
+// Function to run for each source
+async function processSource(ctx: TRPCContext, source: string, currentDate:string): Promise<void> {
+    let detectedBy: DetectedBy;
+
+    if (source === "MODIS_NRT" || source === "MODIS_SP") {
+        detectedBy = "MODIS";
+    } else if (
+        source === "VIIRS_SNPP_NRT" ||
+        source === "VIIRS_SNPP_SP" ||
+        source === "VIIRS_NOAA20_NRT"
+    ) {
+        detectedBy = "VIIRS";
+    } else if (source === "LANDSAT_NRT") {
+        detectedBy = "LANDSAT";
+    }
+    const mapKey = await ctx.prisma.alertProvider.findFirst({
+        where: {
+            slug: source,
+            type: "fire",
+        },
+    });
+    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/${source}/-180,-90,180,90/1/${currentDate}`;
+    try {
+        const records = await fetchAndParseCSV(url);
+        if (records.length === 0) {
+            console.log(`No alerts found for source: ${source}`);
+            return;
+        }
+        const alerts = processRecords(records, detectedBy);
+        await ctx.prisma.worldFireAlert.createMany({
+            data: alerts,
+        });
+        console.log(`Successfully populated alerts for source: ${source}`);
+    } catch (error) {
+        console.error(`Error processing source: ${source}`);
+        console.error(error);
+        throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Error processing source",
+        });
+    }
+}
+
 export const alertRouter = createTRPCRouter({
 
-    populateWorldFireAlertDatabase: publicProcedure
-        .query(async ({ ctx }) => {
-            const currentDate: string = new Date().toISOString().split('T')[0];
-            for (const source of sources) {
-                let detectedBy: DetectedBy;
-                if (source === 'MODIS_NRT' || source === 'MODIS_SP') {
-                    detectedBy = 'MODIS'
-                } else if (source === 'VIIRS_SNPP_NRT' || source === 'VIIRS_SNPP_SP' || source === 'VIIRS_NOAA20_NRT') {
-                    detectedBy = 'VIIRS'
-                } else if (source === 'LANDSAT_NRT') {
-                    detectedBy = 'LANDSAT'
-                }
-                const mapKey = await ctx.prisma.alertProvider.findFirst({
-                    where: {
-                        slug: source,
-                        type: 'fire'
-                    }
-                })
-                const response = await fetch(
-                    `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/${source}/-180,-90,180,90/1/${currentDate}`
-                );
-                const csv = await response.text();
-                const parser = parse(csv, { columns: true });
-                const records: FireAlert[] = [];
-                parser.on("readable", function () {
-                    let record;
-                    while ((record = parser.read())) {
-                        records.push(record);
-                    }
-                });
-                parser.on("error", function (error) {
-                    console.error(error);
-                    throw new TRPCError({
-                        code: "INTERNAL_SERVER_ERROR",
-                        message: "Error parsing CSV file",
-                    });
-                });
-                parser.on("end", async function () {
-                    if (records.length === 0) {
-                        return {
-                            message: "No alerts found",
-                        };
-                    }
-                    // Add alerts
-                    for (const record of records) {
-                        const longitude = parseFloat(record.longitude)
-                        const latitude = parseFloat(record.latitude)
-                        const eventDate = new Date(record.acq_date) ?? new Date()
-                        const frp = parseFloat(record.frp) ?? null
-                        let confidenceLevel: ConfidenceLevel;
-                        // Assign confidence level based on record.instrument and record.confidence
-                        if (detectedBy === 'MODIS') {
-                            switch (record.confidence) {
-                                case 'h':
-                                    confidenceLevel = 'high';
-                                    break;
-                                case 'm':
-                                    confidenceLevel = 'medium';
-                                    break;
-                                case 'l':
-                                    confidenceLevel = 'low';
-                                    break;
-                            }
-                        } else if (detectedBy === 'VIIRS') {
-                            switch (record.confidence) {
-                                case 'h':
-                                    confidenceLevel = 'high';
-                                    break;
-                                case 'n':
-                                    confidenceLevel = 'medium';
-                                    break;
-                                case 'l':
-                                    confidenceLevel = 'low';
-                                    break;
-                            }
-                        } else if (detectedBy === 'LANDSAT') {
-                            switch (record.confidence) {
-                                case 'H':
-                                    confidenceLevel = 'high';
-                                    break;
-                                case 'M':
-                                    confidenceLevel = 'medium';
-                                    break;
-                                case 'L':
-                                    confidenceLevel = 'low';
-                                    break;
-                            }
-                        } else if (detectedBy === 'GEOSTATIONARY') {
-                            switch (record.confidence) {
-                                case '10':
-                                case '30':
-                                case '11':
-                                case '31':
-                                case '13':
-                                case '33':
-                                case '14':
-                                case '34':
-                                    confidenceLevel = 'high';
-                                    break;
-                                case '12':
-                                    confidenceLevel = 'medium';
-                                    break;
-                                case '15':
-                                case '35':
-                                    confidenceLevel = 'low';
-                                    break;
-                            }
-                        }
-                        await ctx.prisma.worldFireAlert.create({
-                            data: {
-                                latitude: latitude,
-                                longitude: longitude,
-                                eventDate: eventDate,
-                                confidence: confidenceLevel,
-                                detectedBy: detectedBy,
-                                frp: frp
-                            }
-                        })
-                    }
-                })
-            }
+    populateWorldFireAlertDatabase: publicProcedure.query(async ({ ctx }) => {
+        const currentDate: string = new Date().toISOString().split("T")[0];
+        try {
+            await Promise.all(sources.map((source) => processSource(ctx, source, currentDate)));
+
             return {
-                status: 'success',
-                message: 'successfully populated world fire alerts'
-            }
-        }),
+                status: "success",
+                message: "Successfully populated world fire alerts",
+            };
+        } catch (error) {
+            console.error("Error populating world fire alerts");
+            console.error(error);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Error populating world fire alerts",
+            });
+        }
+    }),
 
     deleteWorldFireAlerts: publicProcedure
         .query(async ({ ctx }) => {
@@ -213,82 +251,92 @@ export const alertRouter = createTRPCRouter({
         }),
 
     populateAlerts: publicProcedure.query(async ({ ctx }) => {
-        const allUncheckedfireAlerts = await ctx.prisma.worldFireAlert.findMany({
-            where: {
-                isChecked: false,
-            },
-        });
-
-        const sites = await ctx.prisma.site.findMany();
-        if (!sites || sites.length === 0) {
-            throw new TRPCError({
-                code: "NOT_FOUND",
-                message: "There are no sites",
+        try {
+            const allUncheckedfireAlerts = await ctx.prisma.worldFireAlert.findMany({
+                where: {
+                    isChecked: false,
+                },
             });
-        }
 
-        await ctx.prisma.$transaction(async (prisma) => {
-            for (const uncheckedFireAlert of allUncheckedfireAlerts) {
-                const longitude = uncheckedFireAlert.longitude;
-                const latitude = uncheckedFireAlert.latitude;
-                const point = [longitude, latitude];
-                const turfPoint = turf.point(point);
-                const createdAlerts = [];
-
-                for (const site of sites) {
-                    const siteBufferedCoordinates = site.detectionCoordinates;
-                    let turfPolygon: TurfMultiPolygonOrPolygon;
-                    if (site.type === "MultiPolygon") {
-                        turfPolygon = turf.multiPolygon(siteBufferedCoordinates);
-                    } else {
-                        turfPolygon = turf.polygon(siteBufferedCoordinates);
-                    }
-                    const isAlertInsideSite = turf.booleanPointInPolygon(
-                        turfPoint,
-                        turfPolygon
-                    );
-
-                    if (isAlertInsideSite) {
-                        createdAlerts.push({
-                            type: "fire",
-                            eventDate: uncheckedFireAlert.eventDate,
-                            detectedBy: uncheckedFireAlert.detectedBy,
-                            confidence: uncheckedFireAlert.confidence,
-                            latitude: latitude,
-                            longitude: longitude,
-                            frp: uncheckedFireAlert.frp,
-                            siteId: site.id,
-                        });
-                    }
-                }
-
-                if (createdAlerts.length > 0) {
-                    await prisma.alert.createMany({
-                        data: createdAlerts,
-                    });
-                }
-
-                await prisma.worldFireAlert.update({
-                    where: {
-                        id: uncheckedFireAlert.id,
-                    },
-                    data: {
-                        isChecked: true,
-                    },
+            const sites = await ctx.prisma.site.findMany();
+            if (!sites || sites.length === 0) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "There are no sites",
                 });
             }
-        });
 
-        return {
-            status: "success",
-            message: "Alerts created and world fire alerts updated",
-        };
+            await ctx.prisma.$transaction(async (prisma) => {
+                for (const uncheckedFireAlert of allUncheckedfireAlerts) {
+                    const longitude = uncheckedFireAlert.longitude;
+                    const latitude = uncheckedFireAlert.latitude;
+                    const point = [longitude, latitude];
+                    const turfPoint = turf.point(point);
+                    const createdAlerts = [];
+
+                    for (const site of sites) {
+                        const siteBufferedCoordinates = site.detectionCoordinates;
+                        let turfPolygon: TurfMultiPolygonOrPolygon;
+                        if (site.type === "MultiPolygon") {
+                            turfPolygon = turf.multiPolygon(siteBufferedCoordinates);
+                        } else {
+                            turfPolygon = turf.polygon(siteBufferedCoordinates);
+                        }
+                        const isAlertInsideSite = turf.booleanPointInPolygon(
+                            turfPoint,
+                            turfPolygon
+                        );
+
+                        if (isAlertInsideSite) {
+                            createdAlerts.push({
+                                type: "fire",
+                                eventDate: uncheckedFireAlert.eventDate,
+                                detectedBy: uncheckedFireAlert.detectedBy,
+                                confidence: uncheckedFireAlert.confidence,
+                                latitude: latitude,
+                                longitude: longitude,
+                                frp: uncheckedFireAlert.frp,
+                                siteId: site.id,
+                            });
+                        }
+                    }
+
+                    if (createdAlerts.length > 0) {
+                        await prisma.alert.createMany({
+                            data: createdAlerts,
+                        });
+                    }
+
+                    await prisma.worldFireAlert.update({
+                        where: {
+                            id: uncheckedFireAlert.id,
+                        },
+                        data: {
+                            isChecked: true,
+                        },
+                    });
+                }
+            });
+
+            return {
+                status: "success",
+                message: "Alerts created and world fire alerts updated",
+            };
+        } catch (error) {
+            // Handle and log the error appropriately
+            console.error("Error occurred in populateAlerts:", error);
+
+            // Return an error response
+            return {
+                status: "error",
+                message: "An error occurred while processing the fire alerts",
+            };
+        }
     }),
-
 
     // TODO: Find out where the alert is, inside or outside the site coordinates (possibly make a new data field that says how far the alert is compared to the site polygon)
     //`TODO: Send an alert notification to the user regarding the fire alert
-    // TODO: Setup a while block to repeat the code above while length of allUncheckedfireAlerts is truthy.
+    // TODO: Setup a while block to repeat the code above while length of allUncheckedfireAlerts is truthy. (Should do or not?)
 
     getAlertsForSite: protectedProcedure
         .input(siteParams)
