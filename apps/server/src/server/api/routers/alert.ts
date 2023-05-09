@@ -1,15 +1,14 @@
 import { TRPCError } from "@trpc/server";
-import { createAlertSchema, params as alertParams, updateAlertSchema } from '../zodSchemas/alert.schema'
+import { queryAlertSchema} from '../zodSchemas/alert.schema'
 import { params as siteParams } from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
     publicProcedure
 } from "../trpc";
-import { env } from "../../../env.mjs";
 import { parse } from 'csv-parse'
 import * as turf from '@turf/turf';
-import { Alert, Site } from "@prisma/client";
+import { Alert } from "@prisma/client";
 const sources: Source[] = ['MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP', 'LANDSAT_NRT']
 type Source = 'MODIS_NRT' | 'MODIS_SP' | 'VIIRS_NOAA20_NRT' | 'VIIRS_SNPP_NRT' | 'VIIRS_SNPP_SP' | 'LANDSAT_NRT'
 
@@ -232,33 +231,33 @@ export const alertRouter = createTRPCRouter({
                 const latitude = uncheckedFireAlert.latitude
                 const point = [longitude, latitude]
                 const turfPoint = turf.point(point)
-                let turfPolygon: TurfMultiPolygonOrPolygon;
+                const createdAlerts = [];
                 for (const site of sites) {
                     const siteBufferedCoordinates = site.detectionCoordinates;
+                    let turfPolygon: TurfMultiPolygonOrPolygon;
                     if (site.type === 'MultiPolygon') {
                         turfPolygon = turf.multiPolygon(siteBufferedCoordinates)
-                    } else if (site.type === 'Polygon') {
+                    } else {
                         turfPolygon = turf.polygon(siteBufferedCoordinates);
                     }
                     const isAlertInsideSite = turf.booleanPointInPolygon(turfPoint, turfPolygon);
                     if (isAlertInsideSite) {
-                        const createdAlert = await ctx.prisma.alert.create({
-                            data: {
-                                type: "fire",
-                                eventDate: uncheckedFireAlert.eventDate,
-                                detectedBy: uncheckedFireAlert.detectedBy,
-                                confidence: uncheckedFireAlert.confidence,
-                                latitude: latitude,
-                                longitude: longitude,
-                                frp: uncheckedFireAlert.frp,
-                                siteId: site.id,
-                            },
+                        createdAlerts.push({
+                            type: "fire",
+                            eventDate: uncheckedFireAlert.eventDate,
+                            detectedBy: uncheckedFireAlert.detectedBy,
+                            confidence: uncheckedFireAlert.confidence,
+                            latitude: latitude,
+                            longitude: longitude,
+                            frp: uncheckedFireAlert.frp,
+                            siteId: site.id,
                         });
-                        if (!createdAlert) {
-                            console.log(`something went wrong`)
-                            // break this loop, and then go to another site
-                        }
                     }
+                }
+                if (createdAlerts.length > 0) {
+                    await ctx.prisma.alert.createMany({
+                        data: createdAlerts,
+                    });
                 }
                 await ctx.prisma.worldFireAlert.update({
                     where: {
@@ -277,147 +276,124 @@ export const alertRouter = createTRPCRouter({
 
     getAlertsForSite: protectedProcedure
         .input(siteParams)
-            .query(async ({ ctx, input }) => {
-                try {
-                    const alertsForSite = await ctx.prisma.alert.findMany({
-                        where: {
-                            siteId: input.siteId,
-                        }
-                    })
-                    return {
-                        status: 'success',
-                        data: alertsForSite,
+        .query(async ({ ctx, input }) => {
+            try {
+                const alertsForSite = await ctx.prisma.alert.findMany({
+                    where: {
+                        siteId: input.siteId,
                     }
-                } catch (error) {
-                    console.log(error)
+                })
+                return {
+                    status: 'success',
+                    data: alertsForSite,
+                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
+                });
+            }
+        }),
+
+    getAlertsForUser: protectedProcedure
+        .query(async ({ ctx }) => {
+            try {
+                let userId: string;
+
+                // Check if user is authenticated with token
+                if (ctx.token) {
+                    const account = await ctx.prisma.account.findFirst({
+                        where: {
+                            providerAccountId: ctx.token.sub,
+                        },
+                        select: {
+                            userId: true,
+                        },
+                    });
+                    if (!account) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Cannot find an account associated with the token",
+                        });
+                    }
+                    userId = account.userId;
+                } else if (ctx.session) { // Check if user is authenticated with session
+                    userId = ctx.session.user.id;
+                } else { // User is not authenticated
                     throw new TRPCError({
-                        code: "INTERNAL_SERVER_ERROR",
-                        message: `${error}`,
+                        code: 'UNAUTHORIZED',
+                        message: 'Missing authentication credentials',
                     });
                 }
-            }),
+                const alertsForUser: Alert[] = [];
+                const sites = await ctx.prisma.site.findMany({
+                    where: {
+                        userId,
+                    },
+                });
 
-            getAlertsForUser: protectedProcedure
-                .query(async ({ ctx }) => {
-                    try {
-                        let userId: string;
+                // Fetch alerts for each site
+                for (const site of sites) {
+                    const alertsForEachSite = await ctx.prisma.alert.findMany({
+                        where: {
+                            siteId: site.id,
+                        },
+                    });
+                    alertsForUser.push(...alertsForEachSite);
+                }
 
-                        // Check if user is authenticated with token
-                        if (ctx.token) {
-                            const account = await ctx.prisma.account.findFirst({
-                                where: {
-                                    providerAccountId: ctx.token.sub,
-                                },
-                                select: {
-                                    userId: true,
-                                },
-                            });
-                            if (!account) {
-                                throw new TRPCError({
-                                    code: "NOT_FOUND",
-                                    message: "Cannot find an account associated with the token",
-                                });
-                            }
-                            userId = account.userId;
-                        } else if (ctx.session) { // Check if user is authenticated with session
-                            userId = ctx.session.user.id;
-                        } else { // User is not authenticated
-                            throw new TRPCError({
-                                code: 'UNAUTHORIZED',
-                                message: 'Missing authentication credentials',
-                            });
-                        }
-                        const alertsForUser: Alert[] = [];
-                        const sites = await ctx.prisma.site.findMany({
-                            where: {
-                                userId,
-                            },
-                        });
-
-                        // Fetch alerts for each site
-                        for (const site of sites) {
-                            const alertsForEachSite = await ctx.prisma.alert.findMany({
-                                where: {
-                                    siteId: site.id,
-                                },
-                            });
-                            alertsForUser.push(...alertsForEachSite);
-                        }
-
-                        return {
-                            status: 'success',
-                            data: alertsForUser,
-                        };
-                    } catch (error) {
-                        console.log(error)
-                        throw new TRPCError({
-                            code: "INTERNAL_SERVER_ERROR",
-                            message: `${error}`,
-                        });
-                    }
-                }),
+                return {
+                    status: 'success',
+                    data: alertsForUser,
+                };
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
+                });
+            }
+        }),
 
 
-                getAlert: protectedProcedure
-                    .input(alertParams)
-                    .query(async ({ ctx, input }) => {
-                        try {
-                            const alert = await ctx.prisma.alert.findFirst({
-                                where: { id: input.alertId }
-                            })
-                            return {
-                                status: 'success',
-                                data: alert,
-                            }
-                        } catch (error) {
-                            console.log(error)
-                            throw new TRPCError({
-                                code: "INTERNAL_SERVER_ERROR",
-                                message: `${error}`,
-                            });
-                        }
-                    }),
+    getAlert: protectedProcedure
+        .input(queryAlertSchema)
+        .query(async ({ ctx, input }) => {
+            try {
+                const alert = await ctx.prisma.alert.findFirst({
+                    where: { id: input.alertId }
+                })
+                return {
+                    status: 'success',
+                    data: alert,
+                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
+                });
+            }
+        }),
 
-                    updateAlert: protectedProcedure
-                        .input(updateAlertSchema)
-                        .mutation(async ({ ctx, input }) => {
-                            try {
-                                const paramsInput = input.params
-                                const body = input.body
-                                const updatedAlert = await ctx.prisma.alert.update({
-                                    where: { id: paramsInput.alertId },
-                                    data: body,
-                                })
-                                return {
-                                    status: 'success',
-                                    data: updatedAlert,
-                                }
-                            } catch (error) {
-                                console.log(error)
-                                throw new TRPCError({
-                                    code: "INTERNAL_SERVER_ERROR",
-                                    message: `${error}`,
-                                });
-                            }
-                        }),
-
-                        deleteAlert: protectedProcedure
-                            .input(alertParams)
-                            .mutation(async ({ ctx, input }) => {
-                                try {
-                                    const deletedAlert = await ctx.prisma.alert.delete({
-                                        where: { id: input.alertId }
-                                    })
-                                    return {
-                                        status: 'success',
-                                        data: deletedAlert
-                                    }
-                                } catch (error) {
-                                    console.log(error)
-                                    throw new TRPCError({
-                                        code: "INTERNAL_SERVER_ERROR",
-                                        message: `${error}`,
-                                    });
-                                }
-                            }),
+    deleteAlert: protectedProcedure
+        .input(queryAlertSchema)
+        .mutation(async ({ ctx, input }) => {
+            try {
+                const deletedAlert = await ctx.prisma.alert.delete({
+                    where: { id: input.alertId }
+                })
+                return {
+                    status: 'success',
+                    data: deletedAlert
+                }
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
+                });
+            }
+        }),
 });
