@@ -55,58 +55,7 @@ export const alertMethodRouter = createTRPCRouter({
 
             // Get the current date
             const currentDate = new Date().toISOString().split('T')[0];
-
-            // Check if the verification tracking record exists for the current user and alertMethodId
-            const verificationRecord = await ctx.prisma.verificationTracking.findFirst({
-                where: {
-                    alertMethodId,
-                },
-            });
-
-            if (verificationRecord) {
-                // Check if the date is the same
-                if (verificationRecord.date === currentDate) {
-                    // Check if the attempt count has reached the maximum limit (e.g., 3)
-                    if (verificationRecord.attemptCount >= 3) {
-                        return {
-                            status: 403,
-                            message: 'Exceeded maximum verification attempts for the day',
-                        };
-                    }
-                    // Increment the attempt count
-                    await ctx.prisma.verificationTracking.update({
-                        where: {
-                            id: verificationRecord.id,
-                        },
-                        data: {
-                            attemptCount: verificationRecord.attemptCount + 1,
-                        },
-                    });
-                } else {
-                    // Refresh the attempt count to 1 for a new date
-                    await ctx.prisma.verificationTracking.update({
-                        where: {
-                            id: verificationRecord.id,
-                        },
-                        data: {
-                            date: currentDate,
-                            attemptCount: 1,
-                        },
-                    });
-                }
-            } else {
-                // Create a new verification tracking record
-                await ctx.prisma.verificationTracking.create({
-                    data: {
-                        alertMethodId,
-                        date: currentDate,
-                        attemptCount: 1,
-                    },
-                });
-            }
-
-            const otp = generate5DigitOTP()
-            const message = `Your FireAlert Verification OTP is ${otp}`
+            // Find the alertMethod for that id
             const alertMethod = await ctx.prisma.alertMethod.findFirst({
                 where: {
                     id: input.alertMethodId
@@ -123,6 +72,42 @@ export const alertMethodRouter = createTRPCRouter({
                     message: 'User is already verified'
                 }
             }
+            // Check if the date is the same
+            if (
+                alertMethod.lastTokenSentDate &&
+                alertMethod.lastTokenSentDate.toISOString().split('T')[0] === currentDate
+            ) {
+                // Check if the attempt count has reached the maximum limit (e.g., 3)
+                if (alertMethod.tokenSentCount >= 3) {
+                    return {
+                        status: 403,
+                        message: 'Exceeded maximum verification attempts for the day',
+                    };
+                }
+                // Increment the tokenSentCount
+                await ctx.prisma.alertMethod.update({
+                    where: {
+                        id: alertMethodId,
+                    },
+                    data: {
+                        tokenSentCount: alertMethod.tokenSentCount + 1,
+                    },
+                });
+            } else {
+                // Reset tokenSentCount to 1 for a new date
+                await ctx.prisma.alertMethod.update({
+                    where: {
+                        id: alertMethodId,
+                    },
+                    data: {
+                        tokenSentCount: 1,
+                        lastTokenSentDate: new Date(),
+                    },
+                });
+            }
+
+            const otp = generate5DigitOTP()
+            const message = `Your FireAlert Verification OTP is ${otp}`
             await ctx.prisma.alertMethod.update({
                 where: {
                     id: input.alertMethodId
@@ -134,7 +119,8 @@ export const alertMethodRouter = createTRPCRouter({
             const destination = alertMethod.destination
             const method = alertMethod.method
             const deviceType = alertMethod.deviceType ?? undefined
-            await sendVerificationCode(destination, method, deviceType, message)
+            const verificaiton = await sendVerificationCode(destination, method, deviceType, message)
+            return verificaiton;
         }),
 
     verify: protectedProcedure
@@ -182,6 +168,19 @@ export const alertMethodRouter = createTRPCRouter({
                     message: "User ID not found",
                 });
             }
+            // Check if the user has reached the maximum limit of alert methods (e.g., 5)
+            const alertMethodCount = await ctx.prisma.alertMethod.count({
+                where: {
+                    userId,
+                },
+            });
+
+            if (alertMethodCount >= 5) {
+                return {
+                    status: 403,
+                    message: 'Exceeded maximum alert methods limit',
+                };
+            }
             try {
                 const otp = generate5DigitOTP();
                 const alertMethod = await ctx.prisma.alertMethod.create({
@@ -200,12 +199,13 @@ export const alertMethodRouter = createTRPCRouter({
                 const destination = alertMethod.destination
                 const method = alertMethod.method
                 const deviceType = alertMethod.deviceType ?? undefined
-                await sendVerificationCode(destination, method, deviceType, message)
+                const verification = await sendVerificationCode(destination, method, deviceType, message)
 
                 return {
                     status: 'success',
                     data: {
                         alertMethod,
+                        verification
                     },
                 };
             } catch (error) {
