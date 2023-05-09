@@ -10,7 +10,8 @@ import { env } from "../../../env.mjs";
 import { parse } from 'csv-parse'
 import * as turf from '@turf/turf';
 import { Alert, Site } from "@prisma/client";
-const sources = ['MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP', 'LANDSAT_NRT']
+const sources: Source[] = ['MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP', 'LANDSAT_NRT']
+type Source = 'MODIS_NRT' | 'MODIS_SP' | 'VIIRS_NOAA20_NRT' | 'VIIRS_SNPP_NRT' | 'VIIRS_SNPP_SP' | 'LANDSAT_NRT'
 
 interface MODISAndVIIRS {
     latitude: string;
@@ -28,6 +29,20 @@ interface MODISAndVIIRS {
     frp: string;
     daynight: string;
 }
+interface GEOSTAT {
+    latitude: string;
+    longitude: string;
+    brightness: string;
+    pixel_Y: string;
+    pixel_X: string;
+    acquire_Time: string;
+    confidence: string;
+    version: string;
+    brightness2: string;
+    frp: string;
+    daynight: string;
+    satellite: string;
+}
 interface LANDSAT {
     latitude: string;
     longitude: string;
@@ -42,9 +57,9 @@ interface LANDSAT {
     daynight: string;
 }
 type DetectedBy = 'MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY'
+type ConfidenceLevel = 'high' | 'medium' | 'low'
 
-
-interface FireAlert extends MODISAndVIIRS, LANDSAT {}
+interface FireAlert extends MODISAndVIIRS, LANDSAT { }
 
 
 type TurfMultiPolygonOrPolygon = turf.helpers.Feature<turf.helpers.MultiPolygon, turf.helpers.Properties> | turf.helpers.Feature<turf.helpers.Polygon, turf.helpers.Properties>
@@ -53,325 +68,356 @@ type TurfMultiPolygonOrPolygon = turf.helpers.Feature<turf.helpers.MultiPolygon,
 // TODO: Handle errors in the populateAlerts route
 export const alertRouter = createTRPCRouter({
 
-    populateAlerts: publicProcedure
+    populateWorldFireAlertDatabase: publicProcedure
         .query(async ({ ctx }) => {
-            try {
-                const today: Date = new Date();
-                const year: number = today.getFullYear();
-                const month: number = today.getMonth() + 1;
-                const day: number = today.getDate();
-
-                const currentDate: string = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                let sites: Site[] = [];
-                try {
-                    sites = await ctx.prisma.site.findMany();
-                    if (!sites || sites.length === 0) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "There are no sites",
-                        });
+            const currentDate: string = new Date().toISOString().split('T')[0];
+            for (const source of sources) {
+                let detectedBy: DetectedBy;
+                if (source === 'MODIS_NRT' || source === 'MODIS_SP') {
+                    detectedBy = 'MODIS'
+                } else if (source === 'VIIRS_SNPP_NRT' || source === 'VIIRS_SNPP_SP' || source === 'VIIRS_NOAA20_NRT') {
+                    detectedBy = 'VIIRS'
+                } else if (source === 'LANDSAT_NRT') {
+                    detectedBy = 'LANDSAT'
+                }
+                const mapKey = await ctx.prisma.alertProvider.findFirst({
+                    where: {
+                        slug: source,
+                        type: 'fire'
                     }
-                } catch (error) {
+                })
+                const response = await fetch(
+                    `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/${source}/-180,-90,180,90/1/${currentDate}`
+                );
+                const csv = await response.text();
+                const parser = parse(csv, { columns: true });
+                const records: FireAlert[] = [];
+                parser.on("readable", function () {
+                    let record;
+                    while ((record = parser.read())) {
+                        records.push(record);
+                    }
+                });
+                parser.on("error", function (error) {
                     console.error(error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Error getting sites from database",
+                        message: "Error parsing CSV file",
                     });
-                }
-
-                for (const source of sources) {
-                    let detectedBy:DetectedBy;
-                    if(source === 'MODIS_NRT' || source === 'MODIS_SP'){
-                        detectedBy = 'MODIS'
-                    }else if(source === 'VIIRS_SNPP_NRT' || source === 'VIIRS_SNPP_SP' || source ===  'VIIRS_NOAA20_NRT'){
-                        detectedBy = 'VIIRS'
-                    }else if(source === 'LANDSAT_NRT'){
-                        detectedBy = 'LANDSAT'
+                });
+                parser.on("end", async function () {
+                    if (records.length === 0) {
+                        return {
+                            message: "No alerts found",
+                        };
                     }
-                    const response = await fetch(
-                        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${env.MAP_KEY}/${source}/-180,-90,180,90/1/${currentDate}`
-                    );
-                    const csv = await response.text();
-                    const parser = parse(csv, { columns: true });
-                    const records: FireAlert[] = [];
-                    parser.on("readable", function () {
-                        let record;
-                        while ((record = parser.read())) {
-                            records.push(record);
-                        }
-                    });
-                    parser.on("error", function (error) {
-                        console.error(error);
-                        throw new TRPCError({
-                            code: "INTERNAL_SERVER_ERROR",
-                            message: "Error parsing CSV file",
-                        });
-                    });
-                    parser.on("end", async function () {
-                        if (records.length === 0) {
-                            return {
-                                message: "No records found",
-                            };
-                        }
-                        // TODO: Logic to delete alerts - don't delete the alerts    
-                        // TODO: multi-threaded (Pull all nasa alerts in a separate table, then read that and compare with site)                 
-
-                        // Add alerts
-                        for (const record of records) {
-                            const recordPoint = [parseFloat(record.longitude), parseFloat(record.latitude)];
-                            const pt = turf.point(recordPoint);
-                            let py: TurfMultiPolygonOrPolygon;
-                            for (const site of sites) {
-                                const siteBufferedCoordinates = site.detectionCoordinates;
-                                try {
-                                    if (site.type === 'MultiPolygon') {
-                                        py = turf.multiPolygon(siteBufferedCoordinates)
-                                    } else if (site.type === 'Polygon') {
-                                        py = turf.polygon(siteBufferedCoordinates);
-                                    }
-                                    const isAlertInsideSite = turf.booleanPointInPolygon(pt, py);
-                                    if (isAlertInsideSite) {
-                                        let confidenceLevel: string;
-                                        // Assign confidence level based on record.instrument and record.confidence
-                                        if (detectedBy === 'MODIS') {
-                                            switch (record.confidence) {
-                                                case 'h':
-                                                    confidenceLevel = 'high';
-                                                    break;
-                                                case 'm':
-                                                    confidenceLevel = 'medium';
-                                                    break;
-                                                case 'l':
-                                                    confidenceLevel = 'low';
-                                                    break;
-                                            }
-                                        } else if (detectedBy === 'VIIRS') {
-                                            switch (record.confidence) {
-                                                case 'h':
-                                                    confidenceLevel = 'high';
-                                                    break;
-                                                case 'n':
-                                                    confidenceLevel = 'medium';
-                                                    break;
-                                                case 'l':
-                                                    confidenceLevel = 'low';
-                                                    break;
-                                            }
-                                        } else if (detectedBy === 'LANDSAT') {
-                                            switch (record.confidence) {
-                                                case 'H':
-                                                    confidenceLevel = 'high';
-                                                    break;
-                                                case 'M':
-                                                    confidenceLevel = 'medium';
-                                                    break;
-                                                case 'L':
-                                                    confidenceLevel = 'low';
-                                                    break;
-                                            }
-                                        } else if (detectedBy === 'GEOSTATIONARY') {
-                                            switch (record.confidence) {
-                                                case '10':
-                                                case '30':
-                                                case '11':
-                                                case '31':
-                                                case '13':
-                                                case '33':
-                                                case '14':
-                                                case '34':
-                                                    confidenceLevel = 'high';
-                                                    break;
-                                                case '12':
-                                                    confidenceLevel = 'medium';
-                                                    break;
-                                                case '15':
-                                                case '35':
-                                                    confidenceLevel = 'low';
-                                                    break;
-                                            }
-                                        }
-                                        await ctx.prisma.alert.create({
-                                            data: {
-                                                type: "fire",
-                                                eventDate: record.acq_date,
-                                                detectedBy: detectedBy,
-                                                confidence: confidenceLevel,
-                                                latitude: parseFloat(record.latitude),
-                                                longitude: parseFloat(record.longitude),
-                                                frp: parseFloat(record.frp),
-                                                siteId: site.id,
-                                            },
-                                        });
-                                        // TODO: Find out where the alert is, inside or outside the site coordinates (possibly make a new data field that says how far the alert is compared to the site polygon)
-                                        //TODO: Send an alert notification to the user regarding the fire alert
-                                    }
-                                } catch (error) {
-                                    console.error(error);
-                                    throw new TRPCError({
-                                        code: "INTERNAL_SERVER_ERROR",
-                                        message: "Error creating alert in database",
-                                    });
-                                }
+                    // Add alerts
+                    for (const record of records) {
+                        const longitude = parseFloat(record.longitude)
+                        const latitude = parseFloat(record.latitude)
+                        const eventDate = new Date(record.acq_date) ?? new Date()
+                        const frp = parseFloat(record.frp) ?? null
+                        let confidenceLevel: ConfidenceLevel;
+                        // Assign confidence level based on record.instrument and record.confidence
+                        if (detectedBy === 'MODIS') {
+                            switch (record.confidence) {
+                                case 'h':
+                                    confidenceLevel = 'high';
+                                    break;
+                                case 'm':
+                                    confidenceLevel = 'medium';
+                                    break;
+                                case 'l':
+                                    confidenceLevel = 'low';
+                                    break;
+                            }
+                        } else if (detectedBy === 'VIIRS') {
+                            switch (record.confidence) {
+                                case 'h':
+                                    confidenceLevel = 'high';
+                                    break;
+                                case 'n':
+                                    confidenceLevel = 'medium';
+                                    break;
+                                case 'l':
+                                    confidenceLevel = 'low';
+                                    break;
+                            }
+                        } else if (detectedBy === 'LANDSAT') {
+                            switch (record.confidence) {
+                                case 'H':
+                                    confidenceLevel = 'high';
+                                    break;
+                                case 'M':
+                                    confidenceLevel = 'medium';
+                                    break;
+                                case 'L':
+                                    confidenceLevel = 'low';
+                                    break;
+                            }
+                        } else if (detectedBy === 'GEOSTATIONARY') {
+                            switch (record.confidence) {
+                                case '10':
+                                case '30':
+                                case '11':
+                                case '31':
+                                case '13':
+                                case '33':
+                                case '14':
+                                case '34':
+                                    confidenceLevel = 'high';
+                                    break;
+                                case '12':
+                                    confidenceLevel = 'medium';
+                                    break;
+                                case '15':
+                                case '35':
+                                    confidenceLevel = 'low';
+                                    break;
                             }
                         }
-                    })
-                }
-                return {
-                    status: 'success',
-                    message: 'successfully populated alerts'
-                }
-            } catch (error) {
-                console.log(error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
+                        await ctx.prisma.worldFireAlert.create({
+                            data: {
+                                latitude: latitude,
+                                longitude: longitude,
+                                eventDate: eventDate,
+                                confidence: confidenceLevel,
+                                detectedBy: detectedBy,
+                                frp: frp
+                            }
+                        })
+                    }
+                })
+            }
+            return {
+                status: 'success',
+                message: 'successfully populated world fire alerts'
             }
         }),
+
+    deleteWorldFireAlerts: publicProcedure
+        .query(async ({ ctx }) => {
+            const currentDate: string = new Date().toISOString().split("T")[0];
+            const deletedAlerts = await ctx.prisma.worldFireAlert.deleteMany({
+                where: {
+                    eventDate: {
+                        not: {
+                            equals: new Date(currentDate),
+                        },
+                    },
+                },
+            });
+            return {
+                status: "success",
+                message: `${deletedAlerts.count} world alerts deleted`,
+            };
+        }),
+
+    populateAlerts: publicProcedure
+        .query(async ({ ctx }) => {
+            const allUncheckedfireAlerts = await ctx.prisma.worldFireAlert.findMany({
+                where: {
+                    isChecked: false
+                }
+            })
+            const sites = await ctx.prisma.site.findMany();
+            if (!sites || sites.length === 0) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "There are no sites",
+                });
+            }
+            for (const uncheckedFireAlert of allUncheckedfireAlerts) {
+                const longitude = uncheckedFireAlert.longitude
+                const latitude = uncheckedFireAlert.latitude
+                const point = [longitude, latitude]
+                const turfPoint = turf.point(point)
+                let turfPolygon: TurfMultiPolygonOrPolygon;
+                for (const site of sites) {
+                    const siteBufferedCoordinates = site.detectionCoordinates;
+                    if (site.type === 'MultiPolygon') {
+                        turfPolygon = turf.multiPolygon(siteBufferedCoordinates)
+                    } else if (site.type === 'Polygon') {
+                        turfPolygon = turf.polygon(siteBufferedCoordinates);
+                    }
+                    const isAlertInsideSite = turf.booleanPointInPolygon(turfPoint, turfPolygon);
+                    if (isAlertInsideSite) {
+                        const createdAlert = await ctx.prisma.alert.create({
+                            data: {
+                                type: "fire",
+                                eventDate: uncheckedFireAlert.eventDate,
+                                detectedBy: uncheckedFireAlert.detectedBy,
+                                confidence: uncheckedFireAlert.confidence,
+                                latitude: latitude,
+                                longitude: longitude,
+                                frp: uncheckedFireAlert.frp,
+                                siteId: site.id,
+                            },
+                        });
+                        if (!createdAlert) {
+                            console.log(`something went wrong`)
+                            // break this loop, and then go to another site
+                        }
+                    }
+                }
+                await ctx.prisma.worldFireAlert.update({
+                    where: {
+                        id: uncheckedFireAlert.id
+                    },
+                    data: {
+                        isChecked: true
+                    }
+                })
+            }
+        }),
+
+    // TODO: Find out where the alert is, inside or outside the site coordinates (possibly make a new data field that says how far the alert is compared to the site polygon)
+    //`TODO: Send an alert notification to the user regarding the fire alert
+    // TODO: Setup a while block to repeat the code above while length of allUncheckedfireAlerts is truthy.
 
     getAlertsForSite: protectedProcedure
         .input(siteParams)
-        .query(async ({ ctx, input }) => {
-            try {
-                const alertsForSite = await ctx.prisma.alert.findMany({
-                    where: {
-                        siteId: input.siteId,
-                    }
-                })
-                return {
-                    status: 'success',
-                    data: alertsForSite,
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
-
-    getAlertsForUser: protectedProcedure
-        .query(async ({ ctx }) => {
-            try {
-                let userId: string;
-
-                // Check if user is authenticated with token
-                if (ctx.token) {
-                    const account = await ctx.prisma.account.findFirst({
+            .query(async ({ ctx, input }) => {
+                try {
+                    const alertsForSite = await ctx.prisma.alert.findMany({
                         where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        },
+                            siteId: input.siteId,
+                        }
+                    })
+                    return {
+                        status: 'success',
+                        data: alertsForSite,
+                    }
+                } catch (error) {
+                    console.log(error)
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: `${error}`,
                     });
-                    if (!account) {
+                }
+            }),
+
+            getAlertsForUser: protectedProcedure
+                .query(async ({ ctx }) => {
+                    try {
+                        let userId: string;
+
+                        // Check if user is authenticated with token
+                        if (ctx.token) {
+                            const account = await ctx.prisma.account.findFirst({
+                                where: {
+                                    providerAccountId: ctx.token.sub,
+                                },
+                                select: {
+                                    userId: true,
+                                },
+                            });
+                            if (!account) {
+                                throw new TRPCError({
+                                    code: "NOT_FOUND",
+                                    message: "Cannot find an account associated with the token",
+                                });
+                            }
+                            userId = account.userId;
+                        } else if (ctx.session) { // Check if user is authenticated with session
+                            userId = ctx.session.user.id;
+                        } else { // User is not authenticated
+                            throw new TRPCError({
+                                code: 'UNAUTHORIZED',
+                                message: 'Missing authentication credentials',
+                            });
+                        }
+                        const alertsForUser: Alert[] = [];
+                        const sites = await ctx.prisma.site.findMany({
+                            where: {
+                                userId,
+                            },
+                        });
+
+                        // Fetch alerts for each site
+                        for (const site of sites) {
+                            const alertsForEachSite = await ctx.prisma.alert.findMany({
+                                where: {
+                                    siteId: site.id,
+                                },
+                            });
+                            alertsForUser.push(...alertsForEachSite);
+                        }
+
+                        return {
+                            status: 'success',
+                            data: alertsForUser,
+                        };
+                    } catch (error) {
+                        console.log(error)
                         throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
+                            code: "INTERNAL_SERVER_ERROR",
+                            message: `${error}`,
                         });
                     }
-                    userId = account.userId;
-                } else if (ctx.session) { // Check if user is authenticated with session
-                    userId = ctx.session.user.id;
-                } else { // User is not authenticated
-                    throw new TRPCError({
-                        code: 'UNAUTHORIZED',
-                        message: 'Missing authentication credentials',
-                    });
-                }
-                const alertsForUser: Alert[] = [];
-                const sites = await ctx.prisma.site.findMany({
-                    where: {
-                        userId,
-                    },
-                });
-
-                // Fetch alerts for each site
-                for (const site of sites) {
-                    const alertsForEachSite = await ctx.prisma.alert.findMany({
-                        where: {
-                            siteId: site.id,
-                        },
-                    });
-                    alertsForUser.push(...alertsForEachSite);
-                }
-
-                return {
-                    status: 'success',
-                    data: alertsForUser,
-                };
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
+                }),
 
 
-    getAlert: protectedProcedure
-        .input(alertParams)
-        .query(async ({ ctx, input }) => {
-            try {
-                const alert = await ctx.prisma.alert.findFirst({
-                    where: { id: input.alertId }
-                })
-                return {
-                    status: 'success',
-                    data: alert,
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
+                getAlert: protectedProcedure
+                    .input(alertParams)
+                    .query(async ({ ctx, input }) => {
+                        try {
+                            const alert = await ctx.prisma.alert.findFirst({
+                                where: { id: input.alertId }
+                            })
+                            return {
+                                status: 'success',
+                                data: alert,
+                            }
+                        } catch (error) {
+                            console.log(error)
+                            throw new TRPCError({
+                                code: "INTERNAL_SERVER_ERROR",
+                                message: `${error}`,
+                            });
+                        }
+                    }),
 
-    updateAlert: protectedProcedure
-        .input(updateAlertSchema)
-        .mutation(async ({ ctx, input }) => {
-            try {
-                const paramsInput = input.params
-                const body = input.body
-                const updatedAlert = await ctx.prisma.alert.update({
-                    where: { id: paramsInput.alertId },
-                    data: body,
-                })
-                return {
-                    status: 'success',
-                    data: updatedAlert,
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
+                    updateAlert: protectedProcedure
+                        .input(updateAlertSchema)
+                        .mutation(async ({ ctx, input }) => {
+                            try {
+                                const paramsInput = input.params
+                                const body = input.body
+                                const updatedAlert = await ctx.prisma.alert.update({
+                                    where: { id: paramsInput.alertId },
+                                    data: body,
+                                })
+                                return {
+                                    status: 'success',
+                                    data: updatedAlert,
+                                }
+                            } catch (error) {
+                                console.log(error)
+                                throw new TRPCError({
+                                    code: "INTERNAL_SERVER_ERROR",
+                                    message: `${error}`,
+                                });
+                            }
+                        }),
 
-    deleteAlert: protectedProcedure
-        .input(alertParams)
-        .mutation(async ({ ctx, input }) => {
-            try {
-                const deletedAlert = await ctx.prisma.alert.delete({
-                    where: { id: input.alertId }
-                })
-                return {
-                    status: 'success',
-                    data: deletedAlert
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
+                        deleteAlert: protectedProcedure
+                            .input(alertParams)
+                            .mutation(async ({ ctx, input }) => {
+                                try {
+                                    const deletedAlert = await ctx.prisma.alert.delete({
+                                        where: { id: input.alertId }
+                                    })
+                                    return {
+                                        status: 'success',
+                                        data: deletedAlert
+                                    }
+                                } catch (error) {
+                                    console.log(error)
+                                    throw new TRPCError({
+                                        code: "INTERNAL_SERVER_ERROR",
+                                        message: `${error}`,
+                                    });
+                                }
+                            }),
 });
