@@ -119,7 +119,8 @@ export const alertMethodRouter = createTRPCRouter({
             const destination = alertMethod.destination
             const method = alertMethod.method
             const deviceType = alertMethod.deviceType ?? undefined
-            await sendVerificationCode(destination, method, deviceType, message)
+            const verificaiton = await sendVerificationCode(destination, method, deviceType, message)
+            return verificaiton;
         }),
 
     verify: protectedProcedure
@@ -185,12 +186,13 @@ export const alertMethodRouter = createTRPCRouter({
                 const destination = alertMethod.destination
                 const method = alertMethod.method
                 const deviceType = alertMethod.deviceType ?? undefined
-                await sendVerificationCode(destination, method, deviceType, message)
+                const verification = await sendVerificationCode(destination, method, deviceType, message)
 
                 return {
                     status: 'success',
                     data: {
                         alertMethod,
+                        verification
                     },
                 };
             } catch (error) {
