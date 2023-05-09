@@ -202,6 +202,22 @@ const Settings = ({navigation}) => {
     },
   );
 
+  const verifyAlertPreference = trpc.alertMethod.sendVerification.useMutation({
+    retryDelay: 3000,
+    onSuccess: (data, variables) => {
+      const alertMethod = alertPreferences?.json?.data?.filter(
+        item => item.id === variables?.json?.alertMethodId,
+      );
+      navigation.navigate('Otp', {
+        verificationType: alertMethod[0]?.method,
+        alertMethod: alertMethod[0],
+      });
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
   const handleSwitch = (index, val) => {
     let arr = [...projects];
     arr[index].enabled = val;
@@ -244,6 +260,12 @@ const Settings = ({navigation}) => {
     const {alertMethodId} = data;
     updateAlertPreferences.mutate({
       json: {params: {alertMethodId}, body: {isEnabled}},
+    });
+  };
+
+  const _handleVerify = alertMethodData => () => {
+    verifyAlertPreference.mutate({
+      json: {alertMethodId: alertMethodData.id},
     });
   };
 
@@ -385,7 +407,8 @@ const Settings = ({navigation}) => {
           ))}
         </View>
         {/* my sites */}
-        {sites?.json?.data?.length > 0 ? (
+        {sites?.json?.data?.filter(site => site?.projectId === null).length >
+        0 ? (
           <View style={[styles.mySites, styles.commonPadding]}>
             <View style={styles.mySitesHead}>
               <Text style={styles.mainHeading}>My Sites</Text>
@@ -470,15 +493,17 @@ const Settings = ({navigation}) => {
                           }
                         />
                       ) : (
-                        <View style={styles.verifiedChips}>
-                          <VerificationWarning />
-                          <Text style={styles.verifiedTxt}>
-                            Verification Required
-                          </Text>
-                        </View>
+                        <TouchableOpacity
+                          style={styles.verifiedChipsCon}
+                          onPress={_handleVerify(item)}>
+                          <View style={styles.verifiedChips}>
+                            <VerificationWarning />
+                            <Text style={styles.verifiedTxt}>Verify</Text>
+                          </View>
+                        </TouchableOpacity>
                       )}
                       <TouchableOpacity
-                        style={{marginLeft: 20}}
+                        style={styles.trashIcon}
                         disabled={delAlertMethodArr.includes(item?.id)}
                         onPress={() => handleRemoveAlertMethod(item?.id)}>
                         {delAlertMethodArr.includes(item?.id) ? (
@@ -538,7 +563,7 @@ const Settings = ({navigation}) => {
                       )}
 
                       <TouchableOpacity
-                        style={{marginLeft: 20}}
+                        style={styles.trashIcon}
                         disabled={delAlertMethodArr.includes(item?.id)}
                         onPress={() => handleRemoveAlertMethod(item?.id)}>
                         {delAlertMethodArr.includes(item?.id) ? (
@@ -782,9 +807,9 @@ const Settings = ({navigation}) => {
           </View>
         </BottomSheet>
         <Modal
-          visible={siteNameModalVisible}
+          transparent
           animationType={'slide'}
-          transparent>
+          visible={siteNameModalVisible}>
           <KeyboardAvoidingView
             {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
             style={styles.siteModalStyle}>
@@ -1259,10 +1284,14 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     backgroundColor: '#e0e0e0',
   },
+  verifiedChipsCon: {
+    height: 45,
+    justifyContent: 'center',
+  },
   verifiedChips: {
     backgroundColor: '#F2994A20',
     paddingVertical: 4,
-    paddingHorizontal: 6,
+    paddingHorizontal: 10,
     borderRadius: 100,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1272,5 +1301,10 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+  },
+  trashIcon: {
+    marginLeft: 5,
+    paddingVertical: 15,
+    paddingLeft: 10,
   },
 });

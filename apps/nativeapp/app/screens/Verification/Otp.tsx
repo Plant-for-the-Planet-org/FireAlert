@@ -16,35 +16,31 @@ import {Colors, Typography} from '../../styles';
 import {CustomButton, OtpInput} from '../../components';
 
 const Otp = ({navigation, route}) => {
-  const [loading, setLoading] = useState<boolean>(false);
-  const {verificationType, phoneInput, newEmail} = route.params;
+  const [code, setCode] = useState<string | null>(null);
+  const {verificationType} = route.params;
 
   const toast = useToast();
   const count = useCountdown(30);
 
-  const handleClose = () => navigation.goBack();
-
-  const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
+  const verifyAlertMethod = trpc.alertMethod.verify.useMutation({
     retryDelay: 3000,
     onSuccess: () => {
-      setLoading(false);
       navigation.navigate('Settings');
     },
     onError: () => {
-      setLoading(false);
       toast.show('something went wrong', {type: 'danger'});
     },
   });
 
+  const handleClose = () => navigation.goBack();
+
   const handleContinue = () => {
-    setLoading(true);
-    const payload = {
-      method: String(verificationType).toLowerCase(),
-      destination: verificationType === 'Sms' ? phoneInput : newEmail,
-      isVerified: false,
-      isEnabled: false,
-    };
-    createAlertPreference.mutate({json: payload});
+    verifyAlertMethod.mutate({
+      json: {
+        alertMethodId: route?.params?.alertMethod?.id,
+        notificationToken: code,
+      },
+    });
   };
 
   return (
@@ -59,7 +55,7 @@ const Otp = ({navigation, route}) => {
           Verify {verificationType}
         </Text>
         <View style={styles.subContainer}>
-          <OtpInput />
+          <OtpInput onCodeFilled={setCode} />
           <View style={styles.resendOtpBtn}>
             {count === 0 ? (
               <TouchableOpacity>
@@ -69,17 +65,18 @@ const Otp = ({navigation, route}) => {
               </TouchableOpacity>
             ) : (
               <Text style={styles.resendOtp}>
-                Verification Code will expires in{' '}
-                <Text style={styles.link}>{count}</Text>
+                You can request a new code in{' '}
+                <Text style={styles.link}>{count} </Text>
+                seconds
               </Text>
             )}
           </View>
           <CustomButton
             title="Continue"
-            isLoading={loading}
-            style={styles.btnContinue}
-            titleStyle={styles.title}
             onPress={handleContinue}
+            titleStyle={styles.title}
+            style={styles.btnContinue}
+            isLoading={verifyAlertMethod.isLoading}
           />
         </View>
       </KeyboardAvoidingView>

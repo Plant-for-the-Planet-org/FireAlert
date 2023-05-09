@@ -10,6 +10,7 @@ import {
 import React, {useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 
+import {trpc} from '../../services/trpc';
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {validateEmail} from '../../utils/emailVerifier';
@@ -20,6 +21,7 @@ const IS_ANDROID = Platform.OS === 'android';
 const Verification = ({navigation, route}) => {
   const {verificationType} = route.params;
   const [newEmail, setNewEmail] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const [verified, setVerified] = useState<boolean>(false);
   const [isValidNum, setIsValidNum] = useState<boolean>(false);
   const [phoneInput, setPhoneInput] = useState<string | null>(null);
@@ -27,17 +29,36 @@ const Verification = ({navigation, route}) => {
 
   const toast = useToast();
 
+  const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
+    retryDelay: 3000,
+    onSuccess: data => {
+      const result = data?.json?.data?.alertMethod;
+      setLoading(false);
+      navigation.navigate('Otp', {
+        verificationType,
+        alertMethod: result,
+      });
+    },
+    onError: () => {
+      setLoading(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
   const handleClose = () => navigation.goBack();
 
   const handleVerify = () => {
-    if (verificationType === 'Sms') {
-      if (!isValidNum) {
-        return toast.show('Incorrect Number', {type: 'warning'});
-      }
-      navigation.navigate('Otp', {verificationType, phoneInput});
-    } else {
-      navigation.navigate('Otp', {verificationType, newEmail});
+    if (verificationType === 'Sms' && !isValidNum) {
+      return toast.show('Incorrect Number', {type: 'warning'});
     }
+    setLoading(true);
+    const payload = {
+      method: String(verificationType).toLowerCase(),
+      destination: verificationType === 'Sms' ? phoneInput : newEmail,
+      isVerified: false,
+      isEnabled: false,
+    };
+    createAlertPreference.mutate({json: payload});
   };
 
   const handleEmail = (emailText: string) => {
@@ -84,9 +105,10 @@ const Verification = ({navigation, route}) => {
           )}
           <CustomButton
             title="Continue"
+            isLoading={loading}
             onPress={handleVerify}
-            style={styles.btnContinue}
             titleStyle={styles.title}
+            style={styles.btnContinue}
             disabled={verificationType === 'Email' && !verified}
           />
         </View>
