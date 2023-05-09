@@ -564,7 +564,7 @@ const Home = ({navigation, route}) => {
             style={styles.userAvatar}
           />
         ) : (
-          <UserPlaceholder />
+          <UserPlaceholder width={44} height={44} />
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -573,7 +573,7 @@ const Home = ({navigation, route}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon />
+        <LayerIcon width={45} height={45} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -581,7 +581,7 @@ const Home = ({navigation, route}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon />
+        <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
       {/* profile modal */}
       <BottomSheet
@@ -837,18 +837,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: 108,
+    top: 138,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   avatarContainer: {
-    width: 32,
-    height: 32,
-    top: 66,
+    width: 45,
+    height: 45,
+    top: 80,
   },
   userAvatar: {
-    width: 31,
-    height: 31,
+    width: 44,
+    height: 44,
     borderRadius: 100,
   },
   modalContainer: {
