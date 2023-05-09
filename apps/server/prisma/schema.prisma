@@ -76,17 +76,10 @@ model AlertMethod {
     notificationToken    String?
     userId               String
     user                 User                   @relation(fields: [userId], references: [id])
-    verificationTracking VerificationTracking?
+    tokenSentCount       Int                     @default(0)
+    lastTokenSentDate    DateTime? 
 
     @@unique([destination, userId])
-}
-
-model VerificationTracking {
-    id            String      @id @default(cuid())
-    alertMethodId String      @unique
-    date          String
-    attemptCount  Int
-    alertMethod   AlertMethod @relation(fields: [alertMethodId], references: [id])
 }
 
 model Site {
