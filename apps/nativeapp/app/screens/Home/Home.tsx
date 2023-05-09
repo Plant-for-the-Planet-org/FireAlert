@@ -35,18 +35,18 @@ import {
   FloatingInput,
 } from '../../components';
 import {
+  CopyIcon,
   LayerIcon,
   MyLocIcon,
   RadarIcon,
   CrossIcon,
   LogoutIcon,
   PencilIcon,
-  active_marker,
+  PointSiteIcon,
   SatelliteIcon,
   MapOutlineIcon,
   LocationPinIcon,
   UserPlaceholder,
-  CopyIcon,
   TrashOutlineIcon,
 } from '../../assets/svgs';
 import {
@@ -420,7 +420,7 @@ const Home = ({navigation, route}) => {
         //   setSelectedAlert(formattedSites?.point[counter]), console.log(e);
         // }}
         coordinate={coordinate}>
-        <SvgXml xml={active_marker} style={styles.markerImage} />
+        <PointSiteIcon />
       </MapboxGL.PointAnnotation>
     );
   };

@@ -27,6 +27,7 @@ import DistanceIcon from './distanceIcon.jsx';
 import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.jsx';
 import BlueFireIcon from './blueFireIcon.jsx';
+import PointSiteIcon from './pointSiteIcon.jsx';
 import SatelliteDish from './satelliteDish.jsx';
 import SatelliteIcon from './satelliteIcon.jsx';
 import DropdownArrow from './dropdownArrow.jsx';
@@ -69,6 +70,7 @@ export {
   BlueFireIcon,
   DistanceIcon,
   WhatsAppIcon,
+  PointSiteIcon,
   active_marker,
   BackArrowIcon,
   SatelliteIcon,
