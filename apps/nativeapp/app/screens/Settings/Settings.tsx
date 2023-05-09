@@ -367,7 +367,8 @@ const Settings = ({navigation}) => {
               {item.sites
                 ? item.sites.map((sites, index) => (
                     <>
-                      <View
+                      <TouchableOpacity
+                        onPress={() => handleSiteInformation(item)}
                         key={`sites_${index}`}
                         style={styles.sitesInProjects}>
                         <Text style={styles.sitesName}>{sites.name}</Text>
@@ -396,7 +397,7 @@ const Settings = ({navigation}) => {
                             }
                           />
                         </View>
-                      </View>
+                      </TouchableOpacity>
                       {item?.sites?.length - 1 !== index && (
                         <View style={styles.separator} />
                       )}
@@ -423,29 +424,34 @@ const Settings = ({navigation}) => {
                   <Text style={styles.mySiteName}>
                     {item?.name || item?.id}
                   </Text>
-                  <TouchableOpacity
-                    onPress={evt => handleSiteRadius(evt, item?.id)}
-                    style={[styles.dropDownRadius]}>
-                    <Text style={styles.siteRadius}>
-                      {
-                        RADIUS_ARR.filter(
-                          ({value}) => item?.radius === value,
-                        )[0]?.name
+                  <View style={styles.rightConPro}>
+                    <TouchableOpacity
+                      onPress={evt => handleSiteRadius(evt, item?.id)}
+                      style={[
+                        styles.dropDownRadius,
+                        {marginRight: 5, paddingVertical: 16},
+                      ]}>
+                      <Text style={styles.siteRadius}>
+                        {
+                          RADIUS_ARR.filter(
+                            ({value}) => item?.radius === value,
+                          )[0]?.name
+                        }
+                      </Text>
+                      <DropdownArrow />
+                    </TouchableOpacity>
+                    <Switch
+                      value={item?.isMonitored}
+                      onValueChange={val =>
+                        updateSite.mutate({
+                          json: {
+                            params: {siteId: item?.id},
+                            body: {isMonitored: val},
+                          },
+                        })
                       }
-                    </Text>
-                    <DropdownArrow />
-                  </TouchableOpacity>
-                  <Switch
-                    value={item?.isMonitored}
-                    onValueChange={val =>
-                      updateSite.mutate({
-                        json: {
-                          params: {siteId: item?.id},
-                          body: {isMonitored: val},
-                        },
-                      })
-                    }
-                  />
+                    />
+                  </View>
                 </TouchableOpacity>
               ))}
           </View>
@@ -453,7 +459,7 @@ const Settings = ({navigation}) => {
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
-          <View style={styles.mySiteNameContainer}>
+          <View style={styles.notificationContainer}>
             <View style={styles.mobileContainer}>
               <PhoneIcon />
               <Text style={[styles.smallHeading]}>Mobile</Text>
@@ -781,6 +787,7 @@ const Settings = ({navigation}) => {
                 {selectedSiteInfo?.name || selectedSiteInfo?.guid}
               </Text>
               <TouchableOpacity
+                disabled={selectedSiteInfo?.projectId !== null}
                 onPress={() => handleEditSite(selectedSiteInfo)}>
                 <PencilIcon />
               </TouchableOpacity>
@@ -792,7 +799,9 @@ const Settings = ({navigation}) => {
               <Text style={styles.siteActionText}>View on Map</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              disabled={deleteSite?.isLoading}
+              disabled={
+                deleteSite?.isLoading || selectedSiteInfo?.projectId !== null
+              }
               onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
               style={styles.btn}>
               {deleteSite?.isLoading ? (
@@ -934,7 +943,7 @@ const styles = StyleSheet.create({
   projectsInfo: {
     marginTop: 24,
     borderRadius: 12,
-    paddingVertical: 20,
+    paddingTop: 20,
     paddingHorizontal: 16,
     backgroundColor: Colors.WHITE,
     // shadow
@@ -965,8 +974,8 @@ const styles = StyleSheet.create({
   },
   sitesInProjects: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   sitesName: {
     fontSize: Typography.FONT_SIZE_14,
@@ -982,7 +991,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 14,
   },
+
   dropDownModal: {
     right: 40,
     paddingVertical: 15,
@@ -1024,6 +1035,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4.62,
     elevation: 8,
   },
+
   mySiteNameSubContainer: {
     marginTop: 20,
     flexDirection: 'row',
@@ -1032,6 +1044,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   mySiteNameContainer: {
+    paddingHorizontal: 16,
+    marginTop: 24,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.WHITE,
+    // shadow
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
+  },
+  notificationContainer: {
     padding: 16,
     marginTop: 24,
     borderRadius: 12,
@@ -1281,7 +1311,6 @@ const styles = StyleSheet.create({
   separator: {
     height: 0.5,
     width: '100%',
-    marginVertical: 15,
     backgroundColor: '#e0e0e0',
   },
   verifiedChipsCon: {
