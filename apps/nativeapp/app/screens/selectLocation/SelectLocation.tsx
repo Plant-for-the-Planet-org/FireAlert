@@ -294,7 +294,7 @@ const SelectLocation = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={20} height={20} fill={Colors.TEXT_COLOR} />
+        <LayerIcon width={45} height={45} fill={Colors.TEXT_COLOR} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -302,7 +302,7 @@ const SelectLocation = ({navigation}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon />
+        <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
       <CustomButton
         title="Select Location"
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 72 : 92,
+    bottom: IS_ANDROID ? 92 : 112,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },

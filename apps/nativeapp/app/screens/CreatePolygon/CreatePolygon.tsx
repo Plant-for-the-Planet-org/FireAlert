@@ -390,7 +390,7 @@ const CreatePolygon = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon />
+        <LayerIcon width={45} height={45} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -398,7 +398,7 @@ const CreatePolygon = ({navigation}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon width={40} height={40} />
+        <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
       <Modal visible={siteNameModalVisible} transparent>
         <KeyboardAvoidingView
@@ -493,8 +493,8 @@ const styles = StyleSheet.create({
   },
   myLocationIcon: {
     right: 16,
-    width: 54,
-    height: 54,
+    // width: 54,
+    // height: 54,
     borderRadius: 100,
     alignItems: 'center',
     position: 'absolute',
