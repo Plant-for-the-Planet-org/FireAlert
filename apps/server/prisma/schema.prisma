@@ -143,6 +143,7 @@ model Alert {
     frp         Float
     isDelivered Boolean         @default(false)
     deletedAt   DateTime?
+    outside     Float?
     siteId      String
     site        Site            @relation(fields: [siteId], references: [id])
 }

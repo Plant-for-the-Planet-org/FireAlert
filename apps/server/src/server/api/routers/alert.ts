@@ -11,7 +11,7 @@ import * as turf from '@turf/turf';
 import { Alert } from "@prisma/client";
 import { type InnerTRPCContext, PPJwtPayload } from '../../api/trpc'
 
-interface TRPCContext extends InnerTRPCContext {}
+interface TRPCContext extends InnerTRPCContext { }
 
 const sources: Source[] = ['MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP', 'LANDSAT_NRT']
 type Source = 'MODIS_NRT' | 'MODIS_SP' | 'VIIRS_NOAA20_NRT' | 'VIIRS_SNPP_NRT' | 'VIIRS_SNPP_SP' | 'LANDSAT_NRT'
@@ -66,6 +66,7 @@ interface FireAlert extends MODISAndVIIRS, LANDSAT, GEOSTAT { }
 
 
 type TurfMultiPolygonOrPolygon = turf.helpers.Feature<turf.helpers.MultiPolygon, turf.helpers.Properties> | turf.helpers.Feature<turf.helpers.Polygon, turf.helpers.Properties>
+type TurfCoordinates = turf.helpers.Feature<turf.helpers.Point, turf.helpers.Properties> | turf.helpers.Feature<turf.helpers.MultiPolygon, turf.helpers.Properties> | turf.helpers.Feature<turf.helpers.Polygon, turf.helpers.Properties>
 
 // Helper function to fetch and parse CSV data
 async function fetchAndParseCSV(url: string): Promise<FireAlert[]> {
@@ -169,7 +170,7 @@ function processRecords(records: FireAlert[], detectedBy: DetectedBy) {
 }
 
 // Function to run for each source
-async function processSource(ctx: TRPCContext, source: string, currentDate:string): Promise<void> {
+async function processSource(ctx: TRPCContext, source: string, currentDate: string): Promise<void> {
     let detectedBy: DetectedBy;
 
     if (source === "MODIS_NRT" || source === "MODIS_SP") {
@@ -266,8 +267,9 @@ export const alertRouter = createTRPCRouter({
                 });
             }
 
-            await ctx.prisma.$transaction(async (prisma) => {
-                for (const uncheckedFireAlert of allUncheckedfireAlerts) {
+            for (const uncheckedFireAlert of allUncheckedfireAlerts) {
+                await ctx.prisma.$transaction(async (prisma) => {
+
                     const longitude = uncheckedFireAlert.longitude;
                     const latitude = uncheckedFireAlert.latitude;
                     const point = [longitude, latitude];
@@ -276,18 +278,45 @@ export const alertRouter = createTRPCRouter({
 
                     for (const site of sites) {
                         const siteBufferedCoordinates = site.detectionCoordinates;
-                        let turfPolygon: TurfMultiPolygonOrPolygon;
+                        let turfBufferedPolygon: TurfMultiPolygonOrPolygon;
                         if (site.type === "MultiPolygon") {
-                            turfPolygon = turf.multiPolygon(siteBufferedCoordinates);
+                            turfBufferedPolygon = turf.multiPolygon(siteBufferedCoordinates);
                         } else {
-                            turfPolygon = turf.polygon(siteBufferedCoordinates);
+                            turfBufferedPolygon = turf.polygon(siteBufferedCoordinates);
                         }
-                        const isAlertInsideSite = turf.booleanPointInPolygon(
+                        const isAlertInsideBufferedSite = turf.booleanPointInPolygon(
                             turfPoint,
-                            turfPolygon
+                            turfBufferedPolygon
                         );
 
-                        if (isAlertInsideSite) {
+                        let turfCoordinates: TurfCoordinates;
+                        let isAlertInsideActualSite:Boolean = false
+                        const coordinates = site.geometry.coordinates
+
+                        if(site.type === 'Point'){
+                            turfCoordinates = turf.point(coordinates)
+                            isAlertInsideActualSite = false
+                        }else if(site.type === 'Polygon'){
+                            turfCoordinates = turf.polygon(coordinates)
+                        }else {
+                            turfCoordinates = turf.multiPolygon(coordinates)
+                        }
+                        
+                        if(site.type === 'Polygon' || site.type === 'MultiPolygon'){
+                            isAlertInsideActualSite = turf.booleanPointInPolygon(
+                                turfPoint,
+                                turfCoordinates
+                            )
+                        }
+
+                        let outsideBy: Number | null = null;
+                        if(!isAlertInsideActualSite){
+                            const distance = turf.distance(turfPoint, turfPolygon, {
+                                units: "meters"
+                            })
+                            outsideBy = distance
+                        }
+                        if (isAlertInsideBufferedSite) {
                             createdAlerts.push({
                                 type: "fire",
                                 eventDate: uncheckedFireAlert.eventDate,
@@ -296,6 +325,7 @@ export const alertRouter = createTRPCRouter({
                                 latitude: latitude,
                                 longitude: longitude,
                                 frp: uncheckedFireAlert.frp,
+                                outside: outsideBy,
                                 siteId: site.id,
                             });
                         }
@@ -315,9 +345,8 @@ export const alertRouter = createTRPCRouter({
                             isChecked: true,
                         },
                     });
-                }
-            });
-
+                });
+            }
             return {
                 status: "success",
                 message: "Alerts created and world fire alerts updated",
@@ -325,7 +354,6 @@ export const alertRouter = createTRPCRouter({
         } catch (error) {
             // Handle and log the error appropriately
             console.error("Error occurred in populateAlerts:", error);
-
             // Return an error response
             return {
                 status: "error",
