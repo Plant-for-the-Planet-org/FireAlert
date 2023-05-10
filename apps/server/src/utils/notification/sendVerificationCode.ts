@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { sendEmail } from "./sendEmail";
-import { sendSMS } from "./sendSMS";
+import { sendSMS, sendWhatsApp } from "./sendSMS";
 import { sendPushNotification } from "./sendPush";
 
-type Method = 'sms' | 'device' | 'email'
+type Method = 'sms' | 'device' | 'email' | 'whatsapp';
 
 type DeviceType = 'ios' | 'android' | undefined
 
@@ -50,6 +50,16 @@ export async function sendVerificationCode(destination: string, method: Method, 
             } else {
                 return { status: 200, message: "Code sent to user" };
             }
+        }
+    } else if (method === 'whatsapp') {
+        const whatsappSent = await sendWhatsApp(destination, message);
+        if (!whatsappSent) {
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to send verification code via WhatsApp",
+            });
+        } else {
+            return { status: 200, message: "Code sent to user" };
         }
     }
 }
