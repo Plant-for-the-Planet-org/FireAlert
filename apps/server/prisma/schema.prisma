@@ -38,8 +38,8 @@ model User {
     guid             String?       @unique @default(uuid())
     sub              String?
     name             String?
-    email            String?       @unique
-    emailVerified    Boolean?
+    email            String        @unique
+    emailVerified    Boolean       @default(false)
     useGeostationary Boolean       @default(false)
     isPlanetRO       Boolean?
     image            String?
@@ -149,14 +149,14 @@ model Alert {
 }
 
 model WorldFireAlert {
-    id         String   @id @default(cuid())
+    id         String          @id @default(cuid())
     latitude   Float
     longitude  Float
-    eventDate  DateTime @default(now())
+    eventDate  DateTime        @default(now())
     confidence AlertConfidence
     detectedBy AlertDetectedBy
     frp        Float
-    isChecked  Boolean  @default(false)
+    isChecked  Boolean         @default(false)
 }
 
 enum Role {
