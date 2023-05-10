@@ -2,7 +2,7 @@ import { z } from 'zod';
 import phone from 'phone'
 
 export const createAlertMethodSchema = z.object({
-    method: z.enum(["email", "sms", "device"]),
+    method: z.enum(["email", "sms", "device", "whatsapp"]),
     destination: z.string({
         required_error: 'Destination of alert method must be specified'
     }),
@@ -32,7 +32,7 @@ export const params = z.object({
 export const updateAlertMethodSchema = z.object({
     params,
     body: z.object({
-        method: z.enum(["email", "sms", "device"]),
+        method: z.enum(["email", "sms", "device", "whatsapp"]),
         destination: z.string(),
         isVerified: z.boolean(),
         isEnabled: z.boolean(),

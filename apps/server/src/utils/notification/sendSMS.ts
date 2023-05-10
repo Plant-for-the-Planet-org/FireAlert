@@ -24,3 +24,27 @@ export const sendSMS = async (phoneNumber: string, message: string) => {
         return false; // Failed to send SMS
     }
 };
+
+// Function to send a WhatsApp message using Twilio
+export const sendWhatsApp = async (phoneNumber: string, message: string) => {
+    try {
+        const accountSid = env.TWILIO_ACCOUNT_SID;
+        const authToken = env.TWILIO_AUTH_TOKEN;
+        const twilioPhoneNumber = env.TWILIO_PHONE_NUMBER;
+
+        // Create a Twilio client
+        const client = twilio(accountSid, authToken);
+
+        // Send the WhatsApp message
+        await client.messages.create({
+            body: message,
+            from: `whatsapp:${twilioPhoneNumber}`,
+            to: `whatsapp:${phoneNumber}`,
+        });
+
+        return true; // WhatsApp message sent successfully
+    } catch (error) {
+        console.error("Error sending WhatsApp message:", error);
+        return false; // Failed to send WhatsApp message
+    }
+};
