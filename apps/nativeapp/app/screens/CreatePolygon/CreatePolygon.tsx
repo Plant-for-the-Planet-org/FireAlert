@@ -36,7 +36,6 @@ import {
   PermissionDeniedAlert,
 } from '../home/permissionAlert/locationPermissionAlerts';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
-import {getAccuracyColors} from '../../utils/accuracyColors';
 import distanceCalculator from '../../utils/distanceCalculator';
 
 const IS_ANDROID = Platform.OS === 'android';
