@@ -457,7 +457,7 @@ const Home = ({navigation, route}) => {
         id="fillLayer"
         layerIndex={2}
         style={{
-          fillColor: Colors.DEEP_PRIMARY,
+          fillColor: Colors.GRADIENT_PRIMARY,
           fillOpacity: 0.4,
         }}
       />
@@ -465,7 +465,7 @@ const Home = ({navigation, route}) => {
         id="fillOutline"
         style={{
           lineWidth: 2,
-          lineColor: Colors.DEEP_PRIMARY,
+          lineColor: Colors.GRADIENT_PRIMARY,
           lineOpacity: 1,
           lineJoin: 'bevel',
         }}
@@ -720,7 +720,10 @@ const Home = ({navigation, route}) => {
       <BottomSheet
         isVisible={Object.keys(selectedSite)?.length > 0}
         backdropColor={'transparent'}
-        onBackdropPress={() => setSelectedSite({})}>
+        onBackdropPress={() => {
+          setSelectedArea(null);
+          setSelectedSite({});
+        }}>
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>

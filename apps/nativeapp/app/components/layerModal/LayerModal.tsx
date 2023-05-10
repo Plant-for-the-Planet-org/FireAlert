@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   subContainer: {
-    top: 108,
-    right: 62,
+    top: 140,
+    right: 82,
     width: 169,
     borderRadius: 12,
     backgroundColor: Colors.WHITE,
