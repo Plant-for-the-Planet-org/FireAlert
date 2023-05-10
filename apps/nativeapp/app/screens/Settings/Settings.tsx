@@ -578,12 +578,14 @@ const Settings = ({navigation}) => {
                           }
                         />
                       ) : (
-                        <View style={styles.verifiedChips}>
-                          <VerificationWarning />
-                          <Text style={styles.verifiedTxt}>
-                            Verification Required
-                          </Text>
-                        </View>
+                        <TouchableOpacity
+                          style={styles.verifiedChipsCon}
+                          onPress={_handleVerify(item)}>
+                          <View style={styles.verifiedChips}>
+                            <VerificationWarning />
+                            <Text style={styles.verifiedTxt}>Verify</Text>
+                          </View>
+                        </TouchableOpacity>
                       )}
                       <TouchableOpacity
                         style={{marginLeft: 20}}
