@@ -10,6 +10,8 @@ import { parse } from 'csv-parse'
 import * as turf from '@turf/turf';
 import { Alert } from "@prisma/client";
 import { type InnerTRPCContext, PPJwtPayload } from '../../api/trpc'
+import { getUserIdByToken } from "../../../utils/token";
+import { subtractDays } from "../../../utils/date";
 
 interface TRPCContext extends InnerTRPCContext { }
 
@@ -290,19 +292,19 @@ export const alertRouter = createTRPCRouter({
                         );
 
                         let turfCoordinates: TurfCoordinates;
-                        let isAlertInsideActualSite:Boolean = false
+                        let isAlertInsideActualSite: Boolean = false
                         const coordinates = site.geometry.coordinates
 
-                        if(site.type === 'Point'){
+                        if (site.type === 'Point') {
                             turfCoordinates = turf.point(coordinates)
                             isAlertInsideActualSite = false
-                        }else if(site.type === 'Polygon'){
+                        } else if (site.type === 'Polygon') {
                             turfCoordinates = turf.polygon(coordinates)
-                        }else {
+                        } else {
                             turfCoordinates = turf.multiPolygon(coordinates)
                         }
-                        
-                        if(site.type === 'Polygon' || site.type === 'MultiPolygon'){
+
+                        if (site.type === 'Polygon' || site.type === 'MultiPolygon') {
                             isAlertInsideActualSite = turf.booleanPointInPolygon(
                                 turfPoint,
                                 turfCoordinates
@@ -310,7 +312,7 @@ export const alertRouter = createTRPCRouter({
                         }
 
                         let outsideBy: Number | null = null;
-                        if(!isAlertInsideActualSite){
+                        if (!isAlertInsideActualSite) {
                             const distance = turf.distance(turfPoint, turfPolygon, {
                                 units: "meters"
                             })
@@ -370,9 +372,20 @@ export const alertRouter = createTRPCRouter({
         .input(siteParams)
         .query(async ({ ctx, input }) => {
             try {
+                const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+                if (!userId) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "User ID not found",
+                    });
+                }
+                const thirtyDaysAgo = subtractDays(new Date(), 30);
                 const alertsForSite = await ctx.prisma.alert.findMany({
                     where: {
                         siteId: input.siteId,
+                        eventDate: {
+                            gte: thirtyDaysAgo
+                        },
                     }
                 })
                 return {
@@ -391,31 +404,11 @@ export const alertRouter = createTRPCRouter({
     getAlertsForUser: protectedProcedure
         .query(async ({ ctx }) => {
             try {
-                let userId: string;
-
-                // Check if user is authenticated with token
-                if (ctx.token) {
-                    const account = await ctx.prisma.account.findFirst({
-                        where: {
-                            providerAccountId: ctx.token.sub,
-                        },
-                        select: {
-                            userId: true,
-                        },
-                    });
-                    if (!account) {
-                        throw new TRPCError({
-                            code: "NOT_FOUND",
-                            message: "Cannot find an account associated with the token",
-                        });
-                    }
-                    userId = account.userId;
-                } else if (ctx.session) { // Check if user is authenticated with session
-                    userId = ctx.session.user.id;
-                } else { // User is not authenticated
+                const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
+                if (!userId) {
                     throw new TRPCError({
-                        code: 'UNAUTHORIZED',
-                        message: 'Missing authentication credentials',
+                        code: "NOT_FOUND",
+                        message: "User ID not found",
                     });
                 }
                 const alertsForUser: Alert[] = [];
@@ -427,14 +420,17 @@ export const alertRouter = createTRPCRouter({
 
                 // Fetch alerts for each site
                 for (const site of sites) {
+                    const thirtyDaysAgo = subtractDays(new Date(), 30);
                     const alertsForEachSite = await ctx.prisma.alert.findMany({
                         where: {
                             siteId: site.id,
+                            eventDate: {
+                                gte: thirtyDaysAgo
+                            },
                         },
                     });
                     alertsForUser.push(...alertsForEachSite);
                 }
-
                 return {
                     status: 'success',
                     data: alertsForUser,
@@ -469,7 +465,7 @@ export const alertRouter = createTRPCRouter({
             }
         }),
 
-    deleteAlert: protectedProcedure
+    deleteAnAlert: protectedProcedure
         .input(queryAlertSchema)
         .mutation(async ({ ctx, input }) => {
             try {
