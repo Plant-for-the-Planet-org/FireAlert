@@ -496,7 +496,7 @@ const Home = ({navigation, route}) => {
         camera.current.setCamera({
           centerCoordinate,
           zoomLevel: 10,
-          animationDuration: ANIMATION_DURATION,
+          animationDuration: 500,
         });
         setSelectedSite(e?.features[0]?.properties);
       }}>
