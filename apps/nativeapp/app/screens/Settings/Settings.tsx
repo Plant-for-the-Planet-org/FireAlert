@@ -344,7 +344,7 @@ const Settings = ({navigation}) => {
       onRefresh();
     }, []),
   );
-
+  console.log(groupOfSites);
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -357,66 +357,68 @@ const Settings = ({navigation}) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
         {/* my projects */}
-        <View style={[styles.myProjects, styles.commonPadding]}>
-          <Text style={styles.mainHeading}>
-            My Projects via{' '}
-            <Text style={styles.ppLink}>
-              <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
+        {Object.keys(groupOfSites[0])?.length > 0 ? (
+          <View style={[styles.myProjects, styles.commonPadding]}>
+            <Text style={styles.mainHeading}>
+              My Projects via{' '}
+              <Text style={styles.ppLink}>
+                <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
+              </Text>
             </Text>
-          </Text>
-          {groupOfSites.map((item, index) => (
-            <View key={`projects_${index}`} style={styles.projectsInfo}>
-              <View style={styles.projectsNameInfo}>
-                <Text style={styles.projectsName}>{item.name}</Text>
-                <Switch
-                  value={item.enabled}
-                  onValueChange={val => handleSwitch(index, val)}
-                />
+            {groupOfSites.map((item, index) => (
+              <View key={`projects_${index}`} style={styles.projectsInfo}>
+                <View style={styles.projectsNameInfo}>
+                  <Text style={styles.projectsName}>{item.name}</Text>
+                  <Switch
+                    value={item.enabled}
+                    onValueChange={val => handleSwitch(index, val)}
+                  />
+                </View>
+                {item?.sites?.length > 0 && <View style={{marginTop: 30}} />}
+                {item.sites
+                  ? item.sites.map((sites, index) => (
+                      <>
+                        <TouchableOpacity
+                          onPress={() => handleSiteInformation(sites)}
+                          key={`sites_${index}`}
+                          style={styles.sitesInProjects}>
+                          <Text style={styles.sitesName}>{sites.name}</Text>
+                          <View style={styles.rightConPro}>
+                            <TouchableOpacity
+                              onPress={evt =>
+                                handleRadius(evt, item.id, sites.id)
+                              }
+                              style={[styles.dropDownRadius, {marginRight: 5}]}>
+                              <Text style={styles.siteRadius}>
+                                {sites.radius
+                                  ? `within ${sites.radius} km`
+                                  : 'inside'}
+                              </Text>
+                              <DropdownArrow />
+                            </TouchableOpacity>
+                            <Switch
+                              value={sites?.isMonitored}
+                              onValueChange={val =>
+                                updateSite.mutate({
+                                  json: {
+                                    params: {siteId: sites?.id},
+                                    body: {isMonitored: val},
+                                  },
+                                })
+                              }
+                            />
+                          </View>
+                        </TouchableOpacity>
+                        {item?.sites?.length - 1 !== index && (
+                          <View style={styles.separator} />
+                        )}
+                      </>
+                    ))
+                  : null}
               </View>
-              {item?.sites?.length > 0 && <View style={{marginTop: 30}} />}
-              {item.sites
-                ? item.sites.map((sites, index) => (
-                    <>
-                      <TouchableOpacity
-                        onPress={() => handleSiteInformation(sites)}
-                        key={`sites_${index}`}
-                        style={styles.sitesInProjects}>
-                        <Text style={styles.sitesName}>{sites.name}</Text>
-                        <View style={styles.rightConPro}>
-                          <TouchableOpacity
-                            onPress={evt =>
-                              handleRadius(evt, item.id, sites.id)
-                            }
-                            style={[styles.dropDownRadius, {marginRight: 5}]}>
-                            <Text style={styles.siteRadius}>
-                              {sites.radius
-                                ? `within ${sites.radius} km`
-                                : 'inside'}
-                            </Text>
-                            <DropdownArrow />
-                          </TouchableOpacity>
-                          <Switch
-                            value={sites?.isMonitored}
-                            onValueChange={val =>
-                              updateSite.mutate({
-                                json: {
-                                  params: {siteId: sites?.id},
-                                  body: {isMonitored: val},
-                                },
-                              })
-                            }
-                          />
-                        </View>
-                      </TouchableOpacity>
-                      {item?.sites?.length - 1 !== index && (
-                        <View style={styles.separator} />
-                      )}
-                    </>
-                  ))
-                : null}
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : null}
         {/* my sites */}
         {sites?.json?.data?.filter(site => site?.projectId === null).length >
         0 ? (
