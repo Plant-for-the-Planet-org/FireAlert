@@ -45,7 +45,7 @@ export const getUserDetails = (request: any) => {
       );
       if (res?.status === 200) {
         onSuccess();
-        dispatch(updateUserDetails(res?.data));
+        dispatch(updateUserDetails(res?.data?.result?.data?.json));
       } else {
         onFail(res?.data?.message || 'Something went wrong');
       }

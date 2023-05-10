@@ -1,22 +1,21 @@
+import {StyleSheet, Platform} from 'react-native';
 import React, {useEffect, useRef, useState} from 'react';
 import PhoneNoInput from 'react-native-phone-number-input';
-import {StyleSheet, Text, View, Platform} from 'react-native';
 
 import {Colors, Typography} from '../../styles';
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const PhoneInput = ({containerStyle, inputValue}) => {
+const PhoneInput = ({containerStyle, inputValue, valid}) => {
   const [value, setValue] = useState('');
   const [formattedValue, setFormattedValue] = useState('');
-  const [valid, setValid] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const phoneInput = useRef<PhoneInput>(null);
 
   const isValidPhone = () => {
     const checkValid = phoneInput.current?.isValidNumber(value);
     setShowMessage(true);
-    setValid(checkValid ? checkValid : false);
+    valid(checkValid ? checkValid : false);
     inputValue(formattedValue);
   };
 
@@ -40,6 +39,7 @@ const PhoneInput = ({containerStyle, inputValue}) => {
         }}
         withShadow
         autoFocus
+        textInputProps={{keyboardType: 'number-pad'}}
         containerStyle={[containerStyle, styles.containerStyle]}
         textInputStyle={styles.textInputStyle}
         textContainerStyle={styles.textContainerStyle}

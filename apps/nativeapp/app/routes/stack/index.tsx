@@ -1,4 +1,4 @@
-import CommonStack from './CommonStack';
-import SignInStack from './SignInStack';
+import CommonStack from './commonStack';
+import SignInStack from './signInStack';
 
 export {CommonStack, SignInStack};

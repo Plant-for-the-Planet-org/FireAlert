@@ -10,13 +10,13 @@ import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
 
-import Markers from '../Markers';
-import {Colors, Typography} from '../../../styles';
-import {active_marker} from '../../../assets/svgs';
+import Markers from '../markers';
 import {
-  MapLayerContext,
   useMapLayers,
+  MapLayerContext,
 } from '../../../global/reducers/mapLayers';
+import {active_marker} from '../../../assets/svgs';
+import {Colors, Typography} from '../../../styles';
 
 const IS_ANDROID = Platform.OS === 'android';
 let attributionPosition: any = {
@@ -89,9 +89,9 @@ export default function Map({
         style={styles.container}
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
-        onRegionIsChanging={onChangeRegionStart}
+        onCameraChanged={onChangeRegionStart}
         attributionPosition={attributionPosition}
-        onRegionDidChange={onChangeRegionComplete}>
+        onMapIdle={onChangeRegionComplete}>
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;

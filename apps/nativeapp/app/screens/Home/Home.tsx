@@ -10,16 +10,22 @@ import {
   StyleSheet,
   BackHandler,
   TouchableOpacity,
+  ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
 import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
+import centroid from '@turf/centroid';
+import {polygon} from '@turf/helpers';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
-import React, {useEffect, useRef, useState} from 'react';
+import {useFocusEffect} from '@react-navigation/native';
+import Clipboard from '@react-native-clipboard/clipboard';
+import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   LayerModal,
@@ -29,38 +35,42 @@ import {
   FloatingInput,
 } from '../../components';
 import {
+  CopyIcon,
   LayerIcon,
   MyLocIcon,
   RadarIcon,
   CrossIcon,
   LogoutIcon,
   PencilIcon,
-  active_marker,
+  PointSiteIcon,
   SatelliteIcon,
   MapOutlineIcon,
   LocationPinIcon,
+  UserPlaceholder,
+  TrashOutlineIcon,
+  DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
 import {
-  editUserProfile,
   getUserDetails,
   updateIsLoggedIn,
 } from '../../redux/slices/login/loginSlice';
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from './PermissionAlert/LocationPermissionAlerts';
+} from './permissionAlert/locationPermissionAlerts';
 
 import {WEB_URLS} from '../../constants';
+import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {daysFromToday} from '../../utils/moment';
 import {clearAll} from '../../utils/localStorage';
+import {categorizedRes} from '../../utils/filters';
 import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import {trpc} from '../../services/trpc';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -81,41 +91,135 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
-const Home = ({navigation}) => {
+const Home = ({navigation, route}) => {
+  const siteInfo = route?.params;
   const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
-  const {userDetails} = useAppSelector(state => state.loginSlice);
-  const {sites} = useAppSelector(state => state.siteSlice);
   const {alerts} = useAppSelector(state => state.alertSlice);
+  const {userDetails} = useAppSelector(state => state.loginSlice);
 
-  const [isInitial, setIsInitial] = useState(true);
-  const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
+  const [isInitial, setIsInitial] = useState<boolean>(true);
+  const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
 
-  const [isPermissionDenied, setIsPermissionDenied] = useState(false);
-  const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
-  const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
+  const [isPermissionDenied, setIsPermissionDenied] = useState<boolean>(false);
+  const [isPermissionBlocked, setIsPermissionBlocked] =
+    useState<boolean>(false);
+  const [isLocationAlertShow, setIsLocationAlertShow] =
+    useState<boolean>(false);
 
-  const [visible, setVisible] = useState(false);
-  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
+  const [profileModalVisible, setProfileModalVisible] =
+    useState<boolean>(false);
 
-  const [profileName, setProfileName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [profileEditModal, setProfileEditModal] = useState(false);
+  const [profileName, setProfileName] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [profileEditModal, setProfileEditModal] = useState<boolean>(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
   >();
 
-  const [selectedAlert, setSelectedAlert] = useState({});
+  const [selectedAlert, setSelectedAlert] = useState<object | null>({});
+  const [selectedSite, setSelectedSite] = useState<object | null>({});
+  const [siteNameModalVisible, setSiteNameModalVisible] =
+    useState<boolean>(false);
+  const [siteName, setSiteName] = useState<string | null>('');
+  const [siteId, setSiteId] = useState<string | null>('');
 
-  const {data: sitesData, refetch: refetchSites} = trpc.user.profile.useQuery(
-    undefined, // no input
-    {enabled: true},
+  const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
+    undefined,
+    {
+      enabled: true,
+      retryDelay: 3000,
+      refetchInterval: 10000,
+      refetchIntervalInBackground: true,
+      onError: () => {
+        toast.show('something went wrong', {type: 'danger'});
+      },
+    },
   );
 
+  const formattedSites = useMemo(
+    () => categorizedRes(sites?.json?.data || [], 'type'),
+    [categorizedRes, sites],
+  );
+
+  const toast = useToast();
   const dispatch = useAppDispatch();
   const map = useRef(null);
   const camera = useRef<MapboxGL.Camera | null>(null);
+  const updateUser = trpc.user.updateUser.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      const request = {
+        onSuccess: async message => {},
+        onFail: () => {
+          toast.show('something went wrong', {type: 'danger'});
+        },
+      };
+      setLoading(false);
+      setProfileEditModal(false);
+      dispatch(getUserDetails(request));
+    },
+    onError: () => {
+      setLoading(false);
+      setProfileEditModal(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const deleteSite = trpc.site.deleteSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      refetchSites();
+      setSelectedSite({});
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const updateSite = trpc.site.updateSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      refetchSites();
+      setSiteNameModalVisible(false);
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (siteInfo && isCameraRefVisible && camera?.current?.setCamera) {
+        let center = centroid(polygon(siteInfo?.geometry?.coordinates));
+        const lat = center?.geometry?.coordinates[1];
+        const long = center?.geometry?.coordinates[0];
+        camera.current.setCamera({
+          centerCoordinate: [long, lat],
+          // centerCoordinate: [75.3855852018891, 28.111672923634202],
+          zoomLevel: ZOOM_LEVEL,
+          animationDuration: ANIMATION_DURATION,
+        });
+      }
+    }, [isCameraRefVisible, siteInfo]),
+  );
+
+  const handleEditSite = site => {
+    setSelectedSite({});
+    setSiteName(site.name);
+    setSiteId(site.id);
+    setTimeout(() => setSiteNameModalVisible(true), 500);
+  };
+
+  const handleEditSiteInfo = () => {
+    updateSite.mutate({json: {params: {siteId}, body: {name: siteName}}});
+  };
+
+  const handleDeleteSite = (id: string) => {
+    deleteSite.mutate({json: {siteId: id}});
+  };
 
   // recenter the map to the current coordinates of user location
   const onPressMyLocationIcon = (
@@ -230,26 +334,9 @@ const Home = ({navigation}) => {
   const handleEditProfileName = () => {
     setLoading(true);
     const payload = {
-      name: profileName,
-      guid: userDetails?.guid,
+      name: profileName.trim(),
     };
-    const request = {
-      payload,
-      onSuccess: () => {
-        setLoading(false);
-        setProfileEditModal(false);
-        const req = {
-          onSuccess: () => {},
-          onFail: () => {},
-        };
-        setTimeout(() => dispatch(getUserDetails(req)), 500);
-      },
-      onFail: () => {
-        setLoading(false);
-        setProfileEditModal(false);
-      },
-    };
-    dispatch(editUserProfile(request));
+    updateUser.mutate({json: {body: payload}});
   };
 
   const handlePencil = () => {
@@ -273,6 +360,10 @@ const Home = ({navigation}) => {
     handleLink(url);
   };
 
+  const _copyToClipboard = loc => () => {
+    Clipboard.setString(JSON.stringify(loc));
+  };
+
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
 
@@ -285,6 +376,7 @@ const Home = ({navigation}) => {
   const onPressPerDeniedAlertSecondaryBtn = () => checkPermission();
 
   const handleCloseProfileModal = () => setProfileEditModal(false);
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   const renderAnnotation = counter => {
     const id = alerts[counter]?.guid;
@@ -317,8 +409,8 @@ const Home = ({navigation}) => {
   };
 
   const renderSelectedPoint = counter => {
-    const id = sites?.point[counter]?.guid;
-    const coordinate = JSON.parse(sites?.point[counter]?.geometry)?.coordinates;
+    const id = formattedSites?.point[counter]?.guid;
+    const coordinate = formattedSites?.point[counter]?.geometry?.coordinates;
     const title = `Longitude: ${coordinate[0]} Latitude: ${coordinate[1]}`;
     return (
       <MapboxGL.PointAnnotation
@@ -326,18 +418,17 @@ const Home = ({navigation}) => {
         key={id}
         title={title}
         // onSelected={e => {
-        //   setSelectedAlert(sites?.point[counter]), console.log(e);
+        //   setSelectedAlert(formattedSites?.point[counter]), console.log(e);
         // }}
         coordinate={coordinate}>
-        <SvgXml xml={active_marker} style={styles.markerImage} />
+        <PointSiteIcon />
       </MapboxGL.PointAnnotation>
     );
   };
 
   const renderAnnotations = isAlert => {
     const items = [];
-    const arr = isAlert ? alerts : sites?.point;
-
+    const arr = isAlert ? alerts : formattedSites?.point;
     for (let i = 0; i < arr?.length; i++) {
       {
         isAlert
@@ -345,7 +436,6 @@ const Home = ({navigation}) => {
           : items.push(renderSelectedPoint(i));
       }
     }
-
     return items;
   };
 
@@ -355,19 +445,32 @@ const Home = ({navigation}) => {
       shape={{
         type: 'FeatureCollection',
         features:
-          sites?.polygon?.map((singleSite, i) => {
+          formattedSites?.polygon?.map((singleSite, i) => {
             return {
               type: 'Feature',
-              properties: {id: singleSite?.guid},
-              geometry: JSON.parse(singleSite?.geometry),
+              properties: {site: singleSite},
+              geometry: singleSite?.geometry,
             };
           }) || [],
       }}
       onPress={e => {
-        console.log(e);
+        camera.current.setCamera({
+          centerCoordinate: [
+            e?.coordinates?.longitude,
+            e?.coordinates?.latitude,
+          ],
+          zoomLevel: 10,
+          animationDuration: ANIMATION_DURATION,
+        });
+
+        setTimeout(
+          () => setSelectedSite(e?.features[0]?.properties),
+          ANIMATION_DURATION,
+        );
       }}>
       <MapboxGL.FillLayer
         id={'polyFill'}
+        layerIndex={2}
         style={{
           fillColor: Colors.WHITE,
           fillOpacity: 0.4,
@@ -413,7 +516,9 @@ const Home = ({navigation}) => {
           />
         )}
         {renderMapSource()}
+        {/* for alerts */}
         {renderAnnotations(true)}
+        {/* for point sites */}
         {renderAnnotations(false)}
       </MapboxGL.MapView>
       {Object.keys(selectedAlert).length ? (
@@ -453,10 +558,14 @@ const Home = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <Image
-          source={{uri: userDetails?.avatar || userDetails?.picture}}
-          style={styles.userAvatar}
-        />
+        {userDetails?.avatar || userDetails?.picture ? (
+          <Image
+            source={{uri: userDetails?.avatar || userDetails?.picture}}
+            style={styles.userAvatar}
+          />
+        ) : (
+          <UserPlaceholder width={44} height={44} />
+        )}
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleLayer}
@@ -464,7 +573,7 @@ const Home = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={20} height={20} fill={Colors.TEXT_COLOR} />
+        <LayerIcon width={45} height={45} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -472,7 +581,7 @@ const Home = ({navigation}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon />
+        <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
       {/* profile modal */}
       <BottomSheet
@@ -527,20 +636,33 @@ const Home = ({navigation}) => {
               </Text>
             </View>
           </View>
-          <View style={styles.satelliteInfoCon}>
-            <View style={styles.satelliteIcon}>
-              <LocationPinIcon />
+          <View
+            style={[
+              styles.satelliteInfoCon,
+              {justifyContent: 'space-between'},
+            ]}>
+            <View style={styles.satelliteInfoLeft}>
+              <View style={styles.satelliteIcon}>
+                <LocationPinIcon />
+              </View>
+              <View style={styles.satelliteInfo}>
+                <Text style={styles.satelliteText}>LOCATION</Text>
+                <Text style={styles.eventDate}>
+                  {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
+                  {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
+                </Text>
+                <Text style={styles.confidence}>
+                  {selectedAlert?.confidence}% alert confidence
+                </Text>
+              </View>
             </View>
-            <View style={styles.satelliteInfo}>
-              <Text style={styles.satelliteText}>LOCATION</Text>
-              <Text style={styles.eventDate}>
-                {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
-                {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
-              </Text>
-              <Text style={styles.confidence}>
-                {selectedAlert?.confidence}% alert confidence
-              </Text>
-            </View>
+            <TouchableOpacity
+              onPress={_copyToClipboard([
+                Number.parseFloat(selectedAlert?.latitude),
+                Number.parseFloat(selectedAlert?.longitude),
+              ])}>
+              <CopyIcon />
+            </TouchableOpacity>
           </View>
           <View style={styles.satelliteInfoCon}>
             <View style={styles.satelliteIcon}>
@@ -557,6 +679,72 @@ const Home = ({navigation}) => {
               Open in Google Maps
             </Text>
           </TouchableOpacity>
+        </View>
+      </BottomSheet>
+      {/* site Info modal */}
+      <BottomSheet
+        isVisible={Object.keys(selectedSite)?.length > 0}
+        backdropColor={Colors.BLACK + '80'}
+        onBackdropPress={() => setSelectedSite({})}>
+        <View style={[styles.modalContainer, styles.commonPadding]}>
+          <View style={styles.modalHeader} />
+          <View style={styles.siteTitleCon}>
+            <View>
+              {selectedSite?.site?.projectId && (
+                <Text style={styles.projectsName}>
+                  {selectedSite?.site?.projectName || selectedSite?.site?.guid}
+                </Text>
+              )}
+              <Text style={styles.siteTitle}>
+                {selectedSite?.site?.name || selectedSite?.site?.guid}
+              </Text>
+            </View>
+            <TouchableOpacity
+              disabled={selectedSite?.site?.projectId}
+              onPress={() => handleEditSite(selectedSite?.site)}>
+              <PencilIcon />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.btn}>
+            <MapOutlineIcon />
+            <Text style={styles.siteActionText}>View on Map</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            disabled={deleteSite?.isLoading || selectedSite?.site?.projectId}
+            onPress={() => handleDeleteSite(selectedSite?.site?.id)}
+            style={[
+              styles.btn,
+              selectedSite?.site?.projectId && {
+                borderColor: Colors.GRAY_LIGHTEST,
+              },
+            ]}>
+            {deleteSite?.isLoading ? (
+              <ActivityIndicator color={Colors.PRIMARY} />
+            ) : (
+              <>
+                {selectedSite?.site?.projectId ? (
+                  <DisabledTrashOutlineIcon />
+                ) : (
+                  <TrashOutlineIcon />
+                )}
+                <Text
+                  style={[
+                    styles.siteActionText,
+                    selectedSite?.site?.projectId && {
+                      color: Colors.GRAY_LIGHTEST,
+                    },
+                  ]}>
+                  Delete Site
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          {selectedSite?.site?.projectId && (
+            <Text style={styles.projectSyncInfo}>
+              This site is synced from pp.eco. To make changes, please visit the
+              Plant-for-the-Planet Platform.
+            </Text>
+          )}
         </View>
       </BottomSheet>
       {/* profile edit modal */}
@@ -590,6 +778,37 @@ const Home = ({navigation}) => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+      {/* site edit modal */}
+      <Modal visible={siteNameModalVisible} animationType={'slide'} transparent>
+        <KeyboardAvoidingView
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+          style={styles.siteModalStyle}>
+          <TouchableOpacity
+            onPress={handleCloseSiteModal}
+            style={styles.crossContainer}>
+            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+          </TouchableOpacity>
+          <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+            Enter Site Name
+          </Text>
+          <View
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            <FloatingInput
+              autoFocus
+              isFloat={false}
+              value={siteName}
+              onChangeText={setSiteName}
+            />
+            <CustomButton
+              title="Continue"
+              titleStyle={styles.title}
+              onPress={handleEditSiteInfo}
+              isLoading={updateSite?.isLoading}
+              style={styles.btnContinueSiteModal}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </>
   );
 };
@@ -602,38 +821,34 @@ const styles = StyleSheet.create({
   },
   myLocationIcon: {
     right: 16,
-    width: 45,
-    height: 45,
     borderWidth: 1,
     borderRadius: 100,
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 72 : 92,
+    bottom: IS_ANDROID ? 72 : 101,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   layerIcon: {
     right: 16,
-    width: 45,
-    height: 45,
     borderWidth: 1,
     borderRadius: 100,
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: 152,
+    top: 138,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   avatarContainer: {
     width: 45,
     height: 45,
-    top: 90,
+    top: 80,
   },
   userAvatar: {
-    width: 45,
-    height: 45,
+    width: 44,
+    height: 44,
     borderRadius: 100,
   },
   modalContainer: {
@@ -654,7 +869,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.GRAY_MEDIUM,
   },
   commonPadding: {
-    paddingHorizontal: 30,
+    paddingHorizontal: 16,
   },
   siteTitleCon: {
     marginTop: 16,
@@ -693,6 +908,10 @@ const styles = StyleSheet.create({
   },
   satelliteInfoCon: {
     marginTop: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  satelliteInfoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -743,5 +962,18 @@ const styles = StyleSheet.create({
   },
   title: {
     color: Colors.WHITE,
+  },
+  projectsName: {
+    fontSize: Typography.FONT_SIZE_16,
+    fontWeight: Typography.FONT_WEIGHT_BOLD,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    color: Colors.TEXT_COLOR,
+  },
+  projectSyncInfo: {
+    fontSize: 12,
+    marginTop: 16,
+    color: Colors.TEXT_COLOR,
+    fontFamily: Typography.FONT_FAMILY_ITALIC,
+    paddingHorizontal: 10,
   },
 });

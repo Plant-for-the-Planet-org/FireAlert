@@ -85,11 +85,11 @@ PODS:
     - lottie-ios (~> 3.5.0)
     - React-Core
   - MapboxCommon (23.4.0)
-  - MapboxCoreMaps (10.12.1):
+  - MapboxCoreMaps (10.12.2):
     - MapboxCommon (~> 23.4)
-  - MapboxMaps (10.12.1):
+  - MapboxMaps (10.12.2):
     - MapboxCommon (= 23.4.0)
-    - MapboxCoreMaps (= 10.12.1)
+    - MapboxCoreMaps (= 10.12.2)
     - MapboxMobileEvents (= 1.0.10)
     - Turf (~> 2.0)
   - MapboxMobileEvents (1.0.10)
@@ -400,7 +400,7 @@ PODS:
     - React-perflogger (= 0.71.1)
   - RNCAsyncStorage (1.18.1):
     - React-Core
-  - RNCClipboard (1.5.1):
+  - RNCClipboard (1.11.2):
     - React-Core
   - RNFS (2.20.0):
     - React-Core
@@ -494,7 +494,7 @@ DEPENDENCIES:
   - React-runtimeexecutor (from `../../../node_modules/react-native/ReactCommon/runtimeexecutor`)
   - ReactCommon/turbomodule/core (from `../../../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../../../node_modules/@react-native-async-storage/async-storage`)"
-  - "RNCClipboard (from `../../../node_modules/@react-native-community/clipboard`)"
+  - "RNCClipboard (from `../../../node_modules/@react-native-clipboard/clipboard`)"
   - RNFS (from `../../../node_modules/react-native-fs`)
   - "rnmapbox-maps (from `../../../node_modules/@rnmapbox/maps`)"
   - RNScreens (from `../../../node_modules/react-native-screens`)
@@ -611,7 +611,7 @@ EXTERNAL SOURCES:
   RNCAsyncStorage:
     :path: "../../../node_modules/@react-native-async-storage/async-storage"
   RNCClipboard:
-    :path: "../../../node_modules/@react-native-community/clipboard"
+    :path: "../../../node_modules/@react-native-clipboard/clipboard"
   RNFS:
     :path: "../../../node_modules/react-native-fs"
   rnmapbox-maps:
@@ -649,8 +649,8 @@ SPEC CHECKSUMS:
   lottie-ios: c55158d67d0629a260625cc2ded2052b829e3c3e
   lottie-react-native: 4b07ce6d17647dd24641ae5cd7ae614034318456
   MapboxCommon: 2945d39158111455f353524f3c2ad356bd8d546a
-  MapboxCoreMaps: c20f2bb1eb57b328982b1dead1258a5dd3bf09fe
-  MapboxMaps: a673c0923f645dc6f90e40bdc034b8567d8dead4
+  MapboxCoreMaps: 8f355514ac5b573967badd9cf8e482561d6e8e2d
+  MapboxMaps: 9e0873d7f8bddf5751791da7be2560b4157f3c95
   MapboxMobileEvents: de50b3a4de180dd129c326e09cd12c8adaaa46d6
   OpenSSL-Universal: ebc357f1e6bc71fa463ccb2fe676756aff50e88c
   RCT-Folly: 424b8c9a7a0b9ab2886ffe9c3b041ef628fd4fb1
@@ -686,7 +686,7 @@ SPEC CHECKSUMS:
   React-runtimeexecutor: 311feb67600774723fe10eb8801d3138cae9ad67
   ReactCommon: 03be76588338a27a88d103b35c3c44a3fd43d136
   RNCAsyncStorage: b90b71f45b8b97be43bc4284e71a6af48ac9f547
-  RNCClipboard: 41d8d918092ae8e676f18adada19104fa3e68495
+  RNCClipboard: 3f0451a8100393908bea5c5c5b16f96d45f30bfc
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   rnmapbox-maps: db661c0b1034d8227ff659e291cca4c188b6c704
   RNScreens: 218801c16a2782546d30bd2026bb625c0302d70f

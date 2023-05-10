@@ -4,12 +4,13 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
 import React, {useState} from 'react';
+import {useToast} from 'react-native-toast-notifications';
 
+import {trpc} from '../../services/trpc';
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {validateEmail} from '../../utils/emailVerifier';
@@ -19,19 +20,51 @@ const IS_ANDROID = Platform.OS === 'android';
 
 const Verification = ({navigation, route}) => {
   const {verificationType} = route.params;
-  const [newEmail, setNewEmail] = useState('');
-  const [verifyingLoader, setVerifyingLoader] = useState(false);
-  const [verified, setVerified] = useState(false);
-  const [phoneInput, setPhoneInput] = useState(null);
+  const [newEmail, setNewEmail] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [verified, setVerified] = useState<boolean>(false);
+  const [isValidNum, setIsValidNum] = useState<boolean>(false);
+  const [phoneInput, setPhoneInput] = useState<string | null>(null);
+  const [verifyingLoader, setVerifyingLoader] = useState<boolean>(false);
+
+  const toast = useToast();
+
+  const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
+    retryDelay: 3000,
+    onSuccess: data => {
+      const result = data?.json?.data?.alertMethod;
+      setLoading(false);
+      navigation.navigate('Otp', {
+        verificationType,
+        alertMethod: result,
+      });
+    },
+    onError: () => {
+      setLoading(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   const handleClose = () => navigation.goBack();
 
   const handleVerify = () => {
-    if (verificationType === 'Whatsapp' || verificationType === 'Sms') {
-      navigation.navigate('Otp', {verificationType, phoneInput});
-    } else {
-      navigation.navigate('Otp', {verificationType, newEmail});
+    if (
+      (verificationType === 'Sms' && !isValidNum) ||
+      (verificationType === 'Whatsapp' && !isValidNum)
+    ) {
+      return toast.show('Incorrect Number', {type: 'warning'});
     }
+    setLoading(true);
+    const payload = {
+      method: String(verificationType).toLowerCase(),
+      destination:
+        verificationType === 'Sms' || verificationType === 'Whatsapp'
+          ? phoneInput
+          : newEmail,
+      isVerified: false,
+      isEnabled: false,
+    };
+    createAlertPreference.mutate({json: payload});
   };
 
   const handleEmail = (emailText: string) => {
@@ -50,7 +83,7 @@ const Verification = ({navigation, route}) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle={'dark-content'} backgroundColor={Colors.WHITE} />
       <KeyboardAvoidingView
         {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
@@ -64,6 +97,7 @@ const Verification = ({navigation, route}) => {
         <View style={styles.subContainer}>
           {verificationType === 'Whatsapp' || verificationType === 'Sms' ? (
             <PhoneInput
+              valid={setIsValidNum}
               inputValue={setPhoneInput}
               containerStyle={styles.containerStyle}
             />
@@ -77,13 +111,15 @@ const Verification = ({navigation, route}) => {
           )}
           <CustomButton
             title="Continue"
+            isLoading={loading}
             onPress={handleVerify}
-            style={styles.btnContinue}
             titleStyle={styles.title}
+            style={styles.btnContinue}
+            disabled={verificationType === 'Email' && !verified}
           />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -97,7 +133,6 @@ const styles = StyleSheet.create({
   },
   subContainer: {
     flex: 1,
-    justifyContent: 'space-between',
   },
   btnContinue: {
     position: 'absolute',
@@ -117,7 +152,7 @@ const styles = StyleSheet.create({
   },
   crossContainer: {
     width: 25,
-    marginTop: 20,
+    marginTop: 60,
     marginHorizontal: 40,
     // alignSelf: 'flex-end',
   },

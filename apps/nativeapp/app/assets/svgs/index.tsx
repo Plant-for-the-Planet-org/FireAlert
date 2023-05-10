@@ -2,6 +2,7 @@ import Logo from './logo.jsx';
 import MapIcon from './mapIcon.jsx';
 import AddIcon from './addIcon.jsx';
 import SmsIcon from './smsIcon.jsx';
+import CopyIcon from './copyIcon.jsx';
 import ListIcon from './listIcon.jsx';
 import BellIcon from './bellIcon.jsx';
 import NasaLogo from './nasaLogo.jsx';
@@ -13,6 +14,7 @@ import MyLocIcon from './myLocIcon.jsx';
 import PhoneIcon from './phoneIcon.jsx';
 import EmailIcon from './emailIcon.jsx';
 import GlobeIcon from './globeIcon.jsx';
+import LayerCheck from './layerCheck.jsx';
 import LogoutIcon from './logoutIcon.jsx';
 import PlanetLogo from './planetLogo.jsx';
 import {polygonIcon} from './polygonIcon';
@@ -25,6 +27,7 @@ import DistanceIcon from './distanceIcon.jsx';
 import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.jsx';
 import BlueFireIcon from './blueFireIcon.jsx';
+import PointSiteIcon from './pointSiteIcon.jsx';
 import SatelliteDish from './satelliteDish.jsx';
 import SatelliteIcon from './satelliteIcon.jsx';
 import DropdownArrow from './dropdownArrow.jsx';
@@ -34,14 +37,17 @@ import MapOutlineIcon from './mapOutlineIcon.jsx';
 import OrangeFireIcon from './orangeFireIcon.jsx';
 import PurpleFireIcon from './purpleFireIcon.jsx';
 import TrashSolidIcon from './trashSolidIcon.jsx';
+import UserPlaceholder from './userPlaceholder.jsx';
 import TrashOutlineIcon from './trashOutlineIcon.jsx';
 import VerificationWarning from './verificationWarning.jsx';
+import DisabledTrashOutlineIcon from './disabledTrashOutlineIcon.jsx';
 
 export {
   Logo,
   SmsIcon,
   AddIcon,
   MapIcon,
+  CopyIcon,
   BellIcon,
   NasaLogo,
   ListIcon,
@@ -53,6 +59,7 @@ export {
   LayerIcon,
   MyLocIcon,
   GlobeIcon,
+  LayerCheck,
   PencilIcon,
   PlanetLogo,
   LogoutIcon,
@@ -64,6 +71,7 @@ export {
   BlueFireIcon,
   DistanceIcon,
   WhatsAppIcon,
+  PointSiteIcon,
   active_marker,
   BackArrowIcon,
   SatelliteIcon,
@@ -74,6 +82,8 @@ export {
   PurpleFireIcon,
   TrashSolidIcon,
   LocationPinIcon,
+  UserPlaceholder,
   TrashOutlineIcon,
   VerificationWarning,
+  DisabledTrashOutlineIcon,
 };

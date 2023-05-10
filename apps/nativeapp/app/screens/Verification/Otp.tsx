@@ -3,47 +3,48 @@ import {
   View,
   Platform,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import React from 'react';
+import React, {useState} from 'react';
+import {useToast} from 'react-native-toast-notifications';
 
+import {trpc} from '../../services/trpc';
+import {useCountdown} from '../../hooks';
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {CustomButton, OtpInput} from '../../components';
-import {useAppDispatch, useCountdown} from '../../hooks';
-import {createAlertPreferences} from '../../redux/slices/alerts/alertSlice';
 
 const Otp = ({navigation, route}) => {
-  const {verificationType, phoneInput, newEmail} = route.params;
+  const [code, setCode] = useState<string | null>(null);
+  const {verificationType} = route.params;
 
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const count = useCountdown(30);
+
+  const verifyAlertMethod = trpc.alertMethod.verify.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      navigation.navigate('Settings');
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   const handleClose = () => navigation.goBack();
 
   const handleContinue = () => {
-    const req = {
-      payload: {
-        method: String(verificationType).toLowerCase(),
-        destination:
-          verificationType === 'Whatsapp' || verificationType === 'Sms'
-            ? phoneInput
-            : newEmail,
-        isVerified: true,
-        isEnabled: true,
+    verifyAlertMethod.mutate({
+      json: {
+        alertMethodId: route?.params?.alertMethod?.id,
+        notificationToken: code,
       },
-      onSuccess: () => {
-        navigation.navigate('Settings');
-      },
-      onFail: () => {},
-    };
-    dispatch(createAlertPreferences(req));
+    });
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
         style={styles.container}>
@@ -54,26 +55,32 @@ const Otp = ({navigation, route}) => {
           Verify {verificationType}
         </Text>
         <View style={styles.subContainer}>
-          <OtpInput />
-          <TouchableOpacity style={styles.resendOtpBtn}>
+          <OtpInput onCodeFilled={setCode} />
+          <View style={styles.resendOtpBtn}>
             {count === 0 ? (
-              <Text style={[styles.resendOtp, styles.link]}>Resend Otp</Text>
+              <TouchableOpacity>
+                <Text style={[styles.resendOtp, styles.link]}>
+                  Get a new code
+                </Text>
+              </TouchableOpacity>
             ) : (
               <Text style={styles.resendOtp}>
-                Verification Code will expires in{' '}
-                <Text style={styles.link}>{count}</Text>
+                You can request a new code in{' '}
+                <Text style={styles.link}>{count} </Text>
+                seconds
               </Text>
             )}
-          </TouchableOpacity>
+          </View>
           <CustomButton
             title="Continue"
-            style={styles.btnContinue}
-            titleStyle={styles.title}
             onPress={handleContinue}
+            titleStyle={styles.title}
+            style={styles.btnContinue}
+            isLoading={verifyAlertMethod.isLoading}
           />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -118,7 +125,7 @@ const styles = StyleSheet.create({
   },
   crossContainer: {
     width: 25,
-    marginTop: 20,
+    marginTop: 60,
     marginHorizontal: 40,
   },
   link: {

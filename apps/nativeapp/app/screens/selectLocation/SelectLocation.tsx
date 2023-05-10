@@ -14,6 +14,7 @@ import {
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
 import React, {useEffect, useRef, useState} from 'react';
+import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
 
 import {
@@ -26,7 +27,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from '../Home/PermissionAlert/LocationPermissionAlerts';
+} from '../home/permissionAlert/locationPermissionAlerts';
 
 import {
   AlertModal,
@@ -34,11 +35,10 @@ import {
   CustomButton,
   FloatingInput,
 } from '../../components';
-import {useAppDispatch} from '../../hooks';
+import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {locationPermission} from '../../utils/permissions';
 import {getAccuracyColors} from '../../utils/accuracyColors';
-import {addSite, getSites} from '../../redux/slices/sites/siteSlice';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -84,7 +84,21 @@ const SelectLocation = ({navigation}) => {
   const map = useRef(null);
   const camera = useRef<MapboxGL.Camera | null>(null);
 
-  const dispatch = useAppDispatch();
+  const toast = useToast();
+
+  const postSite = trpc.site.createSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      setLoading(false);
+      setSiteNameModalVisible(false);
+      navigation.navigate('Home');
+    },
+    onError: () => {
+      setLoading(false);
+      setSiteNameModalVisible(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   const updateCurrentPosition = async (showAlert = true) => {
     return new Promise(resolve => {
@@ -161,27 +175,13 @@ const SelectLocation = ({navigation}) => {
       type: 'Point',
       coordinates: centerCoordinates,
     };
-    const request = {
-      payload: {
+    postSite.mutate({
+      json: {
         geometry,
         type: 'Point',
         name: siteName,
       },
-      onSuccess: () => {
-        setLoading(false);
-
-        const req = {
-          onSuccess: () => {},
-          onFail: () => {},
-        };
-        setTimeout(() => dispatch(getSites(req)), 500);
-        navigation.navigate('Home');
-      },
-      onFail: () => {
-        setLoading(false);
-      },
-    };
-    dispatch(addSite(request));
+    });
   };
 
   //small button on top right corner which will show accuracy in meters and the respective colour
@@ -351,8 +351,8 @@ const SelectLocation = ({navigation}) => {
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
-        onRegionIsChanging={onChangeRegionStart}
-        onRegionDidChange={onChangeRegionComplete}
+        onCameraChanged={onChangeRegionStart}
+        onMapIdle={onChangeRegionComplete}
         attributionPosition={attributionPosition}>
         <MapboxGL.Camera
           ref={el => {
