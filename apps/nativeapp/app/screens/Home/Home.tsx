@@ -17,7 +17,6 @@ import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
 import centroid from '@turf/centroid';
 import {polygon} from '@turf/helpers';
-import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
@@ -454,19 +453,17 @@ const Home = ({navigation, route}) => {
           }) || [],
       }}
       onPress={e => {
+        let centerOfPolygon = centroid(
+          polygon(e?.features[0]?.geometry?.coordinates),
+        );
+        const lat = centerOfPolygon?.geometry?.coordinates[1];
+        const long = centerOfPolygon?.geometry?.coordinates[0];
         camera.current.setCamera({
-          centerCoordinate: [
-            e?.coordinates?.longitude,
-            e?.coordinates?.latitude,
-          ],
+          centerCoordinate: [long, lat],
           zoomLevel: 10,
           animationDuration: ANIMATION_DURATION,
         });
-
-        setTimeout(
-          () => setSelectedSite(e?.features[0]?.properties),
-          ANIMATION_DURATION,
-        );
+        setTimeout(() => setSelectedSite(e?.features[0]?.properties), 500);
       }}>
       <MapboxGL.FillLayer
         id={'polyFill'}
