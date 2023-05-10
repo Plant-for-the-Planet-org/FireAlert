@@ -38,8 +38,8 @@ model User {
     guid             String?       @unique @default(uuid())
     sub              String?
     name             String?
-    email            String?       @unique
-    emailVerified    Boolean?
+    email            String        @unique
+    emailVerified    Boolean       @default(false)
     useGeostationary Boolean       @default(false)
     isPlanetRO       Boolean?
     image            String?
@@ -62,26 +62,6 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
-}
-
-model AlertProvider {
-    id     String            @id @default(cuid())
-    slug   AlertProviderSlug
-    type   AlertProviderType
-    apiKey String?
-}
-
-enum AlertProviderSlug {
-    LANDSAT_NRT
-    MODIS_NRT
-    MODIS_SP
-    VIIRS_NOAA20_NRT
-    VIIRS_SNPP_NRT
-    VIIRS_SNPP_SP
-}
-
-enum AlertProviderType {
-    fire
 }
 
 model AlertMethod {
@@ -131,10 +111,17 @@ model Project {
     sites       Site[]
 }
 
+model AlertProvider {
+    id     String            @id @default(cuid())
+    slug   AlertProviderSlug
+    type   AlertType
+    apiKey String?
+}
+
 model Alert {
     id          String          @id @default(cuid())
     guid        String          @unique @default(uuid())
-    type        String
+    type        AlertType
     eventDate   DateTime
     detectedBy  AlertDetectedBy
     confidence  AlertConfidence
@@ -148,15 +135,18 @@ model Alert {
     site        Site            @relation(fields: [siteId], references: [id])
 }
 
-model WorldFireAlert {
-    id         String   @id @default(cuid())
-    latitude   Float
-    longitude  Float
-    eventDate  DateTime @default(now())
-    confidence AlertConfidence
-    detectedBy AlertDetectedBy
-    frp        Float
-    isChecked  Boolean  @default(false)
+model EventAreas {
+    id          String           @id @default(cuid())
+    type        AlertType
+    latitude    Float
+    longitude   Float
+    date        DateTime         @default(now())
+    confidence  AlertConfidence
+    detectedBy  AlertDetectedBy
+    frp         Float
+    isProcessed Boolean          @default(false)
+    radius      Int?
+    source      EventAreasSource
 }
 
 enum Role {
@@ -169,6 +159,7 @@ enum AlertMethodMethod {
     email
     sms
     device
+    whatsapp
 }
 
 enum AlertMethodDeviceType {
@@ -193,4 +184,21 @@ enum AlertConfidence {
     high
     medium
     low
+}
+
+enum AlertType {
+    fire
+}
+
+enum AlertProviderSlug {
+    LANDSAT_NRT
+    MODIS_NRT
+    MODIS_SP
+    VIIRS_NOAA20_NRT
+    VIIRS_SNPP_NRT
+    VIIRS_SNPP_SP
+}
+
+enum EventAreasSource {
+    FIRMS
 }

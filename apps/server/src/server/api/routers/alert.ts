@@ -97,7 +97,7 @@ function processRecords(records: FireAlert[], detectedBy: DetectedBy) {
     return records.map((record) => {
         const longitude = parseFloat(record.longitude);
         const latitude = parseFloat(record.latitude);
-        const eventDate = new Date(record.acq_date) ?? new Date();
+        const date = new Date(record.acq_date) ?? new Date();
         const frp = parseFloat(record.frp) ?? null;
         let confidenceLevel: ConfidenceLevel;
 
@@ -163,10 +163,11 @@ function processRecords(records: FireAlert[], detectedBy: DetectedBy) {
         return {
             latitude: latitude,
             longitude: longitude,
-            eventDate: eventDate,
+            date: date,
             confidence: confidenceLevel,
             detectedBy: detectedBy,
             frp: frp,
+            source: 'FIRMS'
         };
     });
 }
@@ -186,21 +187,21 @@ async function processSource(ctx: TRPCContext, source: string, currentDate: stri
     } else if (source === "LANDSAT_NRT") {
         detectedBy = "LANDSAT";
     }
-    const mapKey = await ctx.prisma.alertProvider.findFirst({
-        where: {
-            slug: source,
-            type: "fire",
-        },
-    });
-    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/${source}/-180,-90,180,90/1/${currentDate}`;
     try {
+        const mapKey = await ctx.prisma.alertProvider.findFirst({
+            where: {
+                slug: source,
+                type: "fire",
+            },
+        });
+        const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/${source}/-180,-90,180,90/1/${currentDate}`;
         const records = await fetchAndParseCSV(url);
         if (records.length === 0) {
             console.log(`No alerts found for source: ${source}`);
             return;
         }
         const alerts = processRecords(records, detectedBy);
-        await ctx.prisma.worldFireAlert.createMany({
+        await ctx.prisma.EventAreas.createMany({
             data: alerts,
         });
         console.log(`Successfully populated alerts for source: ${source}`);
@@ -216,7 +217,7 @@ async function processSource(ctx: TRPCContext, source: string, currentDate: stri
 
 export const alertRouter = createTRPCRouter({
 
-    populateWorldFireAlertDatabase: publicProcedure.query(async ({ ctx }) => {
+    populateEventAreasDatabase: publicProcedure.query(async ({ ctx }) => {
         const currentDate: string = new Date().toISOString().split("T")[0];
         try {
             await Promise.all(sources.map((source) => processSource(ctx, source, currentDate)));
@@ -235,12 +236,12 @@ export const alertRouter = createTRPCRouter({
         }
     }),
 
-    deleteWorldFireAlerts: publicProcedure
+    bulkDeleteEventAreas: publicProcedure
         .query(async ({ ctx }) => {
             const currentDate: string = new Date().toISOString().split("T")[0];
-            const deletedAlerts = await ctx.prisma.worldFireAlert.deleteMany({
+            const deletedAlerts = await ctx.prisma.EventAreas.deleteMany({
                 where: {
-                    eventDate: {
+                    date: {
                         not: {
                             equals: new Date(currentDate),
                         },
@@ -249,15 +250,15 @@ export const alertRouter = createTRPCRouter({
             });
             return {
                 status: "success",
-                message: `${deletedAlerts.count} world alerts deleted`,
+                message: `${deletedAlerts.length} world alerts deleted`,
             };
         }),
 
     populateAlerts: publicProcedure.query(async ({ ctx }) => {
         try {
-            const allUncheckedfireAlerts = await ctx.prisma.worldFireAlert.findMany({
+            const allUncheckedfireAlerts = await ctx.prisma.EventAreas.findMany({
                 where: {
-                    isChecked: false,
+                    isProcessed: false,
                 },
             });
 
@@ -313,7 +314,7 @@ export const alertRouter = createTRPCRouter({
 
                         let outsideBy: Number | null = null;
                         if (!isAlertInsideActualSite) {
-                            const distance = turf.distance(turfPoint, turfPolygon, {
+                            const distance = turf.distance(turfPoint, turfCoordinates, {
                                 units: "meters"
                             })
                             outsideBy = distance
@@ -339,12 +340,12 @@ export const alertRouter = createTRPCRouter({
                         });
                     }
 
-                    await prisma.worldFireAlert.update({
+                    await prisma.EventAreas.update({
                         where: {
                             id: uncheckedFireAlert.id,
                         },
                         data: {
-                            isChecked: true,
+                            isProcessed: true,
                         },
                     });
                 });

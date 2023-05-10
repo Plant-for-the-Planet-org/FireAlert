@@ -4,6 +4,7 @@ import { adminProcedure, createTRPCRouter, protectedProcedure } from '../trpc';
 import { getUserIdByToken } from '../../../utils/token';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
 import { makeDetectionCoordinates } from '../../../utils/turf';
+import { sendEmail } from '../../../utils/notification/sendEmail';
 
 export const userRouter = createTRPCRouter({
     profile: protectedProcedure
@@ -98,7 +99,7 @@ export const userRouter = createTRPCRouter({
                             const { id: siteId, name: siteName, geometry: siteGeometry } = site;
                             const siteType = siteGeometry.type;
                             const siteRadius = 0;
-                            const detectionCoordinates = makeDetectionCoordinates(siteGeometry,siteRadius)
+                            const detectionCoordinates = makeDetectionCoordinates(siteGeometry, siteRadius)
                             // Then create sites
                             await ctx.prisma.site.create({
                                 data: {
@@ -169,6 +170,9 @@ export const userRouter = createTRPCRouter({
                             deletedAt: null,
                         }
                     })
+                    const emailSubject = 'Restore Deleted FireAlert Account'
+                    const emailBody = 'Thank you for logging in to FireAlert. Deletion was canceled as you have logged into your account.'
+                    await sendEmail(user.email, emailSubject, emailBody)
                 }
                 await ctx.prisma.user.update({
                     where: {
@@ -307,10 +311,20 @@ export const userRouter = createTRPCRouter({
                     deletedAt: new Date(),
                 },
             });
-            return {
-                status: 'success',
-                message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 14 days`,
-            };
+            if (!deletedUser) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Error in deletion process. Cannot delete user`,
+                });
+            } else {
+                const emailSubject = 'Soft Delete Fire Alert Account'
+                const emailBody = 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.'
+                const emailSent = await sendEmail(deletedUser.email, emailSubject, emailBody)
+                return {
+                    status: 'success',
+                    message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 14 days` + emailSent ? 'Successfully sent email' : '',
+                };
+            }
         } catch (error) {
             console.log(error)
             throw new TRPCError({

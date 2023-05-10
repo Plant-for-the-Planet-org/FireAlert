@@ -56,8 +56,8 @@ CREATE TABLE "User" (
     "guid" TEXT,
     "sub" TEXT,
     "name" TEXT,
-    "email" TEXT,
-    "emailVerified" BOOLEAN,
+    "email" TEXT NOT NULL,
+    "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "useGeostationary" BOOLEAN NOT NULL DEFAULT false,
     "isPlanetRO" BOOLEAN,
     "image" TEXT,
@@ -141,7 +141,7 @@ CREATE TABLE "Alert" (
     "id" TEXT NOT NULL,
     "guid" TEXT NOT NULL,
     "type" TEXT NOT NULL,
-    "eventDate" TEXT NOT NULL,
+    "eventDate" TIMESTAMP(3) NOT NULL,
     "detectedBy" "AlertDetectedBy" NOT NULL,
     "confidence" "AlertConfidence" NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
@@ -149,9 +149,24 @@ CREATE TABLE "Alert" (
     "frp" DOUBLE PRECISION NOT NULL,
     "isDelivered" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
+    "outside" DOUBLE PRECISION,
     "siteId" TEXT NOT NULL,
 
     CONSTRAINT "Alert_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WorldFireAlert" (
+    "id" TEXT NOT NULL,
+    "latitude" DOUBLE PRECISION NOT NULL,
+    "longitude" DOUBLE PRECISION NOT NULL,
+    "eventDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "confidence" "AlertConfidence" NOT NULL,
+    "detectedBy" "AlertDetectedBy" NOT NULL,
+    "frp" DOUBLE PRECISION NOT NULL,
+    "isChecked" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "WorldFireAlert_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
