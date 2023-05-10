@@ -124,6 +124,7 @@ const Home = ({navigation, route}) => {
     useState<boolean>(false);
   const [siteName, setSiteName] = useState<string | null>('');
   const [siteId, setSiteId] = useState<string | null>('');
+  const [selectedArea, setSelectedArea] = useState<any>(null);
 
   const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
     undefined,
@@ -438,6 +439,40 @@ const Home = ({navigation, route}) => {
     return items;
   };
 
+  const renderHighlightedMapSource = () => (
+    <MapboxGL.ShapeSource
+      id="fillSource"
+      shape={{
+        type: 'FeatureCollection',
+        features:
+          selectedArea?.map(singleSite => {
+            return {
+              type: 'Feature',
+              properties: {site: singleSite},
+              geometry: singleSite?.geometry,
+            };
+          }) || [],
+      }}>
+      <MapboxGL.FillLayer
+        id="fillLayer"
+        layerIndex={2}
+        style={{
+          fillColor: Colors.DEEP_PRIMARY,
+          fillOpacity: 0.4,
+        }}
+      />
+      <MapboxGL.LineLayer
+        id="fillOutline"
+        style={{
+          lineWidth: 2,
+          lineColor: Colors.DEEP_PRIMARY,
+          lineOpacity: 1,
+          lineJoin: 'bevel',
+        }}
+      />
+    </MapboxGL.ShapeSource>
+  );
+
   const renderMapSource = () => (
     <MapboxGL.ShapeSource
       id={'polygon'}
@@ -453,17 +488,17 @@ const Home = ({navigation, route}) => {
           }) || [],
       }}
       onPress={e => {
+        setSelectedArea(e?.features);
         let centerOfPolygon = centroid(
           polygon(e?.features[0]?.geometry?.coordinates),
         );
-        const lat = centerOfPolygon?.geometry?.coordinates[1];
-        const long = centerOfPolygon?.geometry?.coordinates[0];
+        const centerCoordinate = centerOfPolygon?.geometry?.coordinates;
         camera.current.setCamera({
-          centerCoordinate: [long, lat],
+          centerCoordinate,
           zoomLevel: 10,
           animationDuration: ANIMATION_DURATION,
         });
-        setTimeout(() => setSelectedSite(e?.features[0]?.properties), 500);
+        setSelectedSite(e?.features[0]?.properties);
       }}>
       <MapboxGL.FillLayer
         id={'polyFill'}
@@ -513,6 +548,9 @@ const Home = ({navigation, route}) => {
           />
         )}
         {renderMapSource()}
+        {/* highlighted */}
+        {selectedArea && renderHighlightedMapSource()}
+
         {/* for alerts */}
         {renderAnnotations(true)}
         {/* for point sites */}
@@ -681,7 +719,7 @@ const Home = ({navigation, route}) => {
       {/* site Info modal */}
       <BottomSheet
         isVisible={Object.keys(selectedSite)?.length > 0}
-        backdropColor={Colors.BLACK + '80'}
+        backdropColor={'transparent'}
         onBackdropPress={() => setSelectedSite({})}>
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
