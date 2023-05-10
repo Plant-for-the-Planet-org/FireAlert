@@ -21,22 +21,17 @@ import {
   CustomButton,
   FloatingInput,
 } from '../../components';
-import {
-  CrossIcon,
-  LayerIcon,
-  MyLocIcon,
-  SatelliteDish,
-} from '../../assets/svgs';
 import Map from './mapMarking/map';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
-import {locationPermission} from '../../utils/permissions';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from '../home/permissionAlert/locationPermissionAlerts';
+import {locationPermission} from '../../utils/permissions';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import distanceCalculator from '../../utils/distanceCalculator';
+import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
@@ -46,22 +41,24 @@ const CreatePolygon = ({navigation}) => {
   const camera = useRef<MapboxGL.Camera | null>(null);
 
   const map = useRef(null);
-  const [loader, setLoader] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [siteName, setSiteName] = useState('');
+  const [loader, setLoader] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [visible, setVisible] = useState<boolean>(false);
+  const [siteName, setSiteName] = useState<string>('');
   const [alphabets, setAlphabets] = useState<string[]>([]);
-  const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
-  const [activePolygonIndex, setActivePolygonIndex] = useState(0);
-  const [accuracyInMeters, setAccuracyInMeters] = useState(0);
-  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
+  const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
+  const [activePolygonIndex, setActivePolygonIndex] = useState<number>(0);
+  const [siteNameModalVisible, setSiteNameModalVisible] =
+    useState<boolean>(false);
 
-  const [isInitial, setIsInitial] = useState(true);
+  const [isInitial, setIsInitial] = useState<boolean>(true);
 
-  const [activeMarkerIndex, setActiveMarkerIndex] = useState(0);
-  const [isPermissionDenied, setIsPermissionDenied] = useState(false);
-  const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
-  const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
+  const [activeMarkerIndex, setActiveMarkerIndex] = useState<number>(0);
+  const [isPermissionDenied, setIsPermissionDenied] = useState<boolean>(false);
+  const [isPermissionBlocked, setIsPermissionBlocked] =
+    useState<boolean>(false);
+  const [isLocationAlertShow, setIsLocationAlertShow] =
+    useState<boolean>(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
