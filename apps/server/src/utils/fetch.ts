@@ -1,9 +1,11 @@
+import {env} from '../env.mjs'
+
 export const checkIfUserIsPlanetRO = async (
     bearer_token: string
 ): Promise<boolean> => {
     try {
         const response = await fetch(
-            "https://app-staging.plant-for-the-planet.org/app/profile",
+            `${env.PLANET_API_URL}/app/profile`, 
             {
                 headers: {
                     Authorization: bearer_token,
@@ -23,7 +25,7 @@ export const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
     // This results an array of projects which has sites key to it which contains an array of sites
     // return this list
     const response = await fetch(
-        "https://app-staging.plant-for-the-planet.org/app/profile/projects?_scope=extended",
+        `${env.PLANET_API_URL}/app/profile/projects?_scope=extended`,
         {
             headers: {
                 Authorization: bearer_token,
@@ -35,14 +37,14 @@ export const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
 }
 
 export const fetchAllProjectsWithSites = async () => {
-    const response = await fetch("https://app-staging.plant-for-the-planet.org/app/projects?_scope=extended");
+    const response = await fetch(`${env.PLANET_API_URL}/app/projects?_scope=extended`);
     const data = await response.json();
     return data;
 }
 
 
 export const getNameFromPPApi = async (bearer_token: string): Promise<string> => {
-    const initialUrl = "https://app.plant-for-the-planet.org/app/profile";
+    const initialUrl = `https://app.plant-for-the-planet.org/app/profile`;
     try {
         let response = await fetch(initialUrl, {
             headers: {

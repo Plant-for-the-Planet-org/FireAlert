@@ -1,11 +1,26 @@
--- CreateTable
-CREATE TABLE "Example" (
-    "id" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+-- CreateEnum
+CREATE TYPE "AlertProviderSlug" AS ENUM ('LANDSAT_NRT', 'MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP');
 
-    CONSTRAINT "Example_pkey" PRIMARY KEY ("id")
-);
+-- CreateEnum
+CREATE TYPE "AlertProviderType" AS ENUM ('fire');
+
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT');
+
+-- CreateEnum
+CREATE TYPE "AlertMethodMethod" AS ENUM ('email', 'sms', 'device');
+
+-- CreateEnum
+CREATE TYPE "AlertMethodDeviceType" AS ENUM ('ios', 'android');
+
+-- CreateEnum
+CREATE TYPE "SiteType" AS ENUM ('Point', 'Polygon', 'MultiPolygon');
+
+-- CreateEnum
+CREATE TYPE "AlertDetectedBy" AS ENUM ('MODIS', 'VIIRS', 'LANDSAT', 'GEOSTATIONARY');
+
+-- CreateEnum
+CREATE TYPE "AlertConfidence" AS ENUM ('high', 'medium', 'low');
 
 -- CreateTable
 CREATE TABLE "Account" (
@@ -42,14 +57,16 @@ CREATE TABLE "User" (
     "sub" TEXT,
     "name" TEXT,
     "email" TEXT,
-    "emailVerified" TIMESTAMP(3),
-    "detectionMethod" TEXT,
+    "emailVerified" BOOLEAN,
+    "useGeostationary" BOOLEAN NOT NULL DEFAULT false,
     "isPlanetRO" BOOLEAN,
     "image" TEXT,
     "avatar" TEXT,
     "deletedAt" TIMESTAMP(3),
     "isVerified" BOOLEAN,
+    "lastLogin" TIMESTAMP(3),
     "signupDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "roles" "Role" NOT NULL DEFAULT 'ROLE_CLIENT',
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -62,17 +79,29 @@ CREATE TABLE "VerificationToken" (
 );
 
 -- CreateTable
+CREATE TABLE "AlertProvider" (
+    "id" TEXT NOT NULL,
+    "slug" "AlertProviderSlug" NOT NULL,
+    "type" "AlertProviderType" NOT NULL,
+    "apiKey" TEXT,
+
+    CONSTRAINT "AlertProvider_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AlertMethod" (
     "id" TEXT NOT NULL,
-    "guid" TEXT,
-    "method" TEXT,
-    "destination" TEXT,
-    "isVerified" BOOLEAN,
-    "isEnabled" BOOLEAN,
+    "guid" TEXT NOT NULL,
+    "method" "AlertMethodMethod" NOT NULL,
+    "destination" TEXT NOT NULL,
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "isEnabled" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
-    "deviceType" TEXT,
+    "deviceType" "AlertMethodDeviceType",
     "notificationToken" TEXT,
     "userId" TEXT NOT NULL,
+    "tokenSentCount" INTEGER NOT NULL DEFAULT 0,
+    "lastTokenSentDate" TIMESTAMP(3),
 
     CONSTRAINT "AlertMethod_pkey" PRIMARY KEY ("id")
 );
@@ -81,30 +110,44 @@ CREATE TABLE "AlertMethod" (
 CREATE TABLE "Site" (
     "id" TEXT NOT NULL,
     "guid" TEXT,
-    "type" TEXT,
-    "geometry" JSONB,
-    "radius" TEXT,
-    "isMonitored" BOOLEAN,
+    "name" TEXT,
+    "type" "SiteType" NOT NULL,
+    "geometry" JSONB NOT NULL,
+    "detectionCoordinates" JSONB NOT NULL,
+    "radius" INTEGER NOT NULL DEFAULT 0,
+    "isMonitored" BOOLEAN NOT NULL DEFAULT true,
     "lastSynced" TIMESTAMP(3),
     "deletedAt" TIMESTAMP(3),
-    "projectID" TEXT,
+    "projectId" TEXT,
+    "lastUpdated" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
 
     CONSTRAINT "Site_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
+CREATE TABLE "Project" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT,
+    "lastUpdated" TIMESTAMP(3),
+    "userId" TEXT NOT NULL,
+
+    CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Alert" (
     "id" TEXT NOT NULL,
-    "guid" TEXT,
-    "type" TEXT,
-    "eventDate" TIMESTAMP(3),
-    "detectedBy" TEXT,
-    "confidence" INTEGER,
-    "latitude" DOUBLE PRECISION,
-    "longitude" DOUBLE PRECISION,
-    "frp" DOUBLE PRECISION,
-    "isRead" BOOLEAN,
+    "guid" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "eventDate" TEXT NOT NULL,
+    "detectedBy" "AlertDetectedBy" NOT NULL,
+    "confidence" "AlertConfidence" NOT NULL,
+    "latitude" DOUBLE PRECISION NOT NULL,
+    "longitude" DOUBLE PRECISION NOT NULL,
+    "frp" DOUBLE PRECISION NOT NULL,
+    "isDelivered" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
     "siteId" TEXT NOT NULL,
 
@@ -133,6 +176,9 @@ CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationTok
 CREATE UNIQUE INDEX "AlertMethod_guid_key" ON "AlertMethod"("guid");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "AlertMethod_destination_userId_key" ON "AlertMethod"("destination", "userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Site_guid_key" ON "Site"("guid");
 
 -- CreateIndex
@@ -148,7 +194,13 @@ ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "AlertMethod" ADD CONSTRAINT "AlertMethod_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Site" ADD CONSTRAINT "Site_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Site" ADD CONSTRAINT "Site_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Alert" ADD CONSTRAINT "Alert_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

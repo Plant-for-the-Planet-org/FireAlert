@@ -48,13 +48,19 @@ const Verification = ({navigation, route}) => {
   const handleClose = () => navigation.goBack();
 
   const handleVerify = () => {
-    if (verificationType === 'Sms' && !isValidNum) {
+    if (
+      (verificationType === 'Sms' && !isValidNum) ||
+      (verificationType === 'Whatsapp' && !isValidNum)
+    ) {
       return toast.show('Incorrect Number', {type: 'warning'});
     }
     setLoading(true);
     const payload = {
       method: String(verificationType).toLowerCase(),
-      destination: verificationType === 'Sms' ? phoneInput : newEmail,
+      destination:
+        verificationType === 'Sms' || verificationType === 'Whatsapp'
+          ? phoneInput
+          : newEmail,
       isVerified: false,
       isEnabled: false,
     };

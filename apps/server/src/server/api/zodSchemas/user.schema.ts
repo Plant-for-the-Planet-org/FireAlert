@@ -17,10 +17,10 @@ import {z} from 'zod';
 
 export const updateUserSchema = z.object({
     body: z.object({
-        name: z.string().optional(),
-        isPlanetRO: z.boolean().optional(),
-        avatar: z.string().optional(),
-        isVerified: z.boolean().optional(),
+        name: z.string(),
+        isPlanetRO: z.boolean(),
+        avatar: z.string(),
+        isVerified: z.boolean(),
         roles: z.enum(['ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT']),
     }).partial(),
 })

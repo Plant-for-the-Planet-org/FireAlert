@@ -7,19 +7,18 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-// Necessary for Next auth
 model Account {
     id                String  @id @default(cuid())
     userId            String
     type              String
     provider          String
     providerAccountId String
-    refresh_token     String? @db.Text
-    access_token      String? @db.Text
+    refresh_token     String?
+    access_token      String?
     expires_at        Int?
     token_type        String?
     scope             String?
-    id_token          String? @db.Text
+    id_token          String?
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -35,33 +34,26 @@ model Session {
 }
 
 model User {
-    id              String    @id @default(cuid())
-    guid            String?   @unique @default(uuid())
-    sub             String?
-    name            String?
-    email           String?   @unique
-    emailVerified   Boolean?
-    detectionMethod String?
-    isPlanetRO      Boolean?
-    image           String?
-    avatar          String?
-    deletedAt       DateTime?
-    isVerified      Boolean?
-    lastLogin       DateTime?
-    signupDate      DateTime  @default(now())
-    roles           Role      @default(ROLE_CLIENT)
-
-    accounts Account[]
-    sessions Session[]
-
-    alertMethods AlertMethod[]
-    sites        Site[]
-    projects     Project[]
-}
-enum Role {
-    ROLE_CLIENT
-    ROLE_ADMIN
-    ROLE_SUPPORT
+    id               String        @id @default(cuid())
+    guid             String?       @unique @default(uuid())
+    sub              String?
+    name             String?
+    email            String?       @unique
+    emailVerified    Boolean?
+    useGeostationary Boolean       @default(false)
+    isPlanetRO       Boolean?
+    image            String?
+    avatar           String?
+    deletedAt        DateTime?
+    isVerified       Boolean?
+    lastLogin        DateTime?
+    signupDate       DateTime      @default(now())
+    roles            Role          @default(ROLE_CLIENT)
+    accounts         Account[]
+    alertMethods     AlertMethod[]
+    projects         Project[]
+    sessions         Session[]
+    sites            Site[]
 }
 
 model VerificationToken {
@@ -72,7 +64,25 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
-// Fire Alert Schema
+model AlertProvider {
+    id     String            @id @default(cuid())
+    slug   AlertProviderSlug
+    type   AlertProviderType
+    apiKey String?
+}
+
+enum AlertProviderSlug {
+    LANDSAT_NRT
+    MODIS_NRT
+    MODIS_SP
+    VIIRS_NOAA20_NRT
+    VIIRS_SNPP_NRT
+    VIIRS_SNPP_SP
+}
+
+enum AlertProviderType {
+    fire
+}
 
 model AlertMethod {
     id                String                 @id @default(cuid())
@@ -86,44 +96,29 @@ model AlertMethod {
     notificationToken String?
     userId            String
     user              User                   @relation(fields: [userId], references: [id])
-}
-enum AlertMethodMethod {
-    email
-    sms
-    device
-}
-enum AlertMethodDeviceType {
-    ios
-    android
+    tokenSentCount    Int                    @default(0)
+    lastTokenSentDate DateTime?
+
+    @@unique([destination, userId])
 }
 
 model Site {
-    id          String      @id @default(cuid())
-    guid        String?     @unique @default(uuid())
-    name        String?
-    type        SiteType?
-    geometry    Json?
-    radius      SiteRadius? @default(inside)
-    isMonitored Boolean?    @default(true)
-    lastSynced  DateTime?
-    deletedAt   DateTime?
-    projectId   String?
-    lastUpdated DateTime?
-    userId      String
-    user        User        @relation(fields: [userId], references: [id])
-    project     Project?    @relation(fields: [projectId], references: [id])
-    alerts      Alert[]
-}
-enum SiteType {
-    Point
-    Polygon
-    MultiPolygon
-}
-enum SiteRadius {
-    inside
-    within5km
-    within10km
-    within100km
+    id                   String    @id @default(cuid())
+    guid                 String?   @unique @default(uuid())
+    name                 String?
+    type                 SiteType
+    geometry             Json
+    detectionCoordinates Json
+    radius               Int       @default(0)
+    isMonitored          Boolean   @default(true)
+    lastSynced           DateTime?
+    deletedAt            DateTime?
+    projectId            String?
+    lastUpdated          DateTime?
+    userId               String
+    alerts               Alert[]
+    project              Project?  @relation(fields: [projectId], references: [id])
+    user                 User      @relation(fields: [userId], references: [id])
 }
 
 model Project {
@@ -137,18 +132,65 @@ model Project {
 }
 
 model Alert {
-    id         String    @id @default(cuid())
-    guid       String?   @unique @default(uuid())
-    type       String?
-    eventDate  DateTime?
-    detectedBy String?
-    confidence Int?
-    latitude   Float?
-    longitude  Float?
-    frp        Float?
-    isRead     Boolean?
-    deletedAt  DateTime?
+    id          String          @id @default(cuid())
+    guid        String          @unique @default(uuid())
+    type        String
+    eventDate   DateTime
+    detectedBy  AlertDetectedBy
+    confidence  AlertConfidence
+    latitude    Float
+    longitude   Float
+    frp         Float
+    isDelivered Boolean         @default(false)
+    deletedAt   DateTime?
+    outside     Float?
+    siteId      String
+    site        Site            @relation(fields: [siteId], references: [id])
+}
 
-    siteId String
-    site   Site   @relation(fields: [siteId], references: [id])
+model WorldFireAlert {
+    id         String   @id @default(cuid())
+    latitude   Float
+    longitude  Float
+    eventDate  DateTime @default(now())
+    confidence AlertConfidence
+    detectedBy AlertDetectedBy
+    frp        Float
+    isChecked  Boolean  @default(false)
+}
+
+enum Role {
+    ROLE_CLIENT
+    ROLE_ADMIN
+    ROLE_SUPPORT
+}
+
+enum AlertMethodMethod {
+    email
+    sms
+    device
+}
+
+enum AlertMethodDeviceType {
+    ios
+    android
+}
+
+enum SiteType {
+    Point
+    Polygon
+    MultiPolygon
+}
+
+enum AlertDetectedBy {
+    MODIS
+    VIIRS
+    LANDSAT
+    GEOSTATIONARY
+}
+
+enum AlertConfidence {
+    high
+    medium
+    low
 }

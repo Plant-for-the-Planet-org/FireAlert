@@ -40,31 +40,6 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const { req, res } = opts;
 
-
-
-  // when getUser api call is made:
-  // verify if token is valid, and signed using getToken()
-  // decode the token! 
-  // check if sub from the token already exists as a providerAccountId from account table, 
-  // use sub as user guid
-  // if user exists (go to line 81)
-  // if user does not exist, create the new user with the information from the access token. 
-  // then add then return the user in the api call
-
-
-
-  // when any other api call is made:
-  // verify if token is valid, and signed using getToken()
-  // decode the token! 
-  // check if sub from the token already exists as a providerAccountId from account table, 
-  // if user is invalid, and route is profile, 
-  // use sub as user guid
-  // if user exists (go to line 91) // compare user from the sub to the database
-  // if user does not exist,
-  // and route is not profile, throw a 401 error. 
-  // else add user to the database
-  // then return the data that belongs to the user
-
   const session = await getServerAuthSession({ req, res });
 
   return createInnerTRPCContext({
@@ -148,7 +123,18 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
   }
 });
 
-
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+
+const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
+  if (ctx.session?.user.roles !== 'ROLE_ADMIN') {
+    throw new TRPCError({ code: 'UNAUTHORIZED'})
+  }
+  return next({
+    ctx: {
+      session: { ...ctx.session, user: ctx.session.user }
+    }
+  })
+})
+export const adminProcedure = t.procedure.use(enforceUserIsAdmin);
 
 export type InnerTRPCContext = ReturnType<typeof createInnerTRPCContext>;

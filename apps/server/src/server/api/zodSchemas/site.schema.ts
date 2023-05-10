@@ -20,7 +20,7 @@ export const createSiteSchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
     name: z.string().optional(),
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
-    radius: z.enum(["inside", "within5km", "within10km", "within100km"]),
+    radius: z.number().optional().default(0),
     isMonitored: z.boolean().optional(),
     userId: z.string().optional(),
     projectId: z.string().nullable().optional(),
@@ -34,11 +34,14 @@ export const params = z.object({
     siteId: z.string(),
 })
 
+export const getSitesWithProjectIdParams = z.object({
+    projectId: z.string(),
+})
 const bodySchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
     name: z.string(),
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
-    radius: z.enum(["inside", "within5km", "within10km", "within100km"]),
+    radius: z.number(),
     isMonitored: z.boolean(),
     projectId: z.string().nullable(),
 }).partial().refine((obj) => {

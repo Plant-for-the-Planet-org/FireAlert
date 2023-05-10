@@ -1,12 +1,13 @@
 import { TRPCError } from "@trpc/server";
-import { createAlertMethodSchema, params, sendVerificationSchema, updateAlertMethodSchema } from '../zodSchemas/alertMethod.schema'
+import { createAlertMethodSchema, params, updateAlertMethodSchema, verifySchema } from '../zodSchemas/alertMethod.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
+import { generate5DigitOTP } from '../../../utils/math'
+import { sendVerificationCode } from '../../../utils/notification/sendVerificationCode'
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
-
 
 interface TRPCContext extends InnerTRPCContext {
     token: PPJwtPayload;
@@ -47,20 +48,113 @@ const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, userId }:
 export const alertMethodRouter = createTRPCRouter({
 
     sendVerification: protectedProcedure
-        .input(sendVerificationSchema)
-        .mutation(async({ctx, input})=> {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if(input.method === 'email'){
-                const userEmailAddress = input.destination
-                // verification logic for email in onesignal
+        .input(params)
+        .mutation(async ({ ctx, input }) => {
+
+            const alertMethodId = input.alertMethodId;
+
+            // Get the current date
+            const currentDate = new Date().toISOString().split('T')[0];
+            // Find the alertMethod for that id
+            const alertMethod = await ctx.prisma.alertMethod.findFirst({
+                where: {
+                    id: input.alertMethodId
+                }
+            })
+            if (!alertMethod) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "AlertMethod with that AlertMethod Id not found",
+                });
             }
-            if(input.method === 'sms'){
-                const userPhoneNumber = input.destination
-                // verification logic for sms in onesignal
+            if (alertMethod.isVerified) {
+                return {
+                    message: 'User is already verified'
+                }
             }
-            if(input.method === 'whatsapp'){
-                const userWhatsAppNumber = input.destination
-                // verification logic for whatsapp in onesignal
+            // Check if the date is the same
+            if (
+                alertMethod.lastTokenSentDate &&
+                alertMethod.lastTokenSentDate.toISOString().split('T')[0] === currentDate
+            ) {
+                // Check if the attempt count has reached the maximum limit (e.g., 3)
+                if (alertMethod.tokenSentCount >= 3) {
+                    return {
+                        status: 403,
+                        message: 'Exceeded maximum verification attempts for the day',
+                    };
+                }
+                // Increment the tokenSentCount
+                await ctx.prisma.alertMethod.update({
+                    where: {
+                        id: alertMethodId,
+                    },
+                    data: {
+                        tokenSentCount: alertMethod.tokenSentCount + 1,
+                    },
+                });
+            } else {
+                // Reset tokenSentCount to 1 for a new date
+                await ctx.prisma.alertMethod.update({
+                    where: {
+                        id: alertMethodId,
+                    },
+                    data: {
+                        tokenSentCount: 1,
+                        lastTokenSentDate: new Date(),
+                    },
+                });
+            }
+
+            const otp = generate5DigitOTP()
+            const message = `Your FireAlert Verification OTP is ${otp}`
+            await ctx.prisma.alertMethod.update({
+                where: {
+                    id: input.alertMethodId
+                },
+                data: {
+                    notificationToken: otp
+                }
+            })
+            const destination = alertMethod.destination
+            const method = alertMethod.method
+            const deviceType = alertMethod.deviceType ?? undefined
+            const verificaiton = await sendVerificationCode(destination, method, deviceType, message)
+            return verificaiton;
+        }),
+
+    verify: protectedProcedure
+        .input(verifySchema)
+        .mutation(async ({ ctx, input }) => {
+            const alertMethod = await ctx.prisma.alertMethod.findFirst({
+                where: {
+                    id: input.alertMethodId
+                }
+            })
+            if (!alertMethod) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "AlertMethod with that AlertMethod Id not found",
+                });
+            }
+            if (alertMethod.notificationToken === input.notificationToken) {
+                await ctx.prisma.alertMethod.update({
+                    where: {
+                        id: input.alertMethodId
+                    },
+                    data: {
+                        isVerified: true
+                    }
+                })
+                return {
+                    status: 400,
+                    message: 'Validation Successful'
+                }
+            } else {
+                return {
+                    status: 406,
+                    message: 'incorrect token'
+                }
             }
         }),
 
@@ -74,7 +168,21 @@ export const alertMethodRouter = createTRPCRouter({
                     message: "User ID not found",
                 });
             }
+            // Check if the user has reached the maximum limit of alert methods (e.g., 5)
+            const alertMethodCount = await ctx.prisma.alertMethod.count({
+                where: {
+                    userId,
+                },
+            });
+
+            if (alertMethodCount >= 5) {
+                return {
+                    status: 403,
+                    message: 'Exceeded maximum alert methods limit',
+                };
+            }
             try {
+                const otp = generate5DigitOTP();
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
                         method: input.method,
@@ -83,22 +191,32 @@ export const alertMethodRouter = createTRPCRouter({
                         isEnabled: input.isEnabled,
                         deviceType: input.deviceType,
                         userId: userId,
+                        notificationToken: otp,
                     },
                 });
+                // Send verification code
+                const message = `Your FireAlert Verification OTP is ${otp}`;
+                const destination = alertMethod.destination
+                const method = alertMethod.method
+                const deviceType = alertMethod.deviceType ?? undefined
+                const verification = await sendVerificationCode(destination, method, deviceType, message)
+
                 return {
                     status: 'success',
                     data: {
                         alertMethod,
+                        verification
                     },
                 };
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
-                    code: 'BAD_REQUEST',
-                    message: `Something went wrong: ${error}`,
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: `${error}`,
                 });
             }
         }),
+
 
     getAllAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
@@ -120,10 +238,10 @@ export const alertMethodRouter = createTRPCRouter({
                     data: alertMethods,
                 };
             } catch (error) {
-                console.log(error);
+                console.log(error)
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: 'Alert methods not found',
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
                 });
             }
         }),
@@ -159,8 +277,8 @@ export const alertMethodRouter = createTRPCRouter({
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: 'Cannot get alert method',
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
                 });
             }
         }),
@@ -188,10 +306,10 @@ export const alertMethodRouter = createTRPCRouter({
                     data: updatedAlertMethod,
                 };
             } catch (error) {
-                console.log(error);
+                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: 'An error occurred while updating the alert method',
+                    message: `${error}`,
                 });
             }
         }),
@@ -218,10 +336,10 @@ export const alertMethodRouter = createTRPCRouter({
                     data: deletedAlertMethod,
                 };
             } catch (error) {
-                console.log(error);
+                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: 'An error occurred while deleting the alert method',
+                    message: `${error}`,
                 });
             }
         }),

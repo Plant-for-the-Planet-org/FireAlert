@@ -305,6 +305,12 @@ const Settings = ({navigation}) => {
     });
   };
 
+  const handleAddWhatsapp = () => {
+    navigation.navigate('Verification', {
+      verificationType: 'Whatsapp',
+    });
+  };
+
   const handleDeleteSite = (id: string) => {
     deleteSite.mutate({json: {siteId: id}});
   };
@@ -344,7 +350,7 @@ const Settings = ({navigation}) => {
       onRefresh();
     }, []),
   );
-  console.log(groupOfSites);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -542,6 +548,57 @@ const Settings = ({navigation}) => {
               ))}
             </View>
           </View>
+          {/* whatsapp */}
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <WhatsAppIcon />
+                <Text style={styles.smallHeading}>WhatsApp</Text>
+              </View>
+              <TouchableOpacity onPress={handleAddWhatsapp}>
+                <AddIcon />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.emailContainer}>
+              {formattedAlertPreferences?.whatsapp?.map((item, i) => (
+                <>
+                  <View
+                    key={`whatsapp_${i}`}
+                    style={[
+                      styles.emailSubContainer,
+                      {justifyContent: 'space-between'},
+                    ]}>
+                    <Text style={styles.myEmailName}>{item?.destination}</Text>
+                    <View style={styles.emailSubContainer}>
+                      {item?.isVerified ? (
+                        <Switch
+                          value={item?.isEnabled}
+                          onValueChange={val =>
+                            handleNotifySwitch({guid: item.guid}, val)
+                          }
+                        />
+                      ) : (
+                        <View style={styles.verifiedChips}>
+                          <VerificationWarning />
+                          <Text style={styles.verifiedTxt}>
+                            Verification Required
+                          </Text>
+                        </View>
+                      )}
+                      <TouchableOpacity
+                        style={{marginLeft: 20}}
+                        onPress={() => handleRemoveAlertMethod(item?.id)}>
+                        <TrashSolidIcon />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  {formattedAlertPreferences?.whatsapp?.length - 1 !== i && (
+                    <View style={[styles.separator, {marginVertical: 12}]} />
+                  )}
+                </>
+              ))}
+            </View>
+          </View>
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
@@ -557,7 +614,7 @@ const Settings = ({navigation}) => {
               {formattedAlertPreferences?.sms?.map((item, i) => (
                 <>
                   <View
-                    key={`emails_${i}`}
+                    key={`sms_${i}`}
                     style={[
                       styles.emailSubContainer,
                       {justifyContent: 'space-between'},
