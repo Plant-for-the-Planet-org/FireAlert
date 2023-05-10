@@ -1,19 +1,17 @@
-const active_marker = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="91" viewBox="0 0 38 91">
-  <g id="Group_2286" data-name="Group 2286" transform="translate(-101 -368)">
-    <g id="Group_1661" data-name="Group 1661" transform="translate(-38 -63.09)">
-      <rect id="Rectangle_906" data-name="Rectangle 906" width="38" height="38" transform="translate(139 448.09)" fill="none"/>
-      <g id="Group_1583" data-name="Group 1583" transform="translate(143.761 431.174)">
-        <ellipse id="Ellipse_172" data-name="Ellipse 172" cx="14" cy="14.5" rx="14" ry="14.5" transform="translate(0.239 -0.084)" fill="#E75E41"/>
-        <path id="Polygon_1" data-name="Polygon 1" d="M5,0l5,5H0Z" transform="translate(19.239 31.916) rotate(180)" fill="#E75E41"/>
-        <g id="Group_1584" data-name="Group 1584" transform="translate(1.587 3.174)">
-          <rect id="Rectangle_625" data-name="Rectangle 625" width="26" height="26" transform="translate(-0.348 -0.258)" fill="none"/>
-         </g>
-      </g>
-      <line id="Line_38" data-name="Line 38" y2="60" transform="translate(158 460.59)" fill="none" stroke="#E75E41" stroke-width="1"/>
-      <circle id="Ellipse_184" data-name="Ellipse 184" cx="2" cy="2" r="2" transform="translate(156 518.09)" fill="#E75E41"/>
-    </g>
-  </g>
-</svg>
-`;
+const active_marker = `<svg width="32" height="41" viewBox="0 0 32 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g filter="url(#filter0_f_986_10969)">
+<ellipse cx="5.64706" cy="1.85034" rx="5.64706" ry="1.85034" transform="matrix(-1 0 0 1 22.5887 35.1565)" fill="black" fill-opacity="0.2"/>
+</g>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M16 0C7.16344 0 0 6.95879 0 15.5429C0 22.1246 4.21124 27.7508 10.159 30.0175L15.0887 36.5633C15.1915 36.7003 15.3279 36.8122 15.4865 36.8894C15.6451 36.9666 15.8213 37.0069 16 37.0069C16.1787 37.0069 16.3549 36.9666 16.5135 36.8894C16.6721 36.8122 16.8085 36.7003 16.9113 36.5633L21.841 30.0175C27.7888 27.7508 32 22.1246 32 15.5429C32 6.95879 24.8366 0 16 0Z" fill="#E86F56"/>
+<path d="M3.76433 15.7279C3.76433 9.08542 9.24226 3.70065 15.9996 3.70065C22.757 3.70065 28.2349 9.08542 28.2349 15.7279C28.2349 22.3703 22.757 27.7551 15.9996 27.7551C9.24226 27.7551 3.76433 22.3703 3.76433 15.7279Z" fill="white"/>
+<path d="M21.714 17.1322H17.4282V21.3448C17.4282 21.5931 17.3279 21.8312 17.1493 22.0068C16.9707 22.1824 16.7284 22.281 16.4758 22.281H15.5238C15.2712 22.281 15.0289 22.1824 14.8503 22.0068C14.6717 21.8312 14.5714 21.5931 14.5714 21.3448V17.1322H10.2856C10.033 17.1322 9.79071 17.0335 9.61209 16.858C9.43348 16.6824 9.33313 16.4443 9.33313 16.196V15.2598C9.33313 15.0115 9.43348 14.7734 9.61209 14.5978C9.79071 14.4222 10.033 14.3236 10.2856 14.3236H14.5714V10.1109C14.5714 9.86264 14.6717 9.62451 14.8503 9.44894C15.0289 9.27337 15.2712 9.17474 15.5238 9.17474H16.4762C16.7288 9.17474 16.9711 9.27337 17.1497 9.44894C17.3283 9.62451 17.4287 9.86264 17.4287 10.1109V14.324H21.7145C21.967 14.3241 22.2091 14.4228 22.3877 14.5984C22.5662 14.7739 22.6665 15.012 22.6665 15.2602V16.196C22.6665 16.4443 22.5661 16.6824 22.3875 16.858C22.2089 17.0335 21.9666 17.1322 21.714 17.1322Z" fill="#E86F56"/>
+<defs>
+<filter id="filter0_f_986_10969" x="9.95595" y="33.8178" width="13.9715" height="6.37802" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="0.669333" result="effect1_foregroundBlur_986_10969"/>
+</filter>
+</defs>
+</svg>`;
 
 export {active_marker};

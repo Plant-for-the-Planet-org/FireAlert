@@ -277,9 +277,6 @@ const SelectLocation = ({navigation}) => {
         )}
         <View style={styles.fakeMarkerCont}>
           <SvgXml xml={active_marker} style={styles.markerImage} />
-          {loader && (
-            <ActivityIndicator color={Colors.WHITE} style={styles.loader} />
-          )}
         </View>
       </MapboxGL.MapView>
       <View style={styles.header}>
