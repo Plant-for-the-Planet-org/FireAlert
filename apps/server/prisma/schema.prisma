@@ -64,20 +64,40 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
+model AlertProvider {
+    id     String            @id @default(cuid())
+    slug   AlertProviderSlug
+    type   AlertProviderType
+    apiKey String?
+}
+
+enum AlertProviderSlug {
+    LANDSAT_NRT
+    MODIS_NRT
+    MODIS_SP
+    VIIRS_NOAA20_NRT
+    VIIRS_SNPP_NRT
+    VIIRS_SNPP_SP
+}
+
+enum AlertProviderType {
+    fire
+}
+
 model AlertMethod {
-    id                   String                 @id @default(cuid())
-    guid                 String                 @unique @default(uuid())
-    method               AlertMethodMethod
-    destination          String                 
-    isVerified           Boolean                @default(false)
-    isEnabled            Boolean                @default(false)
-    deletedAt            DateTime?
-    deviceType           AlertMethodDeviceType?
-    notificationToken    String?
-    userId               String
-    user                 User                   @relation(fields: [userId], references: [id])
-    tokenSentCount       Int                     @default(0)
-    lastTokenSentDate    DateTime? 
+    id                String                 @id @default(cuid())
+    guid              String                 @unique @default(uuid())
+    method            AlertMethodMethod
+    destination       String
+    isVerified        Boolean                @default(false)
+    isEnabled         Boolean                @default(false)
+    deletedAt         DateTime?
+    deviceType        AlertMethodDeviceType?
+    notificationToken String?
+    userId            String
+    user              User                   @relation(fields: [userId], references: [id])
+    tokenSentCount    Int                    @default(0)
+    lastTokenSentDate DateTime?
 
     @@unique([destination, userId])
 }
@@ -115,7 +135,7 @@ model Alert {
     id          String          @id @default(cuid())
     guid        String          @unique @default(uuid())
     type        String
-    eventDate   String
+    eventDate   DateTime
     detectedBy  AlertDetectedBy
     confidence  AlertConfidence
     latitude    Float
@@ -123,8 +143,20 @@ model Alert {
     frp         Float
     isDelivered Boolean         @default(false)
     deletedAt   DateTime?
+    outside     Float?
     siteId      String
     site        Site            @relation(fields: [siteId], references: [id])
+}
+
+model WorldFireAlert {
+    id         String   @id @default(cuid())
+    latitude   Float
+    longitude  Float
+    eventDate  DateTime @default(now())
+    confidence AlertConfidence
+    detectedBy AlertDetectedBy
+    frp        Float
+    isChecked  Boolean  @default(false)
 }
 
 enum Role {

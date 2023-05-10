@@ -1,4 +1,10 @@
 -- CreateEnum
+CREATE TYPE "AlertProviderSlug" AS ENUM ('LANDSAT_NRT', 'MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP');
+
+-- CreateEnum
+CREATE TYPE "AlertProviderType" AS ENUM ('fire');
+
+-- CreateEnum
 CREATE TYPE "Role" AS ENUM ('ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT');
 
 -- CreateEnum
@@ -73,6 +79,16 @@ CREATE TABLE "VerificationToken" (
 );
 
 -- CreateTable
+CREATE TABLE "AlertProvider" (
+    "id" TEXT NOT NULL,
+    "slug" "AlertProviderSlug" NOT NULL,
+    "type" "AlertProviderType" NOT NULL,
+    "apiKey" TEXT,
+
+    CONSTRAINT "AlertProvider_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AlertMethod" (
     "id" TEXT NOT NULL,
     "guid" TEXT NOT NULL,
@@ -84,6 +100,8 @@ CREATE TABLE "AlertMethod" (
     "deviceType" "AlertMethodDeviceType",
     "notificationToken" TEXT,
     "userId" TEXT NOT NULL,
+    "tokenSentCount" INTEGER NOT NULL DEFAULT 0,
+    "lastTokenSentDate" TIMESTAMP(3),
 
     CONSTRAINT "AlertMethod_pkey" PRIMARY KEY ("id")
 );
@@ -158,7 +176,7 @@ CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationTok
 CREATE UNIQUE INDEX "AlertMethod_guid_key" ON "AlertMethod"("guid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "AlertMethod_destination_key" ON "AlertMethod"("destination");
+CREATE UNIQUE INDEX "AlertMethod_destination_userId_key" ON "AlertMethod"("destination", "userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Site_guid_key" ON "Site"("guid");
@@ -186,4 +204,3 @@ ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId"
 
 -- AddForeignKey
 ALTER TABLE "Alert" ADD CONSTRAINT "Alert_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
