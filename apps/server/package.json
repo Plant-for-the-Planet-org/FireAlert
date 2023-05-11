@@ -2,6 +2,9 @@
   "name": "@firealert/server",
   "version": "0.1.0",
   "private": true,
+  "prisma": {
+    "schema": "./prisma/schema.prisma"
+  },
   "scripts": {
     "build": "next build",
     "dev": "next dev",
