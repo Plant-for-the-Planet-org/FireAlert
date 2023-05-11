@@ -131,8 +131,6 @@ const Home = ({navigation, route}) => {
     {
       enabled: true,
       retryDelay: 3000,
-      refetchInterval: 10000,
-      refetchIntervalInBackground: true,
       onError: () => {
         toast.show('something went wrong', {type: 'danger'});
       },

@@ -324,9 +324,9 @@ const CreatePolygon = ({navigation}) => {
         geoJSON={geoJSON}
         location={location}
         setLoader={setLoader}
-        markerText={alphabets[activeMarkerIndex]}
         setLocation={setLocation}
         activePolygonIndex={activePolygonIndex}
+        markerText={alphabets[activeMarkerIndex]}
         setIsCameraRefVisible={setIsCameraRefVisible}
       />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />

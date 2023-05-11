@@ -21,17 +21,21 @@ export function groupSitesAsProject(
   data: Array<ResStructure>,
   typeKey: string,
 ) {
-  let newObj: NewResStructure = {};
+  const newObj: ResStructure = {};
+  let arr: Array<ResStructure> = [];
   data
     .map(item => item[typeKey])
     .filter(site => site !== null)
     .forEach(method => {
       const filteredData = data?.filter(item => item[typeKey] === method);
-      newObj = {
-        id: filteredData[0]?.projectId,
-        name: filteredData[0]?.projectName,
-        sites: filteredData,
-      };
+      newObj[String(method).toLowerCase()] = filteredData;
     });
-  return [newObj];
+  for (const key in newObj) {
+    arr.push({
+      name: newObj[key][0]?.projectName,
+      id: newObj[key][0]?.projectId,
+      sites: newObj[key],
+    });
+  }
+  return arr;
 }

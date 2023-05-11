@@ -44,9 +44,8 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
   DisabledTrashOutlineIcon,
+  GlobeWebIcon,
 } from '../../assets/svgs';
-import {getSites} from '../../redux/slices/sites/siteSlice';
-import {getAlertsPreferences} from '../../redux/slices/alerts/alertSlice';
 
 import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
@@ -128,9 +127,11 @@ const Settings = ({navigation}) => {
     trpc.alertMethod.getAllAlertMethods.useQuery(undefined, {
       enabled: true,
       retryDelay: 3000,
-      refetchInterval: 10000,
-      refetchIntervalInBackground: true,
+      onSuccess: () => {
+        setRefreshing(false);
+      },
       onError: () => {
+        setRefreshing(false);
         toast.show('something went wrong', {type: 'danger'});
       },
     });
@@ -144,9 +145,11 @@ const Settings = ({navigation}) => {
     {
       enabled: true,
       retryDelay: 3000,
-      refetchInterval: 10000,
-      refetchIntervalInBackground: true,
+      onSuccess: () => {
+        setRefreshing(false);
+      },
       onError: () => {
+        setRefreshing(false);
         toast.show('something went wrong', {type: 'danger'});
       },
     },
@@ -311,6 +314,12 @@ const Settings = ({navigation}) => {
     });
   };
 
+  const handleWebhook = () => {
+    navigation.navigate('Verification', {
+      verificationType: 'Webhook',
+    });
+  };
+
   const handleDeleteSite = (id: string) => {
     deleteSite.mutate({json: {siteId: id}});
   };
@@ -333,16 +342,8 @@ const Settings = ({navigation}) => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    const req = {
-      onSuccess: () => {
-        setRefreshing(false);
-      },
-      onFail: () => {
-        setRefreshing(false);
-      },
-    };
-    dispatch(getSites(req));
-    dispatch(getAlertsPreferences(req));
+    refetchSites();
+    refetchAlertPreferences();
   }, []);
 
   useFocusEffect(
@@ -360,7 +361,13 @@ const Settings = ({navigation}) => {
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            title="refreshing"
+            onRefresh={onRefresh}
+            refreshing={refreshing}
+            tintColor={Colors.GRADIENT_PRIMARY}
+            titleColor={Colors.GRADIENT_PRIMARY}
+          />
         }>
         {/* my projects */}
         {Object.keys(groupOfSites[0])?.length > 0 ? (
@@ -498,55 +505,59 @@ const Settings = ({navigation}) => {
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            <View style={styles.emailContainer}>
-              {formattedAlertPreferences?.email?.map((item, i) => (
-                <>
-                  <View
-                    key={`emails_${i}`}
-                    style={[
-                      styles.emailSubContainer,
-                      {justifyContent: 'space-between'},
-                    ]}>
-                    <Text style={styles.myEmailName}>{item?.destination}</Text>
-                    <View style={styles.emailSubContainer}>
-                      {item?.isVerified ? (
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({alertMethodId: item.id}, val)
-                          }
-                        />
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.verifiedChipsCon}
-                          onPress={_handleVerify(item)}>
-                          <View style={styles.verifiedChips}>
-                            <VerificationWarning />
-                            <Text style={styles.verifiedTxt}>Verify</Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
-                      <TouchableOpacity
-                        style={styles.trashIcon}
-                        disabled={delAlertMethodArr.includes(item?.id)}
-                        onPress={() => handleRemoveAlertMethod(item?.id)}>
-                        {delAlertMethodArr.includes(item?.id) ? (
-                          <ActivityIndicator
-                            size={'small'}
-                            color={Colors.PRIMARY}
+            {formattedAlertPreferences?.sms?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {formattedAlertPreferences?.email?.map((item, i) => (
+                  <>
+                    <View
+                      key={`emails_${i}`}
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.destination}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        {item?.isVerified ? (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item.id}, val)
+                            }
                           />
                         ) : (
-                          <TrashSolidIcon />
+                          <TouchableOpacity
+                            style={styles.verifiedChipsCon}
+                            onPress={_handleVerify(item)}>
+                            <View style={styles.verifiedChips}>
+                              <VerificationWarning />
+                              <Text style={styles.verifiedTxt}>Verify</Text>
+                            </View>
+                          </TouchableOpacity>
                         )}
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.trashIcon}
+                          disabled={delAlertMethodArr.includes(item?.id)}
+                          onPress={() => handleRemoveAlertMethod(item?.id)}>
+                          {delAlertMethodArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <TrashSolidIcon />
+                          )}
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                  {formattedAlertPreferences?.email?.length - 1 !== i && (
-                    <View style={[styles.separator, {marginVertical: 12}]} />
-                  )}
-                </>
-              ))}
-            </View>
+                    {formattedAlertPreferences?.email?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
+                  </>
+                ))}
+              </View>
+            )}
           </View>
           {/* whatsapp */}
           <View style={styles.mySiteNameMainContainer}>
@@ -559,47 +570,51 @@ const Settings = ({navigation}) => {
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            <View style={styles.emailContainer}>
-              {formattedAlertPreferences?.whatsapp?.map((item, i) => (
-                <>
-                  <View
-                    key={`whatsapp_${i}`}
-                    style={[
-                      styles.emailSubContainer,
-                      {justifyContent: 'space-between'},
-                    ]}>
-                    <Text style={styles.myEmailName}>{item?.destination}</Text>
-                    <View style={styles.emailSubContainer}>
-                      {item?.isVerified ? (
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({guid: item.guid}, val)
-                          }
-                        />
-                      ) : (
+            {formattedAlertPreferences?.whatsapp?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {formattedAlertPreferences?.whatsapp?.map((item, i) => (
+                  <>
+                    <View
+                      key={`whatsapp_${i}`}
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.destination}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        {item?.isVerified ? (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({guid: item.guid}, val)
+                            }
+                          />
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.verifiedChipsCon}
+                            onPress={_handleVerify(item)}>
+                            <View style={styles.verifiedChips}>
+                              <VerificationWarning />
+                              <Text style={styles.verifiedTxt}>Verify</Text>
+                            </View>
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity
-                          style={styles.verifiedChipsCon}
-                          onPress={_handleVerify(item)}>
-                          <View style={styles.verifiedChips}>
-                            <VerificationWarning />
-                            <Text style={styles.verifiedTxt}>Verify</Text>
-                          </View>
+                          style={{marginLeft: 20}}
+                          onPress={() => handleRemoveAlertMethod(item?.id)}>
+                          <TrashSolidIcon />
                         </TouchableOpacity>
-                      )}
-                      <TouchableOpacity
-                        style={{marginLeft: 20}}
-                        onPress={() => handleRemoveAlertMethod(item?.id)}>
-                        <TrashSolidIcon />
-                      </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                  {formattedAlertPreferences?.whatsapp?.length - 1 !== i && (
-                    <View style={[styles.separator, {marginVertical: 12}]} />
-                  )}
-                </>
-              ))}
-            </View>
+                    {formattedAlertPreferences?.whatsapp?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
+                  </>
+                ))}
+              </View>
+            )}
           </View>
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
@@ -612,51 +627,116 @@ const Settings = ({navigation}) => {
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            <View style={styles.emailContainer}>
-              {formattedAlertPreferences?.sms?.map((item, i) => (
-                <>
-                  <View
-                    key={`sms_${i}`}
-                    style={[
-                      styles.emailSubContainer,
-                      {justifyContent: 'space-between'},
-                    ]}>
-                    <Text style={styles.myEmailName}>{item?.destination}</Text>
-                    <View style={styles.emailSubContainer}>
-                      {item?.isVerified ? (
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({alertMethodId: item.id}, val)
-                          }
-                        />
-                      ) : (
-                        <View style={styles.verifiedChips}>
-                          <VerificationWarning />
-                          <Text style={styles.verifiedTxt}>
-                            Verification Required
-                          </Text>
-                        </View>
-                      )}
-
-                      <TouchableOpacity
-                        style={styles.trashIcon}
-                        disabled={delAlertMethodArr.includes(item?.id)}
-                        onPress={() => handleRemoveAlertMethod(item?.id)}>
-                        {delAlertMethodArr.includes(item?.id) ? (
-                          <ActivityIndicator color={Colors.PRIMARY} />
+            {formattedAlertPreferences?.sms?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {formattedAlertPreferences?.sms?.map((item, i) => (
+                  <>
+                    <View
+                      key={`sms_${i}`}
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.destination}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        {item?.isVerified ? (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item.id}, val)
+                            }
+                          />
                         ) : (
-                          <TrashSolidIcon />
+                          <View style={styles.verifiedChips}>
+                            <VerificationWarning />
+                            <Text style={styles.verifiedTxt}>
+                              Verification Required
+                            </Text>
+                          </View>
                         )}
-                      </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.trashIcon}
+                          disabled={delAlertMethodArr.includes(item?.id)}
+                          onPress={() => handleRemoveAlertMethod(item?.id)}>
+                          {delAlertMethodArr.includes(item?.id) ? (
+                            <ActivityIndicator color={Colors.PRIMARY} />
+                          ) : (
+                            <TrashSolidIcon />
+                          )}
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                  {formattedAlertPreferences?.sms?.length - 1 !== i && (
-                    <View style={[styles.separator, {marginVertical: 12}]} />
-                  )}
-                </>
-              ))}
+                    {formattedAlertPreferences?.sms?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
+                  </>
+                ))}
+              </View>
+            )}
+          </View>
+          {/* webhooks */}
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <GlobeWebIcon width={17} height={17} />
+                <Text style={styles.smallHeading}>Webhook</Text>
+              </View>
+              <TouchableOpacity onPress={handleWebhook}>
+                <AddIcon />
+              </TouchableOpacity>
             </View>
+            {formattedAlertPreferences?.webhook?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {formattedAlertPreferences?.webhook?.map((item, i) => (
+                  <>
+                    <View
+                      key={`webhook_${i}`}
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.destination}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        {item?.isVerified ? (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item.id}, val)
+                            }
+                          />
+                        ) : (
+                          <View style={styles.verifiedChips}>
+                            <VerificationWarning />
+                            <Text style={styles.verifiedTxt}>
+                              Verification Required
+                            </Text>
+                          </View>
+                        )}
+
+                        <TouchableOpacity
+                          style={styles.trashIcon}
+                          disabled={delAlertMethodArr.includes(item?.id)}
+                          onPress={() => handleRemoveAlertMethod(item?.id)}>
+                          {delAlertMethodArr.includes(item?.id) ? (
+                            <ActivityIndicator color={Colors.PRIMARY} />
+                          ) : (
+                            <TrashSolidIcon />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    {formattedAlertPreferences?.sms?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
+                  </>
+                ))}
+              </View>
+            )}
           </View>
         </View>
         {/* Warning */}
@@ -1099,6 +1179,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 2.5,
+    paddingVertical: 5,
   },
   siteRadius: {
     fontSize: Typography.FONT_SIZE_14,
@@ -1111,7 +1193,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
   },
-
   dropDownModal: {
     right: 40,
     paddingVertical: 15,
@@ -1153,9 +1234,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4.62,
     elevation: 8,
   },
-
   mySiteNameSubContainer: {
-    marginTop: 20,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -1224,9 +1304,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emailContainer: {
-    marginTop: 25,
     paddingHorizontal: 16,
-    marginBottom: 20,
+    paddingBottom: 20,
   },
   emailSubContainer: {
     flexDirection: 'row',
