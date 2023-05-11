@@ -249,7 +249,7 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    getUser: protectedProcedure.query(async ({ ctx, input }) => {
+    getUser: protectedProcedure.query(async ({ ctx }) => {
         const userId = ctx.token
             ? await getUserIdByToken(ctx)
             : ctx.session?.user?.id;
