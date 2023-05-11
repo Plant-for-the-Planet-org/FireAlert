@@ -35,7 +35,6 @@ model Session {
 
 model User {
     id               String        @id @default(cuid())
-    guid             String?       @unique @default(uuid())
     sub              String?
     name             String?
     email            String        @unique
@@ -84,7 +83,6 @@ model AlertMethod {
 
 model Site {
     id                   String    @id @default(cuid())
-    guid                 String?   @unique @default(uuid())
     name                 String?
     type                 SiteType
     geometry             Json
