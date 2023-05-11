@@ -160,6 +160,7 @@ enum AlertMethodMethod {
     sms
     device
     whatsapp
+    webhook
 }
 
 enum AlertMethodDeviceType {
