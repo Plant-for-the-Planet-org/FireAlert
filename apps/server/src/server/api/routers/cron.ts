@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, fetchAllProjectsWithSites } from "../../../utils/fetch"
+import { createTRPCRouter, publicProcedure } from "../trpc";
+import { fetchAllProjectsWithSites } from "../../../utils/fetch"
 import { parse } from 'csv-parse'
 import * as turf from '@turf/turf';
 import { subtractDays } from "../../../utils/date"
@@ -218,182 +218,247 @@ export const cronRouter = createTRPCRouter({
     syncProjectsAndSitesForAllROUsers: publicProcedure
         .mutation(async ({ ctx }) => {
             // Get all the projects from PP
-            const projectsFromPP = await fetchAllProjectsWithSites()
+            const projectsFromPP = await fetchAllProjectsWithSites();
             // Get all projects from DB
-            const projectsFromDB = await ctx.prisma.project.findMany()
+            const projectsFromDB = await ctx.prisma.project.findMany();
             // Filter PP list to only contain projects that are in DB
-            const ppListFiltered = projectsFromPP.filter(
-                (projectFromPP) =>
-                    projectsFromDB.some((projectFromDB) => projectFromDB.id === projectFromPP.id)
+            const ppListFiltered = projectsFromPP.filter((projectFromPP) =>
+                projectsFromDB.some((projectFromDB) => projectFromDB.id === projectFromPP.id)
             );
+
             // Check for projects in DB that are not in PP and delete them
             const dbProjectsIds = projectsFromDB.map((project) => project.id);
             const projectsIdsToDelete = dbProjectsIds.filter(
                 (projectId) => !ppListFiltered.some((project) => project.id === projectId)
             );
+
             if (projectsIdsToDelete.length) {
-                await ctx.prisma.site.updateMany({
-                    where: {
-                        projectId: {
-                            in: projectsIdsToDelete,
-                        },
-                    },
-                    data: {
-                        deletedAt: new Date(),
-                        projectId: null
-                    }
-                });
-                await ctx.prisma.project.deleteMany({
-                    where: {
-                        id: {
-                            in: projectsIdsToDelete,
-                        },
-                    },
-                });
-            }
-            // Loop through the PPList and check if a project in DB has the same id and lastUpdated value
-            for (const projectFromPP of ppListFiltered) {
-                const {
-                    sites: sitesFromPPProject,
-                    id: projectId,
-                    lastUpdated: projectLastUpdatedFormPP,
-                    name: projectNameFormPP,
-                    slug: projectSlugFormPP,
-                } = projectFromPP;
-                const projectFromDatabase = await ctx.prisma.project.findFirst({
-                    where: {
-                        id: projectId,
-                    },
-                });
-                if (projectFromDatabase!.lastUpdated !== projectLastUpdatedFormPP) {
-                    // If there is a project, and last updated has changed, update the entire project and sites
-                    await ctx.prisma.project.update({
+                await ctx.prisma.$transaction(async (prisma) => {
+                    await prisma.site.updateMany({
                         where: {
-                            id: projectId,
+                            projectId: {
+                                in: projectsIdsToDelete,
+                            },
                         },
                         data: {
-                            lastUpdated: projectLastUpdatedFormPP,
-                            name: projectNameFormPP,
-                            slug: projectSlugFormPP,
+                            deletedAt: new Date(),
+                            projectId: null,
                         },
                     });
-                    const tpoId = projectFromPP.tpo.id;
-                    const sitesFromDBProject = await ctx.prisma.site.findMany({
+
+                    await prisma.project.deleteMany({
                         where: {
-                            projectId: projectId,
+                            id: {
+                                in: projectsIdsToDelete,
+                            },
                         },
                     });
-                    const siteIdsFromPP = sitesFromPPProject.map((site) => site.properties.id);
-                    // Loop through sites in DB and delete sites not found in PP
-                    for (const siteFromDBProject of sitesFromDBProject) {
-                        if (!siteIdsFromPP.includes(siteFromDBProject.id)) {
-                            await ctx.prisma.site.update({
+                });
+            }
+
+            // Create a mapping of project IDs to project lastUpdated values from PP
+            const ppProjectLastUpdatedMap = new Map();
+            for (const projectFromPP of ppListFiltered) {
+                ppProjectLastUpdatedMap.set(projectFromPP.id, projectFromPP.lastUpdated);
+            }
+
+            // Fetch all sites from the DB for the projects in ppListFiltered
+            const dbSites = await ctx.prisma.site.findMany({
+                where: {
+                    projectId: {
+                        in: ppListFiltered.map((project) => project.id),
+                    },
+                },
+            });
+
+            // Create a mapping of site IDs to site lastUpdated values from PP
+            const ppSiteLastUpdatedMap = new Map();
+            for (const projectFromPP of ppListFiltered) {
+                for (const siteFromPP of projectFromPP.sites) {
+                    ppSiteLastUpdatedMap.set(siteFromPP.properties.id, siteFromPP.properties.lastUpdated.date);
+                }
+            }
+
+            // Perform bulk creations, bulk updates, and bulk deletions for sites
+            await ctx.prisma.$transaction(async (prisma) => {
+                const createPromises = [];
+                const updatePromises = [];
+                const deletePromises = [];
+
+                for (const dbSite of dbSites) {
+                    if (!ppSiteLastUpdatedMap.has(dbSite.id)) {
+                        // Site not found in PP, delete it
+                        deletePromises.push(
+                            prisma.site.update({
                                 where: {
-                                    id: siteFromDBProject.id,
+                                    id: dbSite.id,
                                 },
                                 data: {
                                     projectId: null,
                                     deletedAt: new Date(),
-                                }
-                            });
-                        }
+                                },
+                            })
+                        );
                     }
-                    // Loop through sites in PP and update or create new sites in DB
-                    for (const siteFromPP of sitesFromPPProject) {
-                        const { geometry } = siteFromPP;
-                        const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = siteFromPP.properties;
-                        const siteFromDatabase = await ctx.prisma.site.findUnique({
-                            where: {
-                                id: siteIdFromPP,
-                            }
-                        })
-                        const radius = 0
-                        const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
-                        if (!siteFromDatabase) {
-                            // create a new site based on the info
-                            await ctx.prisma.site.create({
-                                data: {
-                                    type: geometry.type,
-                                    geometry: geometry,
-                                    radius: radius,
-                                    detectionCoordinates: detectionCoordinates,
-                                    userId: tpoId,
-                                    projectId: projectId,
-                                    lastUpdated: siteLastUpdatedFromPP.date,
-                                },
-                            });
-                        } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
-                            await ctx.prisma.site.update({
+                }
+
+                for (const projectFromPP of ppListFiltered) {
+                    const {
+                        sites: sitesFromPPProject,
+                        id: projectId,
+                        lastUpdated: projectLastUpdatedFormPP,
+                        name: projectNameFormPP,
+                        slug: projectSlugFormPP,
+                    } = projectFromPP;
+
+                    const projectFromDatabase = projectsFromDB.find((project) => project.id === projectId);
+
+                    if (projectFromDatabase.lastUpdated !== projectLastUpdatedFormPP) {
+                        // Project exists and last updated has changed, update the entire project and sites
+                        updatePromises.push(
+                            prisma.project.update({
                                 where: {
-                                    id: siteIdFromPP
+                                    id: projectId,
                                 },
                                 data: {
-                                    type: geometry.type,
-                                    geometry: geometry,
-                                    radius: radius,
-                                    detectionCoordinates: detectionCoordinates,
-                                    lastUpdated: siteLastUpdatedFromPP.date,
+                                    lastUpdated: projectLastUpdatedFormPP,
+                                    name: projectNameFormPP,
+                                    slug: projectSlugFormPP,
                                 },
-                            });
+                            })
+                        );
+
+                        const tpoId = projectFromPP.tpo.id;
+                        const siteIdsFromPP = sitesFromPPProject.map((site) => site.properties.id);
+
+                        for (const siteFromPP of sitesFromPPProject) {
+                            const { geometry, properties } = siteFromPP;
+                            const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = properties;
+
+                            if (geometry && geometry.type) {
+                                const siteFromDatabase = dbSites.find((site) => site.id === siteIdFromPP);
+
+                                const radius = 0;
+                                const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
+
+                                if (!siteFromDatabase) {
+                                    // Site does not exist in the database, create a new site
+                                    createPromises.push(
+                                        prisma.site.create({
+                                            data: {
+                                                id: siteIdFromPP,
+                                                type: geometry.type,
+                                                geometry: geometry,
+                                                radius: radius,
+                                                detectionCoordinates: detectionCoordinates,
+                                                userId: tpoId,
+                                                projectId: projectId,
+                                                lastUpdated: siteLastUpdatedFromPP.date,
+                                            },
+                                        })
+                                    );
+                                } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
+                                    // Site exists in the database but last updated has changed, update the site
+                                    updatePromises.push(
+                                        prisma.site.update({
+                                            where: {
+                                                id: siteIdFromPP,
+                                            },
+                                            data: {
+                                                type: geometry.type,
+                                                geometry: geometry,
+                                                radius: radius,
+                                                detectionCoordinates: detectionCoordinates,
+                                                lastUpdated: siteLastUpdatedFromPP.date,
+                                            },
+                                        })
+                                    );
+                                }
+                            } else {
+                                // Handle the case where geometry or type is null
+                                console.log(`Skipping site with id ${siteIdFromPP} due to null geometry or type.`);
+                            }
                         }
                     }
                 }
-            }
+                const createResults = await Promise.all(createPromises);
+                const updateResults = await Promise.all(updatePromises);
+                const deleteResults = await Promise.all(deletePromises);
+                
+                const createCount = createResults.length; // Number of created items
+                const updateCount = updateResults.length; // Number of updated items
+                const deleteCount = deleteResults.length; // Number of deleted items
+                
+                console.log('Create Count:', createCount);
+                console.log('Update Count:', updateCount);
+                console.log('Delete Count:', deleteCount);
+                
+                return { created: createCount, updated: updateCount, deleted: deleteCount };
+            });
         }),
 
+
+
     permanentlyDeleteUsers: publicProcedure
-        // Permanently deletes users who have been temporarily deleted for more than 14 days
         .mutation(async ({ ctx }) => {
-            const usersToDelete = await ctx.prisma.user.findMany({
-                where: {
-                    deletedAt: {
-                        not: null,
-                        lt: subtractDays(new Date(), 7),
-                    },
-                },
-                select: {
-                    id: true,
-                },
-            });
-            const userIdsToDelete = usersToDelete.map((user) => user.id);
-            if (userIdsToDelete.length > 0) {
-                await ctx.prisma.site.deleteMany({
+            await ctx.prisma.$transaction(async (prisma) => {
+                const usersToDelete = await prisma.user.findMany({
                     where: {
-                        userId: {
-                            in: userIdsToDelete,
-                        }
-                    }
-                });
-                await ctx.prisma.alertMethod.deleteMany({
-                    where: {
-                        userId: {
-                            in: userIdsToDelete,
-                        }
-                    }
-                });
-                await ctx.prisma.project.deleteMany({
-                    where: {
-                        userId: {
-                            in: userIdsToDelete,
-                        }
-                    }
-                });
-                await ctx.prisma.user.deleteMany({
-                    where: {
-                        id: {
-                            in: userIdsToDelete,
+                        deletedAt: {
+                            not: null,
+                            lt: subtractDays(new Date(), 7),
                         },
                     },
+                    select: {
+                        id: true,
+                    },
                 });
-            }
+
+                const userIdsToDelete = usersToDelete.map((user) => user.id);
+
+                if (userIdsToDelete.length > 0) {
+                    await prisma.site.deleteMany({
+                        where: {
+                            userId: {
+                                in: userIdsToDelete,
+                            },
+                        },
+                    });
+
+                    await prisma.alertMethod.deleteMany({
+                        where: {
+                            userId: {
+                                in: userIdsToDelete,
+                            },
+                        },
+                    });
+
+                    await prisma.project.deleteMany({
+                        where: {
+                            userId: {
+                                in: userIdsToDelete,
+                            },
+                        },
+                    });
+
+                    await prisma.user.deleteMany({
+                        where: {
+                            id: {
+                                in: userIdsToDelete,
+                            },
+                        },
+                    });
+                }
+            });
+
             return { success: true };
         }),
+
 
     populateEventAreasDatabase: publicProcedure.query(async ({ ctx }) => {
         const currentDate: string = new Date().toISOString().split("T")[0];
         try {
             await Promise.all(sources.map((source) => processSource(ctx, source, currentDate)));
-
             return {
                 status: "success",
                 message: "Successfully populated world fire alerts",

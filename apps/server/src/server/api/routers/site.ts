@@ -115,7 +115,6 @@ export const siteRouter = createTRPCRouter({
                     },
                     select: {
                         id: true,
-                        guid: true,
                         name: true,
                         type: true,
                         geometry: true,
@@ -165,7 +164,6 @@ export const siteRouter = createTRPCRouter({
                     },
                     select: {
                         id: true,
-                        guid: true,
                         name: true,
                         type: true,
                         geometry: true,

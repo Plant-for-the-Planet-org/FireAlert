@@ -14,7 +14,8 @@
     "start": "next start",
     "db:migrate": "npx prisma migrate dev --name note-entity --create-only && npx prisma generate",
     "db:push": "npx prisma db push",
-    "db:deploy": "npx prisma migrate deploy"
+    "db:deploy": "npx prisma migrate deploy",
+    "db:reset": "npx prisma migrate reset"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.5",

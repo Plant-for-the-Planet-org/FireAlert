@@ -35,7 +35,6 @@ model Session {
 
 model User {
     id               String        @id @default(cuid())
-    guid             String?       @unique @default(uuid())
     sub              String?
     name             String?
     email            String        @unique
@@ -66,7 +65,6 @@ model VerificationToken {
 
 model AlertMethod {
     id                String                 @id @default(cuid())
-    guid              String                 @unique @default(uuid())
     method            AlertMethodMethod
     destination       String
     isVerified        Boolean                @default(false)
@@ -84,7 +82,6 @@ model AlertMethod {
 
 model Site {
     id                   String    @id @default(cuid())
-    guid                 String?   @unique @default(uuid())
     name                 String?
     type                 SiteType
     geometry             Json
@@ -120,7 +117,6 @@ model AlertProvider {
 
 model Alert {
     id          String          @id @default(cuid())
-    guid        String          @unique @default(uuid())
     type        AlertType
     eventDate   DateTime
     detectedBy  AlertDetectedBy
