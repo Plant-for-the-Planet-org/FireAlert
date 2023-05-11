@@ -300,41 +300,49 @@ export const cronRouter = createTRPCRouter({
                     }
                     // Loop through sites in PP and update or create new sites in DB
                     for (const siteFromPP of sitesFromPPProject) {
-                        const { geometry } = siteFromPP;
-                        const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = siteFromPP.properties;
-                        const siteFromDatabase = await ctx.prisma.site.findUnique({
-                            where: {
-                                id: siteIdFromPP,
-                            }
-                        })
-                        const radius = 0
-                        const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
-                        if (!siteFromDatabase) {
-                            // create a new site based on the info
-                            await ctx.prisma.site.create({
-                                data: {
-                                    type: geometry.type,
-                                    geometry: geometry,
-                                    radius: radius,
-                                    detectionCoordinates: detectionCoordinates,
-                                    userId: tpoId,
-                                    projectId: projectId,
-                                    lastUpdated: siteLastUpdatedFromPP.date,
-                                },
-                            });
-                        } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
-                            await ctx.prisma.site.update({
+                        const { geometry, properties } = siteFromPP;
+                        const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = properties;
+
+                        // Check if geometry and type are not null
+                        if (geometry && geometry.type) {
+                            const siteFromDatabase = await ctx.prisma.site.findUnique({
                                 where: {
-                                    id: siteIdFromPP
-                                },
-                                data: {
-                                    type: geometry.type,
-                                    geometry: geometry,
-                                    radius: radius,
-                                    detectionCoordinates: detectionCoordinates,
-                                    lastUpdated: siteLastUpdatedFromPP.date,
+                                    id: siteIdFromPP,
                                 },
                             });
+                            const radius = 0;
+                            const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
+
+                            if (!siteFromDatabase) {
+                                // create a new site based on the info
+                                await ctx.prisma.site.create({
+                                    data: {
+                                        type: geometry.type,
+                                        geometry: geometry,
+                                        radius: radius,
+                                        detectionCoordinates: detectionCoordinates,
+                                        userId: tpoId,
+                                        projectId: projectId,
+                                        lastUpdated: siteLastUpdatedFromPP.date,
+                                    },
+                                });
+                            } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
+                                await ctx.prisma.site.update({
+                                    where: {
+                                        id: siteIdFromPP,
+                                    },
+                                    data: {
+                                        type: geometry.type,
+                                        geometry: geometry,
+                                        radius: radius,
+                                        detectionCoordinates: detectionCoordinates,
+                                        lastUpdated: siteLastUpdatedFromPP.date,
+                                    },
+                                });
+                            }
+                        } else {
+                            // Handle the case where geometry or type is null
+                            console.log(`Skipping site with id ${siteIdFromPP} due to null geometry or type.`);
                         }
                     }
                 }
@@ -342,52 +350,60 @@ export const cronRouter = createTRPCRouter({
         }),
 
     permanentlyDeleteUsers: publicProcedure
-        // Permanently deletes users who have been temporarily deleted for more than 14 days
         .mutation(async ({ ctx }) => {
-            const usersToDelete = await ctx.prisma.user.findMany({
-                where: {
-                    deletedAt: {
-                        not: null,
-                        lt: subtractDays(new Date(), 7),
-                    },
-                },
-                select: {
-                    id: true,
-                },
-            });
-            const userIdsToDelete = usersToDelete.map((user) => user.id);
-            if (userIdsToDelete.length > 0) {
-                await ctx.prisma.site.deleteMany({
+            await ctx.prisma.$transaction(async (prisma) => {
+                const usersToDelete = await prisma.user.findMany({
                     where: {
-                        userId: {
-                            in: userIdsToDelete,
-                        }
-                    }
-                });
-                await ctx.prisma.alertMethod.deleteMany({
-                    where: {
-                        userId: {
-                            in: userIdsToDelete,
-                        }
-                    }
-                });
-                await ctx.prisma.project.deleteMany({
-                    where: {
-                        userId: {
-                            in: userIdsToDelete,
-                        }
-                    }
-                });
-                await ctx.prisma.user.deleteMany({
-                    where: {
-                        id: {
-                            in: userIdsToDelete,
+                        deletedAt: {
+                            not: null,
+                            lt: subtractDays(new Date(), 7),
                         },
                     },
+                    select: {
+                        id: true,
+                    },
                 });
-            }
+
+                const userIdsToDelete = usersToDelete.map((user) => user.id);
+
+                if (userIdsToDelete.length > 0) {
+                    await prisma.site.deleteMany({
+                        where: {
+                            userId: {
+                                in: userIdsToDelete,
+                            },
+                        },
+                    });
+
+                    await prisma.alertMethod.deleteMany({
+                        where: {
+                            userId: {
+                                in: userIdsToDelete,
+                            },
+                        },
+                    });
+
+                    await prisma.project.deleteMany({
+                        where: {
+                            userId: {
+                                in: userIdsToDelete,
+                            },
+                        },
+                    });
+
+                    await prisma.user.deleteMany({
+                        where: {
+                            id: {
+                                in: userIdsToDelete,
+                            },
+                        },
+                    });
+                }
+            });
+
             return { success: true };
         }),
+
 
     populateEventAreasDatabase: publicProcedure.query(async ({ ctx }) => {
         const currentDate: string = new Date().toISOString().split("T")[0];
