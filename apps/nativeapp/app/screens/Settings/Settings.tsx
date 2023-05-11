@@ -49,7 +49,6 @@ import {
 
 import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
-import {useAppDispatch} from '../../hooks';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
@@ -120,7 +119,6 @@ const Settings = ({navigation}) => {
     null,
   );
 
-  const dispatch = useAppDispatch();
   const toast = useToast();
 
   const {data: alertPreferences, refetch: refetchAlertPreferences} =
@@ -370,7 +368,7 @@ const Settings = ({navigation}) => {
           />
         }>
         {/* my projects */}
-        {Object.keys(groupOfSites[0])?.length > 0 ? (
+        {Object.keys(groupOfSites[0] || {})?.length > 0 ? (
           <View style={[styles.myProjects, styles.commonPadding]}>
             <Text style={styles.mainHeading}>
               My Projects via{' '}
@@ -378,7 +376,7 @@ const Settings = ({navigation}) => {
                 <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
               </Text>
             </Text>
-            {groupOfSites.map((item, index) => (
+            {groupOfSites?.map((item, index) => (
               <View key={`projects_${index}`} style={styles.projectsInfo}>
                 <View style={styles.projectsNameInfo}>
                   <Text style={styles.projectsName}>{item.name}</Text>
@@ -388,23 +386,23 @@ const Settings = ({navigation}) => {
                   />
                 </View>
                 {item?.sites?.length > 0 && <View style={{marginTop: 30}} />}
-                {item.sites
-                  ? item.sites.map((sites, index) => (
+                {item?.sites
+                  ? item?.sites?.map((sites, index) => (
                       <>
                         <TouchableOpacity
                           onPress={() => handleSiteInformation(sites)}
                           key={`sites_${index}`}
                           style={styles.sitesInProjects}>
-                          <Text style={styles.sitesName}>{sites.name}</Text>
+                          <Text style={styles.sitesName}>{sites?.name}</Text>
                           <View style={styles.rightConPro}>
                             <TouchableOpacity
                               onPress={evt =>
-                                handleRadius(evt, item.id, sites.id)
+                                handleRadius(evt, item?.id, sites?.id)
                               }
                               style={[styles.dropDownRadius, {marginRight: 5}]}>
                               <Text style={styles.siteRadius}>
-                                {sites.radius
-                                  ? `within ${sites.radius} km`
+                                {sites?.radius
+                                  ? `within ${sites?.radius} km`
                                   : 'inside'}
                               </Text>
                               <DropdownArrow />
@@ -505,7 +503,7 @@ const Settings = ({navigation}) => {
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            {formattedAlertPreferences?.sms?.length > 0 && (
+            {formattedAlertPreferences?.email?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.email?.map((item, i) => (
                   <>
@@ -649,12 +647,14 @@ const Settings = ({navigation}) => {
                             }
                           />
                         ) : (
-                          <View style={styles.verifiedChips}>
-                            <VerificationWarning />
-                            <Text style={styles.verifiedTxt}>
-                              Verification Required
-                            </Text>
-                          </View>
+                          <TouchableOpacity
+                            style={styles.verifiedChipsCon}
+                            onPress={_handleVerify(item)}>
+                            <View style={styles.verifiedChips}>
+                              <VerificationWarning />
+                              <Text style={styles.verifiedTxt}>Verify</Text>
+                            </View>
+                          </TouchableOpacity>
                         )}
 
                         <TouchableOpacity
@@ -710,14 +710,15 @@ const Settings = ({navigation}) => {
                             }
                           />
                         ) : (
-                          <View style={styles.verifiedChips}>
-                            <VerificationWarning />
-                            <Text style={styles.verifiedTxt}>
-                              Verification Required
-                            </Text>
-                          </View>
+                          <TouchableOpacity
+                            style={styles.verifiedChipsCon}
+                            onPress={_handleVerify(item)}>
+                            <View style={styles.verifiedChips}>
+                              <VerificationWarning />
+                              <Text style={styles.verifiedTxt}>Verify</Text>
+                            </View>
+                          </TouchableOpacity>
                         )}
-
                         <TouchableOpacity
                           style={styles.trashIcon}
                           disabled={delAlertMethodArr.includes(item?.id)}
@@ -730,7 +731,7 @@ const Settings = ({navigation}) => {
                         </TouchableOpacity>
                       </View>
                     </View>
-                    {formattedAlertPreferences?.sms?.length - 1 !== i && (
+                    {formattedAlertPreferences?.webhook?.length - 1 !== i && (
                       <View style={[styles.separator, {marginVertical: 12}]} />
                     )}
                   </>

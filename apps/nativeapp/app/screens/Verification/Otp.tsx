@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 
 import {trpc} from '../../services/trpc';
@@ -16,9 +16,10 @@ import {Colors, Typography} from '../../styles';
 import {CustomButton, OtpInput} from '../../components';
 
 const Otp = ({navigation, route}) => {
-  const [code, setCode] = useState<string | null>(null);
+  const [code, setCode] = useState<string | undefined>('');
   const {verificationType} = route.params;
 
+  const otpInputRef = useRef();
   const toast = useToast();
   const count = useCountdown(30);
 
@@ -28,6 +29,8 @@ const Otp = ({navigation, route}) => {
       navigation.navigate('Settings');
     },
     onError: () => {
+      setCode('');
+      //  otpInputRef.current.focusField(1);
       toast.show('something went wrong', {type: 'danger'});
     },
   });
@@ -55,7 +58,11 @@ const Otp = ({navigation, route}) => {
           Verify {verificationType}
         </Text>
         <View style={styles.subContainer}>
-          <OtpInput onCodeFilled={setCode} />
+          <OtpInput
+            code={code}
+            otpInputRef={otpInputRef}
+            onCodeChanged={setCode}
+          />
           <View style={styles.resendOtpBtn}>
             {count === 0 ? (
               <TouchableOpacity>
