@@ -88,32 +88,44 @@ export const userRouter = createTRPCRouter({
                         // Create project first
                         await ctx.prisma.project.create({
                             data: {
-                                name: projectName,
-                                slug: projectSlug,
+                                name: projectName ?? '',
+                                slug: projectSlug ?? '',
                                 userId: userId,
                                 id: projectId,
                                 lastUpdated: new Date(),
                             }
                         })
-                        for (const site of sites) {
-                            const { id: siteId, name: siteName, geometry: siteGeometry } = site;
-                            const siteType = siteGeometry.type;
-                            const siteRadius = 0;
-                            const detectionCoordinates = makeDetectionCoordinates(siteGeometry, siteRadius)
-                            // Then create sites
-                            await ctx.prisma.site.create({
-                                data: {
-                                    id: siteId,
-                                    name: siteName,
-                                    type: siteType,
-                                    geometry: siteGeometry,
-                                    radius: siteRadius,
-                                    detectionCoordinates: detectionCoordinates,
-                                    userId: userId,
-                                    projectId: projectId,
-                                    lastUpdated: new Date(),
-                                },
-                            });
+                        if (sites) {
+                            for (const site of sites) {
+                                if (site) {
+                                    const { id: siteId, name: siteName, geometry: siteGeometry } = site;
+                                    const siteType = siteGeometry?.type || null; // Use null as the fallback value if siteGeometry is null or undefined
+                                    const siteRadius = 0;
+
+                                    // Check if siteType and siteGeometry are not null before proceeding
+                                    if (siteType && siteGeometry) {
+                                        const detectionCoordinates = makeDetectionCoordinates(siteGeometry, siteRadius);
+
+                                        // Check if siteType and siteGeometry.type are the same
+                                        if (siteType === siteGeometry.type) {
+                                            // Then create site
+                                            await ctx.prisma.site.create({
+                                                data: {
+                                                    id: siteId,
+                                                    name: siteName ?? '',
+                                                    type: siteType,
+                                                    geometry: siteGeometry,
+                                                    radius: siteRadius,
+                                                    detectionCoordinates: detectionCoordinates,
+                                                    userId: userId,
+                                                    projectId: projectId,
+                                                    lastUpdated: new Date(),
+                                                },
+                                            });
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     return {
