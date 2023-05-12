@@ -6,16 +6,21 @@
   "author": "Plant-for-the-Planet <info@plant-for-the-planet.org>",
   "license": "MIT",
   "scripts": {
-    "dev": "dotenv -- turbo run dev",
     "nativeapp": "yarn workspace @firealert/nativeapp",
     "server": "yarn workspace @firealert/server"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "dependencies": {
     "dotenv-cli": "^7.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
-  }
+  },
+  "devDependencies": {
+    "prettier": "^2.7.1",
+    "turbo": "latest"
+  },
+  "packageManager": "yarn@1.22.19"
 }

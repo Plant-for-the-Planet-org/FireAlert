@@ -36,8 +36,8 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     Auth0Provider({
-      clientId: env.AUTH0_CLIENT_ID,
-      clientSecret: env.AUTH0_CLIENT_SECRET,
+      clientId: env.NEXT_AUTH0_CLIENT_ID,
+      clientSecret: env.NEXT_AUTH0_CLIENT_SECRET,
       // NextAuth uses issuer as AUTH0_DOMAIN
       issuer: env.AUTH0_DOMAIN,
     })

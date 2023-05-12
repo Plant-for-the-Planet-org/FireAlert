@@ -44,3 +44,5 @@ yarn-error.log*
 check.ts
 # Sentry Auth Token
 .sentryclirc
+
+.turbo
