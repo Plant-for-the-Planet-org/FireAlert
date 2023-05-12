@@ -12,7 +12,6 @@ import {
 import {getData} from '../utils/localStorage';
 import {CommonStack, SignInStack} from './stack';
 import {useAppDispatch, useAppSelector} from '../hooks';
-import {getAlerts} from '../redux/slices/alerts/alertSlice';
 
 export default function AppNavigator() {
   const {isLoggedIn} = useAppSelector(state => state.loginSlice);
@@ -36,16 +35,6 @@ export default function AppNavigator() {
   React.useEffect(() => {
     checkUserValidation();
   }, []);
-
-  React.useEffect(() => {
-    if (isLoggedIn) {
-      const request = {
-        onSuccess: () => {},
-        onFail: () => {},
-      };
-      dispatch(getAlerts(request));
-    }
-  }, [isLoggedIn]);
 
   React.useEffect(() => {
     (async () => {

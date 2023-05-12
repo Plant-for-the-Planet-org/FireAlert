@@ -54,22 +54,3 @@ export const getUserDetails = (request: any) => {
     }
   };
 };
-
-export const editUserProfile = (request: any) => {
-  return async (dispatch: AppDispatch, getState: RootState) => {
-    const {payload, onSuccess, onFail} = request;
-    try {
-      const res = await ApiService.editUserDetails(
-        getState().loginSlice?.accessToken,
-        payload,
-      );
-      if (res?.status === 200) {
-        onSuccess();
-      } else {
-        onFail(res?.data?.message || 'Something went wrong');
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  };
-};

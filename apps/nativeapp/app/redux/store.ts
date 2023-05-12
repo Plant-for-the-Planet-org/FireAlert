@@ -1,12 +1,10 @@
 import {configureStore} from '@reduxjs/toolkit';
 
-import {loginSlice, siteSlice, alertSlice} from './slices';
+import {loginSlice} from './slices';
 
 export const store = configureStore({
   reducer: {
     loginSlice,
-    siteSlice,
-    alertSlice,
   },
 });
 
