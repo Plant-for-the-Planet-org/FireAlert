@@ -7,7 +7,6 @@
   },
   "scripts": {
     "build": "dotenv -e ../../.env next build",
-    "vercel-build": "yarn run build && yarn prisma migrate deploy",
     "dev": "dotenv -e ../../.env next dev",
     "postinstall": "cd ../../ && npx prisma generate",
     "lint": "dotenv -e ../../.env next lint",
