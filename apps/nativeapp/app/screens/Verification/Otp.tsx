@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
 import React, {useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
@@ -16,12 +17,12 @@ import {Colors, Typography} from '../../styles';
 import {CustomButton, OtpInput} from '../../components';
 
 const Otp = ({navigation, route}) => {
-  const [code, setCode] = useState<string | undefined>('');
   const {verificationType} = route.params;
+  const [code, setCode] = useState<string | undefined>('');
 
-  const otpInputRef = useRef();
   const toast = useToast();
-  const count = useCountdown(30);
+  const otpInputRef = useRef();
+  const [count, setCount] = useCountdown(30);
 
   const verifyAlertMethod = trpc.alertMethod.verify.useMutation({
     retryDelay: 3000,
@@ -40,6 +41,16 @@ const Otp = ({navigation, route}) => {
     },
   });
 
+  const verifyAlertPreference = trpc.alertMethod.sendVerification.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      setCount(30);
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
   const handleClose = () => navigation.goBack();
 
   const handleContinue = () => {
@@ -48,6 +59,12 @@ const Otp = ({navigation, route}) => {
         alertMethodId: route?.params?.alertMethod?.id,
         notificationToken: code,
       },
+    });
+  };
+
+  const handleGetCode = () => {
+    verifyAlertPreference.mutate({
+      json: {alertMethodId: route?.params?.alertMethod?.id},
     });
   };
 
@@ -62,19 +79,29 @@ const Otp = ({navigation, route}) => {
         <Text style={[styles.heading, styles.commonPadding]}>
           Verify {verificationType}
         </Text>
+        {verificationType === 'Email' && (
+          <Text style={[styles.subHeading, styles.commonPadding]}>
+            We've sent you a code to verify your email. Please check your email
+            and enter the code below.
+          </Text>
+        )}
         <View style={styles.subContainer}>
           <OtpInput
             code={code}
-            otpInputRef={otpInputRef}
             onCodeChanged={setCode}
+            otpInputRef={otpInputRef}
           />
           <View style={styles.resendOtpBtn}>
             {count === 0 ? (
-              <TouchableOpacity>
-                <Text style={[styles.resendOtp, styles.link]}>
-                  Get a new code
-                </Text>
-              </TouchableOpacity>
+              verifyAlertPreference?.isLoading ? (
+                <ActivityIndicator size={'small'} />
+              ) : (
+                <TouchableOpacity onPress={handleGetCode}>
+                  <Text style={[styles.resendOtp, styles.link]}>
+                    Get a new code
+                  </Text>
+                </TouchableOpacity>
+              )
             ) : (
               <Text style={styles.resendOtp}>
                 You can request a new code in{' '}
@@ -116,10 +143,17 @@ const styles = StyleSheet.create({
     color: Colors.WHITE,
   },
   heading: {
-    marginVertical: 20,
+    marginTop: 20,
     fontSize: Typography.FONT_SIZE_24,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+  },
+  subHeading: {
+    marginTop: 5,
+    marginBottom: 15,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    color: Colors.GRAY_DEEP,
   },
   commonPadding: {
     paddingHorizontal: 40,

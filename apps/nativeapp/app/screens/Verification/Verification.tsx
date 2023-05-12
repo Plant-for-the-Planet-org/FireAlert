@@ -33,6 +33,12 @@ const Verification = ({navigation, route}) => {
   const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
     retryDelay: 3000,
     onSuccess: data => {
+      if (data?.json?.status === 403) {
+        setLoading(false);
+        return toast.show(data?.json?.message || 'something went wrong', {
+          type: 'warning',
+        });
+      }
       const result = data?.json?.data?.alertMethod;
       setLoading(false);
       navigation.navigate('Otp', {

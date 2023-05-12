@@ -221,6 +221,11 @@ const Settings = ({navigation}) => {
   const verifyAlertPreference = trpc.alertMethod.sendVerification.useMutation({
     retryDelay: 3000,
     onSuccess: (data, variables) => {
+      if (data?.json?.status === 403) {
+        return toast.show(data?.json?.message || 'something went wrong', {
+          type: 'warning',
+        });
+      }
       const alertMethod = alertPreferences?.json?.data?.filter(
         item => item.id === variables?.json?.alertMethodId,
       );

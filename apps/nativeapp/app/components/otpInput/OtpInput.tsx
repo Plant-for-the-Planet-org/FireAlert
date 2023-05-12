@@ -1,4 +1,4 @@
-import React, {LegacyRef} from 'react';
+import React from 'react';
 import {StyleSheet} from 'react-native';
 import OTPInputView from '@twotalltotems/react-native-otp-input';
 
