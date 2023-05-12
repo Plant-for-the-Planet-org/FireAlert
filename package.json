@@ -8,7 +8,6 @@
   "scripts": {
     "nativeapp": "yarn workspace @firealert/nativeapp",
     "server": "yarn workspace @firealert/server",
-    "vercel-build": "yarn server build && yarn server db:deploy",
     "dev": "turbo run dev"
   },
   "workspaces": [
