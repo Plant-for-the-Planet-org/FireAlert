@@ -754,10 +754,6 @@ const Home = ({navigation, route}) => {
               <PencilIcon />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.btn}>
-            <MapOutlineIcon />
-            <Text style={styles.siteActionText}>View on Map</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             disabled={deleteSite?.isLoading || selectedSite?.site?.projectId}
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
