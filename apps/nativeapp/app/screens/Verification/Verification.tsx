@@ -11,6 +11,7 @@ import React, {useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 
 import {trpc} from '../../services/trpc';
+import {useAppSelector} from '../../hooks';
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {validateEmail} from '../../utils/emailVerifier';
@@ -27,6 +28,8 @@ const Verification = ({navigation, route}) => {
   const [phoneInput, setPhoneInput] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
   const [verifyingLoader, setVerifyingLoader] = useState<boolean>(false);
+
+  const {configData} = useAppSelector(state => state.loginSlice);
 
   const toast = useToast();
 
@@ -109,6 +112,7 @@ const Verification = ({navigation, route}) => {
               valid={setIsValidNum}
               inputValue={setPhoneInput}
               containerStyle={styles.containerStyle}
+              defaultCode={configData?.loc?.countryCode}
             />
           ) : verificationType === 'Webhook' ? (
             <FloatingInput

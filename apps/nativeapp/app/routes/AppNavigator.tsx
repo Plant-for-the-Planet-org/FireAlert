@@ -8,6 +8,7 @@ import {
   getUserDetails,
   updateIsLoggedIn,
   updateAccessToken,
+  getConfigData,
 } from '../redux/slices/login/loginSlice';
 import {getData} from '../utils/localStorage';
 import {CommonStack, SignInStack} from './stack';
@@ -33,7 +34,12 @@ export default function AppNavigator() {
   };
 
   React.useEffect(() => {
+    const request = {
+      onSuccess: async message => {},
+      onFail: message => {},
+    };
     checkUserValidation();
+    dispatch(getConfigData(request));
   }, []);
 
   React.useEffect(() => {

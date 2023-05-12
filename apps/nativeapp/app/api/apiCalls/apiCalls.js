@@ -9,4 +9,11 @@ export const ApiService = {
       token,
     });
   },
+  configData: async token => {
+    return fireApi({
+      method: 'GET',
+      URL: 'https://app.plant-for-the-planet.org/app/config',
+      token,
+    });
+  },
 };
