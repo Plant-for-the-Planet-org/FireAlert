@@ -6,6 +6,7 @@
     "schema": "./prisma/schema.prisma"
   },
   "scripts": {
+    "prebuild": "npx prisma migrate deploy",
     "build": "dotenv -e ../../.env next build",
     "dev": "dotenv -e ../../.env next dev",
     "postinstall": "cd ../../ && npx prisma generate",
