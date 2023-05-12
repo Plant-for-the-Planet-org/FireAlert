@@ -49,6 +49,7 @@ import {
 
 import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
+import {useAppSelector} from '../../hooks';
 import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
@@ -120,6 +121,7 @@ const Settings = ({navigation}) => {
   );
 
   const toast = useToast();
+  const {userDetails} = useAppSelector(state => state.loginSlice);
 
   const {data: alertPreferences, refetch: refetchAlertPreferences} =
     trpc.alertMethod.getAllAlertMethods.useQuery(undefined, {
@@ -163,6 +165,16 @@ const Settings = ({navigation}) => {
     onSuccess: () => {
       refetchSites();
       setSitesInfoModal(false);
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const softDeleteUser = trpc.user.softDeleteUser.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      setShowDelAccount(false);
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -331,7 +343,9 @@ const Settings = ({navigation}) => {
 
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
-  const onDeleteAccount = () => {};
+  const onDeleteAccount = () => {
+    softDeleteUser.mutate({json: {id: userDetails?.id}});
+  };
   const onGoBack = () => setShowDelAccount(false);
 
   const handleDelAccount = () => {
