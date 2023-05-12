@@ -94,7 +94,6 @@ const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
   const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
-  const {alerts} = useAppSelector(state => state.alertSlice);
   const {userDetails} = useAppSelector(state => state.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
@@ -126,6 +125,19 @@ const Home = ({navigation, route}) => {
   const [siteId, setSiteId] = useState<string | null>('');
   const [selectedArea, setSelectedArea] = useState<any>(null);
 
+  const toast = useToast();
+  const map = useRef(null);
+  const dispatch = useAppDispatch();
+  const camera = useRef<MapboxGL.Camera | null>(null);
+
+  const {data: alerts} = trpc.alert.getAlertsForUser.useQuery(undefined, {
+    enabled: true,
+    retryDelay: 3000,
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
   const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
     undefined,
     {
@@ -142,10 +154,6 @@ const Home = ({navigation, route}) => {
     [categorizedRes, sites],
   );
 
-  const toast = useToast();
-  const dispatch = useAppDispatch();
-  const map = useRef(null);
-  const camera = useRef<MapboxGL.Camera | null>(null);
   const updateUser = trpc.user.updateUser.useMutation({
     retryDelay: 3000,
     onSuccess: () => {
@@ -377,9 +385,14 @@ const Home = ({navigation, route}) => {
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   const renderAnnotation = counter => {
-    const id = alerts[counter]?.guid;
-    const coordinate = [alerts[counter]?.latitude, alerts[counter]?.longitude];
-    const title = `Longitude: ${alerts[counter]?.latitude} Latitude: ${alerts[counter]?.longitude}`;
+    const alertsArr = alerts?.json?.data;
+    const id = alertsArr[counter]?.id;
+    const coordinate = [
+      alertsArr[counter]?.latitude,
+      alertsArr[counter]?.longitude,
+    ];
+    const title = `Longitude: ${alertsArr[counter]?.latitude} Latitude: ${alertsArr[counter]?.longitude}`;
+
     return (
       <MapboxGL.PointAnnotation
         id={id}
@@ -388,20 +401,20 @@ const Home = ({navigation, route}) => {
         onSelected={e => {
           camera.current.setCamera({
             centerCoordinate: [
-              alerts[counter]?.latitude,
-              alerts[counter]?.longitude,
+              alertsArr[counter]?.latitude,
+              alertsArr[counter]?.longitude,
             ],
             padding: {paddingBottom: SCREEN_HEIGHT / 4},
             zoomLevel: ZOOM_LEVEL,
             animationDuration: ANIMATION_DURATION,
           });
           setTimeout(
-            () => setSelectedAlert(alerts[counter]),
+            () => setSelectedAlert(alertsArr[counter]),
             ANIMATION_DURATION,
           );
         }}
         coordinate={coordinate}>
-        {getFireIcon(daysFromToday(alerts[counter]?.eventDate))}
+        {getFireIcon(daysFromToday(alertsArr[counter]?.eventDate))}
       </MapboxGL.PointAnnotation>
     );
   };
@@ -426,7 +439,7 @@ const Home = ({navigation, route}) => {
 
   const renderAnnotations = isAlert => {
     const items = [];
-    const arr = isAlert ? alerts : formattedSites?.point;
+    const arr = isAlert ? alerts?.json?.data : formattedSites?.point;
     for (let i = 0; i < arr?.length; i++) {
       {
         isAlert
