@@ -22,8 +22,8 @@ import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
 import {useFocusEffect} from '@react-navigation/native';
 import Clipboard from '@react-native-clipboard/clipboard';
-import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
+import Toast, {useToast} from 'react-native-toast-notifications';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
@@ -94,7 +94,7 @@ const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
   const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
-  const {userDetails} = useAppSelector(state => state.loginSlice);
+  const {userDetails, configData} = useAppSelector(state => state.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -126,6 +126,7 @@ const Home = ({navigation, route}) => {
   const [selectedArea, setSelectedArea] = useState<any>(null);
 
   const toast = useToast();
+  const modalToast = useRef();
   const map = useRef(null);
   const dispatch = useAppDispatch();
   const camera = useRef<MapboxGL.Camera | null>(null);
@@ -227,7 +228,7 @@ const Home = ({navigation, route}) => {
     deleteSite.mutate({json: {siteId: id}});
   };
 
-  // recenter the map to the current coordinates of user location
+  // recenter the mapmap to the current coordinates of user location
   const onPressMyLocationIcon = (
     position: MapboxGL.Location | Geolocation.GeoPosition,
   ) => {
@@ -368,6 +369,7 @@ const Home = ({navigation, route}) => {
 
   const _copyToClipboard = loc => () => {
     Clipboard.setString(JSON.stringify(loc));
+    modalToast.current.show('copied');
   };
 
   const handleLayer = () => setVisible(true);
@@ -532,6 +534,28 @@ const Home = ({navigation, route}) => {
   );
 
   useEffect(() => {
+    if (
+      isCameraRefVisible &&
+      camera?.current?.setCamera &&
+      configData?.loc?.longitude !== ''
+    ) {
+      setIsInitial(false);
+      camera.current.setCamera({
+        centerCoordinate: [
+          Number(configData?.loc?.longitude),
+          Number(configData?.loc?.latitude),
+        ],
+        zoomLevel: 4,
+        animationDuration: ANIMATION_DURATION,
+      });
+    }
+  }, [
+    configData?.loc?.latitude,
+    configData?.loc?.longitude,
+    isCameraRefVisible,
+  ]);
+
+  useEffect(() => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location]);
 
@@ -561,7 +585,6 @@ const Home = ({navigation, route}) => {
         {renderMapSource()}
         {/* highlighted */}
         {selectedArea && renderHighlightedMapSource()}
-
         {/* for alerts */}
         {renderAnnotations(true)}
         {/* for point sites */}
@@ -657,6 +680,7 @@ const Home = ({navigation, route}) => {
       <BottomSheet
         onBackdropPress={() => setSelectedAlert({})}
         isVisible={Object.keys(selectedAlert).length > 0}>
+        <Toast ref={modalToast} offsetBottom={100} duration={1000} />
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.satelliteInfoCon}>
@@ -669,13 +693,9 @@ const Home = ({navigation, route}) => {
               </Text>
               <Text style={styles.eventDate}>
                 <Text style={styles.eventFromNow}>
-                  {moment(selectedAlert?.eventDate, 'MM/DD/YYYY').fromNow()}
+                  {moment(selectedAlert?.eventDate).fromNow()}
                 </Text>{' '}
-                (
-                {moment(selectedAlert?.eventDate, 'MM/DD/YYYY').format(
-                  'DD MMM YYYY',
-                )}
-                )
+                ({moment(selectedAlert?.eventDate).format('DD MMM YYYY')})
               </Text>
               <Text style={styles.confidence}>
                 {selectedAlert?.confidence}% alert confidence
@@ -698,7 +718,7 @@ const Home = ({navigation, route}) => {
                   {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
                 </Text>
                 <Text style={styles.confidence}>
-                  {selectedAlert?.confidence}% alert confidence
+                  {selectedAlert?.confidence} alert confidence
                 </Text>
               </View>
             </View>
@@ -948,7 +968,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     height: 150,
     position: 'absolute',
-    bottom: IS_ANDROID ? SCREEN_HEIGHT / 3.56 : SCREEN_HEIGHT / 5.85,
+    bottom: IS_ANDROID ? SCREEN_HEIGHT / 3.56 : SCREEN_HEIGHT / 1.95,
     alignSelf: 'center',
   },
   satelliteInfoCon: {
