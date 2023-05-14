@@ -190,7 +190,6 @@ export const alertMethodRouter = createTRPCRouter({
                     data: {
                         method: input.method,
                         destination: input.destination,
-                        isVerified: input.isVerified,
                         isEnabled: input.isEnabled,
                         deviceType: input.deviceType,
                         userId: userId,
