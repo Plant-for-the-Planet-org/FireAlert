@@ -20,8 +20,8 @@ const server = z.object({
   ),
   // Add `.min(1) on ID and SECRET if you want to make sure they're not empty
 
-  AUTH0_CLIENT_ID: z.string(),
-  AUTH0_CLIENT_SECRET: z.string(),
+  NEXT_AUTH0_CLIENT_ID: z.string(),
+  NEXT_AUTH0_CLIENT_SECRET: z.string(),
   AUTH0_ISSUER: z.string(),
   AUTH0_DOMAIN: z.string(),
   MAP_KEY: z.string(),
@@ -30,9 +30,10 @@ const server = z.object({
   TWILIO_ACCOUNT_SID: z.string(),
   TWILIO_AUTH_TOKEN: z.string(),
   TWILIO_PHONE_NUMBER: z.string(),
-  SMTP_URL: z.string(),
+  SMTP_URL: z.string().url(),
   EMAIL_FROM: z.string(),
   PLANET_API_URL: z.string(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional()
 });
 
 /**
@@ -50,12 +51,13 @@ const client = z.object({
  * @type {Record<keyof z.infer<typeof server> | keyof z.infer<typeof client>, string | undefined>}
  */
 const processEnv = {
-  DATABASE_URL: process.env.DATABASE_URL,
+  DATABASE_URL: process.env.DATABASE_PRISMA_URL ? process.env.DATABASE_PRISMA_URL : process.env.DATABASE_URL,
+  // DATABASE_PRISMA_URL is set by VERCEL POSTGRES and had pooling built in.
   NODE_ENV: process.env.NODE_ENV,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-  AUTH0_CLIENT_ID: process.env.AUTH0_CLIENT_ID,
-  AUTH0_CLIENT_SECRET: process.env.AUTH0_CLIENT_SECRET,
+  NEXT_AUTH0_CLIENT_ID: process.env.NEXT_AUTH0_CLIENT_ID,
+  NEXT_AUTH0_CLIENT_SECRET: process.env.NEXT_AUTH0_CLIENT_SECRET,
   AUTH0_ISSUER: process.env.AUTH0_ISSUER,
   AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
   MAP_KEY: process.env.MAP_KEY,
@@ -67,7 +69,7 @@ const processEnv = {
   SMTP_URL: process.env.SMTP_URL,
   EMAIL_FROM: process.env.EMAIL_FROM,
   PLANET_API_URL: process.env.PLANET_API_URL,
-  // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+  NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
 };
 
 // Don't touch the part below
