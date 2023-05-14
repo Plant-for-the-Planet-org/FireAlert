@@ -319,7 +319,7 @@ export const userRouter = createTRPCRouter({
                     isPlanetRO: updatedUser.isPlanetRO,
                     lastLogin: updatedUser.lastLogin,
                     useGeostationary: updatedUser.useGeostationary
-                };;
+                };
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
