@@ -1,4 +1,4 @@
-import AlertProviderInterface from '../AlertProviderInterface';
+import AlertProviderInterface from '../AlertProvider';
 import AlertProviderConfig from '../AlertProviderConfig';
 
 class NasaAlertProvider implements AlertProviderInterface {

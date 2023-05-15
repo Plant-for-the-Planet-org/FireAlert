@@ -1,4 +1,4 @@
-import AlertProviderInterface from "./AlertProviderInterface";
+import AlertProviderInterface from "./AlertProvider";
 import NasaAlertProvider from "./Provider/NasaAlertProvider";
 // import additional alert provider implementations below
 

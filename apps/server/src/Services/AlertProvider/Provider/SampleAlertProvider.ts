@@ -1,4 +1,4 @@
-import AlertProviderInterface from '../AlertProviderInterface';
+import AlertProviderInterface from '../AlertProvider';
 import AlertProviderConfig from '../AlertProviderConfig';
 
 class SampleAlertProvider implements AlertProviderInterface {
@@ -19,7 +19,7 @@ class SampleAlertProvider implements AlertProviderInterface {
         if(typeof this.config === 'undefined') {
             throw new Error(`Invalid or incomplete alert provider configuration`);
         }
-        
+
         const response = await fetch(this.config.apiUrl);
         const data = await response.json();
         return data.alerts;
