@@ -1,9 +1,9 @@
 import AlertProviderConfig from "./AlertProviderConfig";
 
-interface AlertProviderInterface {
+interface AlertProvider {
     getSources: () => Array<string>;
     initialize: (config: AlertProviderConfig) => void;
     getLatestAlerts: (source: string) => Promise<any[]>;
 }
 
-export default AlertProviderInterface;
+export default AlertProvider;

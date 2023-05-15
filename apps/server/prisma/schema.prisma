@@ -114,7 +114,10 @@ model AlertProvider {
     id     String            @id @default(cuid())
     slug   AlertProviderSlug
     type   AlertType
-    apiKey String?
+    // the source is string that uniquely identifies the provider
+    // for each value used here, a corresponding AlertProvider implementation must exist that supports it
+    source String   
+    config Json?
 }
 
 model Alert {

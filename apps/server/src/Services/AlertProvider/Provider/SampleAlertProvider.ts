@@ -1,7 +1,7 @@
-import AlertProviderInterface from '../AlertProvider';
+import AlertProvider from '../AlertProvider';
 import AlertProviderConfig from '../AlertProviderConfig';
 
-class SampleAlertProvider implements AlertProviderInterface {
+class SampleAlertProvider implements AlertProvider {
     private config?: AlertProviderConfig;
 
     getSources(): Array<string> {

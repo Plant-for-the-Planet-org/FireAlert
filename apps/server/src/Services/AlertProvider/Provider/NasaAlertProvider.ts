@@ -18,21 +18,13 @@ class NasaAlertProvider implements AlertProvider {
         this.config = config
     }
 
-    async getLatestEvents(source: string): Promise<any[]> {
+    async getLatestAlerts(source: string): Promise<any[]> {
 
         const response = await fetch(this.getUrl(source));
         const data = await response.json();
         // TODO: normalize each record
 
-        return data.map(function(record): NormalizedEvent {
-            return {
-                longitude: record.long
-            }
-        })
-    }
-
-    normalizeEventData(record) {
-        
+        return data;
     }
 
     getUrl(source: string): string {

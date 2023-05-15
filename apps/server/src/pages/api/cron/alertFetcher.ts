@@ -1,4 +1,4 @@
-// to execute this handler, access the endpoint:  http://localhost:3000/api/cron/areaEventFetcher
+// to execute this handler, access the endpoint:  http://localhost:3000/api/cron/alertFetcher
 // once this has been tested, it should be moved/modified to comply with Vercel conron job standards
 
 import { NextApiRequest, NextApiResponse } from "next";
@@ -6,7 +6,7 @@ import AlertProviderRegistry from '../../../Services/AlertProvider/AlertProvider
 import AlertProviderConfig from '../../../Services/AlertProvider/AlertProviderConfig'
 import { PrismaClient, AlertProvider } from '@prisma/client'
 
-export default async function areaEventFetcher(req: NextApiRequest, res: NextApiResponse) {
+export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
 
   debugger;
   const prisma = new PrismaClient()
