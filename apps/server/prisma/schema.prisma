@@ -5,8 +5,6 @@ generator client {
 datasource db {
     provider = "postgresql"
     url      = "postgres://jorgo:@localhost:5432/fire-alert"
-    // directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
-    // shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
 }
 
 model Account {
@@ -75,29 +73,30 @@ model AlertMethod {
     deviceType        AlertMethodDeviceType?
     notificationToken String?
     userId            String
-    user              User                   @relation(fields: [userId], references: [id])
     tokenSentCount    Int                    @default(0)
     lastTokenSentDate DateTime?
+    user              User                   @relation(fields: [userId], references: [id])
 
     @@unique([destination, userId])
 }
 
 model Site {
-    id                   String      @id @default(cuid())
+    id                   String          @id @default(cuid())
     name                 String?
     type                 SiteType
     geometry             Json
     detectionCoordinates Json
-    radius               Int         @default(0)
-    isMonitored          Boolean     @default(true)
+    radius               Int             @default(0)
+    isMonitored          Boolean         @default(true)
     lastSynced           DateTime?
     deletedAt            DateTime?
     projectId            String?
     lastUpdated          DateTime?
     userId               String
+    project              Project?        @relation(fields: [projectId], references: [id])
+    user                 User            @relation(fields: [userId], references: [id])
     alerts               SiteAlert[]
-    project              Project?    @relation(fields: [projectId], references: [id])
-    user                 User        @relation(fields: [userId], references: [id])
+    siteDetection        SiteDetection[]
 }
 
 model Project {
@@ -114,8 +113,6 @@ model GeoEventProvider {
     id     String            @id @default(cuid())
     slug   AlertProviderSlug
     type   AlertType
-    // the source is string that uniquely identifies the provider
-    // for each value used here, a corresponding AlertProvider implementation must exist that supports it
     source String
     config Json?
 }
@@ -147,6 +144,22 @@ model GeoEvent {
     processed  Boolean          @default(false)
     radius     Int?
     source     EventAreasSource
+}
+
+model SiteDetection {
+    id                String @id
+    siteId            String
+    detectionGeometry String
+    Site              Site   @relation(fields: [siteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+    srid      Int     @id
+    auth_name String? @db.VarChar(256)
+    auth_srid Int?
+    srtext    String? @db.VarChar(2048)
+    proj4text String? @db.VarChar(2048)
 }
 
 enum Role {
