@@ -210,7 +210,7 @@ table, td { color: #4f4f4f; } #u_body a { color: #e86f56; text-decoration: none;
       <td style="overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;" align="left">
         
   <div style="font-size: 12px; line-height: 130%; text-align: center; word-wrap: break-word;">
-    <p style="line-height: 130%;">You can manage all email notifications for in the FireAlert app.<br /><br />FireAlert <em>by Plant-for-the-Planet</em></p>
+    <p style="line-height: 130%;">You can manage all email notification preference in the FireAlert app.<br /><br />FireAlert <em>by Plant-for-the-Planet</em></p>
 <p style="line-height: 130%;">Am Bahnhof 1,</p>
 <p style="line-height: 130%;">Uffing Am Staffelsee, 82449</p>
 <p style="line-height: 130%;">Germany</p>
