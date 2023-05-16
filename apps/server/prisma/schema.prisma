@@ -3,9 +3,9 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-    directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+    provider          = "postgresql"
+    url               = env("DATABASE_URL")
+    directUrl         = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
     shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
 }
 
@@ -110,14 +110,18 @@ model Project {
     sites       Site[]
 }
 
-model AlertProvider {
-    id     String            @id @default(cuid())
-    slug   AlertProviderSlug
-    type   AlertType
-    // the source is string that uniquely identifies the provider
-    // for each value used here, a corresponding AlertProvider implementation must exist that supports it
-    source String   
-    config Json?
+model GeoEventProvider {
+    id          String        @id @default(cuid())
+    slug        String // e.g. FIRMS
+    type        AlertType
+    config      Json?
+    geoEventJob GeoEventJob[]
+}
+
+model GeoEventJob {
+    id                 String           @id @default(cuid())
+    geoEventProviderId String
+    geoEventProvider   GeoEventProvider @relation(fields: [geoEventProviderId], references: [id])
 }
 
 model Alert {

@@ -67,23 +67,28 @@ type TurfCoordinates = turf.helpers.Feature<turf.helpers.Point, turf.helpers.Pro
 
 // Helper function to fetch and parse CSV data
 async function fetchAndParseCSV(url: string): Promise<FireAlert[]> {
-    const response = await fetch(url);
-    const csv = await response.text();
     return new Promise<FireAlert[]>((resolve, reject) => {
-        const parser = parse(csv, { columns: true });
-        const records: FireAlert[] = [];
-        parser.on("readable", function () {
-            let record;
-            while ((record = parser.read())) {
-                records.push(record);
-            }
-        });
-        parser.on("error", function (error) {
-            reject(new Error("Error parsing CSV file: " + error.message));
-        });
-        parser.on("end", function () {
-            resolve(records);
-        });
+        try {
+            const response = await fetch(url);
+            const csv = await response.text();
+            const parser = parse(csv, { columns: true });
+            const records: FireAlert[] = [];
+            parser.on("readable", function () {
+                let record;
+                while ((record = parser.read())) {
+                    records.push(record);
+                }
+            });
+            parser.on("end", function () {
+                resolve(records);
+            });
+            parser.on("error", function (error) {
+                throw new Error("Error parsing CSV file: " + error.message);
+            });
+    
+        } catch(error) {
+            reject(error)
+        }
     });
 }
 

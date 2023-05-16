@@ -2,9 +2,8 @@ import AlertProvider from "./AlertProvider";
 import NasaAlertProvider from "./Provider/NasaAlertProvider";
 // import additional alert provider implementations below
 
+const createAlertProviderRegistry = function (alertProviders: Array<AlertProvider>) {
 
-const createAlertProviderRegistry = function (...alertProviders: Array<AlertProvider>) {
-    debugger;
     const registry: { [source: string]: AlertProvider } = {};
 
     alertProviders.forEach((alertProvider: AlertProvider) => {
@@ -23,18 +22,13 @@ const createAlertProviderRegistry = function (...alertProviders: Array<AlertProv
                 throw new Error(`Provider with key '${source}' not found`);
             }
             return provider;
-        },
-        ...registry
+        }
     };
 }
 
-// create an array of alert provider instances
-const alertProviders: AlertProvider[] = [
+const AlertProviderRegistry = createAlertProviderRegistry([
     new NasaAlertProvider()
-    // list new alert providers here
-];
-
-// pass the array of alert provider instances to the createAlertProviderRegistry function
-const AlertProviderRegistry = createAlertProviderRegistry(...alertProviders);
+    // add new alert providers here
+]);
 
 export default AlertProviderRegistry;

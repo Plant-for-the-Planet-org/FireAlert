@@ -5,10 +5,27 @@ import { NextApiRequest, NextApiResponse } from "next";
 import AlertProviderRegistry from '../../../Services/AlertProvider/AlertProviderRegistry'
 import AlertProviderConfig from '../../../Services/AlertProvider/AlertProviderConfig'
 import { PrismaClient, AlertProvider } from '@prisma/client'
+import geoEventEmitter from "../../../Events/EventEmitter/GeoEventEmitter"
+import { GEO_EVENT } from "../../../Events/messageConstants"
+import { GeoEventsNotificationMessage } from "../../../Events/Messages/GeoEventsNotificationMessage";
 
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
 
-  debugger;
+  // DEBUG CODE START
+  // debugger;
+  // try {
+  //   const source = 'VIIRS_SNPP_NRT'
+  //   const alertProvider = AlertProviderRegistry.get(source)
+  //   alertProvider.initialize({ mapKey: '1f98b944d68d560be3a6137e985f5616', apiUrl: 'https://firms.modaps.eosdis.nasa.gov' })
+  //   const geoEvents = await alertProvider.getLatestGeoEvents(source);
+  //   debugger;
+  //   const $a = 1;
+
+  // } catch (error) {
+  //   console.log(error)
+  // }
+
+  // DEBUG CODE END
   const prisma = new PrismaClient()
 
   // fetch all active provider from AreaProvider table
@@ -17,25 +34,17 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
       isActive: true,
     },
   })
-  // foreach provider ... 
+
   activeProviders.map(provider => {
-    // TODO: figure out how to the config should be stored in DB and how to convert it to a AlertProviderConfig
     const { source, config } = provider
-    const alertProvider = AlertProviderRegistry.get(source)
-    alertProvider.initialize(config)
-    const currentEvents = fetchCurrentEventIds(provider.slug) // we must define how providers are being distinguished
-    const fetchedEvents = alertProvider.getLatestAlerts(source)
+    const alertProvider = AlertProviderRegistry.get(source);
+    alertProvider.initialize(config);
 
-    // determine new events and store in DB
-
-    // determine obsolete events and update their status in DB (set to 'obsolete')
-
+    (async () => {
+      const geoEvents = await alertProvider.getLatestGeoEvents(source)
+      geoEventEmitter.emit(GEO_EVENT.NOTIFICATION, new GeoEventsNotificationMessage(source, geoEvents))
+    })()
   })
 
   res.status(200).json({ message: "Cron job executed successfully" });
-}
-
-const fetchCurrentEventIds = function (source: string) {
-  // the the ids of all events from AreaEvent that are either 'pending' or 'notfied'
-  // having the provided providerKey
 }
