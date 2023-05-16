@@ -24,7 +24,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   // } catch (error) {
   //   console.log(error)
   // }
-
+  
   // DEBUG CODE END
   const prisma = new PrismaClient()
 

@@ -3,10 +3,10 @@ generator client {
 }
 
 datasource db {
-    provider          = "postgresql"
-    url               = env("DATABASE_URL")
-    directUrl         = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
-    shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
+    provider = "postgresql"
+    url      = "postgres://jorgo:@localhost:5432/fire-alert"
+    // directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+    // shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
 }
 
 model Account {
@@ -83,21 +83,21 @@ model AlertMethod {
 }
 
 model Site {
-    id                   String    @id @default(cuid())
+    id                   String      @id @default(cuid())
     name                 String?
     type                 SiteType
     geometry             Json
     detectionCoordinates Json
-    radius               Int       @default(0)
-    isMonitored          Boolean   @default(true)
+    radius               Int         @default(0)
+    isMonitored          Boolean     @default(true)
     lastSynced           DateTime?
     deletedAt            DateTime?
     projectId            String?
     lastUpdated          DateTime?
     userId               String
-    alerts               Alert[]
-    project              Project?  @relation(fields: [projectId], references: [id])
-    user                 User      @relation(fields: [userId], references: [id])
+    alerts               SiteAlert[]
+    project              Project?    @relation(fields: [projectId], references: [id])
+    user                 User        @relation(fields: [userId], references: [id])
 }
 
 model Project {
@@ -111,47 +111,42 @@ model Project {
 }
 
 model GeoEventProvider {
-    id          String        @id @default(cuid())
-    slug        String // e.g. FIRMS
-    type        AlertType
-    config      Json?
-    geoEventJob GeoEventJob[]
+    id     String            @id @default(cuid())
+    slug   AlertProviderSlug
+    type   AlertType
+    // the source is string that uniquely identifies the provider
+    // for each value used here, a corresponding AlertProvider implementation must exist that supports it
+    source String
+    config Json?
 }
 
-model GeoEventJob {
-    id                 String           @id @default(cuid())
-    geoEventProviderId String
-    geoEventProvider   GeoEventProvider @relation(fields: [geoEventProviderId], references: [id])
+model SiteAlert {
+    id         String          @id @default(cuid())
+    type       AlertType
+    eventDate  DateTime
+    detectedBy AlertDetectedBy
+    confidence AlertConfidence
+    latitude   Float
+    longitude  Float
+    frp        Float
+    processed  Boolean         @default(false)
+    deletedAt  DateTime?
+    outside    Float?
+    siteId     String
+    site       Site            @relation(fields: [siteId], references: [id])
 }
 
-model Alert {
-    id          String          @id @default(cuid())
-    type        AlertType
-    eventDate   DateTime
-    detectedBy  AlertDetectedBy
-    confidence  AlertConfidence
-    latitude    Float
-    longitude   Float
-    frp         Float
-    isDelivered Boolean         @default(false)
-    deletedAt   DateTime?
-    outside     Float?
-    siteId      String
-    site        Site            @relation(fields: [siteId], references: [id])
-}
-
-model EventAreas {
-    id          String           @id @default(cuid())
-    type        AlertType
-    latitude    Float
-    longitude   Float
-    date        DateTime         @default(now())
-    confidence  AlertConfidence
-    detectedBy  AlertDetectedBy
-    frp         Float
-    isProcessed Boolean          @default(false)
-    radius      Int?
-    source      EventAreasSource
+model GeoEvent {
+    id         String           @id @default(cuid())
+    type       AlertType
+    latitude   Float
+    longitude  Float
+    date       DateTime         @default(now())
+    confidence AlertConfidence
+    detectedBy AlertDetectedBy
+    processed  Boolean          @default(false)
+    radius     Int?
+    source     EventAreasSource
 }
 
 enum Role {
