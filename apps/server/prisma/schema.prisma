@@ -3,9 +3,9 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-    directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+    provider          = "postgresql"
+    url               = env("DATABASE_URL")
+    directUrl         = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
     shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
 }
 
@@ -82,22 +82,28 @@ model AlertMethod {
     @@unique([destination, userId])
 }
 
-model Site {
-    id                   String    @id @default(cuid())
-    name                 String?
-    type                 SiteType
-    geometry             Json
-    detectionCoordinates Json
-    radius               Int       @default(0)
-    isMonitored          Boolean   @default(true)
-    lastSynced           DateTime?
-    deletedAt            DateTime?
-    projectId            String?
-    lastUpdated          DateTime?
-    userId               String
-    alerts               Alert[]
-    project              Project?  @relation(fields: [projectId], references: [id])
-    user                 User      @relation(fields: [userId], references: [id])
+    model Site {
+        id                   String     @id @default(cuid())
+        remoteId             String?
+        name                 String?
+        origin               SiteOrigin @default(firealert)
+        type                 SiteType
+        geometry             Json
+        detectionCoordinates Json
+        radius               Int        @default(0)
+        isMonitored          Boolean    @default(true)
+        deletedAt            DateTime?
+        projectId            String?
+        lastUpdated          DateTime?
+        userId               String
+        alerts               Alert[]
+        project              Project?   @relation(fields: [projectId], references: [id])
+        user                 User       @relation(fields: [userId], references: [id])
+    }
+
+enum SiteOrigin {
+    firealert
+    ttc
 }
 
 model Project {
@@ -110,41 +116,54 @@ model Project {
     sites       Site[]
 }
 
-model AlertProvider {
-    id     String            @id @default(cuid())
-    slug   AlertProviderSlug
-    type   AlertType
-    apiKey String?
+model GeoEventProvider {
+    id        String                    @id @default(cuid())
+    type      AlertType
+    isActive  Boolean
+    source    GeoEventSource
+    sourceKey GeoEventProviderSourceKey
+    config    Json // Must have a url, and api key
+}
+enum GeoEventSource {
+    FIRMS
+}
+enum GeoEventProviderSourceKey {
+    LANDSAT_NRT
+    MODIS_NRT
+    MODIS_SP
+    VIIRS_NOAA20_NRT
+    VIIRS_SNPP_NRT
+    VIIRS_SNPP_SP
+}
+
+model GeoEvent {
+    id          String                      @id @default(cuid())
+    type        AlertType
+    latitude    Float
+    longitude   Float
+    eventDate   DateTime                    @default(now())
+    confidence  AlertConfidence
+    isProcessed Boolean                     @default(false)
+    source      GeoEventSource
+    detectedBy  GeoEventDetectionInstrument
+    radius      Int?
+    data        Json?
 }
 
 model Alert {
-    id          String          @id @default(cuid())
+    id          String                      @id @default(cuid())
     type        AlertType
+    latitude    Float
+    longitude   Float
     eventDate   DateTime
-    detectedBy  AlertDetectedBy
+    detectedBy  GeoEventDetectionInstrument
     confidence  AlertConfidence
-    latitude    Float
-    longitude   Float
-    frp         Float
-    isDelivered Boolean         @default(false)
+    isDelivered Boolean                     @default(false)
     deletedAt   DateTime?
-    outside     Float?
+    outside     Int?
+    data        Json?
     siteId      String
-    site        Site            @relation(fields: [siteId], references: [id])
-}
-
-model EventAreas {
-    id          String           @id @default(cuid())
-    type        AlertType
-    latitude    Float
-    longitude   Float
-    date        DateTime         @default(now())
-    confidence  AlertConfidence
-    detectedBy  AlertDetectedBy
-    frp         Float
-    isProcessed Boolean          @default(false)
-    radius      Int?
-    source      EventAreasSource
+    site        Site                        @relation(fields: [siteId], references: [id])
 }
 
 enum Role {
@@ -172,7 +191,7 @@ enum SiteType {
     MultiPolygon
 }
 
-enum AlertDetectedBy {
+enum GeoEventDetectionInstrument {
     MODIS
     VIIRS
     LANDSAT
@@ -187,17 +206,4 @@ enum AlertConfidence {
 
 enum AlertType {
     fire
-}
-
-enum AlertProviderSlug {
-    LANDSAT_NRT
-    MODIS_NRT
-    MODIS_SP
-    VIIRS_NOAA20_NRT
-    VIIRS_SNPP_NRT
-    VIIRS_SNPP_SP
-}
-
-enum EventAreasSource {
-    FIRMS
 }
