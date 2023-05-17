@@ -324,7 +324,7 @@ export const alertMethodRouter = createTRPCRouter({
                     message: `${error}`,
                 });
             }
-        });
+        }),
 
 
     deleteAlertMethod: protectedProcedure
