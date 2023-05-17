@@ -13,6 +13,7 @@
     "start": "dotenv -e ../../.env next start",
     "db:migrate": "dotenv -e ../../.env npx prisma migrate dev --name note-entity --create-only && npx prisma generate",
     "db:push": "dotenv -e ../../.env npx prisma db push",
+    "db:pull": "dotenv -e ../../.env npx prisma db pull",
     "db:deploy": "dotenv -e ../../.env npx prisma migrate deploy",
     "db:reset": "dotenv -e ../../.env npx prisma migrate reset"
   },
@@ -34,6 +35,7 @@
     "next-auth": "^4.20.1",
     "nodemailer": "^6.9.1",
     "nookies": "^2.5.2",
+    "pg-promise": "^11.4.3",
     "phone": "^3.1.37",
     "react-cookie": "^4.1.1",
     "superjson": "1.9.1",

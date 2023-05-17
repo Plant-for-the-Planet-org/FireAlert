@@ -1,3 +1,6 @@
+-- Enable PostGIS extension
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- CreateEnum
 CREATE TYPE "SiteOrigin" AS ENUM ('firealert', 'ttc');
 
@@ -108,7 +111,6 @@ CREATE TABLE "Site" (
     "origin" "SiteOrigin" NOT NULL DEFAULT 'firealert',
     "type" "SiteType" NOT NULL,
     "geometry" JSONB NOT NULL,
-    "detectionCoordinates" JSONB NOT NULL,
     "radius" INTEGER NOT NULL DEFAULT 0,
     "isMonitored" BOOLEAN NOT NULL DEFAULT true,
     "deletedAt" TIMESTAMP(3),
@@ -117,6 +119,15 @@ CREATE TABLE "Site" (
     "userId" TEXT NOT NULL,
 
     CONSTRAINT "Site_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SiteDetection" (
+    "id" TEXT NOT NULL,
+    "siteId" TEXT NOT NULL,
+    "detectionGeometry" GEOMETRY NOT NULL,
+
+    CONSTRAINT "SiteDetection_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -148,11 +159,12 @@ CREATE TABLE "GeoEvent" (
     "type" "AlertType" NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
-    "eventDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "eventDate" TIMESTAMP(3) NOT NULL,
     "confidence" "AlertConfidence" NOT NULL,
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
     "source" "GeoEventSource" NOT NULL,
     "detectedBy" "GeoEventDetectionInstrument" NOT NULL,
+    "geometry" GEOMETRY NOT NULL,
     "radius" INTEGER,
     "data" JSONB,
 
@@ -195,6 +207,9 @@ CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationTok
 -- CreateIndex
 CREATE UNIQUE INDEX "AlertMethod_destination_userId_key" ON "AlertMethod"("destination", "userId");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "SiteDetection_siteId_key" ON "SiteDetection"("siteId");
+
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -209,6 +224,9 @@ ALTER TABLE "Site" ADD CONSTRAINT "Site_projectId_fkey" FOREIGN KEY ("projectId"
 
 -- AddForeignKey
 ALTER TABLE "Site" ADD CONSTRAINT "Site_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SiteDetection" ADD CONSTRAINT "SiteDetection_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
