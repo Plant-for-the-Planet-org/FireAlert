@@ -58,3 +58,6 @@ export const updateSiteSchema = z.object({
     params,
     body: bodySchema,
 });
+
+
+export type Geometry = z.TypeOf<typeof PointSchema | typeof PolygonSchema | typeof MultiPolygonSchema>;

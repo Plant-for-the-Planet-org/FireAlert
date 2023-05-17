@@ -1,21 +1,14 @@
 const turf = require('@turf/turf');
+import { Geometry } from "../server/api/zodSchemas/site.schema";
 
+type DetectionCoordinates = Array<Array<[number, number] | [number, number, number?]>>;
 
-interface Geometry {
-    type: "Point" | "Polygon" | "MultiPolygon";
-    coordinates:
-      | [number, number, number?] // Point
-      | [[number, number, number?][]] // Polygon
-      | [[[number, number, number?][]]] // MultiPolygon
-  }
-type DetectionCoordinates = Array<Array<[number, number] | [number, number, number?]>>; 
-
-export function makeDetectionCoordinates(geometry:Geometry, radius: number):DetectionCoordinates {
+export function makeDetectionCoordinates(geometry: Geometry, radius: number): DetectionCoordinates {
     let radiusInMeters = radius;
     let bufferCoordinates;
-    if(geometry.type === 'Point' && radius === 0){
+    if (geometry.type === 'Point' && radius === 0) {
         radiusInMeters = 5000;
-    }else if((geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') && radius === 0){
+    } else if ((geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') && radius === 0) {
         radiusInMeters = 0;
     }
 

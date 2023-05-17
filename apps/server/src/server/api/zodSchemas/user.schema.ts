@@ -20,7 +20,6 @@ export const updateUserSchema = z.object({
         name: z.string(),
         isPlanetRO: z.boolean(),
         avatar: z.string(),
-        isVerified: z.boolean(),
         roles: z.enum(['ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT']),
     }).partial(),
 })
