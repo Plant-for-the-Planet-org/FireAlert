@@ -20,11 +20,10 @@ import {polygon} from '@turf/helpers';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
-import {useFocusEffect} from '@react-navigation/native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   LayerModal,
@@ -125,11 +124,57 @@ const Home = ({navigation, route}) => {
   const [siteId, setSiteId] = useState<string | null>('');
   const [selectedArea, setSelectedArea] = useState<any>(null);
 
+  const map = useRef(null);
   const toast = useToast();
   const modalToast = useRef();
-  const map = useRef(null);
   const dispatch = useAppDispatch();
   const camera = useRef<MapboxGL.Camera | null>(null);
+
+  useEffect(() => {
+    if (
+      siteInfo?.long !== undefined &&
+      siteInfo?.lat !== undefined &&
+      isCameraRefVisible &&
+      camera?.current?.setCamera
+    ) {
+      setTimeout(() => {
+        camera.current.setCamera({
+          centerCoordinate: [siteInfo.lat, siteInfo.long],
+          animationDuration: 500,
+          zoomLevel: 10,
+        });
+        setSelectedArea(siteInfo?.siteInfo);
+      }, 500);
+    }
+  }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat]);
+
+  console.log(selectedArea);
+
+  useEffect(() => {
+    if (
+      isCameraRefVisible &&
+      camera?.current?.setCamera &&
+      configData?.loc?.longitude !== ''
+    ) {
+      setIsInitial(false);
+      camera.current.setCamera({
+        centerCoordinate: [
+          Number(configData?.loc?.longitude),
+          Number(configData?.loc?.latitude),
+        ],
+        zoomLevel: 4,
+        animationDuration: ANIMATION_DURATION,
+      });
+    }
+  }, [
+    configData?.loc?.latitude,
+    configData?.loc?.longitude,
+    isCameraRefVisible,
+  ]);
+
+  useEffect(() => {
+    onUpdateUserLocation(location);
+  }, [isCameraRefVisible, location]);
 
   const {data: alerts} = trpc.alert.getAlertsForUser.useQuery(undefined, {
     enabled: true,
@@ -196,22 +241,6 @@ const Home = ({navigation, route}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
-
-  useFocusEffect(
-    useCallback(() => {
-      if (siteInfo && isCameraRefVisible && camera?.current?.setCamera) {
-        let center = centroid(polygon(siteInfo?.geometry?.coordinates));
-        const lat = center?.geometry?.coordinates[1];
-        const long = center?.geometry?.coordinates[0];
-        camera.current.setCamera({
-          centerCoordinate: [long, lat],
-          // centerCoordinate: [75.3855852018891, 28.111672923634202],
-          zoomLevel: ZOOM_LEVEL,
-          animationDuration: ANIMATION_DURATION,
-        });
-      }
-    }, [isCameraRefVisible, siteInfo]),
-  );
 
   const handleEditSite = site => {
     setSelectedSite({});
@@ -496,7 +525,7 @@ const Home = ({navigation, route}) => {
             return {
               type: 'Feature',
               properties: {site: singleSite},
-              geometry: singleSite?.geometry,
+              geometry: JSON.parse(singleSite?.geometry),
             };
           }) || [],
       }}
@@ -532,32 +561,6 @@ const Home = ({navigation, route}) => {
       />
     </MapboxGL.ShapeSource>
   );
-
-  useEffect(() => {
-    if (
-      isCameraRefVisible &&
-      camera?.current?.setCamera &&
-      configData?.loc?.longitude !== ''
-    ) {
-      setIsInitial(false);
-      camera.current.setCamera({
-        centerCoordinate: [
-          Number(configData?.loc?.longitude),
-          Number(configData?.loc?.latitude),
-        ],
-        zoomLevel: 4,
-        animationDuration: ANIMATION_DURATION,
-      });
-    }
-  }, [
-    configData?.loc?.latitude,
-    configData?.loc?.longitude,
-    isCameraRefVisible,
-  ]);
-
-  useEffect(() => {
-    onUpdateUserLocation(location);
-  }, [isCameraRefVisible, location]);
 
   return (
     <>

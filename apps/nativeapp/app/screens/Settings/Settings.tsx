@@ -13,9 +13,11 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import centroid from '@turf/centroid';
+import rewind from '@mapbox/geojson-rewind';
 import {useToast} from 'react-native-toast-notifications';
 import React, {useCallback, useMemo, useState} from 'react';
+import {Feature, Point, Properties, multiPolygon, polygon} from '@turf/helpers';
 
 import {
   Switch,
@@ -36,6 +38,7 @@ import {
   PlanetLogo,
   PencilIcon,
   WarningIcon,
+  GlobeWebIcon,
   DistanceIcon,
   WhatsAppIcon,
   DropdownArrow,
@@ -44,57 +47,22 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
   DisabledTrashOutlineIcon,
-  GlobeWebIcon,
 } from '../../assets/svgs';
 
 import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
-import {useAppSelector} from '../../hooks';
 import {Colors, Typography} from '../../styles';
+import {clearAll} from '../../utils/localStorage';
 import handleLink from '../../utils/browserLinking';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
+import {useAppDispatch, useAppSelector} from '../../hooks';
+import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const IS_ANDROID = Platform.OS === 'android';
-
-const PROJECTS = [
-  {
-    id: 1,
-    name: 'Yucatan Restoration',
-    enabled: true,
-    sites: [
-      {
-        id: 1,
-        name: 'Las Americas 1',
-        radius: 100,
-      },
-      {
-        id: 2,
-        name: 'Las Americas 2',
-        radius: 10,
-      },
-      {
-        id: 3,
-        name: 'Las Americas 3',
-        radius: null,
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Volcano Valley',
-    enabled: false,
-    sites: null,
-  },
-];
-
-const MY_SITES = [
-  {id: 1, name: 'Balam Kú Sur', radius: 100, enabled: false},
-  {id: 2, name: 'Balam Kú Norte', radius: 100, enabled: false},
-];
 
 const RADIUS_ARR = [
   {name: 'within 100 km', value: 100},
@@ -104,14 +72,13 @@ const RADIUS_ARR = [
 ];
 
 const Settings = ({navigation}) => {
-  const [projects, setProjects] = useState(PROJECTS);
+  const [siteId, setSiteId] = useState<string | null>('');
+  const [pageXY, setPageXY] = useState<object | null>(null);
+  const [siteName, setSiteName] = useState<string | null>('');
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [mobileNotify, setMobileNotify] = useState<boolean>(false);
   const [dropDownModal, setDropDownModal] = useState<boolean>(false);
   const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
-  const [pageXY, setPageXY] = useState<object | null>(null);
-  const [mobileNotify, setMobileNotify] = useState<boolean>(false);
-  const [siteName, setSiteName] = useState<string | null>('');
-  const [siteId, setSiteId] = useState<string | null>('');
-  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
   const [siteNameModalVisible, setSiteNameModalVisible] =
@@ -121,11 +88,32 @@ const Settings = ({navigation}) => {
   );
 
   const toast = useToast();
+  const dispatch = useAppDispatch();
   const {userDetails} = useAppSelector(state => state.loginSlice);
+
+  const {
+    data: sites,
+    refetch: refetchSites,
+    isSuccess: sitesSuccess,
+  } = trpc.site.getAllSites.useQuery(undefined, {
+    enabled: true,
+    retryDelay: 3000,
+    onSuccess: () => {
+      setRefreshing(false);
+    },
+    onError: () => {
+      setRefreshing(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+  const groupOfSites = useMemo(
+    () => groupSitesAsProject(sites?.json?.data || [], 'projectId'),
+    [sites],
+  );
 
   const {data: alertPreferences, refetch: refetchAlertPreferences} =
     trpc.alertMethod.getAllAlertMethods.useQuery(undefined, {
-      enabled: true,
+      enabled: sitesSuccess,
       retryDelay: 3000,
       onSuccess: () => {
         setRefreshing(false);
@@ -137,27 +125,7 @@ const Settings = ({navigation}) => {
     });
   const formattedAlertPreferences = useMemo(
     () => categorizedRes(alertPreferences?.json?.data || [], 'method'),
-    [categorizedRes, alertPreferences],
-  );
-
-  const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
-    undefined,
-    {
-      enabled: true,
-      retryDelay: 3000,
-      onSuccess: () => {
-        setRefreshing(false);
-      },
-      onError: () => {
-        setRefreshing(false);
-        toast.show('something went wrong', {type: 'danger'});
-      },
-    },
-  );
-
-  const groupOfSites = useMemo(
-    () => groupSitesAsProject(sites?.json?.data || [], 'projectId'),
-    [groupSitesAsProject, sites],
+    [alertPreferences],
   );
 
   const deleteSite = trpc.site.deleteSite.useMutation({
@@ -173,8 +141,10 @@ const Settings = ({navigation}) => {
 
   const softDeleteUser = trpc.user.softDeleteUser.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
+    onSuccess: async () => {
       setShowDelAccount(false);
+      await clearAll();
+      dispatch(updateIsLoggedIn(false));
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -239,11 +209,7 @@ const Settings = ({navigation}) => {
     },
   });
 
-  const handleSwitch = (index, val) => {
-    let arr = [...projects];
-    arr[index].enabled = val;
-    setProjects(arr);
-  };
+  const handleSwitch = (index, val) => {};
 
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
@@ -342,8 +308,31 @@ const Settings = ({navigation}) => {
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
 
   const _handleViewMap = (siteInfo: object) => () => {
+    let center: Feature<Point, Properties>;
+    let highlightSiteInfo = siteInfo;
     setSitesInfoModal(false);
-    navigation.navigate('Home', siteInfo);
+    if (JSON.parse(siteInfo?.geometry).type === 'MultiPolygon') {
+      center = centroid(
+        multiPolygon(JSON.parse(rewind(siteInfo?.geometry)).coordinates),
+      );
+      highlightSiteInfo = rewind(siteInfo?.geometry);
+    } else {
+      center = centroid(polygon(JSON.parse(siteInfo?.geometry).coordinates));
+      highlightSiteInfo = siteInfo?.geometry;
+    }
+    const lat = center?.geometry?.coordinates[0];
+    const long = center?.geometry?.coordinates[1];
+    navigation.navigate('Home', {
+      lat,
+      long,
+      siteInfo: [
+        {
+          type: 'Feature',
+          geometry: JSON.parse(highlightSiteInfo),
+          properties: {site: siteInfo},
+        },
+      ],
+    });
   };
 
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
@@ -362,12 +351,6 @@ const Settings = ({navigation}) => {
     refetchSites();
     refetchAlertPreferences();
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      onRefresh();
-    }, []),
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -399,18 +382,17 @@ const Settings = ({navigation}) => {
               <View key={`projects_${index}`} style={styles.projectsInfo}>
                 <View style={styles.projectsNameInfo}>
                   <Text style={styles.projectsName}>{item.name}</Text>
-                  <Switch
+                  {/* <Switch
                     value={item.enabled}
                     onValueChange={val => handleSwitch(index, val)}
-                  />
+                  /> */}
                 </View>
-                {item?.sites?.length > 0 && <View style={{marginTop: 30}} />}
+                {item?.sites?.length > 0 && <View style={{marginTop: 16}} />}
                 {item?.sites
                   ? item?.sites?.map((sites, index) => (
-                      <>
+                      <View key={`sites_${index}`}>
                         <TouchableOpacity
                           onPress={() => handleSiteInformation(sites)}
-                          key={`sites_${index}`}
                           style={styles.sitesInProjects}>
                           <Text style={styles.sitesName}>{sites?.name}</Text>
                           <View style={styles.rightConPro}>
@@ -442,7 +424,7 @@ const Settings = ({navigation}) => {
                         {item?.sites?.length - 1 !== index && (
                           <View style={styles.separator} />
                         )}
-                      </>
+                      </View>
                     ))
                   : null}
               </View>
@@ -525,9 +507,8 @@ const Settings = ({navigation}) => {
             {formattedAlertPreferences?.email?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.email?.map((item, i) => (
-                  <>
+                  <View key={`emails_${i}`}>
                     <View
-                      key={`emails_${i}`}
                       style={[
                         styles.emailSubContainer,
                         {justifyContent: 'space-between'},
@@ -571,7 +552,7 @@ const Settings = ({navigation}) => {
                     {formattedAlertPreferences?.email?.length - 1 !== i && (
                       <View style={[styles.separator, {marginVertical: 12}]} />
                     )}
-                  </>
+                  </View>
                 ))}
               </View>
             )}
@@ -590,9 +571,8 @@ const Settings = ({navigation}) => {
             {formattedAlertPreferences?.whatsapp?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.whatsapp?.map((item, i) => (
-                  <>
+                  <View key={`whatsapp_${i}`}>
                     <View
-                      key={`whatsapp_${i}`}
                       style={[
                         styles.emailSubContainer,
                         {justifyContent: 'space-between'},
@@ -628,7 +608,7 @@ const Settings = ({navigation}) => {
                     {formattedAlertPreferences?.whatsapp?.length - 1 !== i && (
                       <View style={[styles.separator, {marginVertical: 12}]} />
                     )}
-                  </>
+                  </View>
                 ))}
               </View>
             )}
@@ -647,9 +627,8 @@ const Settings = ({navigation}) => {
             {formattedAlertPreferences?.sms?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.sms?.map((item, i) => (
-                  <>
+                  <View key={`sms_${i}`}>
                     <View
-                      key={`sms_${i}`}
                       style={[
                         styles.emailSubContainer,
                         {justifyContent: 'space-between'},
@@ -691,7 +670,7 @@ const Settings = ({navigation}) => {
                     {formattedAlertPreferences?.sms?.length - 1 !== i && (
                       <View style={[styles.separator, {marginVertical: 12}]} />
                     )}
-                  </>
+                  </View>
                 ))}
               </View>
             )}
@@ -710,9 +689,8 @@ const Settings = ({navigation}) => {
             {formattedAlertPreferences?.webhook?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.webhook?.map((item, i) => (
-                  <>
+                  <View key={`webhook_${i}`}>
                     <View
-                      key={`webhook_${i}`}
                       style={[
                         styles.emailSubContainer,
                         {justifyContent: 'space-between'},
@@ -753,7 +731,7 @@ const Settings = ({navigation}) => {
                     {formattedAlertPreferences?.webhook?.length - 1 !== i && (
                       <View style={[styles.separator, {marginVertical: 12}]} />
                     )}
-                  </>
+                  </View>
                 ))}
               </View>
             )}
@@ -954,7 +932,7 @@ const Settings = ({navigation}) => {
           visible={showDelAccount}
           heading={'Delete Account'}
           message={
-            'If you proceed your account will be scheduled for deletion and will be deleted in 7 days. If you change your mind, please login again to cancel the deletion process.'
+            'If you proceed, your FireAlert data will be scheduled for deletion in 7 days. If you change your mind please login again to cancel the deletion.\n\nTo delete your Plant-for-the-Planet Account, and Platform data, please visit pp.eco'
           }
           primaryBtnText={'Delete'}
           secondaryBtnText={'Go Back'}
