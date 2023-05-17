@@ -11,7 +11,6 @@ datasource db {
     url               = env("DATABASE_URL")
     directUrl         = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
     shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
-// >>>>>>> 795dd6432d87898cd5ae7aad4f4b429511f6e3cc
 }
 
 model Account {
