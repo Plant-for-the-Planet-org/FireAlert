@@ -4,16 +4,17 @@ RETURNS TRIGGER AS $$
 BEGIN
     IF (TG_OP = 'INSERT') THEN
         INSERT INTO "SiteDetection" ("id", "siteId", "detectionGeometry")
-        VALUES (gen_random_uuid(), NEW."id", ST_Buffer(ST_GeomFromGeoJSON(NEW."geometry"::text), NEW."radius"));
+        VALUES (gen_random_uuid(), NEW."id", ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326));
         RETURN NEW;
     ELSIF (TG_OP = 'UPDATE') THEN
         UPDATE "SiteDetection" 
-        SET "detectionGeometry" = ST_Buffer(ST_GeomFromGeoJSON(NEW."geometry"::text), NEW."radius")
+        SET "detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326)
         WHERE "siteId" = NEW."id";
         RETURN NEW;
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
 
 CREATE TRIGGER site_insert_trigger
 AFTER INSERT ON "Site" 
