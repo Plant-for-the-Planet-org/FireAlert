@@ -62,7 +62,7 @@ async function extractAndCreateSites() {
   for (const record of randomRecords) {
     const { latitude, longitude } = record;
     const maxDistance = getRandomNumber(1, 10); // Generate a random maxDistance between 1 and 10
-    const numVertices = getRandomNumber(3, 8); // Generate a random numVertices between 3 and 8
+    const numVertices = getRandomNumber(3, 5); // Generate a random numVertices between 3 and 5
 
     const polygon = generatePolygon(latitude, longitude, maxDistance, numVertices);
 
