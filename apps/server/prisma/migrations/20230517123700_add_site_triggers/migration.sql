@@ -2,26 +2,13 @@
 CREATE OR REPLACE FUNCTION handle_sitedetection() 
 RETURNS TRIGGER AS $$
 BEGIN
-    IF (TG_OP = 'INSERT') THEN
-        INSERT INTO "SiteDetection" ("id", "siteId", "detectionGeometry")
-        VALUES (gen_random_uuid(), NEW."id", ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326));
-        RETURN NEW;
-    ELSIF (TG_OP = 'UPDATE') THEN
-        UPDATE "SiteDetection" 
-        SET "detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326)
-        WHERE "siteId" = NEW."id";
-        RETURN NEW;
-    END IF;
+    NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE TRIGGER site_insert_trigger
-AFTER INSERT ON "Site" 
-FOR EACH ROW EXECUTE FUNCTION handle_sitedetection();
-
 CREATE TRIGGER site_update_trigger
-AFTER UPDATE OF "geometry", "radius" ON "Site" 
+BEFORE UPDATE OF "geometry", "radius" ON "Site"
 FOR EACH ROW EXECUTE FUNCTION handle_sitedetection();
 
 
