@@ -1,6 +1,3 @@
--- Enable PostGIS extension
-CREATE EXTENSION IF NOT EXISTS postgis;
-
 -- CreateEnum
 CREATE TYPE "SiteOrigin" AS ENUM ('firealert', 'ttc');
 
@@ -113,15 +110,14 @@ CREATE TABLE "Site" (
     "geometry" JSONB NOT NULL,
     "radius" INTEGER NOT NULL DEFAULT 0,
     "isMonitored" BOOLEAN NOT NULL DEFAULT true,
-    "detectionGeometry" GEOMETRY,
     "deletedAt" TIMESTAMP(3),
     "projectId" TEXT,
     "lastUpdated" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
+    "detectionGeometry" GEOMETRY NOT NULL,
 
     CONSTRAINT "Site_pkey" PRIMARY KEY ("id")
 );
-
 
 -- CreateTable
 CREATE TABLE "Project" (
@@ -157,7 +153,7 @@ CREATE TABLE "GeoEvent" (
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
     "source" "GeoEventSource" NOT NULL,
     "detectedBy" "GeoEventDetectionInstrument" NOT NULL,
-    "geometry" GEOMETRY,
+    "geometry" GEOMETRY NOT NULL,
     "radius" INTEGER,
     "data" JSONB,
 
@@ -165,7 +161,7 @@ CREATE TABLE "GeoEvent" (
 );
 
 -- CreateTable
-CREATE TABLE "Alert" (
+CREATE TABLE "SiteAlert" (
     "id" TEXT NOT NULL,
     "type" "AlertType" NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
@@ -179,7 +175,7 @@ CREATE TABLE "Alert" (
     "data" JSONB,
     "siteId" TEXT NOT NULL,
 
-    CONSTRAINT "Alert_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "SiteAlert_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -219,4 +215,4 @@ ALTER TABLE "Site" ADD CONSTRAINT "Site_userId_fkey" FOREIGN KEY ("userId") REFE
 ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Alert" ADD CONSTRAINT "Alert_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "SiteAlert" ADD CONSTRAINT "SiteAlert_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

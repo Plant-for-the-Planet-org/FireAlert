@@ -1,5 +1,5 @@
 -- Add trigger to Site to generate detection geometry
-CREATE OR REPLACE FUNCTION handle_sitedetection() 
+CREATE OR REPLACE FUNCTION app_site_detectionGeometry_update() 
 RETURNS TRIGGER AS $$
 BEGIN
     NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
@@ -8,8 +8,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER site_update_trigger
-BEFORE UPDATE OF "geometry", "radius" ON "Site"
-FOR EACH ROW EXECUTE FUNCTION handle_sitedetection();
+BEFORE INSERT OR UPDATE OF "geometry", "radius" ON "Site"
+FOR EACH ROW EXECUTE FUNCTION app_site_detectionGeometry_update();
 
 
 -- Add trigger to GeoEvent table
