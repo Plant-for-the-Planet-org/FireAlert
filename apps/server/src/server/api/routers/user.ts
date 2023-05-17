@@ -5,6 +5,7 @@ import { getUserIdByToken } from '../../../utils/token';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
 import { makeDetectionCoordinates } from '../../../utils/turf';
 import { sendEmail } from '../../../utils/notification/sendEmail';
+import { Prisma, Project} from '@prisma/client';
 
 export const userRouter = createTRPCRouter({
     profile: protectedProcedure
@@ -69,8 +70,8 @@ export const userRouter = createTRPCRouter({
                     // Find the tpo id and use that as userId
                     const userId = projects[0].properties.tpo.id;
                     // Collect project and site data for bulk creation
-                    const projectData = [];
-                    const siteData = [];
+                    const projectData:Project[] = [];
+                    const siteData:Prisma.SiteCreateManyInput[] = [];
                     for (const project of projects) {
                         const { id: projectId, name: projectName, slug: projectSlug, sites } = project.properties;
 
@@ -96,12 +97,13 @@ export const userRouter = createTRPCRouter({
                                         // Check if siteType and siteGeometry.type are the same
                                         if (siteType === siteGeometry.type) {
                                             siteData.push({
-                                                id: siteId,
+                                                remoteId: siteId,
+                                                origin: 'ttc',
                                                 name: siteName ?? "",
                                                 type: siteType,
-                                                geometry: siteGeometry,
+                                                geometry: JSON.stringify(siteGeometry),
                                                 radius: siteRadius,
-                                                detectionCoordinates: detectionCoordinates,
+                                                detectionCoordinates: JSON.stringify(detectionCoordinates),
                                                 userId: userId,
                                                 projectId: projectId,
                                                 lastUpdated: new Date(),
@@ -382,8 +384,14 @@ export const userRouter = createTRPCRouter({
                     email: ctx.token["https://app.plant-for-the-planet.org/email"]
                 }
             })
+            if(!user){
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: `User not found`,
+                });
+            }
             // then check to see if PlanetRO is true for this user or not
-            if (user!.isPlanetRO) {
+            if (user.isPlanetRO) {
                 // If yes planetRO, check if any new projects or sites have been added for this user or not
                 const projectsFromPP = await fetchProjectsWithSitesForUser(bearer_token)
                 const projectsFromDB = await ctx.prisma.project.findMany({
@@ -448,9 +456,9 @@ export const userRouter = createTRPCRouter({
                             await ctx.prisma.site.create({
                                 data: {
                                     type: type,
-                                    geometry: geometry,
+                                    geometry: JSON.stringify(geometry),
                                     radius: radius,
-                                    detectionCoordinates: detectionCoordinates,
+                                    detectionCoordinates: JSON.stringify(detectionCoordinates),
                                     userId: userId,
                                     projectId: projectId,
                                     lastUpdated: siteLastUpdatedFromPP.date,
@@ -463,9 +471,9 @@ export const userRouter = createTRPCRouter({
                                 },
                                 data: {
                                     type: type,
-                                    geometry: geometry,
+                                    geometry: JSON.stringify(geometry),
                                     radius: radius,
-                                    detectionCoordinates: detectionCoordinates,
+                                    detectionCoordinates: JSON.stringify(detectionCoordinates),
                                     lastUpdated: siteLastUpdatedFromPP.date,
                                 },
                             });

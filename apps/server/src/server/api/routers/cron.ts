@@ -183,7 +183,7 @@ async function processSource(ctx: TRPCContext, source: string, currentDate: stri
         detectedBy = "LANDSAT";
     }
     try {
-        const mapKey = await ctx.prisma.alertProvider.findFirst({
+        const mapKey = await ctx.prisma.geoEventProvider.findFirst({
             where: {
                 slug: source,
                 type: "fire",
@@ -196,7 +196,7 @@ async function processSource(ctx: TRPCContext, source: string, currentDate: stri
             return;
         }
         const alerts = processRecords(records, detectedBy);
-        await ctx.prisma.eventAreas.createMany({
+        await ctx.prisma.geoEvent.createMany({
             data: alerts,
         });
         console.log(`Successfully populated alerts for source: ${source}`);
@@ -455,7 +455,7 @@ export const cronRouter = createTRPCRouter({
         }),
 
 
-    populateEventAreasDatabase: publicProcedure.query(async ({ ctx }) => {
+    populategeoEventDatabase: publicProcedure.query(async ({ ctx }) => {
         const currentDate: string = new Date().toISOString().split("T")[0];
         try {
             await Promise.all(sources.map((source) => processSource(ctx, source, currentDate)));
@@ -473,10 +473,10 @@ export const cronRouter = createTRPCRouter({
         }
     }),
 
-    bulkDeleteEventAreas: publicProcedure
+    bulkDeletegeoEvent: publicProcedure
         .query(async ({ ctx }) => {
             const currentDate: string = new Date().toISOString().split("T")[0];
-            const deletedAlerts = await ctx.prisma.eventAreas.deleteMany({
+            const deletedAlerts = await ctx.prisma.geoEvent.deleteMany({
                 where: {
                     date: {
                         not: {
@@ -493,7 +493,7 @@ export const cronRouter = createTRPCRouter({
 
     populateAlerts: publicProcedure.query(async ({ ctx }) => {
         try {
-            const allUncheckedfireAlerts = await ctx.prisma.eventAreas.findMany({
+            const allUncheckedfireAlerts = await ctx.prisma.geoEvent.findMany({
                 where: {
                     isProcessed: false,
                 },
@@ -577,7 +577,7 @@ export const cronRouter = createTRPCRouter({
                         });
                     }
 
-                    await prisma.eventAreas.update({
+                    await prisma.geoEvent.update({
                         where: {
                             id: uncheckedFireAlert.id,
                         },
