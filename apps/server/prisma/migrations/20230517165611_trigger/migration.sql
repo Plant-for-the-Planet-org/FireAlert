@@ -2,6 +2,7 @@
 CREATE OR REPLACE FUNCTION app_site_detectionGeometry_update() 
 RETURNS TRIGGER AS $$
 BEGIN
+    NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
     NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
     RETURN NEW;
 END;

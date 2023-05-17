@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-    provider          = "postgresql"
-    url               = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
     // shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
@@ -73,33 +73,32 @@ model AlertMethod {
     deletedAt         DateTime?
     deviceType        AlertMethodDeviceType?
     notificationToken String?
-    userId            String
     tokenSentCount    Int                    @default(0)
     lastTokenSentDate DateTime?
+    userId            String
     user              User                   @relation(fields: [userId], references: [id])
 
     @@unique([destination, userId])
 }
 
 model Site {
-    id                String                  @id @default(cuid())
-    remoteId          String?
-    name              String?
-    origin            SiteOrigin              @default(firealert)
-    type              SiteType
-    geometry          Json
-    radius            Int                     @default(0)
-    isMonitored       Boolean                 @default(true)
-    deletedAt         DateTime?
-    projectId         String?
-    lastUpdated       DateTime?
-    userId            String
+    id          String      @id @default(cuid())
+    remoteId    String?
+    name        String?
+    origin      SiteOrigin  @default(firealert)
+    type        SiteType
+    geometry    Json
+    radius      Int         @default(0)
+    isMonitored Boolean     @default(true)
+    deletedAt   DateTime?
+    projectId   String?
+    lastUpdated DateTime?
+    userId      String
     // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 
     // As prisma is not able to handle it, but we need it for our triggers to work
-    detectionGeometry String                  
-    alerts            SiteAlert[]
-    project           Project?                @relation(fields: [projectId], references: [id])
-    user              User                    @relation(fields: [userId], references: [id])
+    alerts      SiteAlert[]
+    project     Project?    @relation(fields: [projectId], references: [id])
+    user        User        @relation(fields: [userId], references: [id])
 }
 
 model Project {
@@ -131,25 +130,34 @@ model GeoEvent {
     isProcessed Boolean                     @default(false)
     source      GeoEventSource
     detectedBy  GeoEventDetectionInstrument
-    geometry    String
     radius      Int?
     data        Json?
 }
 
 model SiteAlert {
-    id          String                      @id @default(cuid())
-    type        AlertType
-    latitude    Float
-    longitude   Float
-    eventDate   DateTime
-    detectedBy  GeoEventDetectionInstrument
-    confidence  AlertConfidence
-    isDelivered Boolean                     @default(false)
-    deletedAt   DateTime?
-    outside     Int?
-    data        Json?
-    siteId      String
-    site        Site                        @relation(fields: [siteId], references: [id])
+    id            String                      @id @default(cuid())
+    siteId        String
+    site          Site                        @relation(fields: [siteId], references: [id])
+    notifications Notification[]
+    type          AlertType
+    latitude      Float
+    longitude     Float
+    eventDate     DateTime
+    detectedBy    GeoEventDetectionInstrument
+    confidence    AlertConfidence
+    isProcessed   Boolean                     @default(false)
+    deletedAt     DateTime?
+    distance      Int
+    data          Json?
+}
+
+model Notification {
+    id          String    @id @default(cuid())
+    siteAlertId String
+    site        SiteAlert @relation(fields: [siteAlertId], references: [id])
+    alertMethod String
+    destination String
+    isDelivered Boolean   @default(false)
 }
 
 enum SiteOrigin {

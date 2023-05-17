@@ -93,9 +93,9 @@ CREATE TABLE "AlertMethod" (
     "deletedAt" TIMESTAMP(3),
     "deviceType" "AlertMethodDeviceType",
     "notificationToken" TEXT,
-    "userId" TEXT NOT NULL,
     "tokenSentCount" INTEGER NOT NULL DEFAULT 0,
     "lastTokenSentDate" TIMESTAMP(3),
+    "userId" TEXT NOT NULL,
 
     CONSTRAINT "AlertMethod_pkey" PRIMARY KEY ("id")
 );
@@ -114,7 +114,8 @@ CREATE TABLE "Site" (
     "projectId" TEXT,
     "lastUpdated" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
-    "detectionGeometry" GEOMETRY NOT NULL,
+    "originalGeometry" GEOMETRY,
+    "detectionGeometry" GEOMETRY,
 
     CONSTRAINT "Site_pkey" PRIMARY KEY ("id")
 );
@@ -153,7 +154,7 @@ CREATE TABLE "GeoEvent" (
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
     "source" "GeoEventSource" NOT NULL,
     "detectedBy" "GeoEventDetectionInstrument" NOT NULL,
-    "geometry" GEOMETRY NOT NULL,
+    "geometry" GEOMETRY,
     "radius" INTEGER,
     "data" JSONB,
 
@@ -163,19 +164,30 @@ CREATE TABLE "GeoEvent" (
 -- CreateTable
 CREATE TABLE "SiteAlert" (
     "id" TEXT NOT NULL,
+    "siteId" TEXT NOT NULL,
     "type" "AlertType" NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
     "eventDate" TIMESTAMP(3) NOT NULL,
     "detectedBy" "GeoEventDetectionInstrument" NOT NULL,
     "confidence" "AlertConfidence" NOT NULL,
-    "isDelivered" BOOLEAN NOT NULL DEFAULT false,
+    "isProcessed" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
-    "outside" INTEGER,
+    "distance" INTEGER NOT NULL,
     "data" JSONB,
-    "siteId" TEXT NOT NULL,
 
     CONSTRAINT "SiteAlert_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "siteAlertId" TEXT NOT NULL,
+    "alertMethod" TEXT NOT NULL,
+    "destination" TEXT NOT NULL,
+    "isDelivered" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -216,3 +228,6 @@ ALTER TABLE "Project" ADD CONSTRAINT "Project_userId_fkey" FOREIGN KEY ("userId"
 
 -- AddForeignKey
 ALTER TABLE "SiteAlert" ADD CONSTRAINT "SiteAlert_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_siteAlertId_fkey" FOREIGN KEY ("siteAlertId") REFERENCES "SiteAlert"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
