@@ -12,7 +12,9 @@ import {
 } from '../redux/slices/login/loginSlice';
 import {getData} from '../utils/localStorage';
 import {CommonStack, SignInStack} from './stack';
-import {useAppDispatch, useAppSelector} from '../hooks';
+import {useAppDispatch, useAppSelector, useOneSignal} from '../hooks';
+
+const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
 
 export default function AppNavigator() {
   const {isLoggedIn} = useAppSelector(state => state.loginSlice);
@@ -32,6 +34,21 @@ export default function AppNavigator() {
       dispatch(updateIsLoggedIn(false));
     }
   };
+
+  useOneSignal(onesignalAppId, {
+    onReceived: notification => {
+      // Handle received notification
+      console.log('Notification received:', notification);
+    },
+    onOpened: openResult => {
+      // Handle notification opened
+      console.log('Notification opened:', openResult);
+    },
+    onIds: device => {
+      // Save device ID for sending personalized notifications
+      console.log('Device info:', device);
+    },
+  });
 
   React.useEffect(() => {
     const request = {

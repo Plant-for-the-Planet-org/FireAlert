@@ -93,6 +93,16 @@ PODS:
     - MapboxMobileEvents (= 1.0.10)
     - Turf (~> 2.0)
   - MapboxMobileEvents (1.0.10)
+  - OneSignalXCFramework (3.12.4):
+    - OneSignalXCFramework/OneSignalCore (= 3.12.4)
+    - OneSignalXCFramework/OneSignalExtension (= 3.12.4)
+    - OneSignalXCFramework/OneSignalOutcomes (= 3.12.4)
+  - OneSignalXCFramework/OneSignalCore (3.12.4)
+  - OneSignalXCFramework/OneSignalExtension (3.12.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalOutcomes
+  - OneSignalXCFramework/OneSignalOutcomes (3.12.4):
+    - OneSignalXCFramework/OneSignalCore
   - OpenSSL-Universal (1.1.1100)
   - RCT-Folly (2021.07.22.00):
     - boost
@@ -309,6 +319,9 @@ PODS:
     - React-Core
   - react-native-geolocation-service (5.3.1):
     - React
+  - react-native-onesignal (4.5.1):
+    - OneSignalXCFramework (= 3.12.4)
+    - React (< 1.0.0, >= 0.13.0)
   - react-native-safe-area-context (4.5.2):
     - RCT-Folly
     - RCTRequired
@@ -458,6 +471,7 @@ DEPENDENCIES:
   - FlipperKit/SKIOSNetworkPlugin (= 0.163.0)
   - glog (from `../../../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - lottie-react-native (from `../../../node_modules/lottie-react-native`)
+  - OneSignalXCFramework (< 4.0, >= 3.0)
   - OpenSSL-Universal (= 1.1.1100)
   - RCT-Folly (from `../../../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTRequired (from `../../../node_modules/react-native/Libraries/RCTRequired`)
@@ -478,6 +492,7 @@ DEPENDENCIES:
   - react-native-config (from `../../../node_modules/react-native-config`)
   - react-native-document-picker (from `../../../node_modules/react-native-document-picker`)
   - react-native-geolocation-service (from `../../../node_modules/react-native-geolocation-service`)
+  - react-native-onesignal (from `../../../node_modules/react-native-onesignal`)
   - react-native-safe-area-context (from `../../../node_modules/react-native-safe-area-context`)
   - react-native-splash-screen (from `../../../node_modules/react-native-splash-screen`)
   - React-perflogger (from `../../../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -523,6 +538,7 @@ SPEC REPOS:
     - MapboxCoreMaps
     - MapboxMaps
     - MapboxMobileEvents
+    - OneSignalXCFramework
     - OpenSSL-Universal
     - SimpleKeychain
     - SocketRocket
@@ -578,6 +594,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native-document-picker"
   react-native-geolocation-service:
     :path: "../../../node_modules/react-native-geolocation-service"
+  react-native-onesignal:
+    :path: "../../../node_modules/react-native-onesignal"
   react-native-safe-area-context:
     :path: "../../../node_modules/react-native-safe-area-context"
   react-native-splash-screen:
@@ -652,6 +670,7 @@ SPEC CHECKSUMS:
   MapboxCoreMaps: 24270c7c6b8cb71819fc2f3c549db9620ee4d019
   MapboxMaps: cb76511b98d3b95c74b0771ed105bc69f30ace6b
   MapboxMobileEvents: de50b3a4de180dd129c326e09cd12c8adaaa46d6
+  OneSignalXCFramework: 087934ab0d4d7445fcf1c015c7c782359e26c020
   OpenSSL-Universal: ebc357f1e6bc71fa463ccb2fe676756aff50e88c
   RCT-Folly: 424b8c9a7a0b9ab2886ffe9c3b041ef628fd4fb1
   RCTRequired: fd4d923b964658aa0c4091a32c8b2004c6d9e3a6
@@ -670,6 +689,7 @@ SPEC CHECKSUMS:
   react-native-config: 5330c8258265c1e5fdb8c009d2cabd6badd96727
   react-native-document-picker: 495c444c0c773c6e83a5d91165890ecb1c0a399a
   react-native-geolocation-service: 608e1da71a1ac31b4de64d9ef2815f697978c55b
+  react-native-onesignal: 7bd44dbd031d8d57110c0203836ffc37ddead526
   react-native-safe-area-context: 1d596539b05a78f2b346e954e7c577f6f9be7544
   react-native-splash-screen: 4312f786b13a81b5169ef346d76d33bc0c6dc457
   React-perflogger: ec8eef2a8f03ecfa6361c2c5fb9197ef4a29cc85
@@ -698,6 +718,6 @@ SPEC CHECKSUMS:
   Yoga: 921eb014669cf9c718ada68b08d362517d564e0c
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
 
-PODFILE CHECKSUM: 9aa10257369981ec308203bce0e246ca126a03eb
+PODFILE CHECKSUM: 11ec416dbddd07f960bbf1f1bf517643b1a8ff2c
 
 COCOAPODS: 1.11.3
