@@ -147,7 +147,7 @@ const Home = ({navigation, route}) => {
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
       }, 500);
     }
-  }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat]);
+  }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat, siteInfo?.siteInfo]);
 
   console.log(selectedArea);
 
@@ -175,7 +175,7 @@ const Home = ({navigation, route}) => {
 
   useEffect(() => {
     onUpdateUserLocation(location);
-  }, [isCameraRefVisible, location]);
+  }, [isCameraRefVisible, location, onUpdateUserLocation]);
 
   const {data: alerts} = trpc.alert.getAlertsForUser.useQuery(undefined, {
     enabled: true,
@@ -198,7 +198,7 @@ const Home = ({navigation, route}) => {
 
   const formattedSites = useMemo(
     () => categorizedRes(sites?.json?.data || [], 'type'),
-    [categorizedRes, sites],
+    [sites],
   );
 
   const updateUser = trpc.user.updateUser.useMutation({
