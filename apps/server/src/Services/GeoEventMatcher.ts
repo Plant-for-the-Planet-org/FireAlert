@@ -3,7 +3,7 @@ import NotifierRegistry from "./Notifier/NotifierRegistry";
 
 const prisma = new PrismaClient();
 
-const matchGeoEvents = function () {
+const matchGeoEvents = async () => {
     debugger;
     const getSiteAlertCreationQuery = (): string => {
         return `
@@ -34,7 +34,6 @@ const matchGeoEvents = function () {
             AND m."isVerified" = true`;
     }
 
-    debugger;
     // create SiteAlerts by joining New GeoEvents and Site that have the event's location in their proximity
     prisma.$queryRawUnsafe(getSiteAlertCreationQuery());
     // set all GeoEvents as processed
@@ -46,34 +45,34 @@ const matchGeoEvents = function () {
     // get all undelivered Notifications
     try {
         // TODO: in case we implement a max retry-count, filter by retryCount < max_retry_count
-        // const notifications = await prisma.notification.findMany({
-        //     where: {
-        //         isDelivered: false
-        //     },
-        //     include: {
-        //         siteAlert: true
-        //     }
-        // })
+        const notifications = await prisma.notification.findMany({
+            where: {
+                isDelivered: false
+            },
+            include: {
+                siteAlert: true
+            }
+        })
 
-        // await Promise.all(notifications.map(async (notification) => {
-        //     const { id, alertMethod, destination, siteAlert, siteAlertId } = notification;
-        //     const { confidence, data, type, longitude, latitude, distance } = siteAlert;
+        await Promise.all(notifications.map(async (notification) => {
+            const { id, alertMethod, destination, siteAlert, siteAlertId } = notification;
+            const { confidence, data, type, longitude, latitude, distance } = siteAlert;
 
-        //     const notifier = NotifierRegistry.get(alertMethod);
-        //     const isDelivered = notifier.notify(destination, `${type} at [${longitude},${latitude}] ${distance}m from your site with ${confidence} confidence`)
+            const notifier = NotifierRegistry.get(alertMethod);
+            const isDelivered = notifier.notify(destination, `${type} at [${longitude},${latitude}] ${distance}m from your site with ${confidence} confidence`)
 
-        //     if (isDelivered) {
-        //         const response = await prisma.notification.update({
-        //             where: { id: id },
-        //             data: {
-        //                 isDelivered: true
-        //             }
-        //         })
-        //         const a = response;
-        //     } else {
-        //         // increment the retry count if a pre-defined limit has not been reached
-        //     }
-        // }));
+            if (isDelivered) {
+                const response = await prisma.notification.update({
+                    where: { id: id },
+                    data: {
+                        isDelivered: true
+                    }
+                })
+                const a = response;
+            } else {
+                // increment the retry count if a pre-defined limit has not been reached
+            }
+        }));
     } catch (error) {
         console.log(error)
     }

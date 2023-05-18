@@ -76,14 +76,13 @@ class NasaGeoEventProvider implements GeoEventProvider {
                 latitude: latitude,
                 longitude: longitude,
                 date: date,
-                confidence: confidenceLevels ? [source][record.confidence],
+                confidence: confidenceLevels?.[source]?.[record.confidence] ?? Confidence.Medium,
                 detectedBy: source,
             };
         }
 
         return new Promise<GeoEvent[]>(async (resolve, reject) => {
             try {
-                debugger;
                 const response = await fetch(this.getUrl(source));
                 const csv = await response.text();
                 const parser = parse(csv, { columns: true });
@@ -93,10 +92,12 @@ class NasaGeoEventProvider implements GeoEventProvider {
                     .on("readable", () => {
                         let record: CsvRecord;
                         while (record = parser.read()) {
-                            records.push(normalize(record, source));
+                            records.push(normalize(record, record.instrument));
                         }
                     })
-                    .on("end", () => resolve(records))
+                    .on("end", () => {
+                        resolve(records)
+                    })
                     .on("error", error => {
                         throw new Error("Error parsing CSV file: " + error.message)
                     });

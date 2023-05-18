@@ -7,12 +7,13 @@ import md5 from 'md5';
 
 const processGeoEvents = function (message: GeoEventsCreatedMessage) {
 
+  debugger;
+
   const fetchCurrentEventIds = function (source: string) {
     // the the ids of all events from AreaEvent that are either 'pending' or 'notfied'
     // having the provided providerKey
   }
 
-  debugger;
   const { source, geoEvents } = message;
 
   const buildChecksum = (geoEvent: GeoEvent): string => {

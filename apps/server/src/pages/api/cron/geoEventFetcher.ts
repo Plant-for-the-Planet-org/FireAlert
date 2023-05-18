@@ -1,4 +1,4 @@
-// to execute this handler, access the endpoint:  http://localhost:3000/api/cron/alertFetcher
+// to execute this handler, access the endpoint:  http://localhost:3000/api/cron/geoEventFetcher
 // once this has been tested, it should be moved/modified to comply with Vercel conron job standards
 
 import { NextApiRequest, NextApiResponse } from "next";
@@ -11,24 +11,9 @@ import { GeoEventsCreatedMessage } from '../../../Events/Messages/GeoEventsCreat
 
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
 
-  // DEBUG CODE START
-  // debugger;
-  // try {
-  //   const source = 'VIIRS_SNPP_NRT'
-  //   const geoEventProvider = GeoEventProviderRegistry.get(source)
-  //   geoEventProvider.initialize({ mapKey: '1f98b944d68d560be3a6137e985f5616', apiUrl: 'https://firms.modaps.eosdis.nasa.gov' })
-  //   const geoEvents = await geoEventProvider.getLatestGeoEvents(source);
-  //   debugger;
-  //   const $a = 1;
-
-  // } catch (error) {
-  //   console.log(error)
-  // }
-
-  // DEBUG CODE END
   const prisma = new PrismaClient()
 
-  // fetch all active provider from AreaProvider table
+  // fetch all active providers from the GeoEventProvider table
   const activeProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
       isActive: true,
@@ -36,13 +21,15 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   })
 
   activeProviders.map(provider => {
-    const { source, config } = provider
-    const geoEventProvider = GeoEventProviderRegistry.get(source);
+    const { source, config, sourceKey } = provider
+    const geoEventProvider = GeoEventProviderRegistry.get(sourceKey);
     geoEventProvider.initialize(config);
 
     (async () => {
-      const geoEvents = await geoEventProvider.getLatestGeoEvents(source)
-      geoEventEmitter.emit(GEO_EVENTS_CREATED, new GeoEventsCreatedMessage(source, geoEvents))
+      const geoEvents = await geoEventProvider.getLatestGeoEvents(sourceKey)
+
+      const geoEventsCreatedMessage = new GeoEventsCreatedMessage(sourceKey, geoEvents)
+      geoEventEmitter.emit(GEO_EVENTS_CREATED, geoEventsCreatedMessage)
     })()
   })
 
