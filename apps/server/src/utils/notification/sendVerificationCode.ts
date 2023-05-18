@@ -4,7 +4,7 @@ import { sendSMS, sendWhatsApp } from "./sendSMS";
 import { sendPushNotification } from "./sendPush";
 import { sendWebhook } from "./sendWebhook";
 
-type Method = 'sms' | 'device' | 'email' | 'whatsapp';
+type Method = 'sms' | 'device' | 'email' | 'whatsapp' | 'webhook';
 
 type DeviceType = 'ios' | 'android' | undefined
 

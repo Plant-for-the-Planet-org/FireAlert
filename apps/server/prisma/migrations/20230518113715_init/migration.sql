@@ -84,6 +84,18 @@ CREATE TABLE "VerificationToken" (
 );
 
 -- CreateTable
+CREATE TABLE "VerificationRequest" (
+    "id" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
+    "alertMethodId" TEXT NOT NULL,
+
+    CONSTRAINT "VerificationRequest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "AlertMethod" (
     "id" TEXT NOT NULL,
     "method" "AlertMethodMethod" NOT NULL,
@@ -92,7 +104,6 @@ CREATE TABLE "AlertMethod" (
     "isEnabled" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
     "deviceType" "AlertMethodDeviceType",
-    "notificationToken" TEXT,
     "tokenSentCount" INTEGER NOT NULL DEFAULT 0,
     "lastTokenSentDate" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
@@ -206,6 +217,15 @@ CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token"
 CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "VerificationRequest_token_key" ON "VerificationRequest"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "VerificationRequest_alertMethodId_key" ON "VerificationRequest"("alertMethodId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "VerificationRequest_id_token_key" ON "VerificationRequest"("id", "token");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "AlertMethod_destination_userId_key" ON "AlertMethod"("destination", "userId");
 
 -- AddForeignKey
@@ -213,6 +233,9 @@ ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId"
 
 -- AddForeignKey
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "VerificationRequest" ADD CONSTRAINT "VerificationRequest_alertMethodId_fkey" FOREIGN KEY ("alertMethodId") REFERENCES "AlertMethod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AlertMethod" ADD CONSTRAINT "AlertMethod_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

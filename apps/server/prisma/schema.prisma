@@ -64,19 +64,31 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
+model VerificationRequest {
+    id            String       @id @default(cuid())
+    token         String       @unique
+    expires       DateTime
+    createdAt     DateTime     @default(now())
+    updatedAt     DateTime?     @updatedAt
+    alertMethodId String      @unique
+    alertMethod   AlertMethod @relation(fields: [alertMethodId], references: [id])
+
+    @@unique([id, token])
+}
+
 model AlertMethod {
-    id                String                 @id @default(cuid())
-    method            AlertMethodMethod
-    destination       String
-    isVerified        Boolean                @default(false)
-    isEnabled         Boolean                @default(false)
-    deletedAt         DateTime?
-    deviceType        AlertMethodDeviceType?
-    notificationToken String?
-    tokenSentCount    Int                    @default(0)
-    lastTokenSentDate DateTime?
-    userId            String
-    user              User                   @relation(fields: [userId], references: [id])
+    id                  String                 @id @default(cuid())
+    method              AlertMethodMethod
+    destination         String
+    isVerified          Boolean                @default(false)
+    isEnabled           Boolean                @default(false)
+    deletedAt           DateTime?
+    deviceType          AlertMethodDeviceType?
+    tokenSentCount      Int                    @default(0)
+    lastTokenSentDate   DateTime?
+    userId              String
+    user                User                   @relation(fields: [userId], references: [id])
+    verificationRequest VerificationRequest?   
 
     @@unique([destination, userId])
 }

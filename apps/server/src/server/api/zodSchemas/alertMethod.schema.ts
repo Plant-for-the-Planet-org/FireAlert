@@ -21,7 +21,7 @@ export const createAlertMethodSchema = z.object({
 
 export const verifySchema = z.object({
     alertMethodId: z.string(),
-    notificationToken: z.string()
+    token: z.string()
 })
 
 export const params = z.object({
@@ -47,5 +47,4 @@ export const updateAlertMethodSchema = z.object({
     }),
 })
 
-
-
+export type ParamsType = z.infer<typeof params>;
