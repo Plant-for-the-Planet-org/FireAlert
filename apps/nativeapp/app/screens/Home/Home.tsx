@@ -144,6 +144,7 @@ const Home = ({navigation, route}) => {
           zoomLevel: 10,
         });
         setSelectedArea(siteInfo?.siteInfo);
+        setSelectedSite(siteInfo?.siteInfo[0]?.properties);
       }, 500);
     }
   }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat]);
@@ -764,11 +765,11 @@ const Home = ({navigation, route}) => {
             <View>
               {selectedSite?.site?.projectId && (
                 <Text style={styles.projectsName}>
-                  {selectedSite?.site?.projectName || selectedSite?.site?.guid}
+                  {selectedSite?.site?.projectName || selectedSite?.site?.id}
                 </Text>
               )}
               <Text style={styles.siteTitle}>
-                {selectedSite?.site?.name || selectedSite?.site?.guid}
+                {selectedSite?.site?.name || selectedSite?.site?.id}
               </Text>
             </View>
             <TouchableOpacity
@@ -949,6 +950,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_24,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 1.3,
   },
   btn: {
     height: 56,
