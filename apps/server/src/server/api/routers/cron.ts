@@ -219,7 +219,7 @@ export const cronRouter = createTRPCRouter({
         .mutation(async ({ ctx }) => {
             // Get all the projects from PP
             const projectsFromPP = await fetchAllProjectsWithSites();
-            // Get all projects from DB
+            // Get all projects from DB, and only ROs have projects, normal user cannot make projects
             const projectsFromDB = await ctx.prisma.project.findMany();
             // Filter PP list to only contain projects that are in DB
             const ppListFiltered = projectsFromPP.filter((projectFromPP) =>
@@ -473,7 +473,7 @@ export const cronRouter = createTRPCRouter({
         }
     }),
 
-    bulkDeletegeoEvent: publicProcedure
+    bulkDeleteGeoEvent: publicProcedure
         .query(async ({ ctx }) => {
             const currentDate: string = new Date().toISOString().split("T")[0];
             const deletedAlerts = await ctx.prisma.geoEvent.deleteMany({

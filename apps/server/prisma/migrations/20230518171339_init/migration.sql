@@ -63,10 +63,9 @@ CREATE TABLE "User" (
     "name" TEXT,
     "email" TEXT NOT NULL,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
-    "useGeostationary" BOOLEAN NOT NULL DEFAULT false,
+    "detectionMethods" JSONB NOT NULL,
     "isPlanetRO" BOOLEAN,
     "image" TEXT,
-    "avatar" TEXT,
     "deletedAt" TIMESTAMP(3),
     "isVerified" BOOLEAN,
     "lastLogin" TIMESTAMP(3),
@@ -74,13 +73,6 @@ CREATE TABLE "User" (
     "roles" "Role" NOT NULL DEFAULT 'ROLE_CLIENT',
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "VerificationToken" (
-    "identifier" TEXT NOT NULL,
-    "token" TEXT NOT NULL,
-    "expires" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
@@ -209,12 +201,6 @@ CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
-
--- CreateIndex
-CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token");
-
--- CreateIndex
-CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "VerificationRequest_token_key" ON "VerificationRequest"("token");

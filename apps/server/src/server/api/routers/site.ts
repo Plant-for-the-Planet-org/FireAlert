@@ -6,7 +6,6 @@ import {
 } from "../trpc";
 import { getUserIdByToken } from "../../../utils/token";
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
-import { makeDetectionCoordinates } from '../../../utils/turf'
 import { Prisma } from "@prisma/client";
 
 
@@ -63,7 +62,6 @@ const checkIfPlanetROSite = async ({ ctx, siteId }: checkIfPlanetROSiteArgs) => 
     }
 }
 
-
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
@@ -78,15 +76,14 @@ export const siteRouter = createTRPCRouter({
             }
             try {
                 const radius = input.radius ?? 0
-                const detectionCoordinates = makeDetectionCoordinates(input.geometry, radius)
                 const origin = 'firealert'
+        
                 const site = await ctx.prisma.site.create({
                     data: {
                         origin: origin,
                         type: input.type,
                         name: input.name,
                         geometry: JSON.stringify(input.geometry),
-                        detectionCoordinates: JSON.stringify(detectionCoordinates),
                         radius: radius,
                         isMonitored: input.isMonitored,
                         userId: userId,
@@ -256,72 +253,29 @@ export const siteRouter = createTRPCRouter({
                         message: "Site with that id does not exist, cannot update site",
                     });
                 }
-                const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
-                let updatedData = {
-                    ...input.body,
-                    detectionCoordinates: '',
-                };
-                // let updatedData = input.body as typeof input.body & { detectionCoordinates?: string };
-
-                // Check to see if the input.body has radius or geometry, or both in it.
-                const hasRadius = updatedData.hasOwnProperty('radius');
-                const hasGeometry = updatedData.hasOwnProperty('geometry');
-                const hasType = updatedData.hasOwnProperty('type');
-
-                // If input.body.radius is only there, then find the site using siteId, then find the coordinates, then use makeDetectionCoordinates to find the detectionCoordinates to update it.
-                if (hasRadius && !hasGeometry) {
-                    const siteGeometryString = JSON.stringify(site.geometry)
-                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(siteGeometryString), updatedData.radius!);
-                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
-                    updatedData = {
-                        ...updatedData,
-                        detectionCoordinates,
-                    };
-                }
-                // If input.body.geometry is only there but no radius, then find the radius from site, then update detectionCoordinates
-                else if (hasGeometry && !hasRadius) {
-                    const updatedDataGeometryString = JSON.stringify(updatedData.geometry)
-                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(updatedDataGeometryString), site.radius);
-                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
-                    updatedData = {
-                        ...updatedData,
-                        detectionCoordinates,
-                    };
-                }
-                // If both is there, then makeDetectionCoordinates and update it
-                else if (hasRadius && hasGeometry) {
-                    const updatedDataGeometryString = JSON.stringify(updatedData.geometry)
-                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(updatedDataGeometryString), updatedData.radius!);
-                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
-                    updatedData = {
-                        ...updatedData,
-                        detectionCoordinates,
-                    };
-                }
-                // Check if the 'type' property is present in input.body and that the value of 'type' matches the value of 'type' in input.body.geometry.
-                if (hasType) {
-                    if (!hasGeometry || updatedData.geometry?.type !== updatedData.type) {
-                        throw new TRPCError({
-                            code: "PARSE_ERROR",
-                            message: "Invalid input: 'type' property must match the 'type' property of the 'geometry' object",
-                        });
-                    }
-                }
-                if (isPlanetROSite) {
-                    const { geometry, type, name, projectId, ...rest } = updatedData;
-                    updatedData = rest;
-                }
-                // If none of them is there, then just update:
-                let data:Prisma.SiteUpdateInput = {}; // Create a copy of updatedData
-
+                let updatedData = input.body
+                // Initialize data
+                let data: Prisma.SiteUpdateInput = {}; // Create a copy of updatedData
+                // stringify the geometry before adding it in database
                 if (updatedData.geometry) {
-                    const {geometry, ...rest} = updatedData;
+                    const { geometry, ...rest } = updatedData;
                     data = {
                         ...rest,
                         geometry: JSON.stringify(geometry),
                     };
                 }
-
+                // If Site is associated with PlanetRO User then don't allow changes on fields other than radius and isMonitored
+                const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
+                if (isPlanetROSite) {
+                    const { geometry, type, name, projectId, ...rest } = updatedData;
+                    if(geometry || type || name || projectId){
+                        throw new TRPCError({
+                            code: "UNAUTHORIZED",
+                            message: `PlanetRO Users can only update Geometry and isMonitored Field`,
+                        });
+                    }
+                    data = rest;
+                }
                 // Update the site using the modified data object
                 const updatedSite = await ctx.prisma.site.update({
                     where: {
@@ -329,7 +283,6 @@ export const siteRouter = createTRPCRouter({
                     },
                     data: data,
                 });
-
                 return {
                     status: 'success',
                     data: updatedSite,
@@ -358,7 +311,13 @@ export const siteRouter = createTRPCRouter({
             }
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
-                await checkIfPlanetROSite({ ctx, siteId: input.siteId })
+                const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.siteId })
+                if (isPlanetROSite){
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "Cannot delete Site fetched from planet webapp, please delete it from planet webapp",
+                    });
+                }
                 const deletedSite = await ctx.prisma.site.delete({
                     where: {
                         id: input.siteId,
@@ -377,5 +336,4 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 });
-
 

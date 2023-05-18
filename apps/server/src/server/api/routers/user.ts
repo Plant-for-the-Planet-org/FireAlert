@@ -3,9 +3,8 @@ import { updateUserSchema } from '../zodSchemas/user.schema';
 import { adminProcedure, createTRPCRouter, protectedProcedure } from '../trpc';
 import { getUserIdByToken } from '../../../utils/token';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
-import { makeDetectionCoordinates } from '../../../utils/turf';
 import { sendEmail } from '../../../utils/notification/sendEmail';
-import { Prisma, Project} from '@prisma/client';
+import { Prisma, Project, Site } from '@prisma/client';
 
 export const userRouter = createTRPCRouter({
     profile: protectedProcedure
@@ -20,6 +19,7 @@ export const userRouter = createTRPCRouter({
                 }
             })
             const name = await getNameFromPPApi(bearer_token);
+            const detectionMethods = JSON.stringify(["MODIS","VIIRS","LANDSAT"])
             if (!user) {
                 // SIGNUP FUNCTIONALITY
                 // Check if the user requesting access is PlanetRO
@@ -33,8 +33,9 @@ export const userRouter = createTRPCRouter({
                                 isPlanetRO: false,
                                 name: name,
                                 email: ctx.token["https://app.plant-for-the-planet.org/email"],
-                                emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+                                emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"] ? ctx.token["https://app.plant-for-the-planet.org/email_verified"] : false,
                                 lastLogin: new Date(),
+                                detectionMethods: detectionMethods,
                             },
                         });
                         const createdAlertMethod = await prisma.alertMethod.create({
@@ -57,10 +58,10 @@ export const userRouter = createTRPCRouter({
                         sub: user.sub,
                         email: user.email,
                         name: user.name,
-                        avatar: user.avatar,
+                        image: user.image,
                         isPlanetRO: user.isPlanetRO,
                         lastLogin: user.lastLogin,
-                        useGeostationary: user.useGeostationary
+                        detectionMethods: user.detectionMethods
                     };
                 }
                 // Else, create user, create project, and create sites associated with that user in the pp.
@@ -70,8 +71,8 @@ export const userRouter = createTRPCRouter({
                     // Find the tpo id and use that as userId
                     const userId = projects[0].properties.tpo.id;
                     // Collect project and site data for bulk creation
-                    const projectData:Project[] = [];
-                    const siteData:Prisma.SiteCreateManyInput[] = [];
+                    const projectData: Project[] = [];
+                    const siteData: Prisma.SiteCreateManyInput[] = [];
                     for (const project of projects) {
                         const { id: projectId, name: projectName, slug: projectSlug, sites } = project.properties;
 
@@ -89,11 +90,18 @@ export const userRouter = createTRPCRouter({
                                     const { id: siteId, name: siteName, geometry: siteGeometry } = site;
                                     const siteType = siteGeometry?.type || null; // Use null as the fallback value if siteGeometry is null or undefined
                                     const siteRadius = 0;
-
+                                    const geoJsonGeometry = {
+                                        "type": "FeatureCollection",
+                                        "features": [
+                                            {
+                                                "type": "Feature",
+                                                "properties": {},
+                                                "geometry": siteGeometry
+                                            }
+                                        ]
+                                    }
                                     // Check if siteType and siteGeometry are not null before proceeding
                                     if (siteType && siteGeometry) {
-                                        const detectionCoordinates = makeDetectionCoordinates(siteGeometry, siteRadius);
-
                                         // Check if siteType and siteGeometry.type are the same
                                         if (siteType === siteGeometry.type) {
                                             siteData.push({
@@ -101,9 +109,8 @@ export const userRouter = createTRPCRouter({
                                                 origin: 'ttc',
                                                 name: siteName ?? "",
                                                 type: siteType,
-                                                geometry: JSON.stringify(siteGeometry),
+                                                geometry: JSON.stringify(geoJsonGeometry),
                                                 radius: siteRadius,
-                                                detectionCoordinates: JSON.stringify(detectionCoordinates),
                                                 userId: userId,
                                                 projectId: projectId,
                                                 lastUpdated: new Date(),
@@ -128,6 +135,7 @@ export const userRouter = createTRPCRouter({
                                 email: ctx.token["https://app.plant-for-the-planet.org/email"],
                                 emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
                                 lastLogin: new Date(),
+                                detectionMethods: detectionMethods,
                             },
                         });
                         await prisma.alertMethod.create({
@@ -152,10 +160,10 @@ export const userRouter = createTRPCRouter({
                         sub: createdUser.sub,
                         email: createdUser.email,
                         name: createdUser.name,
-                        avatar: createdUser.avatar,
+                        image: createdUser.image,
                         isPlanetRO: createdUser.isPlanetRO,
                         lastLogin: createdUser.lastLogin,
-                        useGeostationary: createdUser.useGeostationary,
+                        detectionMethods: createdUser.detectionMethods,
                     };
                 } else {
                     const user = await ctx.prisma.$transaction(async (prisma) => {
@@ -165,8 +173,9 @@ export const userRouter = createTRPCRouter({
                                 isPlanetRO: true,
                                 name: name,
                                 email: ctx.token["https://app.plant-for-the-planet.org/email"],
-                                emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+                                emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"] ? ctx.token["https://app.plant-for-the-planet.org/email_verified"] : false,
                                 lastLogin: new Date(),
+                                detectionMethods: detectionMethods,
                             },
                         });
 
@@ -188,10 +197,10 @@ export const userRouter = createTRPCRouter({
                         sub: user.sub,
                         email: user.email,
                         name: user.name,
-                        avatar: user.avatar,
+                        image: user.image,
                         isPlanetRO: user.isPlanetRO,
                         lastLogin: user.lastLogin,
-                        useGeostationary: user.useGeostationary,
+                        detectionMethods: user.detectionMethods,
                     };
 
                 }
@@ -226,10 +235,10 @@ export const userRouter = createTRPCRouter({
                     sub: updatedUser.sub,
                     email: updatedUser.email,
                     name: updatedUser.name,
-                    avatar: updatedUser.avatar,
+                    image: updatedUser.image,
                     isPlanetRO: updatedUser.isPlanetRO,
                     lastLogin: updatedUser.lastLogin,
-                    useGeostationary: updatedUser.useGeostationary,
+                    detectionMethods: updatedUser.detectionMethods,
                 };
             }
         }),
@@ -273,10 +282,10 @@ export const userRouter = createTRPCRouter({
                     sub: user.sub,
                     email: user.email,
                     name: user.name,
-                    avatar: user.avatar,
+                    image: user.image,
                     isPlanetRO: user.isPlanetRO,
                     lastLogin: user.lastLogin,
-                    useGeostationary: user.useGeostationary
+                    detectionMethods: user.detectionMethods
                 };;
             } else {
                 throw new TRPCError({
@@ -305,22 +314,32 @@ export const userRouter = createTRPCRouter({
                     message: 'User ID not found',
                 });
             }
+            let body:Prisma.UserUpdateInput = {};
+            if(input.body.detectionMethods){
+                const {detectionMethods, ...rest} = input.body
+                body = {
+                    detectionMethods: JSON.stringify(detectionMethods),
+                    ...rest,
+                }
+            }else{
+                body = input.body
+            }
             try {
                 const updatedUser = await ctx.prisma.user.update({
                     where: {
                         id: userId,
                     },
-                    data: input.body,
+                    data: body,
                 });
                 return {
                     id: updatedUser.id,
                     sub: updatedUser.sub,
                     email: updatedUser.email,
                     name: updatedUser.name,
-                    avatar: updatedUser.avatar,
+                    image: updatedUser.image,
                     isPlanetRO: updatedUser.isPlanetRO,
                     lastLogin: updatedUser.lastLogin,
-                    useGeostationary: updatedUser.useGeostationary
+                    detectionMethods: updatedUser.detectionMethods
                 };
             } catch (error) {
                 console.log(error)
@@ -384,7 +403,7 @@ export const userRouter = createTRPCRouter({
                     email: ctx.token["https://app.plant-for-the-planet.org/email"]
                 }
             })
-            if(!user){
+            if (!user) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: `User not found`,
@@ -443,9 +462,18 @@ export const userRouter = createTRPCRouter({
                     // Similarly for each site, find if there are sites that are missing in db, if yes, add that site to db
                     for (const siteFromPP of sitesFromPPProject) {
                         const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP, geometry } = siteFromPP;
+                        const geoJsonGeometry = {
+                            "type": "FeatureCollection",
+                            "features": [
+                                {
+                                    "type": "Feature",
+                                    "properties": {},
+                                    "geometry": geometry
+                                }
+                            ]
+                        }
                         const radius = 0
                         const type = geometry.type
-                        const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
                         const siteFromDatabase = await ctx.prisma.site.findUnique({
                             where: {
                                 id: siteIdFromPP,
@@ -456,9 +484,8 @@ export const userRouter = createTRPCRouter({
                             await ctx.prisma.site.create({
                                 data: {
                                     type: type,
-                                    geometry: JSON.stringify(geometry),
+                                    geometry: JSON.stringify(geoJsonGeometry),
                                     radius: radius,
-                                    detectionCoordinates: JSON.stringify(detectionCoordinates),
                                     userId: userId,
                                     projectId: projectId,
                                     lastUpdated: siteLastUpdatedFromPP.date,
@@ -473,7 +500,6 @@ export const userRouter = createTRPCRouter({
                                     type: type,
                                     geometry: JSON.stringify(geometry),
                                     radius: radius,
-                                    detectionCoordinates: JSON.stringify(detectionCoordinates),
                                     lastUpdated: siteLastUpdatedFromPP.date,
                                 },
                             });
