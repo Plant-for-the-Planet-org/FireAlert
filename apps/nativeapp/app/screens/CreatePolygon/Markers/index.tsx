@@ -170,7 +170,6 @@ const PointAnnotationMarker = ({
           }}
           onSelected={feature => {
             onPressMarker({
-              isSampleTree: false,
               coordinate: feature.geometry.coordinates,
               coordinateIndex: j,
             });

@@ -1,68 +1,36 @@
 import React from 'react';
-import Svg, {Circle, Ellipse, G, Text, Path} from 'react-native-svg';
+import Svg, {Text, Path} from 'react-native-svg';
 
-function MarkerSVG({point, color, opacity = 1}) {
+function MarkerSVG({point, color, opacity = 1, ...props}) {
   return (
     <Svg
+      width={24}
+      height={75}
+      viewBox="0 0 24 75"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      width="38"
-      height="91"
-      viewBox="0 0 38 91">
-      <G
-        data-name="Group 2286"
-        transform="translate(-101 -368)"
-        opacity={opacity}>
-        <G data-name="Group 1661" transform="translate(-38 -63.09)">
-          <Path
-            fill="none"
-            d="M0 0H38V38H0z"
-            data-name="Rectangle 906"
-            transform="translate(139 448.09)"
-          />
-          <G data-name="Group 1583" transform="translate(143.761 431.174)">
-            <Ellipse
-              cx="14"
-              cy="14.5"
-              fill={color}
-              data-name="Ellipse 172"
-              rx="14"
-              ry="14.5"
-              transform="translate(.239 -.084)"
-            />
-            <Text
-              fill="white"
-              fontSize="16"
-              x="14.5"
-              y="20"
-              textAnchor="middle"
-              fontWeight="bold">
-              {point}
-            </Text>
-            <Path
-              fill={color}
-              d="M5 0l5 5H0z"
-              data-name="Polygon 1"
-              transform="rotate(180 9.62 15.958)"
-            />
-          </G>
-          <Path
-            fill="none"
-            stroke={color}
-            strokeWidth="1"
-            d="M0 0L0 17"
-            data-name="Line 38"
-            transform="translate(158 460.59)"
-          />
-          <Circle
-            cx="2"
-            cy="2"
-            r="2"
-            fill={color}
-            data-name="Ellipse 184"
-            transform="translate(156 475)"
-          />
-        </G>
-      </G>
+      {...props}>
+      <Path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 0C5.373 0 0 5.373 0 12c0 6.242 4.766 11.371 10.857 11.947v12.625a1.143 1.143 0 002.286 0V23.947C19.234 23.37 24 18.242 24 12c0-6.627-5.373-12-12-12z"
+        fill="#E86F56"
+      />
+      <Path d="M3.288 11.824a8.5 8.5 0 1117 0 8.5 8.5 0 01-17 0z" fill="#fff" />
+      <Text
+        fill="black"
+        fontSize="12"
+        x="12"
+        y="16"
+        textAnchor="middle"
+        fontWeight="bold">
+        {point}
+      </Text>
+      <Path
+        opacity={0.3}
+        d="M12 38.858c-1.578 0-2.857-.64-2.857-1.429s1.279-1.428 2.857-1.428c1.578 0 2.857.64 2.857 1.428 0 .79-1.28 1.429-2.857 1.429z"
+        fill="#E86F56"
+      />
     </Svg>
   );
 }

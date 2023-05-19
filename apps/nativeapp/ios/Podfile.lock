@@ -1,5 +1,5 @@
 PODS:
-  - A0Auth0 (2.17.1):
+  - A0Auth0 (2.17.2):
     - Auth0 (~> 2.3)
     - React-Core
   - Auth0 (2.3.2):
@@ -81,18 +81,28 @@ PODS:
   - JWTDecode (3.0.1)
   - libevent (2.1.12)
   - lottie-ios (3.5.0)
-  - lottie-react-native (6.0.0-rc.3):
+  - lottie-react-native (6.0.0-rc.6):
     - lottie-ios (~> 3.5.0)
     - React-Core
-  - MapboxCommon (23.4.0)
-  - MapboxCoreMaps (10.12.2):
-    - MapboxCommon (~> 23.4)
-  - MapboxMaps (10.12.2):
-    - MapboxCommon (= 23.4.0)
-    - MapboxCoreMaps (= 10.12.2)
+  - MapboxCommon (23.5.0)
+  - MapboxCoreMaps (10.13.1):
+    - MapboxCommon (~> 23.5)
+  - MapboxMaps (10.13.1):
+    - MapboxCommon (= 23.5.0)
+    - MapboxCoreMaps (= 10.13.1)
     - MapboxMobileEvents (= 1.0.10)
     - Turf (~> 2.0)
   - MapboxMobileEvents (1.0.10)
+  - OneSignalXCFramework (3.12.4):
+    - OneSignalXCFramework/OneSignalCore (= 3.12.4)
+    - OneSignalXCFramework/OneSignalExtension (= 3.12.4)
+    - OneSignalXCFramework/OneSignalOutcomes (= 3.12.4)
+  - OneSignalXCFramework/OneSignalCore (3.12.4)
+  - OneSignalXCFramework/OneSignalExtension (3.12.4):
+    - OneSignalXCFramework/OneSignalCore
+    - OneSignalXCFramework/OneSignalOutcomes
+  - OneSignalXCFramework/OneSignalOutcomes (3.12.4):
+    - OneSignalXCFramework/OneSignalCore
   - OpenSSL-Universal (1.1.1100)
   - RCT-Folly (2021.07.22.00):
     - boost
@@ -305,11 +315,14 @@ PODS:
     - react-native-config/App (= 1.5.0)
   - react-native-config/App (1.5.0):
     - React-Core
-  - react-native-document-picker (8.1.4):
+  - react-native-document-picker (8.2.0):
     - React-Core
   - react-native-geolocation-service (5.3.1):
     - React
-  - react-native-safe-area-context (4.5.0):
+  - react-native-onesignal (4.5.1):
+    - OneSignalXCFramework (= 3.12.4)
+    - React (< 1.0.0, >= 0.13.0)
+  - react-native-safe-area-context (4.5.2):
     - RCT-Folly
     - RCTRequired
     - RCTTypeSafety
@@ -404,21 +417,21 @@ PODS:
     - React-Core
   - RNFS (2.20.0):
     - React-Core
-  - rnmapbox-maps (10.0.2):
-    - MapboxMaps (~> 10.12.0)
+  - rnmapbox-maps (10.0.6):
+    - MapboxMaps (~> 10.13.1)
     - React
     - React-Core
-    - rnmapbox-maps/DynamicLibrary (= 10.0.2)
+    - rnmapbox-maps/DynamicLibrary (= 10.0.6)
     - Turf
-  - rnmapbox-maps/DynamicLibrary (10.0.2):
-    - MapboxMaps (~> 10.12.0)
+  - rnmapbox-maps/DynamicLibrary (10.0.6):
+    - MapboxMaps (~> 10.13.1)
     - React
     - React-Core
     - Turf
   - RNScreens (3.20.0):
     - React-Core
     - React-RCTImage
-  - RNSVG (13.8.0):
+  - RNSVG (13.9.0):
     - React-Core
   - SimpleKeychain (1.0.1)
   - SocketRocket (0.6.0)
@@ -458,6 +471,7 @@ DEPENDENCIES:
   - FlipperKit/SKIOSNetworkPlugin (= 0.163.0)
   - glog (from `../../../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - lottie-react-native (from `../../../node_modules/lottie-react-native`)
+  - OneSignalXCFramework (< 4.0, >= 3.0)
   - OpenSSL-Universal (= 1.1.1100)
   - RCT-Folly (from `../../../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTRequired (from `../../../node_modules/react-native/Libraries/RCTRequired`)
@@ -478,6 +492,7 @@ DEPENDENCIES:
   - react-native-config (from `../../../node_modules/react-native-config`)
   - react-native-document-picker (from `../../../node_modules/react-native-document-picker`)
   - react-native-geolocation-service (from `../../../node_modules/react-native-geolocation-service`)
+  - react-native-onesignal (from `../../../node_modules/react-native-onesignal`)
   - react-native-safe-area-context (from `../../../node_modules/react-native-safe-area-context`)
   - react-native-splash-screen (from `../../../node_modules/react-native-splash-screen`)
   - React-perflogger (from `../../../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -523,6 +538,7 @@ SPEC REPOS:
     - MapboxCoreMaps
     - MapboxMaps
     - MapboxMobileEvents
+    - OneSignalXCFramework
     - OpenSSL-Universal
     - SimpleKeychain
     - SocketRocket
@@ -578,6 +594,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native-document-picker"
   react-native-geolocation-service:
     :path: "../../../node_modules/react-native-geolocation-service"
+  react-native-onesignal:
+    :path: "../../../node_modules/react-native-onesignal"
   react-native-safe-area-context:
     :path: "../../../node_modules/react-native-safe-area-context"
   react-native-splash-screen:
@@ -626,7 +644,7 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  A0Auth0: af71ff37391d3f0305a597c7d9598290ebbc68d5
+  A0Auth0: a8e9688791cd7429250ff2402fbd6ecfa71993f4
   Auth0: 64da28fdc5cd499aa516dc4bfd0ace8efae2c1da
   boost: 57d2868c099736d80fcd648bf211b4431e51a558
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
@@ -647,11 +665,12 @@ SPEC CHECKSUMS:
   JWTDecode: 2eed97c2fa46ccaf3049a787004eedf0be474a87
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   lottie-ios: c55158d67d0629a260625cc2ded2052b829e3c3e
-  lottie-react-native: 4b07ce6d17647dd24641ae5cd7ae614034318456
-  MapboxCommon: 2945d39158111455f353524f3c2ad356bd8d546a
-  MapboxCoreMaps: 8f355514ac5b573967badd9cf8e482561d6e8e2d
-  MapboxMaps: 9e0873d7f8bddf5751791da7be2560b4157f3c95
+  lottie-react-native: 701060db35cf892b3baa26e8f0fccdc9101a2f80
+  MapboxCommon: fdf7fd31c90b7b607cd9c63e37797f023c01d860
+  MapboxCoreMaps: 24270c7c6b8cb71819fc2f3c549db9620ee4d019
+  MapboxMaps: cb76511b98d3b95c74b0771ed105bc69f30ace6b
   MapboxMobileEvents: de50b3a4de180dd129c326e09cd12c8adaaa46d6
+  OneSignalXCFramework: 087934ab0d4d7445fcf1c015c7c782359e26c020
   OpenSSL-Universal: ebc357f1e6bc71fa463ccb2fe676756aff50e88c
   RCT-Folly: 424b8c9a7a0b9ab2886ffe9c3b041ef628fd4fb1
   RCTRequired: fd4d923b964658aa0c4091a32c8b2004c6d9e3a6
@@ -668,9 +687,10 @@ SPEC CHECKSUMS:
   React-jsinspector: ff56004b0c974b688a6548c156d5830ad751ae07
   React-logger: 60a0b5f8bed667ecf9e24fecca1f30d125de6d75
   react-native-config: 5330c8258265c1e5fdb8c009d2cabd6badd96727
-  react-native-document-picker: a9bd26996d1b2e4f412dd186041714c79af381d0
+  react-native-document-picker: 495c444c0c773c6e83a5d91165890ecb1c0a399a
   react-native-geolocation-service: 608e1da71a1ac31b4de64d9ef2815f697978c55b
-  react-native-safe-area-context: 39c2d8be3328df5d437ac1700f4f3a4f75716acc
+  react-native-onesignal: 7bd44dbd031d8d57110c0203836ffc37ddead526
+  react-native-safe-area-context: 1d596539b05a78f2b346e954e7c577f6f9be7544
   react-native-splash-screen: 4312f786b13a81b5169ef346d76d33bc0c6dc457
   React-perflogger: ec8eef2a8f03ecfa6361c2c5fb9197ef4a29cc85
   React-RCTActionSheet: a0c023b86cf4c862fa9c4eb0f6f91fbe878fb2de
@@ -688,9 +708,9 @@ SPEC CHECKSUMS:
   RNCAsyncStorage: b90b71f45b8b97be43bc4284e71a6af48ac9f547
   RNCClipboard: 3f0451a8100393908bea5c5c5b16f96d45f30bfc
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
-  rnmapbox-maps: db661c0b1034d8227ff659e291cca4c188b6c704
+  rnmapbox-maps: 8cb38295688c0c1f9e33d1c2bc494b5de53fbd0c
   RNScreens: 218801c16a2782546d30bd2026bb625c0302d70f
-  RNSVG: c1e76b81c76cdcd34b4e1188852892dc280eb902
+  RNSVG: 53c661b76829783cdaf9b7a57258f3d3b4c28315
   SimpleKeychain: 130211269f88f038d7dc5254cf0b1b9ce978c398
   SocketRocket: fccef3f9c5cedea1353a9ef6ada904fde10d6608
   SRSRadialGradient: f88dfa41215854bfb721dfe926bd9bf09338a602
@@ -698,6 +718,6 @@ SPEC CHECKSUMS:
   Yoga: 921eb014669cf9c718ada68b08d362517d564e0c
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
 
-PODFILE CHECKSUM: 9aa10257369981ec308203bce0e246ca126a03eb
+PODFILE CHECKSUM: 11ec416dbddd07f960bbf1f1bf517643b1a8ff2c
 
 COCOAPODS: 1.11.3

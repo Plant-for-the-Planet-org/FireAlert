@@ -17,15 +17,13 @@ import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
 import centroid from '@turf/centroid';
 import {polygon} from '@turf/helpers';
-import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
-import {useFocusEffect} from '@react-navigation/native';
 import Clipboard from '@react-native-clipboard/clipboard';
-import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import Toast, {useToast} from 'react-native-toast-notifications';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   LayerModal,
@@ -95,8 +93,7 @@ const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
   const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
-  const {alerts} = useAppSelector(state => state.alertSlice);
-  const {userDetails} = useAppSelector(state => state.loginSlice);
+  const {userDetails, configData} = useAppSelector(state => state.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -125,14 +122,74 @@ const Home = ({navigation, route}) => {
     useState<boolean>(false);
   const [siteName, setSiteName] = useState<string | null>('');
   const [siteId, setSiteId] = useState<string | null>('');
+  const [selectedArea, setSelectedArea] = useState<any>(null);
+
+  const map = useRef(null);
+  const toast = useToast();
+  const modalToast = useRef();
+  const dispatch = useAppDispatch();
+  const camera = useRef<MapboxGL.Camera | null>(null);
+
+  useEffect(() => {
+    if (
+      siteInfo?.long !== undefined &&
+      siteInfo?.lat !== undefined &&
+      isCameraRefVisible &&
+      camera?.current?.setCamera
+    ) {
+      setTimeout(() => {
+        camera.current.setCamera({
+          centerCoordinate: [siteInfo.lat, siteInfo.long],
+          animationDuration: 500,
+          zoomLevel: 10,
+        });
+        setSelectedArea(siteInfo?.siteInfo);
+        setSelectedSite(siteInfo?.siteInfo[0]?.properties);
+      }, 500);
+    }
+  }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat, siteInfo?.siteInfo]);
+
+  console.log(selectedArea);
+
+  useEffect(() => {
+    if (
+      isCameraRefVisible &&
+      camera?.current?.setCamera &&
+      configData?.loc?.longitude !== ''
+    ) {
+      setIsInitial(false);
+      camera.current.setCamera({
+        centerCoordinate: [
+          Number(configData?.loc?.longitude),
+          Number(configData?.loc?.latitude),
+        ],
+        zoomLevel: 4,
+        animationDuration: ANIMATION_DURATION,
+      });
+    }
+  }, [
+    configData?.loc?.latitude,
+    configData?.loc?.longitude,
+    isCameraRefVisible,
+  ]);
+
+  useEffect(() => {
+    onUpdateUserLocation(location);
+  }, [isCameraRefVisible, location, onUpdateUserLocation]);
+
+  const {data: alerts} = trpc.alert.getAlertsForUser.useQuery(undefined, {
+    enabled: true,
+    retryDelay: 3000,
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
     undefined,
     {
       enabled: true,
       retryDelay: 3000,
-      refetchInterval: 10000,
-      refetchIntervalInBackground: true,
       onError: () => {
         toast.show('something went wrong', {type: 'danger'});
       },
@@ -141,13 +198,9 @@ const Home = ({navigation, route}) => {
 
   const formattedSites = useMemo(
     () => categorizedRes(sites?.json?.data || [], 'type'),
-    [categorizedRes, sites],
+    [sites],
   );
 
-  const toast = useToast();
-  const dispatch = useAppDispatch();
-  const map = useRef(null);
-  const camera = useRef<MapboxGL.Camera | null>(null);
   const updateUser = trpc.user.updateUser.useMutation({
     retryDelay: 3000,
     onSuccess: () => {
@@ -190,22 +243,6 @@ const Home = ({navigation, route}) => {
     },
   });
 
-  useFocusEffect(
-    useCallback(() => {
-      if (siteInfo && isCameraRefVisible && camera?.current?.setCamera) {
-        let center = centroid(polygon(siteInfo?.geometry?.coordinates));
-        const lat = center?.geometry?.coordinates[1];
-        const long = center?.geometry?.coordinates[0];
-        camera.current.setCamera({
-          centerCoordinate: [long, lat],
-          // centerCoordinate: [75.3855852018891, 28.111672923634202],
-          zoomLevel: ZOOM_LEVEL,
-          animationDuration: ANIMATION_DURATION,
-        });
-      }
-    }, [isCameraRefVisible, siteInfo]),
-  );
-
   const handleEditSite = site => {
     setSelectedSite({});
     setSiteName(site.name);
@@ -221,7 +258,7 @@ const Home = ({navigation, route}) => {
     deleteSite.mutate({json: {siteId: id}});
   };
 
-  // recenter the map to the current coordinates of user location
+  // recenter the mapmap to the current coordinates of user location
   const onPressMyLocationIcon = (
     position: MapboxGL.Location | Geolocation.GeoPosition,
   ) => {
@@ -362,6 +399,7 @@ const Home = ({navigation, route}) => {
 
   const _copyToClipboard = loc => () => {
     Clipboard.setString(JSON.stringify(loc));
+    modalToast.current.show('copied');
   };
 
   const handleLayer = () => setVisible(true);
@@ -379,9 +417,14 @@ const Home = ({navigation, route}) => {
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   const renderAnnotation = counter => {
-    const id = alerts[counter]?.guid;
-    const coordinate = [alerts[counter]?.latitude, alerts[counter]?.longitude];
-    const title = `Longitude: ${alerts[counter]?.latitude} Latitude: ${alerts[counter]?.longitude}`;
+    const alertsArr = alerts?.json?.data;
+    const id = alertsArr[counter]?.id;
+    const coordinate = [
+      alertsArr[counter]?.latitude,
+      alertsArr[counter]?.longitude,
+    ];
+    const title = `Longitude: ${alertsArr[counter]?.latitude} Latitude: ${alertsArr[counter]?.longitude}`;
+
     return (
       <MapboxGL.PointAnnotation
         id={id}
@@ -390,20 +433,20 @@ const Home = ({navigation, route}) => {
         onSelected={e => {
           camera.current.setCamera({
             centerCoordinate: [
-              alerts[counter]?.latitude,
-              alerts[counter]?.longitude,
+              alertsArr[counter]?.latitude,
+              alertsArr[counter]?.longitude,
             ],
             padding: {paddingBottom: SCREEN_HEIGHT / 4},
             zoomLevel: ZOOM_LEVEL,
             animationDuration: ANIMATION_DURATION,
           });
           setTimeout(
-            () => setSelectedAlert(alerts[counter]),
+            () => setSelectedAlert(alertsArr[counter]),
             ANIMATION_DURATION,
           );
         }}
         coordinate={coordinate}>
-        {getFireIcon(daysFromToday(alerts[counter]?.eventDate))}
+        {getFireIcon(daysFromToday(alertsArr[counter]?.eventDate))}
       </MapboxGL.PointAnnotation>
     );
   };
@@ -428,7 +471,7 @@ const Home = ({navigation, route}) => {
 
   const renderAnnotations = isAlert => {
     const items = [];
-    const arr = isAlert ? alerts : formattedSites?.point;
+    const arr = isAlert ? alerts?.json?.data : formattedSites?.point;
     for (let i = 0; i < arr?.length; i++) {
       {
         isAlert
@@ -438,6 +481,40 @@ const Home = ({navigation, route}) => {
     }
     return items;
   };
+
+  const renderHighlightedMapSource = () => (
+    <MapboxGL.ShapeSource
+      id="fillSource"
+      shape={{
+        type: 'FeatureCollection',
+        features:
+          selectedArea?.map(singleSite => {
+            return {
+              type: 'Feature',
+              properties: {site: singleSite},
+              geometry: singleSite?.geometry,
+            };
+          }) || [],
+      }}>
+      <MapboxGL.FillLayer
+        id="fillLayer"
+        layerIndex={2}
+        style={{
+          fillColor: Colors.GRADIENT_PRIMARY,
+          fillOpacity: 0.4,
+        }}
+      />
+      <MapboxGL.LineLayer
+        id="fillOutline"
+        style={{
+          lineWidth: 2,
+          lineColor: Colors.GRADIENT_PRIMARY,
+          lineOpacity: 1,
+          lineJoin: 'bevel',
+        }}
+      />
+    </MapboxGL.ShapeSource>
+  );
 
   const renderMapSource = () => (
     <MapboxGL.ShapeSource
@@ -449,24 +526,22 @@ const Home = ({navigation, route}) => {
             return {
               type: 'Feature',
               properties: {site: singleSite},
-              geometry: singleSite?.geometry,
+              geometry: JSON.parse(singleSite?.geometry),
             };
           }) || [],
       }}
       onPress={e => {
-        camera.current.setCamera({
-          centerCoordinate: [
-            e?.coordinates?.longitude,
-            e?.coordinates?.latitude,
-          ],
-          zoomLevel: 10,
-          animationDuration: ANIMATION_DURATION,
-        });
-
-        setTimeout(
-          () => setSelectedSite(e?.features[0]?.properties),
-          ANIMATION_DURATION,
+        setSelectedArea(e?.features);
+        let centerOfPolygon = centroid(
+          polygon(e?.features[0]?.geometry?.coordinates),
         );
+        const centerCoordinate = centerOfPolygon?.geometry?.coordinates;
+        camera.current.setCamera({
+          centerCoordinate,
+          zoomLevel: 10,
+          animationDuration: 500,
+        });
+        setSelectedSite(e?.features[0]?.properties);
       }}>
       <MapboxGL.FillLayer
         id={'polyFill'}
@@ -487,10 +562,6 @@ const Home = ({navigation, route}) => {
       />
     </MapboxGL.ShapeSource>
   );
-
-  useEffect(() => {
-    onUpdateUserLocation(location);
-  }, [isCameraRefVisible, location]);
 
   return (
     <>
@@ -516,6 +587,8 @@ const Home = ({navigation, route}) => {
           />
         )}
         {renderMapSource()}
+        {/* highlighted */}
+        {selectedArea && renderHighlightedMapSource()}
         {/* for alerts */}
         {renderAnnotations(true)}
         {/* for point sites */}
@@ -611,6 +684,7 @@ const Home = ({navigation, route}) => {
       <BottomSheet
         onBackdropPress={() => setSelectedAlert({})}
         isVisible={Object.keys(selectedAlert).length > 0}>
+        <Toast ref={modalToast} offsetBottom={100} duration={1000} />
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.satelliteInfoCon}>
@@ -623,13 +697,9 @@ const Home = ({navigation, route}) => {
               </Text>
               <Text style={styles.eventDate}>
                 <Text style={styles.eventFromNow}>
-                  {moment(selectedAlert?.eventDate, 'MM/DD/YYYY').fromNow()}
+                  {moment(selectedAlert?.eventDate).fromNow()}
                 </Text>{' '}
-                (
-                {moment(selectedAlert?.eventDate, 'MM/DD/YYYY').format(
-                  'DD MMM YYYY',
-                )}
-                )
+                ({moment(selectedAlert?.eventDate).format('DD MMM YYYY')})
               </Text>
               <Text style={styles.confidence}>
                 {selectedAlert?.confidence}% alert confidence
@@ -652,7 +722,7 @@ const Home = ({navigation, route}) => {
                   {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
                 </Text>
                 <Text style={styles.confidence}>
-                  {selectedAlert?.confidence}% alert confidence
+                  {selectedAlert?.confidence} alert confidence
                 </Text>
               </View>
             </View>
@@ -684,19 +754,22 @@ const Home = ({navigation, route}) => {
       {/* site Info modal */}
       <BottomSheet
         isVisible={Object.keys(selectedSite)?.length > 0}
-        backdropColor={Colors.BLACK + '80'}
-        onBackdropPress={() => setSelectedSite({})}>
+        backdropColor={'transparent'}
+        onBackdropPress={() => {
+          setSelectedArea(null);
+          setSelectedSite({});
+        }}>
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
             <View>
               {selectedSite?.site?.projectId && (
                 <Text style={styles.projectsName}>
-                  {selectedSite?.site?.projectName || selectedSite?.site?.guid}
+                  {selectedSite?.site?.projectName || selectedSite?.site?.id}
                 </Text>
               )}
               <Text style={styles.siteTitle}>
-                {selectedSite?.site?.name || selectedSite?.site?.guid}
+                {selectedSite?.site?.name || selectedSite?.site?.id}
               </Text>
             </View>
             <TouchableOpacity
@@ -705,10 +778,6 @@ const Home = ({navigation, route}) => {
               <PencilIcon />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.btn}>
-            <MapOutlineIcon />
-            <Text style={styles.siteActionText}>View on Map</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             disabled={deleteSite?.isLoading || selectedSite?.site?.projectId}
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
@@ -881,6 +950,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_24,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 1.3,
   },
   btn: {
     height: 56,
@@ -903,7 +973,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     height: 150,
     position: 'absolute',
-    bottom: IS_ANDROID ? SCREEN_HEIGHT / 3.56 : SCREEN_HEIGHT / 5.85,
+    bottom: IS_ANDROID ? SCREEN_HEIGHT / 3.56 : SCREEN_HEIGHT / 1.95,
     alignSelf: 'center',
   },
   satelliteInfoCon: {
