@@ -90,16 +90,7 @@ export const userRouter = createTRPCRouter({
                                     const { id: siteId, name: siteName, geometry: siteGeometry } = site;
                                     const siteType = siteGeometry?.type || null; // Use null as the fallback value if siteGeometry is null or undefined
                                     const siteRadius = 0;
-                                    const geoJsonGeometry = {
-                                        "type": "FeatureCollection",
-                                        "features": [
-                                            {
-                                                "type": "Feature",
-                                                "properties": {},
-                                                "geometry": siteGeometry
-                                            }
-                                        ]
-                                    }
+                                    const geoJsonGeometry = siteGeometry;
                                     // Check if siteType and siteGeometry are not null before proceeding
                                     if (siteType && siteGeometry) {
                                         // Check if siteType and siteGeometry.type are the same
@@ -109,7 +100,7 @@ export const userRouter = createTRPCRouter({
                                                 origin: 'ttc',
                                                 name: siteName ?? "",
                                                 type: siteType,
-                                                geometry: JSON.stringify(geoJsonGeometry),
+                                                geometry: geoJsonGeometry,
                                                 radius: siteRadius,
                                                 userId: userId,
                                                 projectId: projectId,
