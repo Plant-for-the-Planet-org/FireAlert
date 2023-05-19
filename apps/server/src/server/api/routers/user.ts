@@ -378,9 +378,10 @@ export const userRouter = createTRPCRouter({
                 const emailSubject = 'Soft Delete Fire Alert Account'
                 const emailBody = 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.'
                 const emailSent = await sendEmail(deletedUser.email, emailSubject, emailBody)
+
                 return {
-                    status: 'success',
-                    message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 7 days` + emailSent ? 'Successfully sent email' : '',
+                    status: 'Success',
+                    message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
                 };
             }
         } catch (error) {
