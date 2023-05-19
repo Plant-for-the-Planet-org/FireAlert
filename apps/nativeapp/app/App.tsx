@@ -1,8 +1,9 @@
 import {Provider} from 'react-redux';
 import MapboxGL from '@rnmapbox/maps';
-import React, {useState} from 'react';
 import Config from 'react-native-config';
+import * as Sentry from '@sentry/react-native';
 import {Auth0Provider} from 'react-native-auth0';
+import React, {useState, useEffect} from 'react';
 import {ToastProvider} from 'react-native-toast-notifications';
 
 import {store} from './redux/store';
@@ -31,6 +32,12 @@ function App(): JSX.Element {
       links: [httpBatchLink(httpBatchLinkArgs)],
     }),
   );
+  useEffect(() => {
+    Sentry.init({
+      dsn: Config.SENTRY_DSN,
+      tracesSampleRate: 1.0, // Set your desired sample rate
+    });
+  }, []);
   return (
     <Auth0Provider
       domain={Config.AUTH0_DOMAIN}
