@@ -17,7 +17,7 @@ export async function sendVerificationCode(destination: string, method: Method, 
                 message: "Failed to send verification code via email",
             });
         } else {
-            return { status: 200, message: "Code sent to user" };
+            return { status: 200, message: "Verification code has been sent" };
         }
     } else if (method === 'sms') {
         const smsSent = await sendSMS(destination, message);
@@ -27,7 +27,7 @@ export async function sendVerificationCode(destination: string, method: Method, 
                 message: "Failed to send verification code via SMS",
             });
         } else {
-            return { status: 200, message: "Code sent to user" };
+            return { status: 200, message: "Verification code has been sent" };
         }
     } else if (method === 'device') {
         const pushTokenIdentifier = destination
@@ -39,7 +39,7 @@ export async function sendVerificationCode(destination: string, method: Method, 
                     message: "Failed to send verification code via iOS push notification",
                 });
             } else {
-                return { status: 200, message: "Code sent to user" };
+                return { status: 200, message: "Verification code has been sent" };
             }
         } else if (deviceType === 'android') {
             const androidPushSent = await sendPushNotification(pushTokenIdentifier, message);
@@ -49,7 +49,7 @@ export async function sendVerificationCode(destination: string, method: Method, 
                     message: "Failed to send verification code via Android push notification",
                 });
             } else {
-                return { status: 200, message: "Code sent to user" };
+                return { status: 200, message: "Verification code has been sent" };
             }
         }
     } else if (method === 'whatsapp') {
@@ -60,7 +60,7 @@ export async function sendVerificationCode(destination: string, method: Method, 
                 message: "Failed to send verification code via WhatsApp",
             });
         } else {
-            return { status: 200, message: "Code sent to user" };
+            return { status: 200, message: "Verification code has been sent" };
         }
     } else if (method === 'webhook') {
         const webhookSent = await sendWebhook(destination, { message });
@@ -70,7 +70,7 @@ export async function sendVerificationCode(destination: string, method: Method, 
                 message: "Failed to send verification code via webhook",
             });
         } else {
-            return { status: 200, message: "Code sent to user" };
+            return { status: 200, message: "Verification code has been sent" };
         }
     }
 }
