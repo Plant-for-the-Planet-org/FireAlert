@@ -7,6 +7,7 @@ import {
 import { getUserIdByToken } from "../../../utils/token";
 import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 import { makeDetectionCoordinates } from '../../../utils/turf'
+import { Prisma } from "@prisma/client";
 
 
 interface TRPCContext extends InnerTRPCContext {
@@ -28,10 +29,7 @@ const checkUserHasSitePermission = async ({ ctx, siteId, userId }: checkUserHasS
     const siteToCRUD = await ctx.prisma.site.findFirst({
         where: {
             id: siteId,
-        },
-        select: {
-            userId: true,
-        },
+        }
     });
     if (!siteToCRUD) {
         throw new TRPCError({
@@ -45,6 +43,7 @@ const checkUserHasSitePermission = async ({ ctx, siteId, userId }: checkUserHasS
             message: "You are not authorized to update this site",
         });
     }
+    return siteToCRUD
 };
 
 const checkIfPlanetROSite = async ({ ctx, siteId }: checkIfPlanetROSiteArgs) => {
@@ -80,12 +79,14 @@ export const siteRouter = createTRPCRouter({
             try {
                 const radius = input.radius ?? 0
                 const detectionCoordinates = makeDetectionCoordinates(input.geometry, radius)
+                const origin = 'firealert'
                 const site = await ctx.prisma.site.create({
                     data: {
+                        origin: origin,
                         type: input.type,
                         name: input.name,
-                        geometry: input.geometry,
-                        detectionCoordinates: detectionCoordinates,
+                        geometry: JSON.stringify(input.geometry),
+                        detectionCoordinates: JSON.stringify(detectionCoordinates),
                         radius: radius,
                         isMonitored: input.isMonitored,
                         userId: userId,
@@ -115,13 +116,11 @@ export const siteRouter = createTRPCRouter({
                     },
                     select: {
                         id: true,
-                        guid: true,
                         name: true,
                         type: true,
                         geometry: true,
                         radius: true,
                         isMonitored: true,
-                        lastSynced: true,
                         deletedAt: true,
                         projectId: true,
                         lastUpdated: true,
@@ -132,14 +131,6 @@ export const siteRouter = createTRPCRouter({
                     status: 'success',
                     data: sitesForProject,
                 };
-                // const sitesWithPointType = sitesForProject.filter((site) => site.type === "Point");
-                // const sitesWithPolygonType = sitesForProject.filter((site) => site.type === "Polygon");
-                // const sitesWithMultiPolygonType = sitesForProject.filter((site) => site.type === "MultiPolygon");
-                // return {
-                //     point: sitesWithPointType,
-                //     polygon: sitesWithPolygonType,
-                //     multiPolygon: sitesWithMultiPolygonType,
-                // };                
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
@@ -165,13 +156,11 @@ export const siteRouter = createTRPCRouter({
                     },
                     select: {
                         id: true,
-                        guid: true,
                         name: true,
                         type: true,
                         geometry: true,
                         radius: true,
                         isMonitored: true,
-                        lastSynced: true,
                         deletedAt: true,
                         projectId: true,
                         lastUpdated: true,
@@ -260,16 +249,19 @@ export const siteRouter = createTRPCRouter({
                 });
             }
             try {
-                await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
+                const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
+                if (!site) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Site with that id does not exist, cannot update site",
+                    });
+                }
                 const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
-
-                const site = await ctx.prisma.site.findUnique({
-                    where: {
-                        id: input.params.siteId,
-                    },
-                });
-
-                let updatedData = input.body;
+                let updatedData = {
+                    ...input.body,
+                    detectionCoordinates: '',
+                };
+                // let updatedData = input.body as typeof input.body & { detectionCoordinates?: string };
 
                 // Check to see if the input.body has radius or geometry, or both in it.
                 const hasRadius = updatedData.hasOwnProperty('radius');
@@ -278,7 +270,9 @@ export const siteRouter = createTRPCRouter({
 
                 // If input.body.radius is only there, then find the site using siteId, then find the coordinates, then use makeDetectionCoordinates to find the detectionCoordinates to update it.
                 if (hasRadius && !hasGeometry) {
-                    const detectionCoordinates = makeDetectionCoordinates(site.geometry, updatedData.radius);
+                    const siteGeometryString = JSON.stringify(site.geometry)
+                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(siteGeometryString), updatedData.radius!);
+                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
                     updatedData = {
                         ...updatedData,
                         detectionCoordinates,
@@ -286,7 +280,9 @@ export const siteRouter = createTRPCRouter({
                 }
                 // If input.body.geometry is only there but no radius, then find the radius from site, then update detectionCoordinates
                 else if (hasGeometry && !hasRadius) {
-                    const detectionCoordinates = makeDetectionCoordinates(updatedData.geometry, site.radius);
+                    const updatedDataGeometryString = JSON.stringify(updatedData.geometry)
+                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(updatedDataGeometryString), site.radius);
+                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
                     updatedData = {
                         ...updatedData,
                         detectionCoordinates,
@@ -294,7 +290,9 @@ export const siteRouter = createTRPCRouter({
                 }
                 // If both is there, then makeDetectionCoordinates and update it
                 else if (hasRadius && hasGeometry) {
-                    const detectionCoordinates = makeDetectionCoordinates(updatedData.geometry, updatedData.radius);
+                    const updatedDataGeometryString = JSON.stringify(updatedData.geometry)
+                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(updatedDataGeometryString), updatedData.radius!);
+                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
                     updatedData = {
                         ...updatedData,
                         detectionCoordinates,
@@ -302,7 +300,7 @@ export const siteRouter = createTRPCRouter({
                 }
                 // Check if the 'type' property is present in input.body and that the value of 'type' matches the value of 'type' in input.body.geometry.
                 if (hasType) {
-                    if (!hasGeometry || updatedData.geometry.type !== updatedData.type) {
+                    if (!hasGeometry || updatedData.geometry?.type !== updatedData.type) {
                         throw new TRPCError({
                             code: "PARSE_ERROR",
                             message: "Invalid input: 'type' property must match the 'type' property of the 'geometry' object",
@@ -314,16 +312,29 @@ export const siteRouter = createTRPCRouter({
                     updatedData = rest;
                 }
                 // If none of them is there, then just update:
+                let data:Prisma.SiteUpdateInput = {}; // Create a copy of updatedData
+
+                if (updatedData.geometry) {
+                    const {geometry, ...rest} = updatedData;
+                    data = {
+                        ...rest,
+                        geometry: JSON.stringify(geometry),
+                    };
+                }
+
+                // Update the site using the modified data object
                 const updatedSite = await ctx.prisma.site.update({
                     where: {
                         id: input.params.siteId,
                     },
-                    data: updatedData,
+                    data: data,
                 });
+
                 return {
                     status: 'success',
                     data: updatedSite,
                 };
+
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({

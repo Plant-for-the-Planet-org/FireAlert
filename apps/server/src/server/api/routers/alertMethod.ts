@@ -28,6 +28,8 @@ const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, userId }:
         },
         select: {
             userId: true,
+            destination: true,
+            method: true,
         },
     });
     if (!alertMethodToCRUD) {
@@ -42,6 +44,7 @@ const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, userId }:
             message: "You are not authorized to update this alertMethod",
         });
     }
+    return alertMethodToCRUD
 };
 
 
@@ -187,7 +190,6 @@ export const alertMethodRouter = createTRPCRouter({
                     data: {
                         method: input.method,
                         destination: input.destination,
-                        isVerified: input.isVerified,
                         isEnabled: input.isEnabled,
                         deviceType: input.deviceType,
                         userId: userId,
@@ -293,13 +295,23 @@ export const alertMethodRouter = createTRPCRouter({
                     message: "User ID not found",
                 });
             }
-            await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: userId });
+            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: userId });
             try {
+                const { method, destination } = input.body;
+                // Check to see if method or destination has changed
+                const isMethodChanged = method && existingAlertMethod.method !== method;
+                const isDestinationChanged = destination && existingAlertMethod.destination !== destination;
+                // If either destination or method has changed, make isVerified to false
+                const isVerified = !(isDestinationChanged || isMethodChanged );
+
                 const updatedAlertMethod = await ctx.prisma.alertMethod.update({
                     where: {
-                        id: input.params.alertMethodId
+                        id: input.params.alertMethodId,
                     },
-                    data: input.body,
+                    data: {
+                        ...input.body,
+                        isVerified: isVerified
+                    },   
                 });
                 return {
                     status: 'success',
@@ -313,6 +325,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
             }
         }),
+
 
     deleteAlertMethod: protectedProcedure
         .input(params)

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Function to send a push notification using OneSignal
-export const sendPushNotification = async (deviceToken, message) => {
+export const sendPushNotification = async (deviceToken:string, message:string) => {
     try {
         const appId = "your_onesignal_app_id";
         const restApiKey = "your_onesignal_rest_api_key";
