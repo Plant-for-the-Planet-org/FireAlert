@@ -57,7 +57,7 @@ const Otp = ({navigation, route}) => {
     verifyAlertMethod.mutate({
       json: {
         alertMethodId: route?.params?.alertMethod?.id,
-        notificationToken: code,
+        token: code,
       },
     });
   };
