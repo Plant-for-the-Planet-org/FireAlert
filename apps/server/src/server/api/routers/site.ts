@@ -83,11 +83,10 @@ export const siteRouter = createTRPCRouter({
                         origin: origin,
                         type: input.type,
                         name: input.name,
-                        geometry: JSON.stringify(input.geometry),
+                        geometry: input.geometry,
                         radius: radius,
                         isMonitored: input.isMonitored,
-                        userId: userId,
-                        projectId: input.projectId,
+                        userId: userId
                     },
                 });
                 return {
@@ -110,6 +109,7 @@ export const siteRouter = createTRPCRouter({
                 const sitesForProject = await ctx.prisma.site.findMany({
                     where: {
                         projectId: input.projectId,
+                        deletedAt: null,
                     },
                     select: {
                         id: true,
@@ -118,7 +118,6 @@ export const siteRouter = createTRPCRouter({
                         geometry: true,
                         radius: true,
                         isMonitored: true,
-                        deletedAt: true,
                         projectId: true,
                         lastUpdated: true,
                         userId: true,
@@ -150,6 +149,7 @@ export const siteRouter = createTRPCRouter({
                 const sites = await ctx.prisma.site.findMany({
                     where: {
                         userId: userId,
+                        deletedAt: null,
                     },
                     select: {
                         id: true,
@@ -158,7 +158,6 @@ export const siteRouter = createTRPCRouter({
                         geometry: true,
                         radius: true,
                         isMonitored: true,
-                        deletedAt: true,
                         projectId: true,
                         lastUpdated: true,
                         userId: true,
@@ -212,7 +211,8 @@ export const siteRouter = createTRPCRouter({
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
                 const site = await ctx.prisma.site.findFirst({
                     where: {
-                        id: input.siteId
+                        id: input.siteId,
+                        deletedAt: null,
                     }
                 })
                 if (site) {
@@ -261,7 +261,7 @@ export const siteRouter = createTRPCRouter({
                     const { geometry, ...rest } = updatedData;
                     data = {
                         ...rest,
-                        geometry: JSON.stringify(geometry),
+                        geometry: geometry,
                     };
                 }
                 // If Site is associated with PlanetRO User then don't allow changes on fields other than radius and isMonitored
@@ -315,7 +315,7 @@ export const siteRouter = createTRPCRouter({
                 if (isPlanetROSite){
                     throw new TRPCError({
                         code: "UNAUTHORIZED",
-                        message: "Cannot delete Site fetched from planet webapp, please delete it from planet webapp",
+                        message: "FireAlert cannot delete Site fetched from Plant-for-the-Planet, Please delete it from Plant-for-the-Planet Platform",
                     });
                 }
                 const deletedSite = await ctx.prisma.site.delete({
@@ -324,8 +324,9 @@ export const siteRouter = createTRPCRouter({
                     },
                 });
                 return {
-                    status: "success",
+                    status: "SUCCESS",
                     data: deletedSite,
+                    message: "Site deleted successfully",
                 };
             } catch (error) {
                 console.log(error);
