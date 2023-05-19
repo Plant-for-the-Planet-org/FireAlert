@@ -113,11 +113,6 @@ export default function Map({
       </MapboxGL.MapView>
       <View style={styles.fakeMarkerCont}>
         <SvgXml xml={active_marker} style={styles.markerImage} />
-        {loader ? (
-          <ActivityIndicator color={Colors.WHITE} style={styles.loader} />
-        ) : (
-          <Text style={styles.activeMarkerLocation}>{markerText}</Text>
-        )}
       </View>
     </View>
   );
@@ -147,7 +142,7 @@ const styles = StyleSheet.create({
   markerText: {
     width: 30,
     height: 43,
-    color: Colors.WHITE,
+    color: Colors.BLACK,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     fontSize: Typography.FONT_SIZE_16,
     textAlign: 'center',
@@ -155,14 +150,14 @@ const styles = StyleSheet.create({
   },
   loader: {
     position: 'absolute',
-    bottom: 67,
+    bottom: 17,
   },
   activeMarkerLocation: {
     position: 'absolute',
-    bottom: 67,
-    color: Colors.WHITE,
+    bottom: 19,
+    color: Colors.BLACK,
     fontFamily: Typography.FONT_FAMILY_BOLD,
-    fontSize: Typography.FONT_SIZE_16,
+    fontSize: Typography.FONT_SIZE_12,
   },
 });
 

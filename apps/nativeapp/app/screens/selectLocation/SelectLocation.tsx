@@ -22,7 +22,6 @@ import {
   LayerIcon,
   MyLocIcon,
   active_marker,
-  SatelliteDish,
 } from '../../assets/svgs';
 import {
   PermissionDeniedAlert,
@@ -38,7 +37,6 @@ import {
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {locationPermission} from '../../utils/permissions';
-import {getAccuracyColors} from '../../utils/accuracyColors';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -65,13 +63,11 @@ const SelectLocation = ({navigation}) => {
   const [loader, setLoader] = useState(false);
   const [visible, setVisible] = useState(false);
   const [isInitial, setIsInitial] = useState(true);
-  const [accuracyInMeters, setAccuracyInMeters] = useState(0);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
 
   const [isPermissionDenied, setIsPermissionDenied] = useState(false);
   const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
   const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
-  const [isAccuracyModalShow, setIsAccuracyModalShow] = useState(false);
 
   const [siteName, setSiteName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -104,7 +100,6 @@ const SelectLocation = ({navigation}) => {
     return new Promise(resolve => {
       Geolocation.getCurrentPosition(
         position => {
-          setAccuracyInMeters(position.coords.accuracy);
           onUpdateUserLocation(position);
           setLocation(position);
           resolve(position);
@@ -184,91 +179,6 @@ const SelectLocation = ({navigation}) => {
     });
   };
 
-  //small button on top right corner which will show accuracy in meters and the respective colour
-  const renderAccuracyInfo = () => {
-    return (
-      <TouchableOpacity
-        style={[
-          styles.gpsContainer,
-          {backgroundColor: getAccuracyColors(accuracyInMeters) + '80'},
-        ]}
-        onPress={() => setIsAccuracyModalShow(true)}>
-        <SatelliteDish fill={Colors.TEXT_COLOR} />
-        <Text style={styles.gpsText}>
-          GPS ~{Math.round(accuracyInMeters * 100) / 100}m
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderAccuracyModal = () => {
-    return (
-      <Modal transparent visible={isAccuracyModalShow}>
-        <View style={styles.modalContainer}>
-          <View style={styles.contentContainer}>
-            <Text
-              style={{
-                color: '#000000',
-                fontFamily: Typography.FONT_FAMILY_BOLD,
-                fontSize: Typography.FONT_SIZE_18,
-                paddingBottom: 18,
-              }}>
-              GPS Accuracy
-            </Text>
-            <Text style={[styles.accuracyModalText, {marginBottom: 16}]}>
-              {`To improve your GPS Accuracy :\n1. Make sure you are outside.\n2. Walk around a little bit.\n\nFireAlert only works properly when thelocation is accurate to 30 meter.`}
-            </Text>
-            <Text style={styles.accuracyModalText}>
-              <Text
-                style={{
-                  color: '#87B738',
-                  fontFamily: Typography.FONT_FAMILY_BOLD,
-                }}>
-                Green
-              </Text>{' '}
-              = Accurate up to 10 meter.
-            </Text>
-            <Text style={styles.accuracyModalText}>
-              <Text
-                style={{
-                  color: '#CBBB03',
-                  fontFamily: Typography.FONT_FAMILY_BOLD,
-                }}>
-                Yellow
-              </Text>{' '}
-              = Accurate up to 30 meter.
-            </Text>
-            <Text style={styles.accuracyModalText}>
-              <Text
-                style={{
-                  color: '#FF0000',
-                  fontFamily: Typography.FONT_FAMILY_BOLD,
-                }}>
-                Red
-              </Text>{' '}
-              = Greater than 30 meter.
-            </Text>
-            <TouchableOpacity
-              style={{
-                alignSelf: 'center',
-                paddingTop: 25,
-              }}>
-              <Text
-                style={{
-                  color: '#87B738',
-                  fontFamily: Typography.FONT_FAMILY_REGULAR,
-                  fontSize: Typography.FONT_SIZE_14,
-                }}
-                onPress={() => setIsAccuracyModalShow(false)}>
-                Close
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   const handleMyLocation = () => {
     if (location) {
       onPressMyLocationIcon(location);
@@ -316,7 +226,6 @@ const SelectLocation = ({navigation}) => {
   useEffect(() => {
     const watchId = Geolocation.watchPosition(
       position => {
-        setAccuracyInMeters(position.coords.accuracy);
         onUpdateUserLocation(position);
         setLocation(position);
       },
@@ -368,18 +277,13 @@ const SelectLocation = ({navigation}) => {
         )}
         <View style={styles.fakeMarkerCont}>
           <SvgXml xml={active_marker} style={styles.markerImage} />
-          {loader && (
-            <ActivityIndicator color={Colors.WHITE} style={styles.loader} />
-          )}
         </View>
       </MapboxGL.MapView>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleClose}>
           <CrossIcon fill={'#4D5153'} />
         </TouchableOpacity>
-        {renderAccuracyInfo()}
       </View>
-      {renderAccuracyModal()}
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <TouchableOpacity
         onPress={handleLayer}
@@ -387,7 +291,7 @@ const SelectLocation = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={20} height={20} fill={Colors.TEXT_COLOR} />
+        <LayerIcon width={45} height={45} fill={Colors.TEXT_COLOR} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -395,7 +299,7 @@ const SelectLocation = ({navigation}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon />
+        <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
       <CustomButton
         title="Select Location"
@@ -481,7 +385,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 72 : 92,
+    bottom: IS_ANDROID ? 92 : 112,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
@@ -494,7 +398,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 92 : 112,
+    top: IS_ANDROID ? 92 : 138,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },

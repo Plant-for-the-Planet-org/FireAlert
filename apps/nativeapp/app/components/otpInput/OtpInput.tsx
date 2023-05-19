@@ -5,23 +5,30 @@ import OTPInputView from '@twotalltotems/react-native-otp-input';
 import {Colors, Typography} from '../../styles';
 
 interface IOtpInputProps {
+  code?: string | undefined;
   onCodeFilled?: (code: string) => void;
+  onCodeChanged?: (code: string) => void;
 }
 
-const OtpInput = ({onCodeFilled}: IOtpInputProps) => {
-  return (
-    <OTPInputView
-      pinCount={5}
-      autoFocusOnLoad
-      style={styles.otpInput}
-      onCodeFilled={onCodeFilled}
-      codeInputFieldStyle={styles.underlineStyleBase}
-      codeInputHighlightStyle={styles.underlineStyleHighLighted}
-      // onCodeChanged = {code => { this.setState({code})}}
-      // code={this.state.code} //You can supply this prop or not. The component will be used as a controlled / uncontrolled component respectively.
-    />
-  );
-};
+const OtpInput = React.forwardRef(
+  ({onCodeFilled, onCodeChanged, code}: IOtpInputProps, otpInputRef) => {
+    return (
+      <OTPInputView
+        code={code}
+        pinCount={5}
+        autoFocusOnLoad
+        ref={otpInputRef}
+        clearInputs={code === ''}
+        style={styles.otpInput}
+        onCodeFilled={onCodeFilled}
+        onCodeChanged={onCodeChanged}
+        codeInputFieldStyle={styles.underlineStyleBase}
+        codeInputHighlightStyle={styles.underlineStyleHighLighted}
+        // code={this.state.code} //You can supply this prop or not. The component will be used as a controlled / uncontrolled component respectively.
+      />
+    );
+  },
+);
 
 export default OtpInput;
 
