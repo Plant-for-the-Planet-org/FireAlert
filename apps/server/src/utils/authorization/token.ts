@@ -1,7 +1,7 @@
 import jwt, { VerifyOptions} from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import { TRPCError } from '@trpc/server';
-import { type InnerTRPCContext, PPJwtPayload } from '../server/api/trpc'
+import { type InnerTRPCContext, PPJwtPayload } from '../../server/api/trpc'
 
 interface TRPCContext extends InnerTRPCContext {
     token: PPJwtPayload;

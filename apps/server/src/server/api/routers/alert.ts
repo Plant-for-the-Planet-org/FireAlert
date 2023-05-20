@@ -6,8 +6,8 @@ import {
     protectedProcedure,
 } from "../trpc";
 
-import { Alert } from "@prisma/client";
-import { getUserIdByToken } from "../../../utils/token";
+import { SiteAlert } from "@prisma/client";
+import { checkSoftDeleted } from "../../../utils/authorization/checks";
 import { subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
@@ -16,15 +16,9 @@ export const alertRouter = createTRPCRouter({
         .input(siteParams)
         .query(async ({ ctx, input }) => {
             try {
-                const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-                if (!userId) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "User ID not found",
-                    });
-                }
+                await checkSoftDeleted(ctx)
                 const thirtyDaysAgo = subtractDays(new Date(), 30);
-                const alertsForSite = await ctx.prisma.alert.findMany({
+                const alertsForSite = await ctx.prisma.siteAlert.findMany({
                     where: {
                         siteId: input.siteId,
                         eventDate: {
@@ -48,24 +42,18 @@ export const alertRouter = createTRPCRouter({
     getAlertsForUser: protectedProcedure
         .query(async ({ ctx }) => {
             try {
-                const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-                if (!userId) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "User ID not found",
-                    });
-                }
-                const alertsForUser: Alert[] = [];
+                const user = await checkSoftDeleted(ctx)
+                const alertsForUser: SiteAlert[] = [];
                 const sites = await ctx.prisma.site.findMany({
                     where: {
-                        userId,
+                        userId: user.id,
                     },
                 });
 
                 // Fetch alerts for each site
                 for (const site of sites) {
                     const thirtyDaysAgo = subtractDays(new Date(), 30);
-                    const alertsForEachSite = await ctx.prisma.alert.findMany({
+                    const alertsForEachSite = await ctx.prisma.siteAlert.findMany({
                         where: {
                             siteId: site.id,
                             eventDate: {
@@ -92,9 +80,10 @@ export const alertRouter = createTRPCRouter({
     getAlert: protectedProcedure
         .input(queryAlertSchema)
         .query(async ({ ctx, input }) => {
+            await checkSoftDeleted(ctx)
             try {
-                const alert = await ctx.prisma.alert.findFirst({
-                    where: { id: input.alertId }
+                const alert = await ctx.prisma.siteAlert.findFirst({
+                    where: { id: input.siteAlertId }
                 })
                 return {
                     status: 'success',
@@ -112,9 +101,10 @@ export const alertRouter = createTRPCRouter({
     deleteAnAlert: protectedProcedure
         .input(queryAlertSchema)
         .mutation(async ({ ctx, input }) => {
+            await checkSoftDeleted(ctx)
             try {
-                const deletedAlert = await ctx.prisma.alert.delete({
-                    where: { id: input.alertId }
+                const deletedAlert = await ctx.prisma.siteAlert.delete({
+                    where: { id: input.siteAlertId }
                 })
                 return {
                     status: 'success',

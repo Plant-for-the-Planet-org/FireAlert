@@ -1,7 +1,7 @@
 import { useState } from "react"
 import styles from './SiteComponent.module.css';
 import { api } from "../../utils/api";
-import { makeCoordinates, makeUnarrayedCoordinates } from "../../utils/math";
+import { makeCoordinates, makeUnarrayedCoordinates } from "../../utils/notification/otp";
 
 type SiteDetailsProps = {
     siteId: string;

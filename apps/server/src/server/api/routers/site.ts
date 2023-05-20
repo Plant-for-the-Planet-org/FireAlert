@@ -4,76 +4,16 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { getUserIdByToken } from "../../../utils/token";
-import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
 import { Prisma } from "@prisma/client";
-
-
-interface TRPCContext extends InnerTRPCContext {
-    token: PPJwtPayload;
-}
-type checkUserHasSitePermissionArgs = {
-    ctx: TRPCContext; // the TRPC context object
-    siteId: string; // the ID of the site to be updated
-    userId: string; // the ID of the user attempting to update the site
-};
-
-type checkIfPlanetROSiteArgs = {
-    ctx: TRPCContext; // the TRPC context object
-    siteId: string; // the ID of the site to be updated
-}
-
-// Compares the User in session or token with the Site that is being Read, Updated or Deleted
-const checkUserHasSitePermission = async ({ ctx, siteId, userId }: checkUserHasSitePermissionArgs) => {
-    const siteToCRUD = await ctx.prisma.site.findFirst({
-        where: {
-            id: siteId,
-        }
-    });
-    if (!siteToCRUD) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Site with that id does not exist, cannot update site",
-        });
-    }
-    if (siteToCRUD.userId !== userId) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You are not authorized to update this site",
-        });
-    }
-    return siteToCRUD
-};
-
-const checkIfPlanetROSite = async ({ ctx, siteId }: checkIfPlanetROSiteArgs) => {
-    const siteToCRUD = await ctx.prisma.site.findFirst({
-        where: {
-            id: siteId,
-        },
-        select: {
-            userId: true,
-            projectId: true,
-        },
-    });
-    if (siteToCRUD?.projectId) {
-        return true
-    } else {
-        return false
-    }
-}
+import {checkSoftDeleted} from '../../../utils/authorization/checks'
+import {checkUserHasSitePermission, checkIfPlanetROSite} from  '../../../utils/routers/site'
 
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
         .input(createSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
+            const user = await checkSoftDeleted(ctx)
             try {
                 const radius = input.radius ?? 0
                 const origin = 'firealert'
@@ -86,7 +26,7 @@ export const siteRouter = createTRPCRouter({
                         geometry: input.geometry,
                         radius: radius,
                         isMonitored: input.isMonitored,
-                        userId: userId
+                        userId: user.id
                     },
                 });
                 return {
@@ -106,6 +46,7 @@ export const siteRouter = createTRPCRouter({
         .input(getSitesWithProjectIdParams)
         .query(async ({ ctx, input }) => {
             try {
+                await checkSoftDeleted(ctx)
                 const sitesForProject = await ctx.prisma.site.findMany({
                     where: {
                         projectId: input.projectId,
@@ -138,17 +79,11 @@ export const siteRouter = createTRPCRouter({
 
     getAllSites: protectedProcedure
         .query(async ({ ctx }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found in session",
-                });
-            }
+            const user = await checkSoftDeleted(ctx)
             try {
                 const sites = await ctx.prisma.site.findMany({
                     where: {
-                        userId: userId,
+                        userId: user.id,
                         deletedAt: null,
                     },
                     select: {
@@ -200,15 +135,9 @@ export const siteRouter = createTRPCRouter({
     getSite: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
+            const user = await checkSoftDeleted(ctx)
             try {
-                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
+                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
                 const site = await ctx.prisma.site.findFirst({
                     where: {
                         id: input.siteId,
@@ -238,15 +167,9 @@ export const siteRouter = createTRPCRouter({
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
+            const user = await checkSoftDeleted(ctx)
             try {
-                const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
+                const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: user.id });
                 if (!site) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
@@ -301,16 +224,10 @@ export const siteRouter = createTRPCRouter({
     deleteSite: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
+            // Check if user is authenticated and not soft deleted
+            const user = await checkSoftDeleted(ctx)
             try {
-                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
+                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
                 const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.siteId })
                 if (isPlanetROSite){
                     throw new TRPCError({

@@ -51,7 +51,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { checkTokenIsValid } from '../../utils/token'
+import { checkTokenIsValid, getUserIdByToken } from '../../utils/authorization/token'
 import { NextApiRequest } from "next";
 
 
@@ -71,7 +71,7 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 
 export const createTRPCRouter = t.router;
 
-const passCtxToNext = t.middleware(async({ctx, next})=> {
+const passCtxToNext = t.middleware(async ({ ctx, next }) => {
   return next({
     ctx
   })
@@ -125,9 +125,9 @@ const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
 
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
 
-const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
+const enforceUserIsAdmin = t.middleware(({ ctx, next }) => {
   if (ctx.session?.user.roles !== 'ROLE_ADMIN') {
-    throw new TRPCError({ code: 'UNAUTHORIZED'})
+    throw new TRPCError({ code: 'UNAUTHORIZED' })
   }
   return next({
     ctx: {
@@ -135,6 +135,8 @@ const enforceUserIsAdmin = t.middleware(({ctx, next}) => {
     }
   })
 })
+
 export const adminProcedure = t.procedure.use(enforceUserIsAdmin);
 
 export type InnerTRPCContext = ReturnType<typeof createInnerTRPCContext>;
+export type MiddlewareEnsureUserIsAuthed = typeof enforceUserIsAuthed;

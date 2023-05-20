@@ -1,9 +1,9 @@
 import { TRPCError } from '@trpc/server';
 import { updateUserSchema } from '../zodSchemas/user.schema';
 import { adminProcedure, createTRPCRouter, protectedProcedure } from '../trpc';
-import { getUserIdByToken } from '../../../utils/token';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
 import { sendEmail } from '../../../utils/notification/sendEmail';
+import { checkSoftDeleted } from '../../../utils/authorization/checks';
 import { Prisma, Project, Site } from '@prisma/client';
 
 export const userRouter = createTRPCRouter({
@@ -252,23 +252,9 @@ export const userRouter = createTRPCRouter({
         }),
 
     getUser: protectedProcedure.query(async ({ ctx }) => {
-        const userId = ctx.token
-            ? await getUserIdByToken(ctx)
-            : ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'User ID not found',
-            });
-        }
         try {
-            const user = await ctx.prisma.user.findFirst({
-                where: {
-                    id: userId,
-                },
-            });
-            if (user) {
-                return {
+            const user = await checkSoftDeleted(ctx)
+            const returnUser =  {
                     id: user.id,
                     sub: user.sub,
                     email: user.email,
@@ -277,18 +263,16 @@ export const userRouter = createTRPCRouter({
                     isPlanetRO: user.isPlanetRO,
                     lastLogin: user.lastLogin,
                     detectionMethods: user.detectionMethods
-                };;
-            } else {
-                throw new TRPCError({
-                    code: 'NOT_FOUND',
-                    message: `Cannot find a user with that userId!`,
-                });
+                };
+            return {
+                status: 'success',
+                data: returnUser
             }
         } catch (error) {
             console.log(error)
             throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: `${error}`,
+                code: "NOT_FOUND",
+                message: `Cannot find a user`,
             });
         }
     }),
@@ -296,15 +280,7 @@ export const userRouter = createTRPCRouter({
     updateUser: protectedProcedure
         .input(updateUserSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token
-                ? await getUserIdByToken(ctx)
-                : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: 'NOT_FOUND',
-                    message: 'User ID not found',
-                });
-            }
+            const user = await checkSoftDeleted(ctx)
             let body:Prisma.UserUpdateInput = {};
             if(input.body.detectionMethods){
                 const {detectionMethods, ...rest} = input.body
@@ -318,11 +294,11 @@ export const userRouter = createTRPCRouter({
             try {
                 const updatedUser = await ctx.prisma.user.update({
                     where: {
-                        id: userId,
+                        id: user.id,
                     },
                     data: body,
                 });
-                return {
+                const returnUser =  {
                     id: updatedUser.id,
                     sub: updatedUser.sub,
                     email: updatedUser.email,
@@ -331,7 +307,11 @@ export const userRouter = createTRPCRouter({
                     isPlanetRO: updatedUser.isPlanetRO,
                     lastLogin: updatedUser.lastLogin,
                     detectionMethods: updatedUser.detectionMethods
-                };
+                }
+                return {
+                    status: 'success',
+                    data: returnUser
+                }
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
@@ -342,19 +322,11 @@ export const userRouter = createTRPCRouter({
         }),
 
     softDeleteUser: protectedProcedure.mutation(async ({ ctx }) => {
-        const userId = ctx.token
-            ? await getUserIdByToken(ctx)
-            : ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'User ID not found',
-            });
-        }
+        const user = await checkSoftDeleted(ctx)
         try {
             const deletedUser = await ctx.prisma.user.update({
                 where: {
-                    id: userId,
+                    id: user.id,
                 },
                 data: {
                     deletedAt: new Date(),
@@ -369,7 +341,6 @@ export const userRouter = createTRPCRouter({
                 const emailSubject = 'Soft Delete Fire Alert Account'
                 const emailBody = 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.'
                 const emailSent = await sendEmail(deletedUser.email, emailSubject, emailBody)
-
                 return {
                     status: 'Success',
                     message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
@@ -389,25 +360,15 @@ export const userRouter = createTRPCRouter({
             // Get the access token
             const access_token = ctx.token.access_token
             const bearer_token = "Bearer " + access_token
-            // check if this user already exists in the database
-            const user = await ctx.prisma.user.findFirst({
-                where: {
-                    email: ctx.token["https://app.plant-for-the-planet.org/email"]
-                }
-            })
-            if (!user) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: `User not found`,
-                });
-            }
+            // check if this user already exists in the database and has not been soft deleted
+            const user = await checkSoftDeleted(ctx)
             // then check to see if PlanetRO is true for this user or not
             if (user.isPlanetRO) {
                 // If yes planetRO, check if any new projects or sites have been added for this user or not
                 const projectsFromPP = await fetchProjectsWithSitesForUser(bearer_token)
                 const projectsFromDB = await ctx.prisma.project.findMany({
                     where: {
-                        userId: user!.id,
+                        userId: user.id,
                     }
                 })
                 const projectIdsFromPP = projectsFromPP.map(project => project.id);
@@ -476,7 +437,7 @@ export const userRouter = createTRPCRouter({
                             await ctx.prisma.site.create({
                                 data: {
                                     type: type,
-                                    geometry: JSON.stringify(geoJsonGeometry),
+                                    geometry: geoJsonGeometry,
                                     radius: radius,
                                     userId: userId,
                                     projectId: projectId,
@@ -490,7 +451,7 @@ export const userRouter = createTRPCRouter({
                                 },
                                 data: {
                                     type: type,
-                                    geometry: JSON.stringify(geometry),
+                                    geometry: geoJsonGeometry,
                                     radius: radius,
                                     lastUpdated: siteLastUpdatedFromPP.date,
                                 },

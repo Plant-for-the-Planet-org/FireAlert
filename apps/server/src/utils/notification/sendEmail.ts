@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { env } from '../../env.mjs';
-import { getEmailTemplate } from '../emailTemplate';
+import { getEmailTemplate } from './emailTemplate.js';
 import { captureException, flush } from "@sentry/nextjs"
 
 // Function to send an email using SMTP
