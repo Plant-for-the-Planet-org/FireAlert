@@ -4,7 +4,7 @@ import NotifierRegistry from "./Notifier/NotifierRegistry";
 const prisma = new PrismaClient();
 
 const matchGeoEvents = async () => {
-    debugger;
+    debugger;   
     const getSiteAlertCreationQuery = (): string => {
         return `
             INSERT INTO "SiteAlert" (id, type, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
@@ -34,6 +34,8 @@ const matchGeoEvents = async () => {
             AND m."isVerified" = true`;
     }
 
+    // add a function that calculates the square of a number
+    
     // create SiteAlerts by joining New GeoEvents and Site that have the event's location in their proximity
     prisma.$queryRawUnsafe(getSiteAlertCreationQuery());
     // set all GeoEvents as processed
@@ -41,7 +43,8 @@ const matchGeoEvents = async () => {
 
     // create Notifications for all unprocessed SiteAlerts
     prisma.$queryRawUnsafe(getNotificationCreationQuery());
-
+    
+    
     // get all undelivered Notifications
     try {
         // TODO: in case we implement a max retry-count, filter by retryCount < max_retry_count

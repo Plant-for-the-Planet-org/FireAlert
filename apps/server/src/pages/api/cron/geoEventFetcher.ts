@@ -3,11 +3,9 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
-import GeoEventProviderConfig from '../../../Services/GeoEventProvider/GeoEventProviderConfig'
 import { PrismaClient, GeoEventProvider } from '@prisma/client'
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
 import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
-import { GeoEventsCreatedMessage } from '../../../Events/Messages/GeoEventsCreatedMessage'
 
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
 
@@ -23,13 +21,12 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   activeProviders.map(provider => {
     const { source, config, sourceKey } = provider
     const geoEventProvider = GeoEventProviderRegistry.get(sourceKey);
-    geoEventProvider.initialize(config);
+    geoEventProvider.initialize(JSON.parse(JSON.stringify(config)));
 
     (async () => {
       const geoEvents = await geoEventProvider.getLatestGeoEvents(sourceKey)
 
-      const geoEventsCreatedMessage = new GeoEventsCreatedMessage(sourceKey, geoEvents)
-      geoEventEmitter.emit(GEO_EVENTS_CREATED, geoEventsCreatedMessage)
+      geoEventEmitter.emit(GEO_EVENTS_CREATED, sourceKey, geoEvents)
     })()
   })
 

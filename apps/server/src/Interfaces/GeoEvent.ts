@@ -2,9 +2,10 @@ interface GeoEvent {
     id?: string
     longitude: number,
     latitude: number,
+    type: string,
     confidence: string,
     detectedBy: string,
-    date: Date,
+    eventDate: Date,
 }
 
 export default GeoEvent;
