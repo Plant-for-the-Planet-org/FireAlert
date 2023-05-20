@@ -1,13 +1,13 @@
 import { TRPCError } from '@trpc/server';
 import { updateUserSchema } from '../zodSchemas/user.schema';
-import { adminProcedure, createTRPCRouter, protectedProcedure } from '../trpc';
+import { adminProcedure, createTRPCRouter, protectedProcedure, userProcedure } from '../trpc';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
 import { sendEmail } from '../../../utils/notification/sendEmail';
-import { checkSoftDeleted } from '../../../utils/authorization/checks';
-import { Prisma, Project, Site } from '@prisma/client';
+import { getUser } from '../../../utils/routers/user';
+import { Prisma, Project} from '@prisma/client';
 
 export const userRouter = createTRPCRouter({
-    profile: protectedProcedure
+    profile: userProcedure
         .query(async ({ ctx }) => {
             // Get the access token
             const access_token = ctx.token.access_token
@@ -253,7 +253,7 @@ export const userRouter = createTRPCRouter({
 
     getUser: protectedProcedure.query(async ({ ctx }) => {
         try {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             const returnUser =  {
                     id: user.id,
                     sub: user.sub,
@@ -280,7 +280,7 @@ export const userRouter = createTRPCRouter({
     updateUser: protectedProcedure
         .input(updateUserSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             let body:Prisma.UserUpdateInput = {};
             if(input.body.detectionMethods){
                 const {detectionMethods, ...rest} = input.body
@@ -322,7 +322,7 @@ export const userRouter = createTRPCRouter({
         }),
 
     softDeleteUser: protectedProcedure.mutation(async ({ ctx }) => {
-        const user = await checkSoftDeleted(ctx)
+        const user = await getUser(ctx)
         try {
             const deletedUser = await ctx.prisma.user.update({
                 where: {
@@ -361,7 +361,7 @@ export const userRouter = createTRPCRouter({
             const access_token = ctx.token.access_token
             const bearer_token = "Bearer " + access_token
             // check if this user already exists in the database and has not been soft deleted
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             // then check to see if PlanetRO is true for this user or not
             if (user.isPlanetRO) {
                 // If yes planetRO, check if any new projects or sites have been added for this user or not

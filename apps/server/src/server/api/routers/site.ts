@@ -5,7 +5,7 @@ import {
     protectedProcedure,
 } from "../trpc";
 import { Prisma } from "@prisma/client";
-import {checkSoftDeleted} from '../../../utils/authorization/checks'
+import {getUser} from '../../../utils/routers/user'
 import {checkUserHasSitePermission, checkIfPlanetROSite} from  '../../../utils/routers/site'
 
 export const siteRouter = createTRPCRouter({
@@ -13,7 +13,7 @@ export const siteRouter = createTRPCRouter({
     createSite: protectedProcedure
         .input(createSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             try {
                 const radius = input.radius ?? 0
                 const origin = 'firealert'
@@ -46,7 +46,7 @@ export const siteRouter = createTRPCRouter({
         .input(getSitesWithProjectIdParams)
         .query(async ({ ctx, input }) => {
             try {
-                await checkSoftDeleted(ctx)
+                await getUser(ctx)
                 const sitesForProject = await ctx.prisma.site.findMany({
                     where: {
                         projectId: input.projectId,
@@ -79,7 +79,7 @@ export const siteRouter = createTRPCRouter({
 
     getAllSites: protectedProcedure
         .query(async ({ ctx }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             try {
                 const sites = await ctx.prisma.site.findMany({
                     where: {
@@ -135,7 +135,7 @@ export const siteRouter = createTRPCRouter({
     getSite: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
                 const site = await ctx.prisma.site.findFirst({
@@ -167,7 +167,7 @@ export const siteRouter = createTRPCRouter({
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             try {
                 const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: user.id });
                 if (!site) {
@@ -225,7 +225,7 @@ export const siteRouter = createTRPCRouter({
         .input(params)
         .mutation(async ({ ctx, input }) => {
             // Check if user is authenticated and not soft deleted
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
                 const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.siteId })

@@ -7,7 +7,7 @@ import {
 } from "../trpc";
 
 import { SiteAlert } from "@prisma/client";
-import { checkSoftDeleted } from "../../../utils/authorization/checks";
+import { getUser } from "../../../utils/routers/user";
 import { subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
@@ -16,7 +16,7 @@ export const alertRouter = createTRPCRouter({
         .input(siteParams)
         .query(async ({ ctx, input }) => {
             try {
-                await checkSoftDeleted(ctx)
+                await getUser(ctx)
                 const thirtyDaysAgo = subtractDays(new Date(), 30);
                 const alertsForSite = await ctx.prisma.siteAlert.findMany({
                     where: {
@@ -42,7 +42,7 @@ export const alertRouter = createTRPCRouter({
     getAlertsForUser: protectedProcedure
         .query(async ({ ctx }) => {
             try {
-                const user = await checkSoftDeleted(ctx)
+                const user = await getUser(ctx)
                 const alertsForUser: SiteAlert[] = [];
                 const sites = await ctx.prisma.site.findMany({
                     where: {
@@ -80,7 +80,7 @@ export const alertRouter = createTRPCRouter({
     getAlert: protectedProcedure
         .input(queryAlertSchema)
         .query(async ({ ctx, input }) => {
-            await checkSoftDeleted(ctx)
+            await getUser(ctx)
             try {
                 const alert = await ctx.prisma.siteAlert.findFirst({
                     where: { id: input.siteAlertId }
@@ -101,7 +101,7 @@ export const alertRouter = createTRPCRouter({
     deleteAnAlert: protectedProcedure
         .input(queryAlertSchema)
         .mutation(async ({ ctx, input }) => {
-            await checkSoftDeleted(ctx)
+            await getUser(ctx)
             try {
                 const deletedAlert = await ctx.prisma.siteAlert.delete({
                     where: { id: input.siteAlertId }

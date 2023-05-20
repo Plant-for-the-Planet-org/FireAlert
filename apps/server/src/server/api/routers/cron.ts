@@ -4,7 +4,6 @@ import { fetchAllProjectsWithSites } from "../../../utils/fetch"
 import { parse } from 'csv-parse'
 import * as turf from '@turf/turf';
 import { subtractDays } from "../../../utils/date"
-import { makeDetectionCoordinates } from "../../../utils/turf";
 import { type InnerTRPCContext } from '../trpc'
 
 
@@ -339,7 +338,6 @@ export const cronRouter = createTRPCRouter({
                                 const siteFromDatabase = dbSites.find((site) => site.id === siteIdFromPP);
 
                                 const radius = 0;
-                                const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
 
                                 if (!siteFromDatabase) {
                                     // Site does not exist in the database, create a new site
@@ -350,7 +348,6 @@ export const cronRouter = createTRPCRouter({
                                                 type: geometry.type,
                                                 geometry: geometry,
                                                 radius: radius,
-                                                detectionCoordinates: detectionCoordinates,
                                                 userId: tpoId,
                                                 projectId: projectId,
                                                 lastUpdated: siteLastUpdatedFromPP.date,
@@ -368,7 +365,6 @@ export const cronRouter = createTRPCRouter({
                                                 type: geometry.type,
                                                 geometry: geometry,
                                                 radius: radius,
-                                                detectionCoordinates: detectionCoordinates,
                                                 lastUpdated: siteLastUpdatedFromPP.date,
                                             },
                                         })

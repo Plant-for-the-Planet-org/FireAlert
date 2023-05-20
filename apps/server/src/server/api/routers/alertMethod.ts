@@ -10,7 +10,7 @@ import {
 } from "../trpc";
 import { generate5DigitOTP } from '../../../utils/notification/otp'
 import { sendVerificationCode } from '../../../utils/notification/sendVerificationCode'
-import { checkSoftDeleted } from "../../../utils/authorization/checks";
+import { getUser } from "../../../utils/routers/user";
 import { 
     findAlertMethod, 
     handleOTPSendLimitation, 
@@ -25,7 +25,7 @@ export const alertMethodRouter = createTRPCRouter({
     sendVerification: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
-            await checkSoftDeleted(ctx)
+            await getUser(ctx)
             const alertMethodId = input.alertMethodId
             const alertMethod = await findAlertMethod({ ctx, alertMethodId })
             if (alertMethod.isVerified) {
@@ -46,7 +46,7 @@ export const alertMethodRouter = createTRPCRouter({
     verify: protectedProcedure
         .input(verifySchema)
         .mutation(async ({ ctx, input }) => {
-            await checkSoftDeleted(ctx)
+            await getUser(ctx)
             const alertMethodId = input.alertMethodId
             await findAlertMethod({ ctx, alertMethodId })
             const verificatonRequest = await findVerificationRequest({ ctx, alertMethodId })
@@ -76,7 +76,7 @@ export const alertMethodRouter = createTRPCRouter({
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             // Check if the user has reached the maximum limit of alert methods (e.g., 5)
             await limitAlertMethodPerUser({ ctx, userId: user.id, count: 5 })
             try {
@@ -115,7 +115,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     getAllAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             try {
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
                     where: {
@@ -138,7 +138,7 @@ export const alertMethodRouter = createTRPCRouter({
     getAlertMethod: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
                 const alertMethodId = input.alertMethodId
@@ -159,7 +159,7 @@ export const alertMethodRouter = createTRPCRouter({
     updateAlertMethod: protectedProcedure
         .input(updateAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: user.id });
             try {
                 const { method, destination } = input.body;
@@ -194,7 +194,7 @@ export const alertMethodRouter = createTRPCRouter({
     deleteAlertMethod: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
-            const user = await checkSoftDeleted(ctx)
+            const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
                 const deletedAlertMethod = await ctx.prisma.alertMethod.delete({
