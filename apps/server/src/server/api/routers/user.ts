@@ -3,7 +3,7 @@ import { updateUserSchema } from '../zodSchemas/user.schema';
 import { adminProcedure, createTRPCRouter, protectedProcedure, userProcedure } from '../trpc';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
 import { sendEmail } from '../../../utils/notification/sendEmail';
-import { getUser, createUserInPrismaTransaction, returnUser, getUserByEmail } from '../../../utils/routers/user';
+import { getUser, createUserInPrismaTransaction, returnUser, getUserByEmail} from '../../../utils/routers/user';
 import { createAlertMethodInPrismaTransaction } from '../../../utils/routers/alertMethod';
 import { Prisma, Project} from '@prisma/client';
 
@@ -183,19 +183,10 @@ export const userRouter = createTRPCRouter({
     getUser: protectedProcedure.query(async ({ ctx }) => {
         try {
             const user = await getUser(ctx)
-            const returnUser =  {
-                    id: user.id,
-                    sub: user.sub,
-                    email: user.email,
-                    name: user.name,
-                    image: user.image,
-                    isPlanetRO: user.isPlanetRO,
-                    lastLogin: user.lastLogin,
-                    detectionMethods: user.detectionMethods
-                };
+            const returnedUser = returnUser(user)
             return {
                 status: 'success',
-                data: returnUser
+                data: returnedUser
             }
         } catch (error) {
             console.log(error)
@@ -227,19 +218,10 @@ export const userRouter = createTRPCRouter({
                     },
                     data: body,
                 });
-                const returnUser =  {
-                    id: updatedUser.id,
-                    sub: updatedUser.sub,
-                    email: updatedUser.email,
-                    name: updatedUser.name,
-                    image: updatedUser.image,
-                    isPlanetRO: updatedUser.isPlanetRO,
-                    lastLogin: updatedUser.lastLogin,
-                    detectionMethods: updatedUser.detectionMethods
-                }
+                const returnedUser = returnUser(updatedUser)
                 return {
                     status: 'success',
-                    data: returnUser
+                    data: returnedUser
                 }
             } catch (error) {
                 console.log(error)
@@ -284,7 +266,7 @@ export const userRouter = createTRPCRouter({
         }
     }),
 
-    syncProjectsAndSite: protectedProcedure
+    syncProjectsAndSites: protectedProcedure
         .mutation(async ({ ctx }) => {
             // Get the access token
             const access_token = ctx.token.access_token
@@ -300,117 +282,151 @@ export const userRouter = createTRPCRouter({
                         userId: user.id,
                     }
                 })
-                const projectIdsFromPP = projectsFromPP.map(project => project.id);
-                for (const projectFromDB of projectsFromDB) {
-                    if (!projectIdsFromPP.includes(projectFromDB.id)) {
-                        await ctx.prisma.project.delete({
+                const result = await ctx.prisma.$transaction(async(prisma) => {
+                    const createPromises = [];
+                    const updatePromises = [];
+                    const deletePromises = [];
+                    const projectIdsFromPP = projectsFromPP.map(project => project.id);
+                    for (const projectFromDB of projectsFromDB) {
+                        if (!projectIdsFromPP.includes(projectFromDB.id)) {
+                            deletePromises.push(
+                                prisma.project.delete({
+                                    where: {
+                                        id: projectFromDB.id,
+                                    },
+                                })
+                            )
+                            updatePromises.push(
+                                prisma.site.update({
+                                    where: {
+                                        projectId: projectFromDB.id
+                                    },
+                                    data: {
+                                        deletedAt: new Date(),
+                                        projectId: null,
+                                    }
+                                })
+                            )
+                        }
+                    }
+                    for (const projectFromPP of projectsFromPP) {
+                        const { id: projectId, name: projectNameFormPP, slug: projectSlugFormPP, sites: sitesFromPPProject } = projectFromPP.properties;
+                        const userId = user.id;
+                        // See if the project exists in db
+                        const projectFromDatabase = await ctx.prisma.project.findFirst({
                             where: {
-                                id: projectFromDB.id,
-                            },
-                        });
-                        await ctx.prisma.site.updateMany({
-                            where: {
-                                projectId: projectFromDB.id
-                            },
-                            data: {
-                                deletedAt: new Date(),
-                                projectId: null,
+                                id: projectId
                             }
                         })
-                    }
-                }
-                for (const projectFromPP of projectsFromPP) {
-                    const { id: projectId, name: projectNameFormPP, slug: projectSlugFormPP, sites: sitesFromPPProject } = projectFromPP.properties;
-                    const userId = user.id;
-                    // See if the project exists in db
-                    const projectFromDatabase = await ctx.prisma.project.findFirst({
-                        where: {
-                            id: projectId
+                        // If project does not exist, create project
+                        if (!projectFromDatabase) {
+                            // Add that new project from pp to database
+                            createPromises.push(
+                                prisma.project.create({
+                                    data: {
+                                        id: projectId,
+                                        userId: userId,
+                                        lastUpdated: new Date(),
+                                        name: projectNameFormPP,
+                                        slug: projectSlugFormPP,
+                                    },
+                                })
+                            )
                         }
-                    })
-                    // If project does not exist, create project
-                    if (!projectFromDatabase) {
-                        // Add that new project from pp to database
-                        await ctx.prisma.project.create({
-                            data: {
-                                id: projectId,
-                                userId: userId,
-                                lastUpdated: new Date(),
-                                name: projectNameFormPP,
-                                slug: projectSlugFormPP,
-                            },
-                        });
-                    }
-                    // Similarly for each site, find if there are sites that are missing in db, if yes, add that site to db
-                    for (const siteFromPP of sitesFromPPProject) {
-                        const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP, geometry } = siteFromPP;
-                        const geoJsonGeometry = {
-                            "type": "FeatureCollection",
-                            "features": [
-                                {
-                                    "type": "Feature",
-                                    "properties": {},
-                                    "geometry": geometry
+                        // Similarly for each site, find if there are sites that are missing in db, if yes, add that site to db
+                        for (const siteFromPP of sitesFromPPProject) {
+                            const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP, geometry } = siteFromPP;
+                            const geoJsonGeometry = {
+                                "type": "FeatureCollection",
+                                "features": [
+                                    {
+                                        "type": "Feature",
+                                        "properties": {},
+                                        "geometry": geometry
+                                    }
+                                ]
+                            }
+                            const radius = 0
+                            const type = geometry.type
+                            const siteFromDatabase = await ctx.prisma.site.findUnique({
+                                where: {
+                                    id: siteIdFromPP,
                                 }
-                            ]
+                            })
+                            if (!siteFromDatabase) {
+                                // create a new site based on the info
+                                createPromises.push(
+                                    prisma.site.create({
+                                        data: {
+                                            type: type,
+                                            geometry: geoJsonGeometry,
+                                            radius: radius,
+                                            userId: userId,
+                                            projectId: projectId,
+                                            lastUpdated: siteLastUpdatedFromPP.date,
+                                        },
+                                    })
+                                )                                
+                            } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
+                                updatePromises.push(
+                                    prisma.site.update({
+                                        where: {
+                                            id: siteIdFromPP
+                                        },
+                                        data: {
+                                            type: type,
+                                            geometry: geoJsonGeometry,
+                                            radius: radius,
+                                            lastUpdated: siteLastUpdatedFromPP.date,
+                                        },
+                                    })
+                                )
+                            }
                         }
-                        const radius = 0
-                        const type = geometry.type
-                        const siteFromDatabase = await ctx.prisma.site.findUnique({
+                        // Find all the sites with that projectId in DB
+                        const sitesFromDBProject = await ctx.prisma.site.findMany({
                             where: {
-                                id: siteIdFromPP,
+                                projectId: projectId,
                             }
                         })
-                        if (!siteFromDatabase) {
-                            // create a new site based on the info
-                            await ctx.prisma.site.create({
-                                data: {
-                                    type: type,
-                                    geometry: geoJsonGeometry,
-                                    radius: radius,
-                                    userId: userId,
-                                    projectId: projectId,
-                                    lastUpdated: siteLastUpdatedFromPP.date,
-                                },
-                            });
-                        } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
-                            await ctx.prisma.site.update({
-                                where: {
-                                    id: siteIdFromPP
-                                },
-                                data: {
-                                    type: type,
-                                    geometry: geoJsonGeometry,
-                                    radius: radius,
-                                    lastUpdated: siteLastUpdatedFromPP.date,
-                                },
-                            });
+                        const siteIdsFromPP = sitesFromPPProject.map(site => site.properties.id);
+                        // If there are any sites that has been deleted in PP, make it's projectId as null, and add deletedAt
+                        for (const siteFromDB of sitesFromDBProject) {
+                            if (!siteIdsFromPP.includes(siteFromDB.id)) {
+                                updatePromises.push(
+                                    prisma.site.update({
+                                        where: {
+                                            id: siteFromDB.id,
+                                        },
+                                        data: {
+                                            deletedAt: new Date(),
+                                            projectId: null
+                                        }
+                                    })
+                                )                                
+                            }
                         }
                     }
-                    // Find all the sites with that projectId in DB
-                    const sitesFromDBProject = await ctx.prisma.site.findMany({
-                        where: {
-                            projectId: projectId,
-                        }
-                    })
-                    const siteIdsFromPP = sitesFromPPProject.map(site => site.properties.id);
-                    // If there are any sites that has been deleted in PP, make it's projectId as null, and add deletedAt
-                    for (const siteFromDB of sitesFromDBProject) {
-                        if (!siteIdsFromPP.includes(siteFromDB.id)) {
-                            await ctx.prisma.site.update({
-                                where: {
-                                    id: siteFromDB.id,
-                                },
-                                data: {
-                                    deletedAt: new Date(),
-                                    projectId: null
-                                }
-                            });
-                        }
-                    }
-                }
+                const createResults = await Promise.all(createPromises);
+                const updateResults = await Promise.all(updatePromises);
+                const deleteResults = await Promise.all(deletePromises);
+                
+                return {created: createResults, updated: updateResults, deleted: deleteResults}                
+                })
+                const {created, updated, deleted} = result
+                const createCount = created.length; // Number of created items
+                const updateCount = updated.length; // Number of updated items
+                const deleteCount = deleted.length; // Number of deleted items
+                
+                return { created: createCount, updated: updateCount, deleted: deleteCount };
+            }else{
+                throw new TRPCError({
+                    code: "METHOD_NOT_SUPPORTED",
+                    message: `Only PlanetRO users can sync projects and site to the planet webapp`,
+                });
             }
-        })
+        }),
+
 });
 
 export type UserRouter = typeof userRouter;
