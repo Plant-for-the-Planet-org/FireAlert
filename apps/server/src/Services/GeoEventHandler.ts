@@ -8,47 +8,42 @@ const processGeoEvents = async (
   detectedBy: string,
   geoEvents: Array<GeoEvent>
 ) => {
-  debugger;
-
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
-        geoEvent.latitude.toString() +
-        geoEvent.longitude.toString() +
-        geoEvent.eventDate.toISOString() +
-        geoEvent.detectedBy
+      geoEvent.latitude.toString() +
+      geoEvent.longitude.toString() +
+      geoEvent.eventDate.toISOString() +
+      geoEvent.detectedBy
     );
   };
 
-  const compareHashes = (
-    currentEventIds: string[],
-    newEventIds: string[]
-  ): {
-    newHashes: string[];
-    existingHashes: string[];
-    deletedHashes: string[];
+  const compareIds = (currentEventIds: string[], detectedEvents: GeoEvent[]): {
+    newGeoEvents: GeoEvent[];
+    deletedIds: string[];
   } => {
-    const newHashes: string[] = [];
-    const existingHashes: string[] = [];
-    const deletedHashes: string[] = [];
+    const newGeoEvents: GeoEvent[] = [];
+    const detectedIds: string[] = [];
+    const deletedIds: string[] = [];
 
     // Identify new hashes
-    newEventIds.forEach((newHash) => {
-      if (!currentEventIds.includes(newHash)) {
-        newHashes.push(newHash);
+    detectedEvents.forEach((detectedEvent: GeoEvent) => {
+      const id = buildChecksum(detectedEvent);
+      detectedIds.push(id);
+      if (!currentEventIds.includes(id)) {
+        detectedEvent.id = id;
+        newGeoEvents.push(detectedEvent);
       }
     });
 
     // Identify existing hashes
-    currentEventIds.forEach((currentHash) => {
-      if (newEventIds.includes(currentHash)) {
-        existingHashes.push(currentHash);
-      } else {
-        deletedHashes.push(currentHash);
+    currentEventIds.forEach((currentId) => {
+      if (detectedIds.includes(currentId)) {
+        deletedIds.push(currentId);
       }
     });
 
-    return { newHashes, existingHashes, deletedHashes };
+    return { newGeoEvents, deletedIds };
   };
 
   const prisma = new PrismaClient();
@@ -70,19 +65,40 @@ const processGeoEvents = async (
     return geoEvents.map((geoEvent) => geoEvent.id);
   };
 
-  const { newHashes, existingHashes, deletedHashes } = compareHashes(
-    await fetchCurrentEventIds(detectedBy),
-    geoEvents.map((geoEvent: GeoEvent) => {
-      return buildChecksum(geoEvent);
-    })
-  );
+  const { newGeoEvents, deletedIds } = compareIds(await fetchCurrentEventIds(detectedBy), geoEvents);
 
-  // TODO:
-  //  - implement the storing of new GeoEvents
+  // Create new GeoEvents in the database
+  // TODO: save GeoEvents stored in newGeoEvents to the database
+  if (newGeoEvents.length > 0) {
+    await prisma.geoEvent.createMany({
+      data: newGeoEvents.map((geoEvent) => ({
+        id: geoEvent.id,
+        type: geoEvent.type,
+        latitude: geoEvent.latitude,
+        longitude: geoEvent.longitude,
+        eventDate: geoEvent.eventDate,
+        confidence: geoEvent.confidence,
+        isProcessed: false,
+        source: geoEvent.source,
+        detectedBy: detectedBy,
+        radius: geoEvent.radius,
+        data: geoEvent.data,
+      })),
+    });
+  }
 
-  //  - implement the deletion of obsolete GeoEvents (mark as obsolete)
+  // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
+  if (deletedIds.length > 0) {
+    await prisma.geoEvent.updateMany({
+      where: {
+        id: { in: deletedIds },
+      },
+      data: {
+        isProcessed: true,
+      },
+    });
+  }
 
-  
   geoEventEmitter.emit(GEO_EVENTS_PROCESSED);
 };
 
