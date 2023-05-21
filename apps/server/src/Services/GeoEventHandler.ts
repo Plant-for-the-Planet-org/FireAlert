@@ -1,11 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import { GEO_EVENTS_PROCESSED } from "../Events/messageConstants";
-import GeoEvent from "../Interfaces/GeoEvent";
+// import GeoEvent from "../Interfaces/GeoEvent";
 import geoEventEmitter from "../Events/EventEmitter/GeoEventEmitter";
 import md5 from "md5";
+import { GeoEvent } from "@prisma/client";
 
 const processGeoEvents = async (
-  detectedBy: string,
+  detectedBy: "MODIS" | "VIIRS" | "LANDSAT" | "GEOSTATIONARY",
   geoEvents: Array<GeoEvent>
 ) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
@@ -49,7 +50,7 @@ const processGeoEvents = async (
   const prisma = new PrismaClient();
 
   const fetchCurrentEventIds = async (
-    detectedBy: string
+    detectedBy: "MODIS" | "VIIRS" | "LANDSAT" | "GEOSTATIONARY"
   ): Promise<Array<string>> => {
     // the the ids of all events from AreaEvent that are either 'pending' or 'notfied'
     // having the provided providerKey
@@ -82,7 +83,7 @@ const processGeoEvents = async (
         source: geoEvent.source,
         detectedBy: detectedBy,
         radius: geoEvent.radius,
-        data: geoEvent.data,
+        data: JSON.stringify(geoEvent.data),
       })),
     });
   }
