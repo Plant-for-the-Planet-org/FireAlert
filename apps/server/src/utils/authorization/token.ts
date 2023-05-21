@@ -53,21 +53,3 @@ export async function getUserIdByToken(ctx: TRPCContext) {
     }
     return user.id;
 }
-
-export async function getUserIdByEmail(email: string) {
-    const user = await prisma.user.findFirst({
-        where: {
-            email: email
-        },
-        select: {
-            id: true,
-        },
-    });
-    if (!user) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Cannot find user associated with the token, make sure the user has logged in atleast once",
-        });
-    }
-    return user.id;
-}

@@ -1,6 +1,8 @@
 import { TRPCError } from '@trpc/server';
+import {TRPCContext} from '../../Interfaces/Context'
 import {CheckUserHasAlertMethodPermissionArgs, CtxWithAlertMethod, CtxWithAlertMethodId, CtxWithUserID} from '../../Interfaces/AlertMethod'
 import { generate5DigitOTP } from '../notification/otp';
+import { Prisma, PrismaClient, User } from '@prisma/client';
 
 
 export const limitAlertMethodPerUser = async ({ ctx, userId, count }: CtxWithUserID) => {
@@ -155,3 +157,25 @@ export const findVerificationRequest = async ({ ctx, alertMethodId }: CtxWithAle
     }
     return verificationRequest
 }
+
+interface CreateAlertMethodInPrismaTransactionArgs{
+    prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use">;
+    ctx: TRPCContext;
+    method: "email" | "sms" | "device" | "whatsapp" | "webhook";
+    isEnabled: boolean;
+    userId: string;
+}
+
+export async function createAlertMethodInPrismaTransaction ({prisma, ctx, method, isEnabled, userId}: CreateAlertMethodInPrismaTransactionArgs){
+    const createdAlertMethod = await prisma.alertMethod.create({
+        data: {
+            method: method,
+            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
+            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+            isEnabled: isEnabled,
+            userId: userId,
+        },
+    });
+    return createdAlertMethod
+}
+

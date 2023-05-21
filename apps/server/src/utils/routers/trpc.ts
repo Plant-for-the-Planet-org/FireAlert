@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { InnerTRPCContext } from '../../server/api/trpc';
-import { checkTokenIsValid, getUserIdByEmail } from '../../utils/authorization/token'
+import { checkTokenIsValid } from '../../utils/authorization/token'
+import {getUserByEmail} from '../../utils/routers/user'
 
 interface InnerCtxWithEmail {
     ctx: InnerTRPCContext,
@@ -51,7 +52,7 @@ export async function tokenAuthentication(ctx: InnerTRPCContext) {
 }
 
 export async function checkSoftDelete({ ctx, email, isTokenAuthentication }: InnerCtxWithEmail) {
-    const userId = isTokenAuthentication ? await getUserIdByEmail(email) : ctx.session?.user?.id;
+    const userId = isTokenAuthentication ? (await getUserByEmail(email)).id : ctx.session?.user?.id;
     if (!userId) {
         throw new TRPCError({
             code: "NOT_FOUND",
