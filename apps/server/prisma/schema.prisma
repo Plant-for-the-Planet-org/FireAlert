@@ -97,6 +97,8 @@ model Site {
     projectId   String?
     lastUpdated DateTime?
     userId      String
+    detectionGeometry   Unsupported("geometry")?
+    originalGeometry    Unsupported("geometry")?
     // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 
     // As prisma is not able to handle it, but we need it for our triggers to work
     alerts      SiteAlert[]
@@ -128,6 +130,7 @@ model GeoEvent {
     latitude      Float
     longitude     Float
     eventDate     DateTime
+    geometry      Unsupported("geometry")?
     confidence    AlertConfidence
     isProcessed   Boolean         @default(false)
     providerKey   GeoEventSource
