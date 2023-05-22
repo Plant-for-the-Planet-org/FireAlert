@@ -1,3 +1,4 @@
+import { NotificationParameters } from "../../../Interfaces/NotificationParameters";
 import Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 
@@ -7,7 +8,10 @@ class WhatsAppNotifier implements Notifier {
         return [NOTIFICATION_METHOD.WHATSAPP];
     }
 
-    notify(destination: string, message: string): boolean {
+    notify(destination: string, parameters: NotificationParameters): boolean {
+        const { type, confidence, longitude, latitude, distance, detectedBy, eventDate, data } = parameters;
+        const message = (`${type} at [${longitude},${latitude}] ${distance}m from your site with ${confidence} confidence`);
+
         console.log(`Sending message ${message} to ${destination}`)
 
         return true;
