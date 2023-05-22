@@ -12,34 +12,7 @@ import { subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
 
-    getAlertsForSite: protectedProcedure
-        .input(siteParams)
-        .query(async ({ ctx, input }) => {
-            try {
-                await getUser(ctx)
-                const thirtyDaysAgo = subtractDays(new Date(), 30);
-                const alertsForSite = await ctx.prisma.siteAlert.findMany({
-                    where: {
-                        siteId: input.siteId,
-                        eventDate: {
-                            gte: thirtyDaysAgo
-                        },
-                    }
-                })
-                return {
-                    status: 'success',
-                    data: alertsForSite,
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
-
-    getAlertsForUser: protectedProcedure
+    getAlerts: protectedProcedure
         .query(async ({ ctx }) => {
             try {
                 const user = await getUser(ctx)
@@ -49,7 +22,6 @@ export const alertRouter = createTRPCRouter({
                         userId: user.id,
                     },
                 });
-
                 // Fetch alerts for each site
                 for (const site of sites) {
                     const thirtyDaysAgo = subtractDays(new Date(), 30);
@@ -76,39 +48,17 @@ export const alertRouter = createTRPCRouter({
             }
         }),
 
-
     getAlert: protectedProcedure
         .input(queryAlertSchema)
         .query(async ({ ctx, input }) => {
             await getUser(ctx)
             try {
                 const alert = await ctx.prisma.siteAlert.findFirst({
-                    where: { id: input.siteAlertId }
+                    where: { id: input.id }
                 })
                 return {
                     status: 'success',
                     data: alert,
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
-
-    deleteAnAlert: protectedProcedure
-        .input(queryAlertSchema)
-        .mutation(async ({ ctx, input }) => {
-            await getUser(ctx)
-            try {
-                const deletedAlert = await ctx.prisma.siteAlert.delete({
-                    where: { id: input.siteAlertId }
-                })
-                return {
-                    status: 'success',
-                    data: deletedAlert
                 }
             } catch (error) {
                 console.log(error)

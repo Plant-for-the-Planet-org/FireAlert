@@ -214,9 +214,6 @@ CREATE UNIQUE INDEX "VerificationRequest_id_token_key" ON "VerificationRequest"(
 -- CreateIndex
 CREATE UNIQUE INDEX "AlertMethod_destination_userId_key" ON "AlertMethod"("destination", "userId");
 
--- CreateIndex
-CREATE UNIQUE INDEX "Site_projectId_key" ON "Site"("projectId");
-
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

@@ -24,12 +24,7 @@ export const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, us
     const alertMethodToCRUD = await ctx.prisma.alertMethod.findFirst({
         where: {
             id: alertMethodId,
-        },
-        select: {
-            userId: true,
-            destination: true,
-            method: true,
-        },
+        }
     });
     if (!alertMethodToCRUD) {
         throw new TRPCError({

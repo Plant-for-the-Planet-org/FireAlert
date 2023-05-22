@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const updateUserSchema = z.object({
     body: z.object({
         name: z.string(),
-        isPlanetRO: z.boolean(),
         avatar: z.string(),
         detectionMethods: z.array(z.enum(['MODIS', 'VIIRS', 'LANDSAT', 'GEOSTATIONARY'])).min(1).refine(values => {
             const uniqueValues = new Set(values);

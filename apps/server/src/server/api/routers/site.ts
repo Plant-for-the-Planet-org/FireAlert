@@ -42,7 +42,7 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-    getAllSitesForProject: protectedProcedure
+    getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
         .query(async ({ ctx, input }) => {
             try {
@@ -77,7 +77,7 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-    getAllSites: protectedProcedure
+    getSites: protectedProcedure
         .query(async ({ ctx }) => {
             const user = await getUser(ctx)
             try {
@@ -241,9 +241,8 @@ export const siteRouter = createTRPCRouter({
                     },
                 });
                 return {
-                    status: "SUCCESS",
+                    status: "success",
                     data: deletedSite,
-                    message: "Site deleted successfully",
                 };
             } catch (error) {
                 console.log(error);

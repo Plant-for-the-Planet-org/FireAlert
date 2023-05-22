@@ -47,27 +47,28 @@ export const alertMethodRouter = createTRPCRouter({
         .input(verifySchema)
         .mutation(async ({ ctx, input }) => {
             await getUser(ctx)
-            const alertMethodId = input.alertMethodId
+            const alertMethodId = input.params.alertMethodId
             await findAlertMethod({ ctx, alertMethodId })
             const verificatonRequest = await findVerificationRequest({ ctx, alertMethodId })
             const currentTime = new Date();
             // TODO: Also check if it is expired or not, by checking if the verificationRequest.expires is less than the time right now, if yes, set isExpired to true.
-            if (verificatonRequest.token === input.token && (verificatonRequest.expires >= currentTime)) {
-                await ctx.prisma.alertMethod.update({
+            if (verificatonRequest.token === input.body.token && (verificatonRequest.expires >= currentTime)) {
+                const alertMethod = await ctx.prisma.alertMethod.update({
                     where: {
-                        id: input.alertMethodId
+                        id: input.params.alertMethodId
                     },
                     data: {
                         isVerified: true
                     }
                 })
                 return {
-                    status: 400,
-                    message: 'Validation Successful'
+                    status: 'success',
+                    message: 'Validation Successful',
+                    data: alertMethod
                 }
             } else {
                 return {
-                    status: 406,
+                    status: 'error',
                     message: 'incorrect token'
                 }
             }
@@ -85,7 +86,6 @@ export const alertMethodRouter = createTRPCRouter({
                     data: {
                         method: input.method,
                         destination: input.destination,
-                        isEnabled: input.isEnabled,
                         deviceType: input.deviceType,
                         userId: user.id,
                     },
@@ -113,7 +113,7 @@ export const alertMethodRouter = createTRPCRouter({
             }
         }),
 
-    getAllAlertMethods: protectedProcedure
+    getAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
             const user = await getUser(ctx)
             try {
@@ -162,21 +162,17 @@ export const alertMethodRouter = createTRPCRouter({
             const user = await getUser(ctx)
             const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: user.id });
             try {
-                const { method, destination } = input.body;
-                // Check to see if method or destination has changed
-                const isMethodChanged = method && existingAlertMethod.method !== method;
-                const isDestinationChanged = destination && existingAlertMethod.destination !== destination;
-                // If either destination or method has changed, make isVerified to false
-                const isVerified = !(isDestinationChanged || isMethodChanged);
-
+                if(existingAlertMethod.isVerified !== true){
+                    throw new TRPCError({
+                        code: "METHOD_NOT_SUPPORTED",
+                        message: `Cannot enable alertMethod if it is not verified.`,
+                    });
+                }
                 const updatedAlertMethod = await ctx.prisma.alertMethod.update({
                     where: {
                         id: input.params.alertMethodId,
                     },
-                    data: {
-                        ...input.body,
-                        isVerified: isVerified
-                    },
+                    data: input.body,
                 });
                 return {
                     status: 'success',
@@ -193,7 +189,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     deleteAlertMethod: protectedProcedure
         .input(params)
-        .mutation(async ({ ctx, input }) => {
+        .query(async ({ ctx, input }) => {
             const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {

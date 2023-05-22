@@ -7,7 +7,7 @@ import {getUser} from '../../../utils/routers/user'
 
 export const projectRouter = createTRPCRouter({
 
-    getAllProjects: protectedProcedure
+    getProjects: protectedProcedure
         .query(async ({ ctx }) => {
             try{
                 const user = await getUser(ctx)

@@ -3,7 +3,7 @@ import { updateUserSchema } from '../zodSchemas/user.schema';
 import { adminProcedure, createTRPCRouter, protectedProcedure, userProcedure } from '../trpc';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
 import { sendEmail } from '../../../utils/notification/sendEmail';
-import { getUser, createUserInPrismaTransaction, returnUser, getUserByEmail} from '../../../utils/routers/user';
+import { getUser, createUserInPrismaTransaction, returnUser} from '../../../utils/routers/user';
 import { createAlertMethodInPrismaTransaction } from '../../../utils/routers/alertMethod';
 import { Prisma, Project} from '@prisma/client';
 
@@ -14,7 +14,11 @@ export const userRouter = createTRPCRouter({
             const access_token = ctx.token.access_token
             const bearer_token = "Bearer " + access_token
             // check if this user already exists in the database
-            const user = await getUserByEmail(ctx.token["https://app.plant-for-the-planet.org/email"])
+            const user = await ctx.prisma.user.findFirst({
+                where: {
+                    sub: ctx.token.sub
+                }
+            });
             const name = await getNameFromPPApi(bearer_token);
             const detectionMethods:('MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY')[] = ["MODIS","VIIRS","LANDSAT"]
             if (!user) {
@@ -64,7 +68,6 @@ export const userRouter = createTRPCRouter({
                                     const { id: siteId, name: siteName, geometry: siteGeometry } = site;
                                     const siteType = siteGeometry?.type || null; // Use null as the fallback value if siteGeometry is null or undefined
                                     const siteRadius = 0;
-                                    const geoJsonGeometry = siteGeometry;
                                     // Check if siteType and siteGeometry are not null before proceeding
                                     if (siteType && siteGeometry) {
                                         // Check if siteType and siteGeometry.type are the same
@@ -74,7 +77,7 @@ export const userRouter = createTRPCRouter({
                                                 origin: 'ttc',
                                                 name: siteName ?? "",
                                                 type: siteType,
-                                                geometry: geoJsonGeometry,
+                                                geometry: siteGeometry,
                                                 radius: siteRadius,
                                                 userId: userId,
                                                 projectId: projectId,
@@ -179,23 +182,6 @@ export const userRouter = createTRPCRouter({
                 });
             }
         }),
-
-    getUser: protectedProcedure.query(async ({ ctx }) => {
-        try {
-            const user = await getUser(ctx)
-            const returnedUser = returnUser(user)
-            return {
-                status: 'success',
-                data: returnedUser
-            }
-        } catch (error) {
-            console.log(error)
-            throw new TRPCError({
-                code: "NOT_FOUND",
-                message: `Cannot find a user`,
-            });
-        }
-    }),
 
     updateUser: protectedProcedure
         .input(updateUserSchema)
@@ -336,16 +322,6 @@ export const userRouter = createTRPCRouter({
                         // Similarly for each site, find if there are sites that are missing in db, if yes, add that site to db
                         for (const siteFromPP of sitesFromPPProject) {
                             const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP, geometry } = siteFromPP;
-                            const geoJsonGeometry = {
-                                "type": "FeatureCollection",
-                                "features": [
-                                    {
-                                        "type": "Feature",
-                                        "properties": {},
-                                        "geometry": geometry
-                                    }
-                                ]
-                            }
                             const radius = 0
                             const type = geometry.type
                             const siteFromDatabase = await ctx.prisma.site.findUnique({
@@ -359,7 +335,7 @@ export const userRouter = createTRPCRouter({
                                     prisma.site.create({
                                         data: {
                                             type: type,
-                                            geometry: geoJsonGeometry,
+                                            geometry: geometry,
                                             radius: radius,
                                             userId: userId,
                                             projectId: projectId,
