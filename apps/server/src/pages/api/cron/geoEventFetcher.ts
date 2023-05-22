@@ -19,14 +19,14 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   })
 
   activeProviders.map(provider => {
-    const { source, config, sourceKey } = provider
-    const geoEventProvider = GeoEventProviderRegistry.get(sourceKey);
+    const { providerKey, config } = provider
+    const geoEventProvider = GeoEventProviderRegistry.get(providerKey);
     geoEventProvider.initialize(JSON.parse(JSON.stringify(config)));
 
     (async () => {
-      const geoEvents = await geoEventProvider.getLatestGeoEvents(sourceKey)
-
-      geoEventEmitter.emit(GEO_EVENTS_CREATED, sourceKey, geoEvents)
+      const geoEvents = await geoEventProvider.getLatestGeoEvents()
+      const identityGroup = geoEventProvider.getIdentityGroup()
+      geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEvents)
     })()
   })
 

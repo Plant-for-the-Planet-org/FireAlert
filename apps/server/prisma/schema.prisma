@@ -115,26 +115,25 @@ model Project {
 }
 
 model GeoEventProvider {
-    id        String                    @id @default(cuid())
-    type      AlertType
-    isActive  Boolean
-    source    GeoEventSource
-    sourceKey GeoEventProviderSourceKey
-    config    Json
+    id          String                    @id @default(cuid())
+    type        AlertType
+    isActive    Boolean
+    providerKey GeoEventSource
+    config      Json
 }
 
 model GeoEvent {
-    id          String                      @id @default(cuid())
-    type        AlertType
-    latitude    Float
-    longitude   Float
-    eventDate   DateTime
-    confidence  AlertConfidence
-    isProcessed Boolean                     @default(false)
-    source      GeoEventSource
-    detectedBy  GeoEventDetectionInstrument
-    radius      Int?
-    data        Json?
+    id            String          @id @default(cuid())
+    type          AlertType
+    latitude      Float
+    longitude     Float
+    eventDate     DateTime
+    confidence    AlertConfidence
+    isProcessed   Boolean         @default(false)
+    providerKey   GeoEventSource
+    identityGroup String
+    radius        Int?
+    data          Json?
 }
 
 model SiteAlert {

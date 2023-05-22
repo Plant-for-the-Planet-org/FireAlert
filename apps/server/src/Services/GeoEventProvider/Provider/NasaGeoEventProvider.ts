@@ -2,31 +2,46 @@ import GeoEventProvider from '../GeoEventProvider';
 import GeoEventProviderConfig from '../GeoEventProviderConfig';
 import GeoEvent from "../../../Interfaces/GeoEvent"
 import { parse } from 'csv-parse'
+import { AlertType } from '@prisma/client';
+import DataRecord from '../../../Interfaces/DataRecord';
 
 interface NasaGeoEventProviderConfig {
     apiUrl: string,
-    mapKey: string
-}
-
-interface CsvRecord {
-    [key: string]: any;
+    mapKey: string,
+    sourceKey: string
 }
 
 class NasaGeoEventProvider implements GeoEventProvider {
 
     private config: GeoEventProviderConfig | undefined;
 
-    getSources(): Array<string> {
-        return ['MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP', 'LANDSAT_NRT'];
+    getKey(): string {
+        return 'FIRMS';
+    }
+
+    getIdentityGroup(): string | null {
+        const identityMap = new Map<string, string>([
+            ["MODIS_NRT", "MODIS"],
+            ["VIIRS_NOAA20_NRT", "VIIRS"],
+            ["VIIRS_SNPP_NRT", "VIIRS"],
+            ["LANDSAT_NRT", "LANDSAT"],
+            ["GEOSTATIONARY", "GEOSTATIONARY"],
+            ["MODIS_SP", "MODIS"],
+            ["VIIRS_SNPP_SP", "VIIRS"],
+        ]);
+
+        // the returned identityGroup is being used by the caller of this provider to identify duplicate GeoEvents
+        // events from multiple sources but same satellite with the same identityGroup will be considered duplicates
+        return identityMap.get(this.config?.sourceKey) ?? null;
     }
 
     initialize(config?: GeoEventProviderConfig): void {
         this.config = config;
     }
 
-    async getLatestGeoEvents(source: string): Promise<GeoEvent[]> {
+    async getLatestGeoEvents(): Promise<GeoEvent[]> {
 
-        const normalize = (record: CsvRecord, source: string): GeoEvent => {
+        const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);
             const date = new Date(record.acq_date) ?? new Date();
@@ -73,24 +88,28 @@ class NasaGeoEventProvider implements GeoEventProvider {
             }
 
             return {
+                type: AlertType.fire,
                 latitude: latitude,
                 longitude: longitude,
-                date: date,
+                eventDate: date,
                 confidence: confidenceLevels?.[source]?.[record.confidence] ?? Confidence.Medium,
                 detectedBy: source,
+                data: record
             };
         }
 
         return new Promise<GeoEvent[]>(async (resolve, reject) => {
             try {
-                const response = await fetch(this.getUrl(source));
+                const sourceKey = this.config?.sourceKey;
+                const url = this.getUrl(sourceKey);
+                const response = await fetch(url);
                 const csv = await response.text();
                 const parser = parse(csv, { columns: true });
 
                 const records: GeoEvent[] = [];
                 parser
                     .on("readable", () => {
-                        let record: CsvRecord;
+                        let record: DataRecord;
                         while (record = parser.read()) {
                             records.push(normalize(record, record.instrument));
                         }
@@ -108,7 +127,8 @@ class NasaGeoEventProvider implements GeoEventProvider {
     }
 
     getUrl(source: string): string {
-        const { apiUrl, mapKey } = this.getConfig()
+        const { apiUrl, mapKey, sourceKey } = this.getConfig()
+        // TODO: revert the 2 lines below after testing
         // const currentDate = new Date().toISOString().split("T")[0];
         const currentDate = '2023-01-01';
 
@@ -127,9 +147,14 @@ class NasaGeoEventProvider implements GeoEventProvider {
             throw new Error(`Missing property 'mapKey' in alert provider configuration`);
         }
 
+        if (typeof config.sourceKey === 'undefined') {
+            throw new Error(`Missing property 'sourceKey' in alert provider configuration`);
+        }
+
         return {
             apiUrl: config.apiUrl,
-            mapKey: config.mapKey
+            mapKey: config.mapKey,
+            sourceKey: config.sourceKey
         }
     }
 }

@@ -2,9 +2,10 @@ import GeoEventProviderConfig from "./GeoEventProviderConfig";
 import GeoEvent from "../../Interfaces/GeoEvent"
 
 interface GeoEventProvider {
-    getSources: () => Array<string>;
+    getKey: () => string;
+    getIdentityGroup: () => string | null;
     initialize: (config?: GeoEventProviderConfig) => void;
-    getLatestGeoEvents: (source: string) => Promise<GeoEvent[]>;
+    getLatestGeoEvents: () => Promise<GeoEvent[]>;
 }
 
 export default GeoEventProvider;

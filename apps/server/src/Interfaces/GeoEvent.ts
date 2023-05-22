@@ -1,3 +1,5 @@
+import DataRecord from "./DataRecord";
+
 interface GeoEvent {
     id?: string
     longitude: number,
@@ -6,6 +8,7 @@ interface GeoEvent {
     confidence: string,
     detectedBy: string,
     eventDate: Date,
+    data: DataRecord
 }
 
 export default GeoEvent;

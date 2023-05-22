@@ -7,12 +7,11 @@ const createGeoEventProviderRegistry = function (geoEventProviders: Array<GeoEve
     const registry: { [source: string]: GeoEventProvider } = {};
 
     geoEventProviders.forEach((geoEventProvider: GeoEventProvider) => {
-        geoEventProvider.getSources().map(function (source: string) {
-            if (registry[source]) {
-                throw new Error(`Provider for source '${source}' has already been registered`);
-            }
-            registry[source] = geoEventProvider;
-        })
+        let providerKey = geoEventProvider.getKey()
+        if (registry[providerKey]) {
+            throw new Error(`Provider for source '${providerKey}' has already been registered`);
+        }
+        registry[providerKey] = geoEventProvider;
     });
 
     return {

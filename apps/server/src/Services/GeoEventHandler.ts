@@ -1,21 +1,17 @@
-import { PrismaClient } from "@prisma/client";
+import { AlertType, PrismaClient } from "@prisma/client";
 import { GEO_EVENTS_PROCESSED } from "../Events/messageConstants";
-// import GeoEvent from "../Interfaces/GeoEvent";
+import GeoEvent from "../Interfaces/GeoEvent";
 import geoEventEmitter from "../Events/EventEmitter/GeoEventEmitter";
 import md5 from "md5";
-import { GeoEvent } from "@prisma/client";
+import NasaGeoEventProvider from "./GeoEventProvider/Provider/NasaGeoEventProvider";
 
-const processGeoEvents = async (
-  detectedBy: "MODIS" | "VIIRS" | "LANDSAT" | "GEOSTATIONARY",
-  geoEvents: Array<GeoEvent>
-) => {
+const processGeoEvents = async (providerKey: string, identityGroup: string, geoEvents: Array<GeoEvent>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
       geoEvent.latitude.toString() +
       geoEvent.longitude.toString() +
-      geoEvent.eventDate.toISOString() +
-      geoEvent.detectedBy
+      geoEvent.eventDate.toISOString()
     );
   };
 
@@ -24,7 +20,7 @@ const processGeoEvents = async (
     deletedIds: string[];
   } => {
     const newGeoEvents: GeoEvent[] = [];
-    const detectedIds: string[] = [];
+    const detectedIds: string[] = []; NasaGeoEventProvider
     const deletedIds: string[] = [];
 
     // Identify new hashes
@@ -50,44 +46,41 @@ const processGeoEvents = async (
   const prisma = new PrismaClient();
 
   const fetchCurrentEventIds = async (
-    detectedBy: "MODIS" | "VIIRS" | "LANDSAT" | "GEOSTATIONARY"
+    identityGroup: string
   ): Promise<Array<string>> => {
     // the the ids of all events from AreaEvent that are either 'pending' or 'notfied'
     // having the provided providerKey
     const geoEvents = await prisma.geoEvent.findMany({
-      select: {
-        id: true,
-      },
-      where: {
-        detectedBy: detectedBy,
-      },
+      select: { id: true },
+      where: { identityGroup: identityGroup }
     });
 
-    return geoEvents.map((geoEvent) => geoEvent.id);
+    return geoEvents.map(geoEvent => geoEvent.id);
   };
 
-  const { newGeoEvents, deletedIds } = compareIds(await fetchCurrentEventIds(detectedBy), geoEvents);
+  const { newGeoEvents, deletedIds } = compareIds(await fetchCurrentEventIds(identityGroup), geoEvents);
 
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
+  debugger;
   if (newGeoEvents.length > 0) {
     await prisma.geoEvent.createMany({
-      data: newGeoEvents.map((geoEvent) => ({
+      data: newGeoEvents.map(geoEvent => ({
         id: geoEvent.id,
-        type: geoEvent.type,
+        type: AlertType.fire,
         latitude: geoEvent.latitude,
         longitude: geoEvent.longitude,
         eventDate: geoEvent.eventDate,
         confidence: geoEvent.confidence,
         isProcessed: false,
-        source: geoEvent.source,
-        detectedBy: detectedBy,
-        radius: geoEvent.radius,
-        data: JSON.stringify(geoEvent.data),
+        providerKey: 'test', // TODO: replace with the actual providerKey
+        identityGroup: identityGroup,
+        radius: 0,
+        // data: geoEvent.data,
       })),
     });
   }
-
+debugger;
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
   if (deletedIds.length > 0) {
     await prisma.geoEvent.updateMany({

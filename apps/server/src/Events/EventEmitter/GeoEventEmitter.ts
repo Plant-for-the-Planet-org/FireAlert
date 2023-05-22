@@ -7,8 +7,8 @@ import matchGeoEvents from '../../Services/GeoEventMatcher'
 const geoEventEmitter = new EventEmitter();
 
 geoEventEmitter
-    .on(GEO_EVENTS_CREATED, (sourceKey: string, geoEvents: Array<GeoEvent>) => {
-        processGeoEvents(sourceKey, geoEvents)
+    .on(GEO_EVENTS_CREATED, (providerKey: string, identityGroup: string, geoEvents: Array<GeoEvent>) => {
+        processGeoEvents(providerKey, identityGroup, geoEvents)
     })
     .on(GEO_EVENTS_PROCESSED, matchGeoEvents);
 
