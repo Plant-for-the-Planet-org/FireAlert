@@ -78,7 +78,8 @@ export const handleOTPSendLimitation = async ({ ctx, alertMethod }: CtxWithAlert
                 lastTokenSentDate: new Date(),
             },
         });
-    }
+    } 
+    return alertMethod;
 }
 
 export const storeOTPInVerificationRequest = async ({ ctx, alertMethod }: CtxWithAlertMethod) => {
@@ -126,8 +127,19 @@ export const storeOTPInVerificationRequest = async ({ ctx, alertMethod }: CtxWit
 export const findAlertMethod = async ({ ctx, alertMethodId }: CtxWithAlertMethodId) => {
     const alertMethod = await ctx.prisma.alertMethod.findFirst({
         where: {
-            id: alertMethodId
-        }
+            id: alertMethodId,
+            deletedAt: null
+        },
+        select: {
+            id                  : true,
+            method              : true,
+            destination         : true,
+            deviceType          : true,
+            isEnabled           : true,
+            isVerified          : true,
+            lastTokenSentDate   : true,
+            userId              : true
+        },
     })
     if (!alertMethod) {
         throw new TRPCError({

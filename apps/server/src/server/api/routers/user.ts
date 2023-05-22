@@ -114,7 +114,7 @@ export const userRouter = createTRPCRouter({
                     return {
                         status: 'success',
                         data: createdUser,
-                        message: `Successfully created user and alertMethod, and added ${sitesCount} sites for ${projectsCount} projects`
+                        message: `Successfully created User, Alert Method and added ${sitesCount} sites for ${projectsCount} projects`
                     };
                 } else {
                     const result = await ctx.prisma.$transaction(async (prisma) => {
@@ -191,7 +191,7 @@ export const userRouter = createTRPCRouter({
             if(input.body.detectionMethods){
                 const {detectionMethods, ...rest} = input.body
                 body = {
-                    detectionMethods: JSON.stringify(detectionMethods),
+                    detectionMethods: detectionMethods,
                     ...rest,
                 }
             }else{
@@ -218,7 +218,7 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    softDeleteUser: protectedProcedure.mutation(async ({ ctx }) => {
+    softDeleteUser: protectedProcedure.query(async ({ ctx }) => {
         const user = await getUser(ctx)
         try {
             const deletedUser = await ctx.prisma.user.update({

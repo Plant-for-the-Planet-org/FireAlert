@@ -95,13 +95,21 @@ export const alertMethodRouter = createTRPCRouter({
                 const destination = alertMethod.destination
                 const method = alertMethod.method
                 const deviceType = alertMethod.deviceType ?? undefined
-                const verification = await sendVerificationCode(destination, method, deviceType, message)
-
+                
+                await sendVerificationCode(destination, method, deviceType, message)
+                await handleOTPSendLimitation({ ctx, alertMethod })
                 return {
                     status: 'success',
+                    message: 'Alert Method was created and Verfication code has been sent Successfully',
                     data: {
-                        alertMethod,
-                        verification
+                        id                  : alertMethod.id,
+                        method              : alertMethod.method,
+                        destination         : alertMethod.destination,
+                        isVerified          : alertMethod.isVerified,
+                        isEnabled           : alertMethod.isEnabled,
+                        deviceType          : alertMethod.deviceType,
+                        lastTokenSentDate   : alertMethod.lastTokenSentDate,
+                        userId              : alertMethod.userId
                     },
                 };
             } catch (error) {
@@ -120,7 +128,18 @@ export const alertMethodRouter = createTRPCRouter({
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
                     where: {
                         userId: user.id,
-                    }
+                        deletedAt: null,
+                    },
+                    select: {
+                        id                  : true,
+                        method              : true,
+                        destination         : true,
+                        deviceType          : true,
+                        isEnabled           : true,
+                        isVerified          : true,
+                        lastTokenSentDate   : true,
+                        userId              : true
+                    },
                 });
                 return {
                     status: 'success',

@@ -31,7 +31,18 @@ export const siteRouter = createTRPCRouter({
                 });
                 return {
                     status: "success",
-                    data: site,
+                    data: {
+                        id: site.id,
+                        remoteId: site.remoteId,
+                        name: site.name,
+                        type: site.type,
+                        radius: site.radius,
+                        projectId: site.projectId,
+                        lastUpdated: site.lastUpdated,
+                        userId: site.userId,
+                        isMonitored: site.isMonitored,
+                        geometry: site.geometry
+                    },
                 };
             } catch (error) {
                 console.log(error);
@@ -90,12 +101,12 @@ export const siteRouter = createTRPCRouter({
                         id: true,
                         name: true,
                         type: true,
-                        geometry: true,
                         radius: true,
                         isMonitored: true,
                         projectId: true,
                         lastUpdated: true,
                         userId: true,
+                        geometry: true,
                     }
                 })
 
@@ -141,7 +152,19 @@ export const siteRouter = createTRPCRouter({
                 const site = await ctx.prisma.site.findFirst({
                     where: {
                         id: input.siteId,
-                        deletedAt: null,
+                        deletedAt: null
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                        radius: true,
+                        isMonitored: true,
+                        lastUpdated: true,
+                        userId: true,
+                        projectId: true,
+                        project: true,
+                        geometry: true,
                     }
                 })
                 if (site) {
@@ -242,7 +265,7 @@ export const siteRouter = createTRPCRouter({
                 });
                 return {
                     status: "success",
-                    data: deletedSite,
+                    message: `Site with id ${deletedSite.id} deleted successfully`,
                 };
             } catch (error) {
                 console.log(error);
@@ -253,4 +276,3 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 });
-

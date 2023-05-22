@@ -54,7 +54,6 @@ interface CreateUserArgs {
 }
 
 export async function createUserInPrismaTransaction({id, prisma, ctx, name, isPlanetRO, detectionMethods}:CreateUserArgs){
-    const detMethods = JSON.stringify(detectionMethods)
     const createdUser = await prisma.user.create({
         data: {
             id: id ? id : undefined,
@@ -64,7 +63,7 @@ export async function createUserInPrismaTransaction({id, prisma, ctx, name, isPl
             email: ctx.token["https://app.plant-for-the-planet.org/email"],
             emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"] ? ctx.token["https://app.plant-for-the-planet.org/email_verified"] : false,
             lastLogin: new Date(),
-            detectionMethods: detMethods,
+            detectionMethods: detectionMethods,
         },
     });
     return createdUser;
