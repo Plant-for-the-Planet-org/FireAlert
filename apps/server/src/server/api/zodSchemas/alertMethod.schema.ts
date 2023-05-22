@@ -11,7 +11,7 @@ export const createAlertMethodSchema = z.object({
 }).refine((obj) => {
     if (obj.method === 'sms') {
         // Check if the destination is a valid phone number in E.164 format
-        const {isValid} = phone(obj.destination)
+        const { isValid } = phone(obj.destination)
         return isValid;
     }
     return true; // Return true for other methods
@@ -36,15 +36,29 @@ export const updateAlertMethodSchema = z.object({
         isEnabled: z.boolean(),
         deviceType: z.enum(["ios", "android"]),
     }).partial().refine((obj) => {
+        if (obj.method && obj.destination) {
+            // Both method and destination must be present if either one is being updated
+            return true;
+        }
+        if (obj.method && !obj.destination) {
+            return false;
+        }
+        if (obj.destination && !obj.method) {
+            return false;
+        }
+        return true;
+    }, {
+        message: 'Must specify both destination and method when updating any one of them'
+    }).refine((obj) => {
         if (obj.method && obj.destination && obj.method === 'sms') {
             // Check if the destination is a valid phone number in E.164 format
-            const {isValid} = phone(obj.destination)
+            const { isValid } = phone(obj.destination)
             return isValid;
         }
         return true; // Return true for other methods
     }, {
         message: 'Must be a valid phone number in E.164 format when the method is "sms"'
-    }),
+    })
 })
 
 export type ParamsType = z.infer<typeof params>;
