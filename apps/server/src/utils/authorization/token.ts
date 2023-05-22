@@ -3,7 +3,6 @@ import jwksClient from 'jwks-rsa';
 import { TRPCError } from '@trpc/server';
 import { type InnerTRPCContext } from '../../server/api/trpc'
 import { PPJwtPayload } from "../../utils/routers/trpc"
-import { prisma } from '../../server/db'
 
 
 interface TRPCContext extends InnerTRPCContext {
@@ -39,7 +38,7 @@ export const checkTokenIsValid = async (token: string) => {
 export async function getUserIdByToken(ctx: TRPCContext) {
     const user = await ctx.prisma.user.findFirst({
         where: {
-            email: ctx.token["https://app.plant-for-the-planet.org/email"]
+            sub: ctx.token.sub
         },
         select: {
             id: true,

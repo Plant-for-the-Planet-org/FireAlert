@@ -23,7 +23,6 @@ export const createSiteSchema = z.object({
     radius: z.number().optional().default(0),
     isMonitored: z.boolean().optional(),
     userId: z.string().optional(),
-    projectId: z.string().nullable().optional(),
 }).refine((obj) => obj.type === obj.geometry.type, {
     message: "geometry type does not match the specified type",
     path: ["geometry.type", "type"],
@@ -43,7 +42,6 @@ const bodySchema = z.object({
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
     radius: z.number(),
     isMonitored: z.boolean(),
-    projectId: z.string().nullable(),
 }).partial().refine((obj) => {
     if (obj.geometry) {
         return obj.type === obj.geometry.type;

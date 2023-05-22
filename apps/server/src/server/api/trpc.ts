@@ -59,8 +59,8 @@ const passCtxToNext = t.middleware(async ({ ctx, next }) => {
 
 const enforceUserIsAuthedAndNotSoftDeleted = t.middleware(async ({ ctx, next }) => {
   const { isTokenAuthentication, decodedToken, access_token } = await tokenAuthentication(ctx)
-  const email = decodedToken!["https://app.plant-for-the-planet.org/email"]
-  await checkSoftDelete({ctx, email, isTokenAuthentication})
+  const sub = decodedToken!.sub!
+  await checkSoftDelete({ctx, sub, isTokenAuthentication})
   if (isTokenAuthentication && decodedToken) {
     return next({
       ctx: {

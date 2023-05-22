@@ -138,7 +138,7 @@ export const userRouter = createTRPCRouter({
                     if (user.deletedAt) {
                         await prisma.user.update({
                             where: {
-                                email: ctx.token["https://app.plant-for-the-planet.org/email"],
+                                sub: ctx.token.sub,
                             },
                             data: {
                                 deletedAt: null,
@@ -150,7 +150,7 @@ export const userRouter = createTRPCRouter({
                     }
                     await prisma.user.update({
                         where: {
-                            email: ctx.token["https://app.plant-for-the-planet.org/email"],
+                            sub: ctx.token.sub,
                         },
                         data: {
                             lastLogin: new Date(),
@@ -283,7 +283,7 @@ export const userRouter = createTRPCRouter({
                                 })
                             )
                             updatePromises.push(
-                                prisma.site.update({
+                                prisma.site.updateMany({
                                     where: {
                                         projectId: projectFromDB.id
                                     },
@@ -351,7 +351,7 @@ export const userRouter = createTRPCRouter({
                                         },
                                         data: {
                                             type: type,
-                                            geometry: geoJsonGeometry,
+                                            geometry: geometry,
                                             radius: radius,
                                             lastUpdated: siteLastUpdatedFromPP.date,
                                         },

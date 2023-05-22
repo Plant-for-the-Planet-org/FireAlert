@@ -8,7 +8,6 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { generate5DigitOTP } from '../../../utils/notification/otp'
 import { sendVerificationCode } from '../../../utils/notification/sendVerificationCode'
 import { getUser } from "../../../utils/routers/user";
 import { 
@@ -18,6 +17,7 @@ import {
     findVerificationRequest, 
     limitAlertMethodPerUser, 
     checkUserHasAlertMethodPermission,
+    returnAlertMethod,
 } from "../../../utils/routers/alertMethod";
 
 export const alertMethodRouter = createTRPCRouter({
@@ -61,10 +61,11 @@ export const alertMethodRouter = createTRPCRouter({
                         isVerified: true
                     }
                 })
+                const returnedAlertMethod = returnAlertMethod(alertMethod)
                 return {
                     status: 'success',
                     message: 'Validation Successful',
-                    data: alertMethod
+                    data: returnedAlertMethod
                 }
             } else {
                 return {
@@ -81,7 +82,6 @@ export const alertMethodRouter = createTRPCRouter({
             // Check if the user has reached the maximum limit of alert methods (e.g., 5)
             await limitAlertMethodPerUser({ ctx, userId: user.id, count: 5 })
             try {
-                const otp = generate5DigitOTP();
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
                         method: input.method,
@@ -91,26 +91,18 @@ export const alertMethodRouter = createTRPCRouter({
                     },
                 });
                 // Send verification code
+                const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
                 const message = `Your FireAlert Verification OTP is ${otp}`;
                 const destination = alertMethod.destination
                 const method = alertMethod.method
                 const deviceType = alertMethod.deviceType ?? undefined
-                
                 await sendVerificationCode(destination, method, deviceType, message)
                 await handleOTPSendLimitation({ ctx, alertMethod })
+                const returnedAlertMethod = returnAlertMethod(alertMethod)
                 return {
                     status: 'success',
                     message: 'Alert Method was created and Verfication code has been sent Successfully',
-                    data: {
-                        id                  : alertMethod.id,
-                        method              : alertMethod.method,
-                        destination         : alertMethod.destination,
-                        isVerified          : alertMethod.isVerified,
-                        isEnabled           : alertMethod.isEnabled,
-                        deviceType          : alertMethod.deviceType,
-                        lastTokenSentDate   : alertMethod.lastTokenSentDate,
-                        userId              : alertMethod.userId
-                    },
+                    data: returnedAlertMethod,
                 };
             } catch (error) {
                 console.log(error);
@@ -162,9 +154,10 @@ export const alertMethodRouter = createTRPCRouter({
             try {
                 const alertMethodId = input.alertMethodId
                 const alertMethod = await findAlertMethod({ ctx, alertMethodId })
+                const returnedAlertMethod = returnAlertMethod(alertMethod)
                 return {
                     status: 'success',
-                    data: alertMethod,
+                    data: returnedAlertMethod,
                 };
             } catch (error) {
                 console.log(error)
@@ -193,9 +186,10 @@ export const alertMethodRouter = createTRPCRouter({
                     },
                     data: input.body,
                 });
+                const returnedAlertMethod = returnAlertMethod(updatedAlertMethod)
                 return {
                     status: 'success',
-                    data: updatedAlertMethod,
+                    data: returnedAlertMethod,
                 };
             } catch (error) {
                 console.log(error)
@@ -219,7 +213,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
                 return {
                     status: "success",
-                    data: deletedAlertMethod,
+                    message: `Successfully deleted AlertMethod with id: ${deletedAlertMethod.id}`,
                 };
             } catch (error) {
                 console.log(error)

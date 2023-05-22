@@ -29,10 +29,10 @@ export const getUser = async (ctx: TRPCContext) => {
     }
 };
 
-export async function getUserByEmail(email: string) {
+export async function getUserBySub(sub: string) {
     const user = await prisma.user.findFirst({
         where: {
-            email: email
+            sub: sub
         }
     });
     if (!user) {

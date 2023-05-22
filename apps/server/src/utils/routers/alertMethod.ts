@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server';
-import {TRPCContext} from '../../Interfaces/Context'
-import {CheckUserHasAlertMethodPermissionArgs, CtxWithAlertMethod, CtxWithAlertMethodId, CtxWithUserID} from '../../Interfaces/AlertMethod'
+import { TRPCContext } from '../../Interfaces/Context'
+import { CheckUserHasAlertMethodPermissionArgs, CtxWithAlertMethod, CtxWithAlertMethodId, CtxWithUserID } from '../../Interfaces/AlertMethod'
 import { generate5DigitOTP } from '../notification/otp';
-import { Prisma, PrismaClient, User } from '@prisma/client';
+import { AlertMethod, Prisma, PrismaClient, User } from '@prisma/client';
 
 
 export const limitAlertMethodPerUser = async ({ ctx, userId, count }: CtxWithUserID) => {
@@ -78,7 +78,7 @@ export const handleOTPSendLimitation = async ({ ctx, alertMethod }: CtxWithAlert
                 lastTokenSentDate: new Date(),
             },
         });
-    } 
+    }
     return alertMethod;
 }
 
@@ -129,17 +129,7 @@ export const findAlertMethod = async ({ ctx, alertMethodId }: CtxWithAlertMethod
         where: {
             id: alertMethodId,
             deletedAt: null
-        },
-        select: {
-            id                  : true,
-            method              : true,
-            destination         : true,
-            deviceType          : true,
-            isEnabled           : true,
-            isVerified          : true,
-            lastTokenSentDate   : true,
-            userId              : true
-        },
+        }
     })
     if (!alertMethod) {
         throw new TRPCError({
@@ -165,7 +155,7 @@ export const findVerificationRequest = async ({ ctx, alertMethodId }: CtxWithAle
     return verificationRequest
 }
 
-interface CreateAlertMethodInPrismaTransactionArgs{
+interface CreateAlertMethodInPrismaTransactionArgs {
     prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use">;
     ctx: TRPCContext;
     method: "email" | "sms" | "device" | "whatsapp" | "webhook";
@@ -173,7 +163,7 @@ interface CreateAlertMethodInPrismaTransactionArgs{
     userId: string;
 }
 
-export async function createAlertMethodInPrismaTransaction ({prisma, ctx, method, isEnabled, userId}: CreateAlertMethodInPrismaTransactionArgs){
+export async function createAlertMethodInPrismaTransaction({ prisma, ctx, method, isEnabled, userId }: CreateAlertMethodInPrismaTransactionArgs) {
     const createdAlertMethod = await prisma.alertMethod.create({
         data: {
             method: method,
@@ -186,3 +176,15 @@ export async function createAlertMethodInPrismaTransaction ({prisma, ctx, method
     return createdAlertMethod
 }
 
+export function returnAlertMethod(alertMethod: AlertMethod) {
+    return {
+        id: alertMethod.id,
+        method: alertMethod.method,
+        destination: alertMethod.destination,
+        deviceType: alertMethod.deviceType,
+        isEnabled: alertMethod.isEnabled,
+        isVerified: alertMethod.isVerified,
+        lastTokenSentDate: alertMethod.lastTokenSentDate,
+        userId: alertMethod.userId
+    };
+}

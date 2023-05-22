@@ -36,7 +36,7 @@ model Session {
 
 model User {
     id               String        @id @default(cuid())
-    sub              String?
+    sub              String?       @unique
     name             String?
     email            String        @unique
     emailVerified    Boolean       @default(false)
@@ -94,7 +94,7 @@ model Site {
     radius      Int         @default(0)
     isMonitored Boolean     @default(true)
     deletedAt   DateTime?
-    projectId   String?     
+    projectId   String?
     lastUpdated DateTime?
     userId      String
     // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 

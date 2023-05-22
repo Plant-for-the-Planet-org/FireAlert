@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import {CheckUserHasSitePermissionArgs, CheckIfPlanetROSiteArgs} from '../../Interfaces/Site'
+import { Site } from '@prisma/client';
 
 // Compares the User in session or token with the Site that is being Read, Updated or Deleted
 export const checkUserHasSitePermission = async ({ ctx, siteId, userId }: CheckUserHasSitePermissionArgs) => {
@@ -38,4 +39,19 @@ export const checkIfPlanetROSite = async ({ ctx, siteId }: CheckIfPlanetROSiteAr
     } else {
         return false
     }
+}
+
+export function returnSite(site: Site) {
+    return {
+        id: site.id,
+        remoteId: site.remoteId,
+        name: site.name,
+        type: site.type,
+        radius: site.radius,
+        isMonitored: site.isMonitored,
+        lastUpdated: site.lastUpdated,
+        userId: site.userId,
+        projectId: site.projectId,
+        geometry: site.geometry
+    };
 }

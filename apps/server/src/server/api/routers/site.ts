@@ -6,7 +6,7 @@ import {
 } from "../trpc";
 import { Prisma } from "@prisma/client";
 import {getUser} from '../../../utils/routers/user'
-import {checkUserHasSitePermission, checkIfPlanetROSite} from  '../../../utils/routers/site'
+import {checkUserHasSitePermission, checkIfPlanetROSite, returnSite} from  '../../../utils/routers/site'
 
 export const siteRouter = createTRPCRouter({
 
@@ -17,7 +17,7 @@ export const siteRouter = createTRPCRouter({
             try {
                 const radius = input.radius ?? 0
                 const origin = 'firealert'
-        
+                const lastUpdated = new Date()
                 const site = await ctx.prisma.site.create({
                     data: {
                         origin: origin,
@@ -26,23 +26,14 @@ export const siteRouter = createTRPCRouter({
                         geometry: input.geometry,
                         radius: radius,
                         isMonitored: input.isMonitored,
-                        userId: user.id
+                        userId: user.id,
+                        lastUpdated: lastUpdated,
                     },
                 });
+                const returnedSite = returnSite(site)
                 return {
                     status: "success",
-                    data: {
-                        id: site.id,
-                        remoteId: site.remoteId,
-                        name: site.name,
-                        type: site.type,
-                        radius: site.radius,
-                        projectId: site.projectId,
-                        lastUpdated: site.lastUpdated,
-                        userId: site.userId,
-                        isMonitored: site.isMonitored,
-                        geometry: site.geometry
-                    },
+                    data: returnedSite,
                 };
             } catch (error) {
                 console.log(error);
@@ -213,8 +204,8 @@ export const siteRouter = createTRPCRouter({
                 // If Site is associated with PlanetRO User then don't allow changes on fields other than radius and isMonitored
                 const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
                 if (isPlanetROSite) {
-                    const { geometry, type, name, projectId, ...rest } = updatedData;
-                    if(geometry || type || name || projectId){
+                    const { geometry, type, name, ...rest } = updatedData;
+                    if(geometry || type || name){
                         throw new TRPCError({
                             code: "UNAUTHORIZED",
                             message: `PlanetRO Users can only update Geometry and isMonitored Field`,
@@ -229,9 +220,10 @@ export const siteRouter = createTRPCRouter({
                     },
                     data: data,
                 });
+                const returnedSite = returnSite(updatedSite)
                 return {
                     status: 'success',
-                    data: updatedSite,
+                    data: returnedSite,
                 };
 
             } catch (error) {
