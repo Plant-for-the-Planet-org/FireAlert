@@ -8,12 +8,12 @@ class TestNotifier implements Notifier {
         return [NOTIFICATION_METHOD.TEST];
     }
 
-    notify(destination: string, parameters: NotificationParameters): boolean {
+    notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const { type, confidence, longitude, latitude, distance, detectedBy, eventDate, data } = parameters;
 
         console.log(`Build your message here and send it to ${destination}`)
 
-        return true;
+        return Promise.resolve(true);
     };
 }
 

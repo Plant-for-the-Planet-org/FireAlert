@@ -8,13 +8,13 @@ class WhatsAppNotifier implements Notifier {
         return [NOTIFICATION_METHOD.WHATSAPP];
     }
 
-    notify(destination: string, parameters: NotificationParameters): boolean {
+    notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const { type, confidence, longitude, latitude, distance, detectedBy, eventDate, data } = parameters;
         const message = (`${type} at [${longitude},${latitude}] ${distance}m from your site with ${confidence} confidence`);
 
         console.log(`Sending message ${message} to ${destination}`)
 
-        return true;
+        return Promise.resolve(true);
     };
 }
 
