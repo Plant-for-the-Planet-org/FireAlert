@@ -11,24 +11,23 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   const prisma = new PrismaClient()
 
-  // fetch all active providers from the GeoEventProvider table
   const activeProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
       isActive: true,
     },
   })
-
-  activeProviders.map(provider => {
+  debugger;
+  const promises = activeProviders.map(async (provider) => {
     const { providerKey, config } = provider
     const geoEventProvider = GeoEventProviderRegistry.get(providerKey);
     geoEventProvider.initialize(JSON.parse(JSON.stringify(config)));
 
-    (async () => {
-      const geoEvents = await geoEventProvider.getLatestGeoEvents()
-      const identityGroup = geoEventProvider.getIdentityGroup()
-      geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEvents)
-    })()
+    const geoEvents = await geoEventProvider.getLatestGeoEvents()
+    const identityGroup = geoEventProvider.getIdentityGroup()
+    geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEvents)
   })
+
+  await Promise.all(promises);
 
   res.status(200).json({ message: "Cron job executed successfully" });
 }

@@ -4,21 +4,21 @@ import NasaGeoEventProvider from "./Provider/NasaGeoEventProvider";
 
 const createGeoEventProviderRegistry = function (geoEventProviders: Array<GeoEventProvider>) {
 
-    const registry: { [source: string]: GeoEventProvider } = {};
+    const registry: { [providerKey: string]: GeoEventProvider } = {};
 
     geoEventProviders.forEach((geoEventProvider: GeoEventProvider) => {
         let providerKey = geoEventProvider.getKey()
         if (registry[providerKey]) {
-            throw new Error(`Provider for source '${providerKey}' has already been registered`);
+            throw new Error(`Provider for providerKey '${providerKey}' has already been registered`);
         }
         registry[providerKey] = geoEventProvider;
     });
 
     return {
-        get: (source: string): GeoEventProvider => {
-            const provider = registry[source];
+        get: (providerKey: string): GeoEventProvider => {
+            const provider = registry[providerKey];
             if (!provider) {
-                throw new Error(`Provider with key '${source}' not found`);
+                throw new Error(`Provider with key '${providerKey}' not found`);
             }
             return provider;
         }
