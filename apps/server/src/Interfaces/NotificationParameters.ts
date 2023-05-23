@@ -1,6 +1,7 @@
 import DataRecord from "./DataRecord";
 
 export interface NotificationParameters {
+    alertId: string;
     type: string;
     confidence: string;
     detectedBy: string;
@@ -9,4 +10,5 @@ export interface NotificationParameters {
     latitude: number;
     distance: number;
     data: DataRecord;
+    siteName: string;
 }
