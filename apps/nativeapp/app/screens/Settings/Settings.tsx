@@ -95,7 +95,7 @@ const Settings = ({navigation}) => {
     data: sites,
     refetch: refetchSites,
     isSuccess: sitesSuccess,
-  } = trpc.site.getAllSites.useQuery(undefined, {
+  } = trpc.site.getSites.useQuery(undefined, {
     enabled: true,
     retryDelay: 3000,
     onSuccess: () => {
@@ -112,7 +112,7 @@ const Settings = ({navigation}) => {
   );
 
   const {data: alertPreferences, refetch: refetchAlertPreferences} =
-    trpc.alertMethod.getAllAlertMethods.useQuery(undefined, {
+    trpc.alertMethod.getAlertMethods.useQuery(undefined, {
       enabled: sitesSuccess,
       retryDelay: 3000,
       onSuccess: () => {
@@ -139,7 +139,7 @@ const Settings = ({navigation}) => {
     },
   });
 
-  const softDeleteUser = trpc.user.softDeleteUser.useMutation({
+  const softDeleteUser = trpc.user.deleteUser.useMutation({
     retryDelay: 3000,
     onSuccess: async () => {
       setShowDelAccount(false);
@@ -311,13 +311,11 @@ const Settings = ({navigation}) => {
     let center: Feature<Point, Properties>;
     let highlightSiteInfo = siteInfo;
     setSitesInfoModal(false);
-    if (JSON.parse(siteInfo?.geometry).type === 'MultiPolygon') {
-      center = centroid(
-        multiPolygon(JSON.parse(rewind(siteInfo?.geometry)).coordinates),
-      );
+    if (siteInfo?.geometry?.type === 'MultiPolygon') {
+      center = centroid(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
       highlightSiteInfo = rewind(siteInfo?.geometry);
     } else {
-      center = centroid(polygon(JSON.parse(siteInfo?.geometry).coordinates));
+      center = centroid(polygon(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
     }
     const lat = center?.geometry?.coordinates[0];
@@ -328,7 +326,7 @@ const Settings = ({navigation}) => {
       siteInfo: [
         {
           type: 'Feature',
-          geometry: JSON.parse(highlightSiteInfo),
+          geometry: highlightSiteInfo,
           properties: {site: siteInfo},
         },
       ],

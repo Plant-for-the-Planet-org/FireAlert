@@ -177,7 +177,7 @@ const Home = ({navigation, route}) => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location, onUpdateUserLocation]);
 
-  const {data: alerts} = trpc.alert.getAlertsForUser.useQuery(undefined, {
+  const {data: alerts} = trpc.alert.getAlerts.useQuery(undefined, {
     enabled: true,
     retryDelay: 3000,
     onError: () => {
@@ -185,7 +185,7 @@ const Home = ({navigation, route}) => {
     },
   });
 
-  const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
+  const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
     undefined,
     {
       enabled: true,
@@ -377,7 +377,7 @@ const Home = ({navigation, route}) => {
   };
 
   const handlePencil = () => {
-    setProfileName(userDetails?.name);
+    setProfileName(userDetails?.data?.name);
     setProfileModalVisible(false);
     setTimeout(() => setProfileEditModal(true), 500);
   };
@@ -526,7 +526,7 @@ const Home = ({navigation, route}) => {
             return {
               type: 'Feature',
               properties: {site: singleSite},
-              geometry: JSON.parse(singleSite?.geometry),
+              geometry: singleSite?.geometry,
             };
           }) || [],
       }}
@@ -631,9 +631,9 @@ const Home = ({navigation, route}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        {userDetails?.avatar || userDetails?.picture ? (
+        {userDetails?.data?.image || userDetails?.picture ? (
           <Image
-            source={{uri: userDetails?.avatar || userDetails?.picture}}
+            source={{uri: userDetails?.data?.image || userDetails?.picture}}
             style={styles.userAvatar}
           />
         ) : (
@@ -664,7 +664,7 @@ const Home = ({navigation, route}) => {
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
             <Text style={styles.siteTitle}>
-              {userDetails?.name || 'Anonymous Firefighter'}
+              {userDetails?.data?.name || 'Anonymous Firefighter'}
             </Text>
             <TouchableOpacity onPress={handlePencil}>
               <PencilIcon />
