@@ -1,11 +1,16 @@
+import DataRecord from "./DataRecord";
+
 interface GeoEvent {
-    id?: string
+    id?: string,
     longitude: number,
     latitude: number,
-    type: string,
-    confidence: string,
-    detectedBy: string,
     eventDate: Date,
+    type: "fire",
+    confidence: "high" | "medium" | "low",
+    providerKey:"FIRMS",
+    identityGroup: string,
+    data: DataRecord
 }
+
 
 export default GeoEvent;
