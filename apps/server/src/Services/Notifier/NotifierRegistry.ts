@@ -1,7 +1,9 @@
-import Notifier from "./Notifier";
+import type Notifier from "./Notifier";
 
 import WhatsAppNotifier from "./Notifier/WhatsAppNotifier";
 import DeviceNotifier from "./Notifier/DeviceNotifier";
+import SMSNotifier from "./Notifier/SMSNotifier";
+import WebhookNotifier from "./Notifier/WebhookNotifier";
 import TestNotifier from "./Notifier/TestNotifier";
 
 const createNotifierRegistry = (notifiers: Notifier[]) => {
@@ -31,6 +33,8 @@ const createNotifierRegistry = (notifiers: Notifier[]) => {
 const NotifierRegistry = createNotifierRegistry([
     new WhatsAppNotifier(),
     new DeviceNotifier(),
+    new SMSNotifier(),
+    new WebhookNotifier(),
     new TestNotifier(),
 ]);
 

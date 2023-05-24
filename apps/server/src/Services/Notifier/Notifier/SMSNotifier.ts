@@ -3,30 +3,30 @@ import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 import twilio from 'twilio';
 
-class WhatsAppNotifier implements Notifier {
+class SMSNotifier implements Notifier {
 
     getSupportedMethods(): Array<string> {
-        return [NOTIFICATION_METHOD.WHATSAPP];
+        return [NOTIFICATION_METHOD.SMS];
     }
 
     notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const { type, confidence, longitude, latitude, distance, detectedBy, eventDate, data } = parameters;
         const message = (`${type} at [${longitude},${latitude}] ${distance}m from your site with ${confidence} confidence`);
 
-        console.log(`Sending WhatsApp message ${message} to ${destination}`)
+        console.log(`Sending message ${message} to ${destination}`)
         const accountSid = <string>process.env.TWILIO_ACCOUNT_SID;
         const authToken = <string>process.env.TWILIO_AUTH_TOKEN;
-        const whatsappNumber = <string>process.env.TWILIO_WHATSAPP_NUMBER;
+        const phoneNumber = <string>process.env.TWILIO_PHONE_NUMBER;
         const client = twilio(accountSid, authToken);
-
+        
         return client.messages
           .create({
             body: message,
-            from: 'whatsapp:' + whatsappNumber,
-            to: 'whatsapp:' + destination,
+            from: phoneNumber,
+            to: destination,
           })
           .then((message) => {
-            console.log("WhatsApp message sent successfully");
+            console.log("Message sent successfully");
             return true;
           })
           .catch((error) => {
@@ -36,4 +36,4 @@ class WhatsAppNotifier implements Notifier {
     }
 }
 
-export default WhatsAppNotifier;
+export default SMSNotifier;

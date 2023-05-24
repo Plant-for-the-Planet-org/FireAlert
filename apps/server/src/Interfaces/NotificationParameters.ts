@@ -1,4 +1,4 @@
-import DataRecord from "./DataRecord";
+import type DataRecord from "./DataRecord";
 
 export interface NotificationParameters {
     alertId: string;

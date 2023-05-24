@@ -2,14 +2,13 @@ import { type NotificationParameters } from "../../../Interfaces/NotificationPar
 import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 
-class DeviceNotifier implements Notifier {
+class WebhookNotifier implements Notifier {
 
     getSupportedMethods(): Array<string> {
-        return [NOTIFICATION_METHOD.DEVICE];
+        return [NOTIFICATION_METHOD.WEBHOOK];
     }
     
-    // OneSignal can send both iOS and android notifications, we just need to know the userID to deliver to.
-    // This ID is stored as destination in the alertMethod table.
+    // Goal of Webhook notifier is to return the payload to the webhook url specified by the user in AlertMethod.
 
     async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const { alertId, siteName, type, confidence, longitude, latitude, distance, detectedBy, eventDate, data } = parameters;
@@ -20,17 +19,16 @@ class DeviceNotifier implements Notifier {
 
         console.log(`Sending message ${message} to ${destination}`)
 
-        // construct the payload for the OneSignal API
+        // construct the payload for Webhook
         const payload = {
-            app_id: process.env.ONESIGNAL_APP_ID,
-            //Todo get destination from alertMethod either user id, or PlayerId.
-            include_external_user_ids: destination,
-            contents: { "en": message },
-            headings: { "en": headline },
+            message: message,
+            headline: headline,
             url: url,
-            data: {
+            alertData: {
                 alertId: alertId,
                 siteName: siteName,
+                //Todo:
+                //Instead of SiteName return site.Name, site.Id, site.projectId object except for geometry
                 type: type,
                 confidence: confidence,
                 longitude: longitude,
@@ -42,14 +40,14 @@ class DeviceNotifier implements Notifier {
             }
         };
 
-        // call OneSignal API to send the notification
-        const response = await fetch('https://onesignal.com/api/v1/notifications', {
+        // call Wehbook to send the notification
+        const response = await fetch(`${destination}`,
+        {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: payload
         });
 
         if (!response.ok) {
@@ -62,7 +60,7 @@ class DeviceNotifier implements Notifier {
         }
 
         return true;
-    };
+    }
 }
 
-export default DeviceNotifier;
+export default WebhookNotifier;

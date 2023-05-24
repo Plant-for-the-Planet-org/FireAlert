@@ -1,5 +1,5 @@
-import { NotificationParameters } from "../../../Interfaces/NotificationParameters";
-import Notifier from "../Notifier";
+import { type NotificationParameters } from "../../../Interfaces/NotificationParameters";
+import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 
 class TestNotifier implements Notifier {
@@ -14,7 +14,7 @@ class TestNotifier implements Notifier {
         console.log(`Build your message here and send it to ${destination}`)
 
         return Promise.resolve(true);
-    };
+    }
 }
 
 export default TestNotifier;
