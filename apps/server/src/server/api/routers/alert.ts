@@ -13,7 +13,7 @@ import { subtractDays } from "../../../utils/date";
 export const alertRouter = createTRPCRouter({
 
     getAlerts: protectedProcedure
-        .query(async ({ ctx }) => {
+        .mutation(async ({ ctx }) => {
             try {
                 const user = await getUser(ctx)
                 const alertsForUser: SiteAlert[] = [];
@@ -50,7 +50,7 @@ export const alertRouter = createTRPCRouter({
 
     getAlert: protectedProcedure
         .input(queryAlertSchema)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             await getUser(ctx)
             try {
                 const alert = await ctx.prisma.siteAlert.findFirst({

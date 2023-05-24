@@ -1,6 +1,8 @@
+import { NotificationParameters } from "../../Interfaces/NotificationParameters";
+
 interface Notifier {
     getSupportedMethods: () => string[]
-    notify: (destination: string, message: string) => boolean
+    notify: (destination: string, parameters: NotificationParameters) => Promise<boolean>
 }
 
 export default Notifier;

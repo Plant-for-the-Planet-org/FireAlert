@@ -2,16 +2,21 @@ import GeoEventProvider from '../GeoEventProvider';
 import GeoEventProviderConfig from '../GeoEventProviderConfig';
 
 class SampleGeoEventProvider implements GeoEventProvider {
+
     private config?: GeoEventProviderConfig;
 
-    getSources(): Array<string> {
+    getKey(): string {
         // Logic to retrieve available sources goes here
-        return ['source1', 'source2', 'source3'];
+        return 'some-provider-key';
     }
 
-    initialize(config: GeoEventProviderConfig): void {
+    initialize(config?: GeoEventProviderConfig): void {
         // Logic to initialize the alert provider with the specified configuration goes here
         this.config = config;
+    }
+
+    getIdentityGroup(): string | null {
+        return 'some-group-key';
     }
 
     async getLatestGeoEvents(): Promise<any[]> {

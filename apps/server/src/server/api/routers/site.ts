@@ -46,7 +46,7 @@ export const siteRouter = createTRPCRouter({
 
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             try {
                 await getUser(ctx)
                 const sitesForProject = await ctx.prisma.site.findMany({
@@ -80,7 +80,7 @@ export const siteRouter = createTRPCRouter({
         }),
 
     getSites: protectedProcedure
-        .query(async ({ ctx }) => {
+        .mutation(async ({ ctx }) => {
             const user = await getUser(ctx)
             try {
                 const sites = await ctx.prisma.site.findMany({
@@ -136,7 +136,7 @@ export const siteRouter = createTRPCRouter({
 
     getSite: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             const user = await getUser(ctx)
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });

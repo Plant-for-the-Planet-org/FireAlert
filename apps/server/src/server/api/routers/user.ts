@@ -3,13 +3,13 @@ import { updateUserSchema } from '../zodSchemas/user.schema';
 import { adminProcedure, createTRPCRouter, protectedProcedure, userProcedure } from '../trpc';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
 import { sendEmail } from '../../../utils/notification/sendEmail';
-import { getUser, createUserInPrismaTransaction, returnUser} from '../../../utils/routers/user';
+import { getUser, createUserInPrismaTransaction, returnUser } from '../../../utils/routers/user';
 import { createAlertMethodInPrismaTransaction } from '../../../utils/routers/alertMethod';
-import { Prisma, Project} from '@prisma/client';
+import { Prisma, Project } from '@prisma/client';
 
 export const userRouter = createTRPCRouter({
     profile: userProcedure
-        .query(async ({ ctx }) => {
+        .mutation(async ({ ctx }) => {
             // Get the access token
             const access_token = ctx.token.access_token
             const bearer_token = "Bearer " + access_token
@@ -20,7 +20,7 @@ export const userRouter = createTRPCRouter({
                 }
             });
             const name = await getNameFromPPApi(bearer_token);
-            const detectionMethods:('MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY')[] = ["MODIS","VIIRS","LANDSAT"]
+            const detectionMethods: ('MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY')[] = ["MODIS", "VIIRS", "LANDSAT"]
             if (!user) {
                 // SIGNUP FUNCTIONALITY
                 // Check if the user requesting access is PlanetRO
@@ -28,8 +28,8 @@ export const userRouter = createTRPCRouter({
                 // If not planetRO // create the User
                 if (!isPlanetRO) {
                     const result = await ctx.prisma.$transaction(async (prisma) => {
-                        const createdUser = await createUserInPrismaTransaction({prisma, ctx, name, isPlanetRO:false, detectionMethods})    
-                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })             
+                        const createdUser = await createUserInPrismaTransaction({ prisma, ctx, name, isPlanetRO: false, detectionMethods })
+                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
                         return {
                             user: createdUser,
                             alertMethod: createdAlertMethod,
@@ -94,8 +94,8 @@ export const userRouter = createTRPCRouter({
                     }
                     // Create user and alert method in a transaction
                     const result = await ctx.prisma.$transaction(async (prisma) => {
-                        const createdUser = await createUserInPrismaTransaction({id:userId, prisma, ctx, name:name, isPlanetRO:true, detectionMethods:detectionMethods})    
-                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
+                        const createdUser = await createUserInPrismaTransaction({ id: userId, prisma, ctx, name: name, isPlanetRO: true, detectionMethods: detectionMethods })
+                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
                         const projects = await prisma.project.createMany({
                             data: projectData,
                         });
@@ -109,7 +109,7 @@ export const userRouter = createTRPCRouter({
                             sitesCount: sites.count,
                         };
                     });
-                    const {user, alertMethod, projectsCount, sitesCount} = result;
+                    const { user, alertMethod, projectsCount, sitesCount } = result;
                     const createdUser = returnUser(user)
                     return {
                         status: 'success',
@@ -118,14 +118,14 @@ export const userRouter = createTRPCRouter({
                     };
                 } else {
                     const result = await ctx.prisma.$transaction(async (prisma) => {
-                        const createdUser = await createUserInPrismaTransaction({prisma, ctx, name:name, isPlanetRO:true, detectionMethods:detectionMethods})    
-                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
+                        const createdUser = await createUserInPrismaTransaction({ prisma, ctx, name: name, isPlanetRO: true, detectionMethods: detectionMethods })
+                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
                         return {
                             user: createdUser,
                             alertMethod: createdAlertMethod,
                         };
                     });
-                    const {user} = result;
+                    const { user } = result;
                     const createdUser = returnUser(user)
                     return {
                         status: 'success',
@@ -133,10 +133,11 @@ export const userRouter = createTRPCRouter({
                     }
                 }
             } else {
+                // If User is present: LOGIN
                 // When user is there - LOGIN FUNCTIONALITY
-                const updatedUser = await ctx.prisma.$transaction(async (prisma) => {
+                try {
                     if (user.deletedAt) {
-                        await prisma.user.update({
+                        await ctx.prisma.user.update({
                             where: {
                                 sub: ctx.token.sub,
                             },
@@ -148,7 +149,7 @@ export const userRouter = createTRPCRouter({
                         const emailBody = 'Thank you for logging in to FireAlert. Deletion was canceled as you have logged into your account.';
                         await sendEmail(user.email, emailSubject, emailBody);
                     }
-                    await prisma.user.update({
+                    await ctx.prisma.user.update({
                         where: {
                             sub: ctx.token.sub,
                         },
@@ -156,18 +157,25 @@ export const userRouter = createTRPCRouter({
                             lastLogin: new Date(),
                         },
                     });
-                    return user;
-                });
-                const loggedInUser = returnUser(updatedUser)
+                } catch (error) {
+                    console.log(error);
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: `${error}`,
+                    });
+                }
+
+                const loggedInUser = returnUser(user);
                 return {
                     status: 'success',
-                    data: loggedInUser
-                }
+                    data: loggedInUser,
+                };
+
             }
         }),
 
     getAllUsers: adminProcedure
-        .query(async ({ ctx }) => {
+        .mutation(async ({ ctx }) => {
             try {
                 const users = await ctx.prisma.user.findMany();
                 return {
@@ -187,14 +195,14 @@ export const userRouter = createTRPCRouter({
         .input(updateUserSchema)
         .mutation(async ({ ctx, input }) => {
             const user = await getUser(ctx)
-            let body:Prisma.UserUpdateInput = {};
-            if(input.body.detectionMethods){
-                const {detectionMethods, ...rest} = input.body
+            let body: Prisma.UserUpdateInput = {};
+            if (input.body.detectionMethods) {
+                const { detectionMethods, ...rest } = input.body
                 body = {
                     detectionMethods: detectionMethods,
                     ...rest,
                 }
-            }else{
+            } else {
                 body = input.body
             }
             try {
@@ -218,39 +226,40 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    softDeleteUser: protectedProcedure.query(async ({ ctx }) => {
-        const user = await getUser(ctx)
-        try {
-            const deletedUser = await ctx.prisma.user.update({
-                where: {
-                    id: user.id,
-                },
-                data: {
-                    deletedAt: new Date(),
-                },
-            });
-            if (!deletedUser) {
+    softDeleteUser: protectedProcedure
+        .mutation(async ({ ctx }) => {
+            const user = await getUser(ctx)
+            try {
+                const deletedUser = await ctx.prisma.user.update({
+                    where: {
+                        id: user.id,
+                    },
+                    data: {
+                        deletedAt: new Date(),
+                    },
+                });
+                if (!deletedUser) {
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: `Error in deletion process. Cannot delete user`,
+                    });
+                } else {
+                    const emailSubject = 'Soft Delete Fire Alert Account'
+                    const emailBody = 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.'
+                    const emailSent = await sendEmail(deletedUser.email, emailSubject, emailBody)
+                    return {
+                        status: 'Success',
+                        message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
+                    };
+                }
+            } catch (error) {
+                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `Error in deletion process. Cannot delete user`,
+                    message: `${error}`,
                 });
-            } else {
-                const emailSubject = 'Soft Delete Fire Alert Account'
-                const emailBody = 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.'
-                const emailSent = await sendEmail(deletedUser.email, emailSubject, emailBody)
-                return {
-                    status: 'Success',
-                    message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
-                };
             }
-        } catch (error) {
-            console.log(error)
-            throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: `${error}`,
-            });
-        }
-    }),
+        }),
 
     syncProjectsAndSites: protectedProcedure
         .mutation(async ({ ctx }) => {
@@ -268,7 +277,7 @@ export const userRouter = createTRPCRouter({
                         userId: user.id,
                     }
                 })
-                const result = await ctx.prisma.$transaction(async(prisma) => {
+                const result = await ctx.prisma.$transaction(async (prisma) => {
                     const createPromises = [];
                     const updatePromises = [];
                     const deletePromises = [];
@@ -342,7 +351,7 @@ export const userRouter = createTRPCRouter({
                                             lastUpdated: siteLastUpdatedFromPP.date,
                                         },
                                     })
-                                )                                
+                                )
                             } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
                                 updatePromises.push(
                                     prisma.site.update({
@@ -379,23 +388,23 @@ export const userRouter = createTRPCRouter({
                                             projectId: null
                                         }
                                     })
-                                )                                
+                                )
                             }
                         }
                     }
-                const createResults = await Promise.all(createPromises);
-                const updateResults = await Promise.all(updatePromises);
-                const deleteResults = await Promise.all(deletePromises);
-                
-                return {created: createResults, updated: updateResults, deleted: deleteResults}                
+                    const createResults = await Promise.all(createPromises);
+                    const updateResults = await Promise.all(updatePromises);
+                    const deleteResults = await Promise.all(deletePromises);
+
+                    return { created: createResults, updated: updateResults, deleted: deleteResults }
                 })
-                const {created, updated, deleted} = result
+                const { created, updated, deleted } = result
                 const createCount = created.length; // Number of created items
                 const updateCount = updated.length; // Number of updated items
                 const deleteCount = deleted.length; // Number of deleted items
-                
+
                 return { created: createCount, updated: updateCount, deleted: deleteCount };
-            }else{
+            } else {
                 throw new TRPCError({
                     code: "METHOD_NOT_SUPPORTED",
                     message: `Only PlanetRO users can sync projects and site to the planet webapp`,

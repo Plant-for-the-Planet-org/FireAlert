@@ -5,6 +5,7 @@ import { alertRouter } from "../../server/api/routers/alert";
 import { userRouter } from "./routers/user";
 import { cronRouter } from "./routers/cron";
 import { projectRouter } from "./routers/project";
+import { geoEventProviderRouter } from "./routers/geoEventProvider";
 
 /**
  * This is the primary router for your server.
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   cron: cronRouter,
   project: projectRouter,
+  geoEventProvider: geoEventProviderRouter,
 });
 
 // export type definition of API

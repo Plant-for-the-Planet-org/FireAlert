@@ -138,9 +138,8 @@ CREATE TABLE "Project" (
 CREATE TABLE "GeoEventProvider" (
     "id" TEXT NOT NULL,
     "type" "AlertType" NOT NULL,
-    "isActive" BOOLEAN NOT NULL,
-    "source" "GeoEventSource" NOT NULL,
-    "sourceKey" "GeoEventProviderSourceKey" NOT NULL,
+    "isActive" BOOLEAN NOT NULL,    
+    "providerKey" "GeoEventSource" NOT NULL,
     "config" JSONB NOT NULL,
 
     CONSTRAINT "GeoEventProvider_pkey" PRIMARY KEY ("id")
@@ -155,8 +154,8 @@ CREATE TABLE "GeoEvent" (
     "eventDate" TIMESTAMP(3) NOT NULL,
     "confidence" "AlertConfidence" NOT NULL,
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
-    "source" "GeoEventSource" NOT NULL,
-    "detectedBy" "GeoEventDetectionInstrument" NOT NULL,
+    "identityGroup" TEXT NOT NULL,
+    "providerKey" "GeoEventSource" NOT NULL,
     "geometry" GEOMETRY,
     "radius" INTEGER,
     "data" JSONB,

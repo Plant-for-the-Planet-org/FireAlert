@@ -53,13 +53,22 @@ export const alertMethodRouter = createTRPCRouter({
             const currentTime = new Date();
             // TODO: Also check if it is expired or not, by checking if the verificationRequest.expires is less than the time right now, if yes, set isExpired to true.
             if (verificatonRequest.token === input.body.token && (verificatonRequest.expires >= currentTime)) {
-                const alertMethod = await ctx.prisma.alertMethod.update({
-                    where: {
-                        id: input.params.alertMethodId
-                    },
-                    data: {
-                        isVerified: true
-                    }
+                const alertMethod = await ctx.prisma.$transaction(async (prisma) => {
+                    const alertMethod = await prisma.alertMethod.update({
+                        where: {
+                            id: input.params.alertMethodId
+                        },
+                        data: {
+                            isVerified: true,
+                            tokenSentCount: 0,
+                        }
+                    })
+                    await prisma.verificationRequest.delete({
+                        where: {
+                            id: verificatonRequest.id
+                        }
+                    })
+                    return alertMethod
                 })
                 const returnedAlertMethod = returnAlertMethod(alertMethod)
                 return {
@@ -114,7 +123,7 @@ export const alertMethodRouter = createTRPCRouter({
         }),
 
     getAlertMethods: protectedProcedure
-        .query(async ({ ctx }) => {
+        .mutation(async ({ ctx }) => {
             const user = await getUser(ctx)
             try {
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
@@ -148,7 +157,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     getAlertMethod: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
@@ -202,7 +211,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     deleteAlertMethod: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
