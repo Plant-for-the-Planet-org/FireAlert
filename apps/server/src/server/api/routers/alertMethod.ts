@@ -123,7 +123,7 @@ export const alertMethodRouter = createTRPCRouter({
         }),
 
     getAlertMethods: protectedProcedure
-        .query(async ({ ctx }) => {
+        .mutation(async ({ ctx }) => {
             const user = await getUser(ctx)
             try {
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
@@ -157,7 +157,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     getAlertMethod: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
@@ -211,7 +211,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     deleteAlertMethod: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {

@@ -73,7 +73,7 @@ export const geoEventProviderRouter = createTRPCRouter({
         }),
 
     getGeoEventProviders: adminProcedure
-        .query(async ({ ctx }) => {
+        .mutation(async ({ ctx }) => {
             try {
                 const geoEventProviders = await ctx.prisma.geoEventProvider.findMany();
 
@@ -92,7 +92,7 @@ export const geoEventProviderRouter = createTRPCRouter({
 
     getGeoEventProvider: adminProcedure
         .input(geoEventProviderParamsSchema)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             try {
                 const geoEventProvider = await ctx.prisma.geoEventProvider.findUnique({
                     where: {
