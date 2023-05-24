@@ -149,8 +149,6 @@ const Home = ({navigation, route}) => {
     }
   }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat, siteInfo?.siteInfo]);
 
-  console.log(selectedArea);
-
   useEffect(() => {
     if (
       isCameraRefVisible &&
@@ -452,7 +450,7 @@ const Home = ({navigation, route}) => {
   };
 
   const renderSelectedPoint = counter => {
-    const id = formattedSites?.point[counter]?.guid;
+    const id = formattedSites?.point[counter]?.id;
     const coordinate = formattedSites?.point[counter]?.geometry?.coordinates;
     const title = `Longitude: ${coordinate[0]} Latitude: ${coordinate[1]}`;
     return (
@@ -460,9 +458,17 @@ const Home = ({navigation, route}) => {
         id={id}
         key={id}
         title={title}
-        // onSelected={e => {
-        //   setSelectedAlert(formattedSites?.point[counter]), console.log(e);
-        // }}
+        onSelected={e => {
+          let pointInfo = formattedSites?.point?.filter(
+            site => site.id === e?.id,
+          )[0];
+          camera.current.setCamera({
+            centerCoordinate: pointInfo?.geometry?.coordinates,
+            zoomLevel: 15,
+            animationDuration: 500,
+          });
+          setSelectedSite({site: pointInfo});
+        }}
         coordinate={coordinate}>
         <PointSiteIcon />
       </MapboxGL.PointAnnotation>

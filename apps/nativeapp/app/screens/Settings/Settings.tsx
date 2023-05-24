@@ -13,11 +13,18 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
+import {
+  point,
+  Point,
+  Feature,
+  polygon,
+  Properties,
+  multiPolygon,
+} from '@turf/helpers';
 import centroid from '@turf/centroid';
 import rewind from '@mapbox/geojson-rewind';
 import {useToast} from 'react-native-toast-notifications';
 import React, {useCallback, useMemo, useState} from 'react';
-import {Feature, Point, Properties, multiPolygon, polygon} from '@turf/helpers';
 
 import {
   Switch,
@@ -314,6 +321,9 @@ const Settings = ({navigation}) => {
     if (siteInfo?.geometry?.type === 'MultiPolygon') {
       center = centroid(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
       highlightSiteInfo = rewind(siteInfo?.geometry);
+    } else if (siteInfo?.geometry?.type === 'Point') {
+      center = point(siteInfo?.geometry.coordinates);
+      highlightSiteInfo = siteInfo?.geometry;
     } else {
       center = centroid(polygon(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
