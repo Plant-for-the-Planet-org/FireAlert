@@ -6,7 +6,7 @@ import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEven
 import { PrismaClient, GeoEventProvider } from '@prisma/client'
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
 import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
-import {isGreaterThanCurrentDateTime} from '../../../utils/date'
+import { isGreaterThanCurrentDateTime } from '../../../utils/date'
 
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
@@ -27,13 +27,13 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
   const activeProviders = allActiveProviders.filter(provider => {
-    if(!provider.fetchFrequency){
+    if (!provider.fetchFrequency) {
       return false
     }
-    if(!provider.lastRun){
+    if (!provider.lastRun) {
       return true
     }
-    return isGreaterThanCurrentDateTime(provider.lastRun, provider.fetchFrequency) 
+    return isGreaterThanCurrentDateTime(provider.lastRun, provider.fetchFrequency)
   });
 
   const promises = activeProviders.map(async (provider) => {
@@ -44,6 +44,16 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     const geoEvents = await geoEventProvider.getLatestGeoEvents()
     const identityGroup = geoEventProvider.getIdentityGroup()
     geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEvents)
+
+    // Update lastRun value of the provider to the current Date()
+    await prisma.geoEventProvider.update({
+      where: {
+        id: provider.id
+      },
+      data: {
+        lastRun: new Date()
+      },
+    });
   })
 
   await Promise.all(promises);
