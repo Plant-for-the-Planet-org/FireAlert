@@ -1,7 +1,10 @@
 import {useEffect} from 'react';
 import OneSignal from 'react-native-onesignal';
+import {useToast} from 'react-native-toast-notifications';
 
+import {trpc} from '../../services/trpc';
 import {useAppSelector} from '../redux/reduxHooks';
+import {getDeviceInfo} from '../../utils/deviceInfo';
 
 interface NotificationHandlers {
   onReceived?: (notification: any) => void;
@@ -11,6 +14,56 @@ interface NotificationHandlers {
 
 const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
   const {userDetails} = useAppSelector(state => state.loginSlice);
+  const toast = useToast();
+
+  const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
+    retryDelay: 3000,
+    onSuccess: data => {
+      if (data?.json?.status === 403) {
+        return toast.show(data?.json?.message || 'something went wrong', {
+          type: 'warning',
+        });
+      }
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const {data: alertMethodsData} = trpc.alertMethod.getAlertMethods.useQuery(
+    undefined,
+    {
+      enabled: !!userDetails?.data?.id,
+      onSuccess: alertMethods => {
+        OneSignal.getDeviceState().then(async res => {
+          if (res?.userId) {
+            if (
+              !(
+                alertMethods?.json?.data?.filter(
+                  el =>
+                    el.destination === res?.userId && el.method === 'device',
+                ).length > 0
+              ) &&
+              res?.hasNotificationPermission
+            ) {
+              const {deviceName, deviceId} = await getDeviceInfo();
+              const payload = {
+                deviceId,
+                deviceName,
+                method: 'device',
+                destination: res?.userId,
+              };
+              createAlertPreference.mutate({json: payload});
+            }
+          }
+        });
+      },
+      onError: () => {
+        toast.show('something went wrong', {type: 'danger'});
+      },
+    },
+  );
+
   useEffect(() => {
     if (userDetails?.data?.id) {
       OneSignal.setAppId(appId);
@@ -23,9 +76,9 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
           notificationReceivedEvent,
         );
         const notification = notificationReceivedEvent.getNotification();
-        console.log('notification:', notification);
+
         const data = notification.additionalData;
-        console.log('additionalData:', data);
+
         notificationReceivedEvent.complete(notification);
 
         if (handlers.onReceived) {
@@ -34,8 +87,6 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
       };
 
       const openedHandler = (notification: any) => {
-        console.log('OneSignal: notification opened:', notification);
-
         if (handlers.onOpened) {
           handlers.onOpened(notification);
         }

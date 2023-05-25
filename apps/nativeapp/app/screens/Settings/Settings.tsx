@@ -23,8 +23,9 @@ import {
 } from '@turf/helpers';
 import centroid from '@turf/centroid';
 import rewind from '@mapbox/geojson-rewind';
+import OneSignal from 'react-native-onesignal';
 import {useToast} from 'react-native-toast-notifications';
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {
   Switch,
@@ -61,6 +62,7 @@ import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
 import {clearAll} from '../../utils/localStorage';
 import handleLink from '../../utils/browserLinking';
+import {getDeviceInfo} from '../../utils/deviceInfo';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
@@ -88,6 +90,10 @@ const Settings = ({navigation}) => {
   const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
   const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
+  const [reRender, setReRender] = useState<boolean>(false);
+  const [deviceAlertPreferences, setDeviceAlertPreferences] = useState<
+    object[]
+  >([]);
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
   const [selectedSiteInfo, setSelectedSiteInfo] = useState<boolean | null>(
@@ -97,6 +103,33 @@ const Settings = ({navigation}) => {
   const toast = useToast();
   const dispatch = useAppDispatch();
   const {userDetails} = useAppSelector(state => state.loginSlice);
+
+  async function deviceNotification() {
+    try {
+      const {deviceId} = await getDeviceInfo();
+      const {userId} = await OneSignal.getDeviceState();
+      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
+        el => userId === el?.destination && el.deviceId === deviceId,
+      );
+      if (filterDeviceAlertMethod.length > 0) {
+        const filteredData = filterDeviceAlertMethod[0];
+        const nonFilteredData = formattedAlertPreferences.device.filter(
+          el => userId !== el?.destination || el.deviceId !== deviceId,
+        );
+        formattedAlertPreferences.device = [
+          filteredData,
+          ...nonFilteredData,
+        ].filter(el => el.deviceName !== '');
+      }
+      setDeviceAlertPreferences(formattedAlertPreferences?.device);
+    } catch {
+      setDeviceAlertPreferences([]);
+    }
+  }
+
+  useEffect(() => {
+    deviceNotification();
+  }, [reRender]);
 
   const {
     data: sites,
@@ -134,7 +167,6 @@ const Settings = ({navigation}) => {
     () => categorizedRes(alertPreferences?.json?.data || [], 'method'),
     [alertPreferences],
   );
-
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
     onSuccess: () => {
@@ -188,6 +220,7 @@ const Settings = ({navigation}) => {
       retryDelay: 3000,
       onSuccess: () => {
         refetchAlertPreferences();
+        setReRender(!reRender);
       },
       onError: () => {
         toast.show('something went wrong', {type: 'danger'});
@@ -491,15 +524,39 @@ const Settings = ({navigation}) => {
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
-          <View style={styles.notificationContainer}>
-            <View style={styles.mobileContainer}>
-              <PhoneIcon />
-              <Text style={[styles.smallHeading]}>Mobile</Text>
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <PhoneIcon />
+                <Text style={[styles.smallHeading]}>Mobile</Text>
+              </View>
             </View>
-            <Switch
-              value={mobileNotify}
-              onValueChange={val => setMobileNotify(val)}
-            />
+            {deviceAlertPreferences?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {deviceAlertPreferences?.map((item, i) => (
+                  <View key={`emails_${i}`}>
+                    <View
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>{item?.deviceName}</Text>
+                      <View style={styles.emailSubContainer}>
+                        <Switch
+                          value={item?.isEnabled}
+                          onValueChange={val =>
+                            handleNotifySwitch({alertMethodId: item.id}, val)
+                          }
+                        />
+                      </View>
+                    </View>
+                    {deviceAlertPreferences?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
           {/* emails */}
           <View style={styles.mySiteNameMainContainer}>
