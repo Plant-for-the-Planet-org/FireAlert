@@ -25,8 +25,7 @@ class DeviceNotifier implements Notifier {
         const payload = {
             app_id: env.ONESIGNAL_APP_ID,
             //Todo get destination from alertMethod either user id, or PlayerId.
-            include_external_user_ids: [destination],
-            channel_for_external_user_ids: "push",
+            include_player_ids: [destination],
             contents: { "en": message },
             headings: { "en": headline },
             url: url,
