@@ -6,7 +6,6 @@ import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEven
 import { PrismaClient, GeoEventProvider } from '@prisma/client'
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
 import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
-import { isGreaterThanCurrentDateTime } from '../../../utils/date'
 
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
@@ -25,6 +24,22 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     },
   });
 
+  function filterAllActiveProviders(date: Date, minutes: number): boolean {
+    // Create a new date by adding minutes to the input date
+    const scheduledRunDate = new Date(date.getTime() + minutes * 60000); // Convert minutes to milliseconds
+  
+    // Get the current date and time
+    const currentDate = new Date();
+  
+    // Compare the future date with the current date
+    // Future date must be less than current date for it to run
+    if (scheduledRunDate < currentDate) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
   const activeProviders = allActiveProviders.filter(provider => {
     if (!provider.fetchFrequency) {
@@ -33,7 +48,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     if (!provider.lastRun) {
       return true
     }
-    return isGreaterThanCurrentDateTime(provider.lastRun, provider.fetchFrequency)
+    return filterAllActiveProviders(provider.lastRun, provider.fetchFrequency)
   });
 
   const promises = activeProviders.map(async (provider) => {

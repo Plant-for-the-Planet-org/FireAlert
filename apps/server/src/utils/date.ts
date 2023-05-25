@@ -13,18 +13,3 @@ export function subtractDays(date: Date, days: number): Date {
   copy.setDate(date.getDate() - days);
   return copy;
 }
-
-export function isGreaterThanCurrentDateTime(date: Date, minutes: number): boolean {
-  // Create a new date by adding minutes to the input date
-  const futureDate = new Date(date.getTime() + minutes * 60000); // Convert minutes to milliseconds
-
-  // Get the current date and time
-  const currentDate = new Date();
-
-  // Compare the future date with the current date
-  if (futureDate > currentDate) {
-    return true;
-  } else {
-    return false;
-  }
-}
