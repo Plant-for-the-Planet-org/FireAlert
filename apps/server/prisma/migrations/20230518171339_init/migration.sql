@@ -91,8 +91,8 @@ CREATE TABLE "AlertMethod" (
     "destination" TEXT NOT NULL,
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "isEnabled" BOOLEAN NOT NULL DEFAULT false,
-    "deviceName" TEXT;
-    "deviceId" TEXT;
+    "deviceName" TEXT,
+    "deviceId" TEXT,
     "tokenSentCount" INTEGER NOT NULL DEFAULT 0,
     "lastTokenSentDate" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
