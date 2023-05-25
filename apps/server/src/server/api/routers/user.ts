@@ -9,7 +9,7 @@ import { Prisma, Project } from '@prisma/client';
 
 export const userRouter = createTRPCRouter({
     profile: userProcedure
-        .mutation(async ({ ctx }) => {
+        .query(async ({ ctx }) => {
             // Get the access token
             const access_token = ctx.token.access_token
             const bearer_token = "Bearer " + access_token
@@ -133,7 +133,6 @@ export const userRouter = createTRPCRouter({
                     }
                 }
             } else {
-                // If User is present: LOGIN
                 // When user is there - LOGIN FUNCTIONALITY
                 try {
                     if (user.deletedAt) {
@@ -149,7 +148,7 @@ export const userRouter = createTRPCRouter({
                         const emailBody = 'Thank you for logging in to FireAlert. Deletion was canceled as you have logged into your account.';
                         await sendEmail(user.email, emailSubject, emailBody);
                     }
-                    await ctx.prisma.user.update({
+                    const returnedUser = await ctx.prisma.user.update({
                         where: {
                             sub: ctx.token.sub,
                         },
@@ -157,6 +156,11 @@ export const userRouter = createTRPCRouter({
                             lastLogin: new Date(),
                         },
                     });
+                    const loggedInUser = returnUser(returnedUser);
+                return {
+                    status: 'success',
+                    data: loggedInUser,
+                };
                 } catch (error) {
                     console.log(error);
                     throw new TRPCError({
@@ -164,18 +168,11 @@ export const userRouter = createTRPCRouter({
                         message: `${error}`,
                     });
                 }
-
-                const loggedInUser = returnUser(user);
-                return {
-                    status: 'success',
-                    data: loggedInUser,
-                };
-
             }
         }),
 
     getAllUsers: adminProcedure
-        .mutation(async ({ ctx }) => {
+        .query(async ({ ctx }) => {
             try {
                 const users = await ctx.prisma.user.findMany();
                 return {
@@ -262,7 +259,7 @@ export const userRouter = createTRPCRouter({
         }),
 
     syncProjectsAndSites: protectedProcedure
-        .mutation(async ({ ctx }) => {
+        .query(async ({ ctx }) => {
             // Get the access token
             const access_token = ctx.token.access_token
             const bearer_token = "Bearer " + access_token
@@ -411,7 +408,6 @@ export const userRouter = createTRPCRouter({
                 });
             }
         }),
-
 });
 
 export type UserRouter = typeof userRouter;

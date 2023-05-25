@@ -8,7 +8,7 @@ import {getUser} from '../../../utils/routers/user'
 export const projectRouter = createTRPCRouter({
 
     getProjects: protectedProcedure
-        .mutation(async ({ ctx }) => {
+        .query(async ({ ctx }) => {
             try{
                 const user = await getUser(ctx)
                 if(!user.isPlanetRO){
