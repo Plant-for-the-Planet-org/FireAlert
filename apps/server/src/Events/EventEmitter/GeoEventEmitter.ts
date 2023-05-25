@@ -8,7 +8,6 @@ const geoEventEmitter = new EventEmitter();
 
 geoEventEmitter
     .on(GEO_EVENTS_CREATED, (providerKey: GeoEventSource, identityGroup: string, geoEvents: Array<GeoEvent>) => {
-        debugger;
         processGeoEvents(providerKey, identityGroup, geoEvents)
     })
     .on(GEO_EVENTS_PROCESSED, matchGeoEvents);

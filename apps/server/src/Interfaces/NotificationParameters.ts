@@ -11,4 +11,5 @@ export interface NotificationParameters {
     distance: number;
     data: DataRecord;
     siteName: string;
+    siteId: string,
 }

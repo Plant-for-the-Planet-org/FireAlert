@@ -4,7 +4,6 @@ import { GEO_EVENTS_PROCESSED } from "../Events/messageConstants";
 import { GeoEvent } from "@prisma/client";
 import geoEventEmitter from "../Events/EventEmitter/GeoEventEmitter";
 import md5 from "md5";
-import NasaGeoEventProvider from "./GeoEventProvider/Provider/NasaGeoEventProvider";
 
 const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEvents: Array<GeoEvent>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {

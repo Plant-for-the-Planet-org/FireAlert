@@ -1,6 +1,7 @@
 import { type NotificationParameters } from "../../../Interfaces/NotificationParameters";
 import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
+import {env} from '../../../env.mjs'
 
 class DeviceNotifier implements Notifier {
 
@@ -22,9 +23,10 @@ class DeviceNotifier implements Notifier {
 
         // construct the payload for the OneSignal API
         const payload = {
-            app_id: process.env.ONESIGNAL_APP_ID,
+            app_id: env.ONESIGNAL_APP_ID,
             //Todo get destination from alertMethod either user id, or PlayerId.
-            include_external_user_ids: destination,
+            include_external_user_ids: [destination],
+            channel_for_external_user_ids: "push",
             contents: { "en": message },
             headings: { "en": headline },
             url: url,
@@ -46,8 +48,8 @@ class DeviceNotifier implements Notifier {
         const response = await fetch('https://onesignal.com/api/v1/notifications', {
             method: 'POST',
             headers: {
-                'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Basic ${env.ONESIGNAL_REST_API_KEY}`,
+                'Content-Type': 'application/json; charset=utf-8'
             },
             body: JSON.stringify(payload)
         });

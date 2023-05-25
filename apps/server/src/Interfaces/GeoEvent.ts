@@ -1,6 +1,6 @@
 import DataRecord from "./DataRecord";
 
-interface GeoEvent {
+interface GeoEventData {
     id?: string,
     longitude: number,
     latitude: number,
@@ -13,4 +13,4 @@ interface GeoEvent {
 }
 
 
-export default GeoEvent;
+export default GeoEventData;

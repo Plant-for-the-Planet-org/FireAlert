@@ -141,6 +141,8 @@ CREATE TABLE "GeoEventProvider" (
     "isActive" BOOLEAN NOT NULL,    
     "providerKey" "GeoEventSource" NOT NULL,
     "config" JSONB NOT NULL,
+    "fetchFrequency" INTEGER,
+    "lastRun" TIMESTAMP(3),
 
     CONSTRAINT "GeoEventProvider_pkey" PRIMARY KEY ("id")
 );

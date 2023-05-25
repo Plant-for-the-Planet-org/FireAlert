@@ -1,10 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import NotifierRegistry from "./Notifier/NotifierRegistry";
+import { NotificationParameters } from "../Interfaces/NotificationParameters";
+import DataRecord from "../Interfaces/DataRecord";
 
 const prisma = new PrismaClient();
 
 const matchGeoEvents = async () => {
-    debugger;   
+    debugger;
     const getSiteAlertCreationQuery = (): string => {
         return `
             INSERT INTO "SiteAlert" (id, type, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
@@ -35,7 +37,7 @@ const matchGeoEvents = async () => {
     }
 
     // add a function that calculates the square of a number
-    
+
     // create SiteAlerts by joining New GeoEvents and Site that have the event's location in their proximity
     prisma.$queryRawUnsafe(getSiteAlertCreationQuery());
     // set all GeoEvents as processed
@@ -43,8 +45,8 @@ const matchGeoEvents = async () => {
 
     // create Notifications for all unprocessed SiteAlerts
     prisma.$queryRawUnsafe(getNotificationCreationQuery());
-    
-    
+
+
     // get all undelivered Notifications
     try {
         // TODO: in case we implement a max retry-count, filter by retryCount < max_retry_count
@@ -59,10 +61,35 @@ const matchGeoEvents = async () => {
 
         await Promise.all(notifications.map(async (notification) => {
             const { id, alertMethod, destination, siteAlert, siteAlertId } = notification;
-            const { confidence, data, type, longitude, latitude, distance } = siteAlert;
+            const { id: alertId, confidence, data, type, longitude, latitude, distance, detectedBy, eventDate } = siteAlert;
+
+            // use the alertId to find the site associated with it.
+            const site = await prisma.site.findFirst({
+                where: {
+                    alerts: {
+                        some: {
+                            id: siteAlertId
+                        }
+                    }
+                }
+            });
+
+            const notificationParameters: NotificationParameters = {
+                alertId: alertId,
+                type: type,
+                confidence: confidence,
+                detectedBy: detectedBy,
+                eventDate: eventDate,
+                longitude: longitude,
+                latitude: latitude,
+                distance: distance,
+                data: data as DataRecord,
+                siteName: site!.name? site!.name : "",
+                siteId: site!.id,
+            }
 
             const notifier = NotifierRegistry.get(alertMethod);
-            const isDelivered = notifier.notify(destination, `${type} at [${longitude},${latitude}] ${distance}m from your site with ${confidence} confidence`)
+            const isDelivered = await notifier.notify(destination, notificationParameters)
 
             if (isDelivered) {
                 const response = await prisma.notification.update({

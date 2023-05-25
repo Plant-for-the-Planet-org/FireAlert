@@ -6,17 +6,36 @@ import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEven
 import { PrismaClient, GeoEventProvider } from '@prisma/client'
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
 import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
+import {isGreaterThanCurrentDateTime} from '../../../utils/date'
 
+// TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
 
   const prisma = new PrismaClient()
 
-  const activeProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
+  // get all active providers
+  const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
       isActive: true,
+      // fetchFrequency: {
+      //   not:{
+      //     equals: null
+      //   }
+      // }
     },
-  })
-  debugger;
+  });
+
+  // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
+  const activeProviders = allActiveProviders.filter(provider => {
+    if(!provider.fetchFrequency){
+      return false
+    }
+    if(!provider.lastRun){
+      return true
+    }
+    return isGreaterThanCurrentDateTime(provider.lastRun, provider.fetchFrequency) 
+  });
+
   const promises = activeProviders.map(async (provider) => {
     const { providerKey, config } = provider
     const geoEventProvider = GeoEventProviderRegistry.get(providerKey);

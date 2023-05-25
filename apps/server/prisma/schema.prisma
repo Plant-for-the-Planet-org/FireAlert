@@ -85,25 +85,25 @@ model AlertMethod {
 }
 
 model Site {
-    id          String      @id @default(cuid())
-    remoteId    String?
-    name        String?
-    origin      SiteOrigin  @default(firealert)
-    type        SiteType
-    geometry    Json
-    radius      Int         @default(0)
-    isMonitored Boolean     @default(true)
-    deletedAt   DateTime?
-    projectId   String?
-    lastUpdated DateTime?
-    userId      String
-    detectionGeometry   Unsupported("geometry")?
-    originalGeometry    Unsupported("geometry")?
+    id                String                   @id @default(cuid())
+    remoteId          String?
+    name              String?
+    origin            SiteOrigin               @default(firealert)
+    type              SiteType
+    geometry          Json
+    radius            Int                      @default(0)
+    isMonitored       Boolean                  @default(true)
+    deletedAt         DateTime?
+    projectId         String?
+    lastUpdated       DateTime?
+    userId            String
+    detectionGeometry Unsupported("geometry")?
+    originalGeometry  Unsupported("geometry")?
     // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 
     // As prisma is not able to handle it, but we need it for our triggers to work
-    alerts      SiteAlert[]
-    project     Project?    @relation(fields: [projectId], references: [id])
-    user        User        @relation(fields: [userId], references: [id])
+    alerts            SiteAlert[]
+    project           Project?                 @relation(fields: [projectId], references: [id])
+    user              User                     @relation(fields: [userId], references: [id])
 }
 
 model Project {
@@ -117,22 +117,24 @@ model Project {
 }
 
 model GeoEventProvider {
-    id          String                    @id @default(cuid())
-    type        AlertType
-    isActive    Boolean
-    providerKey GeoEventSource
-    config      Json
+    id             String         @id @default(cuid())
+    type           AlertType
+    isActive       Boolean
+    providerKey    GeoEventSource
+    lastRun        DateTime?
+    fetchFrequency Int?
+    config         Json
 }
 
 model GeoEvent {
-    id            String          @id @default(cuid())
+    id            String                   @id @default(cuid())
     type          AlertType
     latitude      Float
     longitude     Float
     eventDate     DateTime
     geometry      Unsupported("geometry")?
     confidence    AlertConfidence
-    isProcessed   Boolean         @default(false)
+    isProcessed   Boolean                  @default(false)
     providerKey   GeoEventSource
     identityGroup String
     radius        Int?

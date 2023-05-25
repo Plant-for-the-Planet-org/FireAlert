@@ -1,5 +1,5 @@
-import SiteAlertEmitter from "eventemitter3"
+import EventEmitter from "eventemitter3";
 
-const siteAlertEmitter = new SiteAlertEmitter();
+const siteAlertEmitter = new EventEmitter();
 
 export default siteAlertEmitter;
