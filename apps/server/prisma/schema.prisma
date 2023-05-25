@@ -74,7 +74,8 @@ model AlertMethod {
     isVerified          Boolean                @default(false)
     isEnabled           Boolean                @default(false)
     deletedAt           DateTime?
-    deviceType          AlertMethodDeviceType?
+    deviceName          String?
+    deviceId            String?
     tokenSentCount      Int                    @default(0)
     lastTokenSentDate   DateTime?
     userId              String
@@ -197,11 +198,6 @@ enum AlertMethodMethod {
     device
     whatsapp
     webhook
-}
-
-enum AlertMethodDeviceType {
-    ios
-    android
 }
 
 enum SiteType {

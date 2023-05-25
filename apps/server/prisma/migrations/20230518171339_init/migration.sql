@@ -14,9 +14,6 @@ CREATE TYPE "Role" AS ENUM ('ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT');
 CREATE TYPE "AlertMethodMethod" AS ENUM ('email', 'sms', 'device', 'whatsapp', 'webhook');
 
 -- CreateEnum
-CREATE TYPE "AlertMethodDeviceType" AS ENUM ('ios', 'android');
-
--- CreateEnum
 CREATE TYPE "SiteType" AS ENUM ('Point', 'Polygon', 'MultiPolygon');
 
 -- CreateEnum
@@ -94,11 +91,12 @@ CREATE TABLE "AlertMethod" (
     "destination" TEXT NOT NULL,
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "isEnabled" BOOLEAN NOT NULL DEFAULT false,
-    "deletedAt" TIMESTAMP(3),
-    "deviceType" "AlertMethodDeviceType",
+    "deviceName" TEXT;
+    "deviceId" TEXT;
     "tokenSentCount" INTEGER NOT NULL DEFAULT 0,
     "lastTokenSentDate" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "AlertMethod_pkey" PRIMARY KEY ("id")
 );

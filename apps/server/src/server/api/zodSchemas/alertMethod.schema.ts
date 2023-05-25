@@ -6,7 +6,8 @@ export const createAlertMethodSchema = z.object({
     destination: z.string({
         required_error: 'Destination of alert method must be specified'
     }),
-    deviceType: z.enum(["ios", "android"]).optional(),
+    deviceName: z.string().optional(),
+    deviceId: z.string().optional(),
 }).refine((obj) => {
     if (obj.method === 'sms') {
         // Check if the destination is a valid phone number in E.164 format

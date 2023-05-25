@@ -6,9 +6,7 @@ import { sendWebhook } from "./sendWebhook";
 
 type Method = 'sms' | 'device' | 'email' | 'whatsapp' | 'webhook';
 
-type DeviceType = 'ios' | 'android' | undefined
-
-export async function sendVerificationCode(destination: string, method: Method, deviceType: DeviceType, message: string) {
+export async function sendVerificationCode(destination: string, method: Method, deviceId: string, message: string) {
     if (method === 'email') {
         const emailSent = await sendEmail(destination, "FireAlert Verification", message);
         if (!emailSent) {

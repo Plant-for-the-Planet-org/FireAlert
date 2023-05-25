@@ -38,8 +38,8 @@ export const alertMethodRouter = createTRPCRouter({
             const message = `Your FireAlert Verification OTP is ${otp}`;
             const destination = alertMethod.destination
             const method = alertMethod.method
-            const deviceType = alertMethod.deviceType ?? undefined
-            const verification = await sendVerificationCode(destination, method, deviceType, message)
+            const deviceId = alertMethod.deviceId ?? undefined
+            const verification = await sendVerificationCode(destination, method, deviceId, message)
             return verification;
         }),
 
@@ -95,7 +95,8 @@ export const alertMethodRouter = createTRPCRouter({
                     data: {
                         method: input.method,
                         destination: input.destination,
-                        deviceType: input.deviceType,
+                        deviceName: input.deviceName,
+                        deviceId: input.deviceId,
                         userId: user.id,
                     },
                 });
@@ -104,8 +105,8 @@ export const alertMethodRouter = createTRPCRouter({
                 const message = `Your FireAlert Verification OTP is ${otp}`;
                 const destination = alertMethod.destination
                 const method = alertMethod.method
-                const deviceType = alertMethod.deviceType ?? undefined
-                await sendVerificationCode(destination, method, deviceType, message)
+                const deviceId = alertMethod.deviceId ?? undefined
+                await sendVerificationCode(destination, method, deviceId, message)
                 await handleOTPSendLimitation({ ctx, alertMethod })
                 const returnedAlertMethod = returnAlertMethod(alertMethod)
                 return {
@@ -135,11 +136,12 @@ export const alertMethodRouter = createTRPCRouter({
                         id                  : true,
                         method              : true,
                         destination         : true,
-                        deviceType          : true,
                         isEnabled           : true,
                         isVerified          : true,
                         lastTokenSentDate   : true,
-                        userId              : true
+                        userId              : true,
+                        deviceName          : true,
+                        deviceId            : true
                     },
                 });
                 return {
