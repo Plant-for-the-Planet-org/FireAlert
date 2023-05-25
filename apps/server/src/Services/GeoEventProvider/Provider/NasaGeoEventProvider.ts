@@ -128,10 +128,7 @@ class NasaGeoEventProvider implements GeoEventProvider {
 
     getUrl(source: string): string {
         const { apiUrl, mapKey, sourceKey } = this.getConfig()
-        // TODO: revert the 2 lines below after testing
-        // const currentDate = new Date().toISOString().split("T")[0];
-        const currentDate = '2023-01-01';
-
+        const currentDate = new Date().toISOString().split("T")[0];
         return `${apiUrl}/api/area/csv/${mapKey}/${source}/-180,-90,180,90/1/${currentDate}`;
     }
 
