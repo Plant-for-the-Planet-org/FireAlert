@@ -24,7 +24,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     sendVerification: protectedProcedure
         .input(params)
-        .mutation(async ({ ctx, input }) => {
+        .query(async ({ ctx, input }) => {
             await getUser(ctx)
             const alertMethodId = input.alertMethodId
             const alertMethod = await findAlertMethod({ ctx, alertMethodId })
@@ -45,7 +45,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     verify: protectedProcedure
         .input(verifySchema)
-        .mutation(async ({ ctx, input }) => {
+        .query(async ({ ctx, input }) => {
             await getUser(ctx)
             const alertMethodId = input.params.alertMethodId
             await findAlertMethod({ ctx, alertMethodId })
@@ -123,7 +123,7 @@ export const alertMethodRouter = createTRPCRouter({
         }),
 
     getAlertMethods: protectedProcedure
-        .mutation(async ({ ctx }) => {
+        .query(async ({ ctx }) => {
             const user = await getUser(ctx)
             try {
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
@@ -157,7 +157,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     getAlertMethod: protectedProcedure
         .input(params)
-        .mutation(async ({ ctx, input }) => {
+        .query(async ({ ctx, input }) => {
             const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
