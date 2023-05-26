@@ -2,7 +2,6 @@ import { type NotificationParameters } from "../../../Interfaces/NotificationPar
 import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 import { env } from '../../../env.mjs';
-import { PrismaClient } from "@prisma/client";
 
 class DeviceNotifier implements Notifier {
 

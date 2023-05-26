@@ -2,6 +2,7 @@ import { type NotificationParameters } from "../../../Interfaces/NotificationPar
 import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 import twilio from 'twilio';
+import { env } from '../../../env.mjs';
 
 class WhatsAppNotifier implements Notifier {
 
@@ -15,9 +16,9 @@ class WhatsAppNotifier implements Notifier {
     console.log(`Sending WhatsApp message ${message} to ${destination}`)
 
     // Twilio Credentials
-    const accountSid = <string>process.env.TWILIO_ACCOUNT_SID;
-    const authToken = <string>process.env.TWILIO_AUTH_TOKEN;
-    const whatsappNumber = <string>process.env.TWILIO_WHATSAPP_NUMBER;
+    const accountSid = env.TWILIO_ACCOUNT_SID;
+    const authToken = env.TWILIO_AUTH_TOKEN;
+    const whatsappNumber = env.TWILIO_WHATSAPP_NUMBER;
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message

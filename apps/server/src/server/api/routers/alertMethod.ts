@@ -1,46 +1,78 @@
 import { TRPCError } from "@trpc/server";
-import { 
-    createAlertMethodSchema, 
-    params, 
-    updateAlertMethodSchema, 
-    verifySchema} from '../zodSchemas/alertMethod.schema'
+import {
+    createAlertMethodSchema,
+    params,
+    updateAlertMethodSchema,
+    verifySchema
+} from '../zodSchemas/alertMethod.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { sendVerificationCode } from '../../../utils/notification/sendVerificationCode'
 import { getUser } from "../../../utils/routers/user";
-import { 
-    findAlertMethod, 
-    handleOTPSendLimitation, 
-    storeOTPInVerificationRequest, 
-    findVerificationRequest, 
-    limitAlertMethodPerUser, 
+import {
+    findAlertMethod,
+    handleOTPSendLimitation,
+    storeOTPInVerificationRequest,
+    findVerificationRequest,
+    limitAlertMethodPerUser,
     checkUserHasAlertMethodPermission,
     returnAlertMethod,
 } from "../../../utils/routers/alertMethod";
+import NotifierRegistry from "../../../Services/Notifier/NotifierRegistry";
 
 export const alertMethodRouter = createTRPCRouter({
 
     sendVerification: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            await getUser(ctx)
-            const alertMethodId = input.alertMethodId
-            const alertMethod = await findAlertMethod({ ctx, alertMethodId })
-            if (alertMethod.isVerified) {
-                return {
-                    message: 'User is already verified'
+            try {
+                await getUser(ctx)
+                const alertMethodId = input.alertMethodId
+                const alertMethod = await findAlertMethod({ ctx, alertMethodId })
+                if (alertMethod.isVerified) {
+                    return {
+                        status: 'error',
+                        message: 'AlertMethod is already verified'
+                    }
                 }
+                await handleOTPSendLimitation({ ctx, alertMethod })
+                const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
+
+                // Use NotifierRegistry to send the verification code
+                const notifier = NotifierRegistry.get(alertMethod.method)
+                const destination = alertMethod.destination
+                const message = `${otp} is your FireAlert one time code.`
+                const subject = "Fire Alert Verification:"
+                const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethodId}/${otp}`
+
+                const params = {
+                    message: message,
+                    subject: subject,
+                    url: url,
+                    alert: null,
+                }
+                const sendVerificationCode = notifier.notify(destination, params);
+                if ((await sendVerificationCode).valueOf() === true) {
+                    return {
+                        status: 'success',
+                        message: 'Verification code sent successfully'
+                    }
+                }
+                else {
+                    return {
+                        status: 'error',
+                        message: 'Error in sending verification code'
+                    }
+                }
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: `${error}`,
+                });
             }
-            await handleOTPSendLimitation({ ctx, alertMethod })
-            const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
-            const message = `Your FireAlert Verification OTP is ${otp}`;
-            const destination = alertMethod.destination
-            const method = alertMethod.method
-            const deviceId = alertMethod.deviceId ?? undefined
-            const verification = await sendVerificationCode(destination, method, deviceId, message)
-            return verification;
+
         }),
 
     verify: protectedProcedure
@@ -101,19 +133,35 @@ export const alertMethodRouter = createTRPCRouter({
                     },
                 });
                 // Send verification code
-                const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
-                const message = `Your FireAlert Verification OTP is ${otp}`;
-                const destination = alertMethod.destination
-                const method = alertMethod.method
-                const deviceId = alertMethod.deviceId ?? undefined
-                await sendVerificationCode(destination, method, deviceId, message)
                 await handleOTPSendLimitation({ ctx, alertMethod })
-                const returnedAlertMethod = returnAlertMethod(alertMethod)
-                return {
-                    status: 'success',
-                    message: 'Alert Method was created and Verfication code has been sent Successfully',
-                    data: returnedAlertMethod,
-                };
+                const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
+
+                // Use NotifierRegistry to send the verification code
+                const notifier = NotifierRegistry.get(alertMethod.method)
+                const destination = alertMethod.destination
+                const message = `${otp} is your FireAlert one time code.`
+                const subject = "Fire Alert Verification:"
+                const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethodId}/${otp}`
+
+                const params = {
+                    message: message,
+                    subject: subject,
+                    url: url,
+                    alert: null,
+                }
+                const sendVerificationCode = notifier.notify(destination, params);
+                if ((await sendVerificationCode).valueOf() === true) {
+                    return {
+                        status: 'success',
+                        message: 'Verification code sent successfully'
+                    }
+                }
+                else {
+                    return {
+                        status: 'error',
+                        message: 'Error in sending verification code'
+                    }
+                }
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
@@ -133,15 +181,15 @@ export const alertMethodRouter = createTRPCRouter({
                         deletedAt: null,
                     },
                     select: {
-                        id                  : true,
-                        method              : true,
-                        destination         : true,
-                        isEnabled           : true,
-                        isVerified          : true,
-                        lastTokenSentDate   : true,
-                        userId              : true,
-                        deviceName          : true,
-                        deviceId            : true
+                        id: true,
+                        method: true,
+                        destination: true,
+                        isEnabled: true,
+                        isVerified: true,
+                        lastTokenSentDate: true,
+                        userId: true,
+                        deviceName: true,
+                        deviceId: true
                     },
                 });
                 return {
@@ -185,7 +233,7 @@ export const alertMethodRouter = createTRPCRouter({
             const user = await getUser(ctx)
             const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: user.id });
             try {
-                if(existingAlertMethod.isVerified !== true){
+                if (existingAlertMethod.isVerified !== true) {
                     throw new TRPCError({
                         code: "METHOD_NOT_SUPPORTED",
                         message: `Cannot enable alertMethod if it is not verified.`,
