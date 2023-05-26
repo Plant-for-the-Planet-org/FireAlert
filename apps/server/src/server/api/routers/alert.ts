@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { queryAlertSchema } from '../zodSchemas/alert.schema'
-import { params as siteParams } from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,

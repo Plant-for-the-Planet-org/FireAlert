@@ -22,7 +22,7 @@ class SMSNotifier implements Notifier {
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message
-    const messageBody = `${subject} ${message} ${url}`;
+    const messageBody = `${subject} ${message} ${url ? url : ''}`;
 
     return client.messages
       .create({

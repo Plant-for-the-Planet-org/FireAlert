@@ -35,7 +35,7 @@ class EmailNotifier implements Notifier {
 
         // Create a transporter with SMTP configuration for Gmail
         const transporter = nodemailer.createTransport(env.SMTP_URL);
-        const mailBody = `${subject} </br> ${message} </br>${url}`;
+        const mailBody = `${message} </br>${url ? url : ''}`;
         // Define email options
         const mailOptions = {
             from: env.EMAIL_FROM,

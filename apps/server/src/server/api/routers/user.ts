@@ -2,10 +2,10 @@ import { TRPCError } from '@trpc/server';
 import { updateUserSchema } from '../zodSchemas/user.schema';
 import { adminProcedure, createTRPCRouter, protectedProcedure, userProcedure } from '../trpc';
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
-import { sendEmail } from '../../../utils/notification/sendEmail';
 import { getUser, createUserInPrismaTransaction, returnUser } from '../../../utils/routers/user';
 import { createAlertMethodInPrismaTransaction } from '../../../utils/routers/alertMethod';
-import { Prisma, Project } from '@prisma/client';
+import { type Prisma, type Project } from '@prisma/client';
+import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
 
 export const userRouter = createTRPCRouter({
     profile: userProcedure
@@ -144,9 +144,15 @@ export const userRouter = createTRPCRouter({
                                 deletedAt: null,
                             },
                         });
-                        const emailSubject = 'Restore Deleted FireAlert Account';
-                        const emailBody = 'Thank you for logging in to FireAlert. Deletion was canceled as you have logged into your account.';
-                        await sendEmail(user.email, emailSubject, emailBody);
+                        // Define Email
+                        const destination = user.email;
+                        const params = {
+                            message: 'Thank you for logging in to FireAlert. Deletion was canceled as you have logged into your account.',
+                            subject: 'Restore Deleted FireAlert Account'
+                        }
+                        const notifier = NotifierRegistry.get('email');
+                        await notifier.notify(destination, params);
+
                     }
                     const returnedUser = await ctx.prisma.user.update({
                         where: {
@@ -157,10 +163,10 @@ export const userRouter = createTRPCRouter({
                         },
                     });
                     const loggedInUser = returnUser(returnedUser);
-                return {
-                    status: 'success',
-                    data: loggedInUser,
-                };
+                    return {
+                        status: 'success',
+                        data: loggedInUser,
+                    };
                 } catch (error) {
                     console.log(error);
                     throw new TRPCError({
@@ -241,12 +247,19 @@ export const userRouter = createTRPCRouter({
                         message: `Error in deletion process. Cannot delete user`,
                     });
                 } else {
-                    const emailSubject = 'Soft Delete Fire Alert Account'
-                    const emailBody = 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.'
-                    const emailSent = await sendEmail(deletedUser.email, emailSubject, emailBody)
+
+                    // Define Email
+                    const destination = deletedUser.email;
+                    const params = {
+                        message: 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.',
+                        subject: 'Soft Delete Fire Alert Account'
+                    }
+                    const notifier = NotifierRegistry.get('email');
+                    const emailSent = await notifier.notify(destination, params);
                     return {
                         status: 'Success',
                         message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
+                        data: null
                     };
                 }
             } catch (error) {

@@ -12,17 +12,16 @@ import {
 import { getUser } from "../../../utils/routers/user";
 import {
     findAlertMethod,
-    handleOTPSendLimitation,
-    storeOTPInVerificationRequest,
     findVerificationRequest,
     limitAlertMethodPerUser,
     checkUserHasAlertMethodPermission,
     returnAlertMethod,
+    handlePendingVerification,
 } from "../../../utils/routers/alertMethod";
-import NotifierRegistry from "../../../Services/Notifier/NotifierRegistry";
 
 export const alertMethodRouter = createTRPCRouter({
 
+    //Todo: Abstract the functions in SendVerification and createAlertMethod to a separate file so that it can be reused in the verify function.
     sendVerification: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
@@ -30,41 +29,13 @@ export const alertMethodRouter = createTRPCRouter({
                 await getUser(ctx)
                 const alertMethodId = input.alertMethodId
                 const alertMethod = await findAlertMethod({ ctx, alertMethodId })
-                if (alertMethod.isVerified) {
-                    return {
+                return (alertMethod.isVerified)
+                    ? {
                         status: 'error',
                         message: 'AlertMethod is already verified'
                     }
-                }
-                await handleOTPSendLimitation({ ctx, alertMethod })
-                const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
+                    : await handlePendingVerification(ctx, alertMethod)
 
-                // Use NotifierRegistry to send the verification code
-                const notifier = NotifierRegistry.get(alertMethod.method)
-                const destination = alertMethod.destination
-                const message = `${otp} is your FireAlert one time code.`
-                const subject = "Fire Alert Verification:"
-                const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethodId}/${otp}`
-
-                const params = {
-                    message: message,
-                    subject: subject,
-                    url: url,
-                    alert: null,
-                }
-                const sendVerificationCode = notifier.notify(destination, params);
-                if ((await sendVerificationCode).valueOf() === true) {
-                    return {
-                        status: 'success',
-                        message: 'Verification code sent successfully'
-                    }
-                }
-                else {
-                    return {
-                        status: 'error',
-                        message: 'Error in sending verification code'
-                    }
-                }
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
@@ -93,6 +64,7 @@ export const alertMethodRouter = createTRPCRouter({
                         data: {
                             isVerified: true,
                             tokenSentCount: 0,
+                            isEnabled: true,
                         }
                     })
                     await prisma.verificationRequest.delete({
@@ -120,8 +92,24 @@ export const alertMethodRouter = createTRPCRouter({
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
             const user = await getUser(ctx)
+            //Check if AlertMethod already exists
+            const existingAlertMethod = await ctx.prisma.alertMethod.findFirst({
+                where: {
+                    userId: user.id,
+                    destination: input.destination,
+                    method: input.method,
+                    deletedAt: null,
+                },
+            });
+            if (existingAlertMethod) {
+                return {
+                    status: 'success',
+                    message: 'AlertMethod already exists',
+                    data: returnAlertMethod(existingAlertMethod)
+                };
+            }
             // Check if the user has reached the maximum limit of alert methods (e.g., 5)
-            await limitAlertMethodPerUser({ ctx, userId: user.id, count: 5 })
+            await limitAlertMethodPerUser({ ctx, userId: user.id, count: 10 })
             try {
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
@@ -132,36 +120,7 @@ export const alertMethodRouter = createTRPCRouter({
                         userId: user.id,
                     },
                 });
-                // Send verification code
-                await handleOTPSendLimitation({ ctx, alertMethod })
-                const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
-
-                // Use NotifierRegistry to send the verification code
-                const notifier = NotifierRegistry.get(alertMethod.method)
-                const destination = alertMethod.destination
-                const message = `${otp} is your FireAlert one time code.`
-                const subject = "Fire Alert Verification:"
-                const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethodId}/${otp}`
-
-                const params = {
-                    message: message,
-                    subject: subject,
-                    url: url,
-                    alert: null,
-                }
-                const sendVerificationCode = notifier.notify(destination, params);
-                if ((await sendVerificationCode).valueOf() === true) {
-                    return {
-                        status: 'success',
-                        message: 'Verification code sent successfully'
-                    }
-                }
-                else {
-                    return {
-                        status: 'error',
-                        message: 'Error in sending verification code'
-                    }
-                }
+                return handlePendingVerification(ctx, alertMethod)
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
