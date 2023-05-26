@@ -11,33 +11,26 @@ class WebhookNotifier implements Notifier {
     // Goal of Webhook notifier is to return the payload to the webhook url specified by the user in AlertMethod.
 
     async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-        const { alertId, siteName, type, confidence, longitude, latitude, distance, detectedBy, eventDate, data } = parameters;
-        
-        const headline = `Heat anomaly near ${siteName} 🔥`;
-        const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
-        const message = `Detected ${distance} km outside ${siteName} with ${confidence} confidence. Check ${latitude}, ${longitude} for fires.`
-
+        const { alertId, siteId, siteName, message, subject, url, type, confidence, longitude, latitude, distance, detectedBy, eventDate, data } = parameters;
+    
         console.log(`Sending message ${message} to ${destination}`)
 
         // construct the payload for Webhook
         const payload = {
+            id: alertId,
+            type: type,
+            longitude: longitude,
+            latitude: latitude,
+            distance: distance,
+            source: detectedBy,
+            date: eventDate,
+            confidence: confidence,
+            siteName: siteName,
+            siteId: siteId,
             message: message,
-            headline: headline,
+            subject: subject,
             url: url,
-            alertData: {
-                alertId: alertId,
-                siteName: siteName,
-                //Todo:
-                //Instead of SiteName return site.Name, site.Id, site.projectId object except for geometry
-                type: type,
-                confidence: confidence,
-                longitude: longitude,
-                latitude: latitude,
-                distance: distance,
-                detectedBy: detectedBy,
-                eventDate: eventDate,
-                data: data
-            }
+            data: data
         };
 
         // call Wehbook to send the notification
@@ -47,7 +40,7 @@ class WebhookNotifier implements Notifier {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: payload
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {

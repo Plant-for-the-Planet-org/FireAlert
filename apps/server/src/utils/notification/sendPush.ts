@@ -1,27 +1,27 @@
-import axios from "axios";
+import { env } from "../../env.mjs";
 
 // Function to send a push notification using OneSignal
-export const sendPushNotification = async (deviceToken:string, message:string) => {
+export const sendPushNotification = async (deviceToken: string, subject: string, message: string, url:string) => {
     try {
-        const appId = "your_onesignal_app_id";
-        const restApiKey = "your_onesignal_rest_api_key";
-
-        // Define the API endpoint
-        const url = "https://onesignal.com/api/v1/notifications";
-
+        const appId = env.ONESIGNAL_APP_ID;
+        
         // Create the request body
-        const data = {
+        const payload = {
             app_id: appId,
+            headings: { en: subject }, // English message content
             contents: { en: message }, // English message content
             include_player_ids: [deviceToken],
+            url: url
         };
 
-        // Send the push notification
-        await axios.post(url, data, {
+        // call OneSignal API to send the notification
+        await fetch('https://onesignal.com/api/v1/notifications', {
+            method: 'POST',
             headers: {
-                "Content-Type": "application/json",
-                Authorization: `Basic ${restApiKey}`,
+                'Authorization': `Basic ${env.ONESIGNAL_REST_API_KEY}`,
+                'Content-Type': 'application/json; charset=utf-8'
             },
+            body: JSON.stringify(payload)
         });
 
         return true; // Push notification sent successfully

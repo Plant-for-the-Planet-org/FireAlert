@@ -61,7 +61,7 @@ const matchGeoEvents = async () => {
 
         await Promise.all(notifications.map(async (notification) => {
             const { id, alertMethod, destination, siteAlert, siteAlertId } = notification;
-            const { id: alertId, confidence, data, type, longitude, latitude, distance, detectedBy, eventDate } = siteAlert;
+            const { id: alertId, siteId: siteId, confidence, data, type, longitude, latitude, distance, detectedBy, eventDate } = siteAlert;
 
             // use the alertId to find the site associated with it.
             const site = await prisma.site.findFirst({
@@ -73,8 +73,15 @@ const matchGeoEvents = async () => {
                     }
                 }
             });
+            const siteName = site!.name ? site!.name : "";
+            const subject = `Heat anomaly near ${siteName} 🔥`;
+            const message = `Detected ${distance} km outside ${siteName} with ${confidence} confidence. Check ${latitude}, ${longitude} for fires.`;
+            const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
 
             const notificationParameters: NotificationParameters = {
+                message: message,
+                subject: subject,
+                url: url,
                 alertId: alertId,
                 type: type,
                 confidence: confidence,
@@ -84,8 +91,8 @@ const matchGeoEvents = async () => {
                 latitude: latitude,
                 distance: distance,
                 data: data as DataRecord,
-                siteName: site!.name? site!.name : "",
-                siteId: site!.id,
+                siteName: siteName,
+                siteId: site!.id
             }
 
             const notifier = NotifierRegistry.get(alertMethod);

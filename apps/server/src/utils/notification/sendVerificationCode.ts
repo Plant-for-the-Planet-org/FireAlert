@@ -6,7 +6,7 @@ import { sendWebhook } from "./sendWebhook";
 
 type Method = 'sms' | 'device' | 'email' | 'whatsapp' | 'webhook';
 
-export async function sendVerificationCode(destination: string, method: Method, deviceId: string, message: string) {
+export async function sendVerificationCode(destination: string, method: Method, deviceId: string, subject: string, message: string, url: string) {
     if (method === 'email') {
         const emailSent = await sendEmail(destination, "FireAlert Verification", message);
         if (!emailSent) {
@@ -28,28 +28,17 @@ export async function sendVerificationCode(destination: string, method: Method, 
             return { status: 200, message: "Verification code has been sent" };
         }
     } else if (method === 'device') {
-        const pushTokenIdentifier = destination
-        if (deviceType === 'ios') {
-            const iosPushSent = await sendPushNotification(pushTokenIdentifier, message);
-            if (!iosPushSent) {
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Failed to send verification code via iOS push notification",
-                });
-            } else {
-                return { status: 200, message: "Verification code has been sent" };
-            }
-        } else if (deviceType === 'android') {
-            const androidPushSent = await sendPushNotification(pushTokenIdentifier, message);
-            if (!androidPushSent) {
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: "Failed to send verification code via Android push notification",
-                });
-            } else {
-                return { status: 200, message: "Verification code has been sent" };
-            }
+        // destination is onesignal device player id
+        const pushSent = await sendPushNotification(destination, subject, message, url);
+        if (!pushSent) {
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to send verification code via iOS push notification",
+            });
+        } else {
+            return { status: 200, message: "Verification code has been sent" };
         }
+
     } else if (method === 'whatsapp') {
         const whatsappSent = await sendWhatsApp(destination, message);
         if (!whatsappSent) {
