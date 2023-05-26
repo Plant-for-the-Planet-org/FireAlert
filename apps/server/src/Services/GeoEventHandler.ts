@@ -40,7 +40,6 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
         deletedIds.push(dbEventId);
       }
     });
-    debugger;
     return { newGeoEvents, deletedIds };
   };
 
@@ -63,7 +62,6 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
 
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
-  debugger;
   if (newGeoEvents.length > 0) {
     await prisma.geoEvent.createMany({
       data: newGeoEvents.map(geoEvent => ({
@@ -81,7 +79,6 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       })),
     });
   }
-debugger;
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
   if (deletedIds.length > 0) {
     await prisma.geoEvent.updateMany({
