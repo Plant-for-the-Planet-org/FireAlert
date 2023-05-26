@@ -74,17 +74,19 @@ const matchGeoEvents = async () => {
                 message: message,
                 subject: subject,
                 url: url,
-                alertId: alertId,
-                type: type,
-                confidence: confidence,
-                detectedBy: detectedBy,
-                eventDate: eventDate,
-                longitude: longitude,
-                latitude: latitude,
-                distance: distance,
-                data: data as DataRecord,
-                siteName: siteName,
-                siteId: site!.id
+                alert: {
+                    id: alertId,
+                    type: type,
+                    confidence: confidence,
+                    source: detectedBy,
+                    date: eventDate,
+                    longitude: longitude,
+                    latitude: latitude,
+                    distance: distance,
+                    data: data as DataRecord,
+                    siteId: site!.id,
+                    siteName: siteName
+                }
             }
 
             const notifier = NotifierRegistry.get(alertMethod);
@@ -99,6 +101,20 @@ const matchGeoEvents = async () => {
                 })
                 const a = response;
             } else {
+                // Updates AlertMethod table to increment the failCount
+                const prisma = new PrismaClient();
+                await prisma.alertMethod.updateMany({
+                    where: {
+                        destination: destination,
+                        method: alertMethod
+                    },
+                    data: {
+                        failCount: {
+                            increment: 1
+                        }
+                    }
+                })
+                // Todo:
                 // increment the retry count if a pre-defined limit has not been reached
             }
         }));

@@ -4,15 +4,18 @@ export interface NotificationParameters {
     message: string;
     subject: string;
     url: string;
-    alertId: string;
-    type: string;
-    confidence: string;
-    detectedBy: string;
-    eventDate: Date;
-    longitude: number;
-    latitude: number;
-    distance: number;
-    data: DataRecord;
-    siteName: string;
-    siteId: string,
+    alert: {
+        id: string;
+        type: string;
+        confidence: string;
+        source: string;
+        date: Date;
+        longitude: number;
+        latitude: number;
+        distance: number;
+        data: DataRecord;
+        siteId: string;
+        siteName: string
+        
+    }
 }
