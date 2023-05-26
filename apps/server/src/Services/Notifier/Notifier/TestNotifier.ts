@@ -9,7 +9,7 @@ class TestNotifier implements Notifier {
     }
 
     notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-        const { type, confidence, longitude, latitude, distance, detectedBy, eventDate, data } = parameters;
+        const { message, subject, url, alert } = parameters;
 
         console.log(`Build your message here and send it to ${destination}`)
 
