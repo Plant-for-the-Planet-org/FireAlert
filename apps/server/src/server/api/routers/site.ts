@@ -250,15 +250,31 @@ export const siteRouter = createTRPCRouter({
                         message: "FireAlert cannot delete Site fetched from Plant-for-the-Planet, Please delete it from Plant-for-the-Planet Platform",
                     });
                 }
-                const deletedSite = await ctx.prisma.site.delete({
+                // Soft Delete the site & Alerts associated with it. Set deletedAt to current time
+                await ctx.prisma.site.update({
                     where: {
                         id: input.siteId,
                     },
+                    data: {
+                        deletedAt: new Date(),
+                    }
                 });
+
+                await ctx.prisma.siteAlert.updateMany({
+                    where: {
+                        siteId: input.siteId,
+                    },
+                    data: {
+                        deletedAt: new Date(),
+                    }
+                });
+
                 return {
                     status: "success",
-                    message: `Site with id ${deletedSite.id} deleted successfully`,
+                    message: `Site with id ${input.siteId} deleted successfully`,
                 };
+
+                
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({

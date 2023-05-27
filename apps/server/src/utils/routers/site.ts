@@ -7,6 +7,7 @@ export const checkUserHasSitePermission = async ({ ctx, siteId, userId }: CheckU
     const siteToCRUD = await ctx.prisma.site.findFirst({
         where: {
             id: siteId,
+            deletedAt: null
         }
     });
     if (!siteToCRUD) {
