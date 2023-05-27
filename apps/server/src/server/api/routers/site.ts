@@ -5,8 +5,8 @@ import {
     protectedProcedure,
 } from "../trpc";
 import { Prisma } from "@prisma/client";
-import {getUser} from '../../../utils/routers/user'
-import {checkUserHasSitePermission, checkIfPlanetROSite, returnSite} from  '../../../utils/routers/site'
+import { getUser } from '../../../utils/routers/user'
+import { checkUserHasSitePermission, checkIfPlanetROSite, returnSite } from '../../../utils/routers/site'
 
 export const siteRouter = createTRPCRouter({
 
@@ -182,14 +182,15 @@ export const siteRouter = createTRPCRouter({
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input }) => {
             const user = await getUser(ctx)
+
+            const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: user.id });
+            if (!site) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Site with that id does not exist, cannot update site",
+                });
+            }
             try {
-                const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: user.id });
-                if (!site) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "Site with that id does not exist, cannot update site",
-                    });
-                }
                 let updatedData = input.body
                 // Initialize data
                 let data: Prisma.SiteUpdateInput = {}; // Create a copy of updatedData
@@ -205,7 +206,7 @@ export const siteRouter = createTRPCRouter({
                 const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
                 if (isPlanetROSite) {
                     const { geometry, type, name, ...rest } = updatedData;
-                    if(geometry || type || name){
+                    if (geometry || type || name) {
                         throw new TRPCError({
                             code: "UNAUTHORIZED",
                             message: `PlanetRO Users can only update Geometry and isMonitored Field`,
@@ -241,15 +242,17 @@ export const siteRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             // Check if user is authenticated and not soft deleted
             const user = await getUser(ctx)
+
+            await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
+            const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.siteId })
+
+            if (isPlanetROSite) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "FireAlert cannot delete Site fetched from Plant-for-the-Planet, Please delete it from Plant-for-the-Planet Platform",
+                });
+            }
             try {
-                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
-                const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.siteId })
-                if (isPlanetROSite){
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "FireAlert cannot delete Site fetched from Plant-for-the-Planet, Please delete it from Plant-for-the-Planet Platform",
-                    });
-                }
                 // Soft Delete the site & Alerts associated with it. Set deletedAt to current time
                 await ctx.prisma.site.update({
                     where: {
@@ -274,7 +277,7 @@ export const siteRouter = createTRPCRouter({
                     message: `Site with id ${input.siteId} deleted successfully`,
                 };
 
-                
+
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({

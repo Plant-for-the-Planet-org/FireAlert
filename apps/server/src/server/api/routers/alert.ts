@@ -15,25 +15,44 @@ export const alertRouter = createTRPCRouter({
         .query(async ({ ctx }) => {
             try {
                 const user = await getUser(ctx)
-                const alertsForUser: SiteAlert[] = [];
-                const sites = await ctx.prisma.site.findMany({
+                const thirtyDaysAgo = subtractDays(new Date(), 30);
+                const sitesWithAlerts = await ctx.prisma.site.findMany({
                     where: {
                         userId: user.id,
-                    },
-                });
-                // Fetch alerts for each site
-                for (const site of sites) {
-                    const thirtyDaysAgo = subtractDays(new Date(), 30);
-                    const alertsForEachSite = await ctx.prisma.siteAlert.findMany({
-                        where: {
-                            siteId: site.id,
-                            eventDate: {
-                                gte: thirtyDaysAgo
+                        deletedAt: null,
+                        alerts: {
+                            some: {
+                                eventDate: {
+                                    gte: thirtyDaysAgo,
+                                },
+                                deletedAt: null,
                             },
                         },
-                    });
-                    alertsForUser.push(...alertsForEachSite);
-                }
+                    },
+                    include: {
+                        alerts: {
+                            select: {
+                                id: true,
+                                siteId: true,
+                                eventDate: true,
+                                type: true,
+                                latitude: true,
+                                longitude: true,
+                                detectedBy: true,
+                                confidence: true,
+                                distance: true,
+                            },
+                            where: {
+                                eventDate: {
+                                    gte: thirtyDaysAgo,
+                                },
+                                deletedAt: null,
+                            },
+                        },
+                    },
+                });
+                // Flatten the array of site alerts
+                const alertsForUser = sitesWithAlerts.flatMap(site => site.alerts);
                 return {
                     status: 'success',
                     data: alertsForUser,
@@ -47,12 +66,24 @@ export const alertRouter = createTRPCRouter({
             }
         }),
 
+
     getAlert: protectedProcedure
         .input(queryAlertSchema)
         .query(async ({ ctx, input }) => {
             await getUser(ctx)
             try {
                 const alert = await ctx.prisma.siteAlert.findFirst({
+                    select: {
+                        id: true,
+                        siteId: true,
+                        eventDate: true,
+                        type: true,
+                        latitude: true,
+                        longitude: true,
+                        detectedBy: true,
+                        confidence: true,
+                        distance: true,
+                    },
                     where: { id: input.id }
                 })
                 return {
