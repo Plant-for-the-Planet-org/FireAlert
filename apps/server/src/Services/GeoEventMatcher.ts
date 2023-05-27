@@ -27,6 +27,8 @@ const matchGeoEvents = async () => {
                 INNER JOIN "AlertMethod" m ON m."userId" = s."userId" 
                     WHERE a."isProcessed" = false AND a."deletedAt" IS NULL AND m."isEnabled" = true AND m."isVerified" = true`;
 
+        const updateSiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false and "deletedAt" is null`;
+        
         // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
         await prisma.$executeRaw(siteAlertCreationQuery);
 
@@ -35,10 +37,13 @@ const matchGeoEvents = async () => {
 
         // Create Notifications for all unprocessed SiteAlerts
         await prisma.$executeRaw(notificationCreationQuery);
+
+        // Set all SiteAlert as processed
+        await prisma.$executeRaw(updateSiteAlertIsProcessedToTrue);
+
     } catch (error) {
         console.log(error)
     }
-
 
 
     // get all undelivered Notifications
