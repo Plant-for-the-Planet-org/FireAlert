@@ -3,7 +3,7 @@ import { createTRPCRouter, publicProcedure } from "../trpc";
 import { fetchAllProjectsWithSites } from "../../../utils/fetch"
 import { parse } from 'csv-parse'
 import * as turf from '@turf/turf';
-import { subtractDays } from "../../../utils/date"
+import { subtractDays } from "../../../utils/date";
 import { type InnerTRPCContext } from '../trpc'
 
 
@@ -91,9 +91,24 @@ function processRecords(records: FireAlert[], detectedBy: DetectedBy) {
     return records.map((record) => {
         const longitude = parseFloat(record.longitude);
         const latitude = parseFloat(record.latitude);
-        const date = new Date(record.acq_date) ?? new Date();
+
+        // Parse acq_date and acq_time into a JavaScript Date object
+        const acqDate = record.acq_date;
+        const acqTime = Number(record.acq_time)? Number(record.acq_time) : Number(record.acquire_Time);
+
+        // Parse the acq_date into year, month, and day
+        const [year, month, day] = acqDate.split('-').map(Number);
+
+        // Parse the acq_time into hour and minute
+        const hour = Math.floor(acqTime / 100);
+        const minute = acqTime % 100;
+
+        // Create a JavaScript Date object
+        const date = new Date(year, month - 1, day, hour, minute);
+
         const frp = parseFloat(record.frp) ?? null;
         let confidenceLevel: ConfidenceLevel;
+
 
         // Assign confidence level based on record.instrument and record.confidence
         if (detectedBy === "MODIS") {
@@ -380,15 +395,15 @@ export const cronRouter = createTRPCRouter({
                 const createResults = await Promise.all(createPromises);
                 const updateResults = await Promise.all(updatePromises);
                 const deleteResults = await Promise.all(deletePromises);
-                
+
                 const createCount = createResults.length; // Number of created items
                 const updateCount = updateResults.length; // Number of updated items
                 const deleteCount = deleteResults.length; // Number of deleted items
-                
+
                 console.log('Create Count:', createCount);
                 console.log('Update Count:', updateCount);
                 console.log('Delete Count:', deleteCount);
-                
+
                 return { created: createCount, updated: updateCount, deleted: deleteCount };
             });
         }),

@@ -3,7 +3,7 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
-import { PrismaClient, GeoEventProvider } from '@prisma/client'
+import { PrismaClient, type GeoEventProvider } from '@prisma/client'
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
 import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
 
@@ -16,11 +16,11 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
       isActive: true,
-      // fetchFrequency: {
-      //   not:{
-      //     equals: null
-      //   }
-      // }
+      fetchFrequency: {
+        not:{
+          equals: null
+        }
+      }
     },
   });
 
