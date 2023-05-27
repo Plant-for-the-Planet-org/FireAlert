@@ -1,4 +1,4 @@
-import GeoEventProvider from "./GeoEventProvider";
+import type GeoEventProvider from "./GeoEventProvider";
 import NasaGeoEventProvider from "./Provider/NasaGeoEventProvider";
 // import additional GeoEvent provider implementations below
 
@@ -7,7 +7,7 @@ const createGeoEventProviderRegistry = function (geoEventProviders: Array<GeoEve
     const registry: { [providerKey: string]: GeoEventProvider } = {};
 
     geoEventProviders.forEach((geoEventProvider: GeoEventProvider) => {
-        let providerKey = geoEventProvider.getKey()
+        const providerKey = geoEventProvider.getKey()
         if (registry[providerKey]) {
             throw new Error(`Provider for providerKey '${providerKey}' has already been registered`);
         }

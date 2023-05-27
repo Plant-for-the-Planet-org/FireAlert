@@ -1,5 +1,5 @@
-import GeoEventProviderConfig from "./GeoEventProviderConfig";
-import GeoEvent from "../../Interfaces/GeoEvent"
+import type GeoEventProviderConfig from "./GeoEventProviderConfig";
+import type GeoEvent from "../../Interfaces/GeoEvent"
 
 interface GeoEventProvider {
     getKey: () => string;

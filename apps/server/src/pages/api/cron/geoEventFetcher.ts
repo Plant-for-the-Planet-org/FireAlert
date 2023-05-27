@@ -1,7 +1,7 @@
 // to execute this handler, access the endpoint:  http://localhost:3000/api/cron/geoEventFetcher
 // once this has been tested, it should be moved/modified to comply with Vercel conron job standards
 
-import { NextApiRequest, NextApiResponse } from "next";
+import { type NextApiRequest, type NextApiResponse } from "next";
 import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
 import { PrismaClient, type GeoEventProvider } from '@prisma/client'
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'

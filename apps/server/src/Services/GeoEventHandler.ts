@@ -1,7 +1,7 @@
-import { AlertType, GeoEventSource, PrismaClient } from "@prisma/client";
+import { AlertType, type GeoEventSource, PrismaClient } from "@prisma/client";
 import { GEO_EVENTS_PROCESSED } from "../Events/messageConstants";
 // import GeoEvent from "../Interfaces/GeoEvent";
-import { GeoEvent } from "@prisma/client";
+import { type GeoEvent } from "@prisma/client";
 import geoEventEmitter from "../Events/EventEmitter/GeoEventEmitter";
 import md5 from "md5";
 

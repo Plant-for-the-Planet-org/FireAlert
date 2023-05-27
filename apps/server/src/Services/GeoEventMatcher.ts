@@ -46,37 +46,35 @@ const matchGeoEvents = async () => {
     }
 
 
-    // get all undelivered Notifications
+    // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
+    // for each notification, send the notification to the destination
+    // After sending notification update the notification table to set isDelivered to true and sentAt to current time
+    // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
+    // 
     try {
-        // TODO: in case we implement a max retry-count, filter by retryCount < max_retry_count
         const notifications = await prisma.notification.findMany({
             where: {
-                isDelivered: false
+                isDelivered: false,
+                sentAt: null,
             },
             include: {
-                siteAlert: true
-            }
-        })
-
-        await Promise.all(notifications.map(async (notification) => {
-            const { id, alertMethod, destination, siteAlert, siteAlertId } = notification;
-            const { id: alertId, siteId: siteId, confidence, data, type, longitude, latitude, distance, detectedBy, eventDate } = siteAlert;
-
-            // use the alertId to find the site associated with it.
-            const site = await prisma.site.findFirst({
-                where: {
-                    alerts: {
-                        some: {
-                            id: siteAlertId
-                        }
+                siteAlert: {
+                    include: {
+                        site: true
                     }
                 }
-            });
+            }
+        });
+    
+        await Promise.all(notifications.map(async (notification) => {
+            const { id, alertMethod, destination, siteAlert } = notification;
+            const { id: alertId, confidence, data, type, longitude, latitude, distance, detectedBy, eventDate, site } = siteAlert;
+            
             const siteName = site!.name ? site!.name : "";
             const subject = `Heat anomaly near ${siteName} 🔥`;
             const message = `Detected ${distance} km outside ${siteName} with ${confidence} confidence. Check ${latitude}, ${longitude} for fires.`;
             const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
-
+    
             const notificationParameters: NotificationParameters = {
                 message: message,
                 subject: subject,
@@ -90,26 +88,26 @@ const matchGeoEvents = async () => {
                     longitude: longitude,
                     latitude: latitude,
                     distance: distance,
-                    data: data as DataRecord,
                     siteId: site!.id,
-                    siteName: siteName
+                    siteName: siteName,
+                    data: data as DataRecord
                 }
             }
-
+    
             const notifier = NotifierRegistry.get(alertMethod);
             const isDelivered = await notifier.notify(destination, notificationParameters)
-
-            if (isDelivered) {
-                const response = await prisma.notification.update({
-                    where: { id: id },
-                    data: {
-                        isDelivered: true
-                    }
-                })
-                const a = response;
-            } else {
-                // Updates AlertMethod table to increment the failCount
-                const prisma = new PrismaClient();
+    
+            // Update notification's isDelivered status and sentAt
+            await prisma.notification.update({
+                where: { id: id },
+                data: {
+                    isDelivered: isDelivered,
+                    sentAt: new Date()
+                }
+            })
+    
+            // If notification was not delivered, increment the failCount
+            if (!isDelivered) {
                 await prisma.alertMethod.updateMany({
                     where: {
                         destination: destination,
@@ -121,13 +119,13 @@ const matchGeoEvents = async () => {
                         }
                     }
                 })
-                // Todo:
-                // increment the retry count if a pre-defined limit has not been reached
+                // TODO: increment the retry count if a pre-defined limit has not been reached
             }
         }));
     } catch (error) {
         console.log(error)
     }
+    
 }
 
 export default matchGeoEvents;
