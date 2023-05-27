@@ -79,6 +79,7 @@ model AlertMethod {
     tokenSentCount      Int                    @default(0)
     lastTokenSentDate   DateTime?
     userId              String
+    failCount           Int                    @default(0)
     user                User                   @relation(fields: [userId], references: [id])
     verificationRequest VerificationRequest?
 

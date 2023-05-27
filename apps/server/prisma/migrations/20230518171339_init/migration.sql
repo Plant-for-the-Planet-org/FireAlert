@@ -97,6 +97,7 @@ CREATE TABLE "AlertMethod" (
     "lastTokenSentDate" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
     "deletedAt" TIMESTAMP(3),
+    "failCount" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "AlertMethod_pkey" PRIMARY KEY ("id")
 );
