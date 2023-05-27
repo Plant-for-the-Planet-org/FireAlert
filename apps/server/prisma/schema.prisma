@@ -166,6 +166,7 @@ model Notification {
     siteAlert   SiteAlert @relation(fields: [siteAlertId], references: [id])
     alertMethod String
     destination String
+    sentAt      DateTime?
     isDelivered Boolean   @default(false)
 }
 

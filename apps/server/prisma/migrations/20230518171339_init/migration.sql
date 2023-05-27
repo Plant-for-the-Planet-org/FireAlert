@@ -188,6 +188,7 @@ CREATE TABLE "Notification" (
     "siteAlertId" TEXT NOT NULL,
     "alertMethod" TEXT NOT NULL,
     "destination" TEXT NOT NULL,
+    "sentAt" TIMESTAMP(3) DEFAULT NULL,
     "isDelivered" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
