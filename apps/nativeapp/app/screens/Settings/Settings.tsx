@@ -178,7 +178,7 @@ const Settings = ({navigation}) => {
     },
   });
 
-  const softDeleteUser = trpc.user.deleteUser.useMutation({
+  const softDeleteUser = trpc.user.softDeleteUser.useMutation({
     retryDelay: 3000,
     onSuccess: async () => {
       setShowDelAccount(false);
@@ -540,7 +540,14 @@ const Settings = ({navigation}) => {
                         styles.emailSubContainer,
                         {justifyContent: 'space-between'},
                       ]}>
-                      <Text style={styles.myEmailName}>{item?.deviceName}</Text>
+                      <Text style={styles.myEmailName}>
+                        {item?.deviceName}
+                        {i === 0 && (
+                          <Text style={styles.projectSyncInfo}>
+                            {''} ( this device )
+                          </Text>
+                        )}
+                      </Text>
                       <View style={styles.emailSubContainer}>
                         <Switch
                           value={item?.isEnabled}

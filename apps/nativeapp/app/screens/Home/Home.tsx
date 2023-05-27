@@ -224,6 +224,7 @@ const Home = ({navigation, route}) => {
     onSuccess: () => {
       refetchSites();
       setSelectedSite({});
+      setSelectedArea(null);
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -418,10 +419,10 @@ const Home = ({navigation, route}) => {
     const alertsArr = alerts?.json?.data;
     const id = alertsArr[counter]?.id;
     const coordinate = [
-      alertsArr[counter]?.latitude,
       alertsArr[counter]?.longitude,
+      alertsArr[counter]?.latitude,
     ];
-    const title = `Longitude: ${alertsArr[counter]?.latitude} Latitude: ${alertsArr[counter]?.longitude}`;
+    const title = `Longitude: ${alertsArr[counter]?.longitude} Latitude: ${alertsArr[counter]?.latitude}`;
 
     return (
       <MapboxGL.PointAnnotation
@@ -431,8 +432,8 @@ const Home = ({navigation, route}) => {
         onSelected={e => {
           camera.current.setCamera({
             centerCoordinate: [
-              alertsArr[counter]?.latitude,
               alertsArr[counter]?.longitude,
+              alertsArr[counter]?.latitude,
             ],
             padding: {paddingBottom: SCREEN_HEIGHT / 4},
             zoomLevel: ZOOM_LEVEL,
@@ -708,7 +709,7 @@ const Home = ({navigation, route}) => {
                 ({moment(selectedAlert?.eventDate).format('DD MMM YYYY')})
               </Text>
               <Text style={styles.confidence}>
-                {selectedAlert?.confidence}% alert confidence
+                {selectedAlert?.confidence} alert confidence
               </Text>
             </View>
           </View>
