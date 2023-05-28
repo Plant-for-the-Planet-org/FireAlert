@@ -44,7 +44,13 @@ class NasaGeoEventProvider implements GeoEventProvider {
         const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);
-            const date = new Date(record.acq_date) ?? new Date();
+            // Use both acq_date and acq_time to construct date for new geoEvent
+            const [year, month, day] = record.acq_date.split('-');
+            // acq_time is in a format of time, where '44' means 00:44, and '2309' means 23:09
+            const time = record.acq_time;
+            const hours = Math.floor(time / 100); // Extract hours from the time
+            const minutes = time % 100; // Extract minutes from the time
+            const date = new Date(year, month - 1, day, hours, minutes) ?? new Date();
 
             interface ConfidenceLevels {
                 [key: string]: {
