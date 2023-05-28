@@ -15,7 +15,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   // get all active providers
   const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
-      isActive: true
+      isActive: true,
     },
   });
 
