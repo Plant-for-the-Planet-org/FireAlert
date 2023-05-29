@@ -24,6 +24,7 @@ export function groupSitesAsProject(
   const newObj: ResStructure = {};
   let arr: Array<ResStructure> = [];
   data
+    .sort((a, b) => a.name.localeCompare(b.name))
     .map(item => item[typeKey])
     .filter(site => site !== null)
     .forEach(method => {

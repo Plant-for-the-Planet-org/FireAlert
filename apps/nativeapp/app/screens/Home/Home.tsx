@@ -249,8 +249,22 @@ const Home = ({navigation, route}) => {
 
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
-      refetchSites();
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
+            : null,
+      );
       setSiteNameModalVisible(false);
     },
     onError: () => {
