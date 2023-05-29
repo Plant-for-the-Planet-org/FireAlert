@@ -1,11 +1,14 @@
-import jwt, { VerifyOptions} from 'jsonwebtoken';
+import jwt, { VerifyOptions } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import { TRPCError } from '@trpc/server';
-import { type InnerTRPCContext, PPJwtPayload } from '../server/api/trpc'
+import { type InnerTRPCContext } from '../../server/api/trpc'
+import { PPJwtPayload } from "../../utils/routers/trpc"
+
 
 interface TRPCContext extends InnerTRPCContext {
     token: PPJwtPayload;
 }
+
 
 export const checkTokenIsValid = async (token: string) => {
     const client = jwksClient({
@@ -23,7 +26,7 @@ export const checkTokenIsValid = async (token: string) => {
     const key = await client.getSigningKey(kid);
     const signingKey = key.getPublicKey();
 
-    const options:VerifyOptions = {
+    const options: VerifyOptions = {
         algorithms: ['RS256'],
         // audience: 'urn:plant-for-the-planet',
         issuer: "https://accounts.plant-for-the-planet.org/"
@@ -35,7 +38,7 @@ export const checkTokenIsValid = async (token: string) => {
 export async function getUserIdByToken(ctx: TRPCContext) {
     const user = await ctx.prisma.user.findFirst({
         where: {
-            email: ctx.token["https://app.plant-for-the-planet.org/email"]
+            sub: ctx.token.sub
         },
         select: {
             id: true,

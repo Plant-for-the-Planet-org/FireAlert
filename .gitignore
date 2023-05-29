@@ -5,3 +5,4 @@ node_modules
 !.env.sample
 .DS_Store
 .turbo
+.idea

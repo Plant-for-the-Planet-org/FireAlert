@@ -1,161 +1,88 @@
 import { TRPCError } from "@trpc/server";
-import { createAlertMethodSchema, params, updateAlertMethodSchema, verifySchema } from '../zodSchemas/alertMethod.schema'
+import {
+    createAlertMethodSchema,
+    params,
+    updateAlertMethodSchema,
+    verifySchema
+} from '../zodSchemas/alertMethod.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { getUserIdByToken } from "../../../utils/token";
-import { generate5DigitOTP } from '../../../utils/math'
-import { sendVerificationCode } from '../../../utils/notification/sendVerificationCode'
-import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
-
-interface TRPCContext extends InnerTRPCContext {
-    token: PPJwtPayload;
-}
-
-
-type checkUserHasAlertMethodPermissionArgs = {
-    ctx: TRPCContext; // the TRPC context object
-    alertMethodId: string; // the ID of the site to be updated
-    userId: string; // the ID of the user attempting to update the site
-};
-
-// Compares the User in session or token with the AlertMethod that is being Read, Updated or Deleted
-const checkUserHasAlertMethodPermission = async ({ ctx, alertMethodId, userId }: checkUserHasAlertMethodPermissionArgs) => {
-    const alertMethodToCRUD = await ctx.prisma.alertMethod.findFirst({
-        where: {
-            id: alertMethodId,
-        },
-        select: {
-            userId: true,
-            destination: true,
-            method: true,
-        },
-    });
-    if (!alertMethodToCRUD) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "AlertMethod with that id does not exist, cannot update alertMethod",
-        });
-    }
-    if (alertMethodToCRUD.userId !== userId) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You are not authorized to update this alertMethod",
-        });
-    }
-    return alertMethodToCRUD
-};
-
+import { getUser } from "../../../utils/routers/user";
+import {
+    findAlertMethod,
+    findVerificationRequest,
+    limitAlertMethodPerUser,
+    checkUserHasAlertMethodPermission,
+    returnAlertMethod,
+    handlePendingVerification,
+} from "../../../utils/routers/alertMethod";
 
 export const alertMethodRouter = createTRPCRouter({
 
+    //Todo: Abstract the functions in SendVerification and createAlertMethod to a separate file so that it can be reused in the verify function.
     sendVerification: protectedProcedure
         .input(params)
-        .mutation(async ({ ctx, input }) => {
+        .query(async ({ ctx, input }) => {
+            try {
+                await getUser(ctx)
+                const alertMethodId = input.alertMethodId
+                const alertMethod = await findAlertMethod({ ctx, alertMethodId })
+                return (alertMethod.isVerified)
+                    ? {
+                        status: 'error',
+                        message: 'AlertMethod is already verified'
+                    }
+                    : await handlePendingVerification(ctx, alertMethod)
 
-            const alertMethodId = input.alertMethodId;
-
-            // Get the current date
-            const currentDate = new Date().toISOString().split('T')[0];
-            // Find the alertMethod for that id
-            const alertMethod = await ctx.prisma.alertMethod.findFirst({
-                where: {
-                    id: input.alertMethodId
-                }
-            })
-            if (!alertMethod) {
+            } catch (error) {
+                console.log(error);
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "AlertMethod with that AlertMethod Id not found",
-                });
-            }
-            if (alertMethod.isVerified) {
-                return {
-                    message: 'User is already verified'
-                }
-            }
-            // Check if the date is the same
-            if (
-                alertMethod.lastTokenSentDate &&
-                alertMethod.lastTokenSentDate.toISOString().split('T')[0] === currentDate
-            ) {
-                // Check if the attempt count has reached the maximum limit (e.g., 3)
-                if (alertMethod.tokenSentCount >= 3) {
-                    return {
-                        status: 403,
-                        message: 'Exceeded maximum verification attempts for the day',
-                    };
-                }
-                // Increment the tokenSentCount
-                await ctx.prisma.alertMethod.update({
-                    where: {
-                        id: alertMethodId,
-                    },
-                    data: {
-                        tokenSentCount: alertMethod.tokenSentCount + 1,
-                    },
-                });
-            } else {
-                // Reset tokenSentCount to 1 for a new date
-                await ctx.prisma.alertMethod.update({
-                    where: {
-                        id: alertMethodId,
-                    },
-                    data: {
-                        tokenSentCount: 1,
-                        lastTokenSentDate: new Date(),
-                    },
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: `${error}`,
                 });
             }
 
-            const otp = generate5DigitOTP()
-            const message = `Your FireAlert Verification OTP is ${otp}`
-            await ctx.prisma.alertMethod.update({
-                where: {
-                    id: input.alertMethodId
-                },
-                data: {
-                    notificationToken: otp
-                }
-            })
-            const destination = alertMethod.destination
-            const method = alertMethod.method
-            const deviceType = alertMethod.deviceType ?? undefined
-            const verificaiton = await sendVerificationCode(destination, method, deviceType, message)
-            return verificaiton;
         }),
 
     verify: protectedProcedure
         .input(verifySchema)
-        .mutation(async ({ ctx, input }) => {
-            const alertMethod = await ctx.prisma.alertMethod.findFirst({
-                where: {
-                    id: input.alertMethodId
-                }
-            })
-            if (!alertMethod) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "AlertMethod with that AlertMethod Id not found",
-                });
-            }
-            if (alertMethod.notificationToken === input.notificationToken) {
-                await ctx.prisma.alertMethod.update({
-                    where: {
-                        id: input.alertMethodId
-                    },
-                    data: {
-                        isVerified: true
-                    }
+        .query(async ({ ctx, input }) => {
+            await getUser(ctx)
+            const alertMethodId = input.params.alertMethodId
+            await findAlertMethod({ ctx, alertMethodId })
+            const verificatonRequest = await findVerificationRequest({ ctx, alertMethodId })
+            const currentTime = new Date();
+            // TODO: Also check if it is expired or not, by checking if the verificationRequest.expires is less than the time right now, if yes, set isExpired to true.
+            if (verificatonRequest.token === input.body.token && (verificatonRequest.expires >= currentTime)) {
+                const alertMethod = await ctx.prisma.$transaction(async (prisma) => {
+                    const alertMethod = await prisma.alertMethod.update({
+                        where: {
+                            id: input.params.alertMethodId
+                        },
+                        data: {
+                            isVerified: true,
+                            tokenSentCount: 0,
+                            isEnabled: true,
+                        }
+                    })
+                    await prisma.verificationRequest.delete({
+                        where: {
+                            id: verificatonRequest.id
+                        }
+                    })
+                    return alertMethod
                 })
+                const returnedAlertMethod = returnAlertMethod(alertMethod)
                 return {
-                    status: 400,
-                    message: 'Validation Successful'
+                    status: 'success',
+                    message: 'Validation Successful',
+                    data: returnedAlertMethod
                 }
             } else {
                 return {
-                    status: 406,
+                    status: 'error',
                     message: 'incorrect token'
                 }
             }
@@ -164,52 +91,36 @@ export const alertMethodRouter = createTRPCRouter({
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
-            // Check if the user has reached the maximum limit of alert methods (e.g., 5)
-            const alertMethodCount = await ctx.prisma.alertMethod.count({
+            const user = await getUser(ctx)
+            //Check if AlertMethod already exists
+            const existingAlertMethod = await ctx.prisma.alertMethod.findFirst({
                 where: {
-                    userId,
+                    userId: user.id,
+                    destination: input.destination,
+                    method: input.method,
+                    deletedAt: null,
                 },
             });
-
-            if (alertMethodCount >= 5) {
+            if (existingAlertMethod) {
                 return {
-                    status: 403,
-                    message: 'Exceeded maximum alert methods limit',
+                    status: 'success',
+                    message: 'AlertMethod already exists',
+                    data: returnAlertMethod(existingAlertMethod)
                 };
             }
+            // Check if the user has reached the maximum limit of alert methods (e.g., 5)
+            await limitAlertMethodPerUser({ ctx, userId: user.id, count: 10 })
             try {
-                const otp = generate5DigitOTP();
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
                         method: input.method,
                         destination: input.destination,
-                        isEnabled: input.isEnabled,
-                        deviceType: input.deviceType,
-                        userId: userId,
-                        notificationToken: otp,
+                        deviceName: input.deviceName,
+                        deviceId: input.deviceId,
+                        userId: user.id,
                     },
                 });
-                // Send verification code
-                const message = `Your FireAlert Verification OTP is ${otp}`;
-                const destination = alertMethod.destination
-                const method = alertMethod.method
-                const deviceType = alertMethod.deviceType ?? undefined
-                const verification = await sendVerificationCode(destination, method, deviceType, message)
-
-                return {
-                    status: 'success',
-                    data: {
-                        alertMethod,
-                        verification
-                    },
-                };
+                return handlePendingVerification(ctx, alertMethod)
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
@@ -219,21 +130,26 @@ export const alertMethodRouter = createTRPCRouter({
             }
         }),
 
-
-    getAllAlertMethods: protectedProcedure
+    getAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
+            const user = await getUser(ctx)
             try {
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
                     where: {
-                        userId: userId,
-                    }
+                        userId: user.id,
+                        deletedAt: null,
+                    },
+                    select: {
+                        id: true,
+                        method: true,
+                        destination: true,
+                        isEnabled: true,
+                        isVerified: true,
+                        lastTokenSentDate: true,
+                        userId: true,
+                        deviceName: true,
+                        deviceId: true
+                    },
                 });
                 return {
                     status: 'success',
@@ -251,31 +167,16 @@ export const alertMethodRouter = createTRPCRouter({
     getAlertMethod: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
-            await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
+            const user = await getUser(ctx)
+            await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
-                const alertMethod = await ctx.prisma.alertMethod.findFirst({
-                    where: {
-                        id: input.alertMethodId,
-                    },
-                });
-                if (alertMethod) {
-                    return {
-                        status: 'success',
-                        data: alertMethod,
-                    };
-                } else {
-                    throw new TRPCError({
-                        code: 'NOT_FOUND',
-                        message: `Cannot find an alert method with that alertMethodId for the user associated with the ${ctx.token ? 'token' : 'session'}!`,
-                    });
-                }
+                const alertMethodId = input.alertMethodId
+                const alertMethod = await findAlertMethod({ ctx, alertMethodId })
+                const returnedAlertMethod = returnAlertMethod(alertMethod)
+                return {
+                    status: 'success',
+                    data: returnedAlertMethod,
+                };
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
@@ -288,34 +189,25 @@ export const alertMethodRouter = createTRPCRouter({
     updateAlertMethod: protectedProcedure
         .input(updateAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
-            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: userId });
+            const user = await getUser(ctx)
+            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: user.id });
             try {
-                const { method, destination } = input.body;
-                // Check to see if method or destination has changed
-                const isMethodChanged = method && existingAlertMethod.method !== method;
-                const isDestinationChanged = destination && existingAlertMethod.destination !== destination;
-                // If either destination or method has changed, make isVerified to false
-                const isVerified = !(isDestinationChanged || isMethodChanged );
-
+                if (existingAlertMethod.isVerified !== true) {
+                    throw new TRPCError({
+                        code: "METHOD_NOT_SUPPORTED",
+                        message: `Cannot enable alertMethod if it is not verified.`,
+                    });
+                }
                 const updatedAlertMethod = await ctx.prisma.alertMethod.update({
                     where: {
                         id: input.params.alertMethodId,
                     },
-                    data: {
-                        ...input.body,
-                        isVerified: isVerified
-                    },   
+                    data: input.body,
                 });
+                const returnedAlertMethod = returnAlertMethod(updatedAlertMethod)
                 return {
                     status: 'success',
-                    data: updatedAlertMethod,
+                    data: returnedAlertMethod,
                 };
             } catch (error) {
                 console.log(error)
@@ -326,18 +218,11 @@ export const alertMethodRouter = createTRPCRouter({
             }
         }),
 
-
     deleteAlertMethod: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
-            await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
+            const user = await getUser(ctx)
+            await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
                 const deletedAlertMethod = await ctx.prisma.alertMethod.delete({
                     where: {
@@ -346,7 +231,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
                 return {
                     status: "success",
-                    data: deletedAlertMethod,
+                    message: `Successfully deleted AlertMethod with id: ${deletedAlertMethod.id}`,
                 };
             } catch (error) {
                 console.log(error)

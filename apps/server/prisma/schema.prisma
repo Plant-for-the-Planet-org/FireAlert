@@ -1,211 +1,226 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  directUrl         = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
-  shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING") // used for migrations
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+    // shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id                String  @id @default(cuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String?
+    access_token      String?
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String?
+    session_state     String?
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+    @@unique([provider, providerAccountId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id               String        @id @default(cuid())
-  sub              String?
-  name             String?
-  email            String        @unique
-  emailVerified    Boolean       @default(false)
-  useGeostationary Boolean       @default(false)
-  isPlanetRO       Boolean?
-  image            String?
-  avatar           String?
-  deletedAt        DateTime?
-  isVerified       Boolean?
-  lastLogin        DateTime?
-  signupDate       DateTime      @default(now())
-  roles            Role          @default(ROLE_CLIENT)
-  accounts         Account[]
-  alertMethods     AlertMethod[]
-  projects         Project[]
-  sessions         Session[]
-  sites            Site[]
+    id               String        @id @default(cuid())
+    sub              String?       @unique
+    name             String?
+    email            String        @unique
+    emailVerified    Boolean       @default(false)
+    detectionMethods Json // ["MODIS","VIIRS","LANDSAT","GEOSTATIONARY"]
+    isPlanetRO       Boolean?
+    image            String?
+    deletedAt        DateTime?
+    isVerified       Boolean?
+    lastLogin        DateTime?
+    signupDate       DateTime      @default(now())
+    roles            Role          @default(ROLE_CLIENT)
+    accounts         Account[]
+    alertMethods     AlertMethod[]
+    projects         Project[]
+    sessions         Session[]
+    sites            Site[]
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
+model VerificationRequest {
+    id            String      @id @default(cuid())
+    token         String      @unique
+    expires       DateTime
+    createdAt     DateTime    @default(now())
+    updatedAt     DateTime?   @updatedAt
+    alertMethodId String      @unique
+    alertMethod   AlertMethod @relation(fields: [alertMethodId], references: [id])
 
-  @@unique([identifier, token])
+    @@unique([id, token])
 }
 
 model AlertMethod {
-  id                String                 @id @default(cuid())
-  method            AlertMethodMethod
-  destination       String
-  isVerified        Boolean                @default(false)
-  isEnabled         Boolean                @default(false)
-  deletedAt         DateTime?
-  deviceType        AlertMethodDeviceType?
-  notificationToken String?
-  userId            String
-  user              User                   @relation(fields: [userId], references: [id])
-  tokenSentCount    Int                    @default(0)
-  lastTokenSentDate DateTime?
+    id                  String                 @id @default(cuid())
+    method              AlertMethodMethod
+    destination         String
+    isVerified          Boolean                @default(false)
+    isEnabled           Boolean                @default(false)
+    deletedAt           DateTime?
+    deviceName          String?
+    deviceId            String?
+    tokenSentCount      Int                    @default(0)
+    lastTokenSentDate   DateTime?
+    userId              String
+    failCount           Int                    @default(0)
+    user                User                   @relation(fields: [userId], references: [id])
+    verificationRequest VerificationRequest?
 
-  @@unique([destination, userId])
+    @@unique([destination, userId])
 }
 
 model Site {
-  id                   String     @id @default(cuid())
-  remoteId             String?
-  name                 String?
-  origin               SiteOrigin @default(firealert)
-  type                 SiteType
-  geometry             Json
-  detectionCoordinates Json
-  radius               Int        @default(0)
-  isMonitored          Boolean    @default(true)
-  deletedAt            DateTime?
-  projectId            String?
-  lastUpdated          DateTime?
-  userId               String
-  alerts               Alert[]
-  project              Project?   @relation(fields: [projectId], references: [id])
-  user                 User       @relation(fields: [userId], references: [id])
-}
-
-enum SiteOrigin {
-  firealert
-  ttc
+    id                String                   @id @default(cuid())
+    remoteId          String?
+    name              String?
+    origin            SiteOrigin               @default(firealert)
+    type              SiteType
+    geometry          Json
+    radius            Int                      @default(0)
+    isMonitored       Boolean                  @default(true)
+    deletedAt         DateTime?
+    projectId         String?
+    lastUpdated       DateTime?
+    userId            String
+    detectionGeometry Unsupported("geometry")?
+    originalGeometry  Unsupported("geometry")?
+    // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 
+    // As prisma is not able to handle it, but we need it for our triggers to work
+    alerts            SiteAlert[]
+    project           Project?                 @relation(fields: [projectId], references: [id])
+    user              User                     @relation(fields: [userId], references: [id])
 }
 
 model Project {
-  id          String    @id
-  name        String
-  slug        String?
-  lastUpdated DateTime?
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  sites       Site[]
+    id          String    @id
+    name        String
+    slug        String?
+    lastUpdated DateTime?
+    userId      String
+    user        User      @relation(fields: [userId], references: [id])
+    sites       Site[]
 }
 
 model GeoEventProvider {
-  id        String                    @id @default(cuid())
-  type      AlertType
-  isActive  Boolean
-  source    GeoEventSource
-  sourceKey GeoEventProviderSourceKey
-  config    Json // Must have a url, and api key
-}
-
-enum GeoEventSource {
-  FIRMS
-}
-
-enum GeoEventProviderSourceKey {
-  LANDSAT_NRT
-  MODIS_NRT
-  MODIS_SP
-  VIIRS_NOAA20_NRT
-  VIIRS_SNPP_NRT
-  VIIRS_SNPP_SP
+    id             String         @id @default(cuid())
+    type           AlertType
+    isActive       Boolean
+    providerKey    GeoEventSource
+    lastRun        DateTime?
+    fetchFrequency Int?
+    config         Json
 }
 
 model GeoEvent {
-  id          String                      @id @default(cuid())
-  type        AlertType
-  latitude    Float
-  longitude   Float
-  eventDate   DateTime                    @default(now())
-  confidence  AlertConfidence
-  isProcessed Boolean                     @default(false)
-  source      GeoEventSource
-  detectedBy  GeoEventDetectionInstrument
-  radius      Int?
-  data        Json?
+    id            String                   @id @default(cuid())
+    type          AlertType
+    latitude      Float
+    longitude     Float
+    eventDate     DateTime
+    geometry      Unsupported("geometry")?
+    confidence    AlertConfidence
+    isProcessed   Boolean                  @default(false)
+    providerKey   GeoEventSource
+    identityGroup String
+    radius        Int?
+    data          Json?
 }
 
-model Alert {
-  id          String                      @id @default(cuid())
-  type        AlertType
-  latitude    Float
-  longitude   Float
-  eventDate   DateTime
-  detectedBy  GeoEventDetectionInstrument
-  confidence  AlertConfidence
-  isDelivered Boolean                     @default(false)
-  deletedAt   DateTime?
-  outside     Int?
-  data        Json?
-  siteId      String
-  site        Site                        @relation(fields: [siteId], references: [id])
+model SiteAlert {
+    id            String                      @id @default(cuid())
+    siteId        String
+    site          Site                        @relation(fields: [siteId], references: [id])
+    notifications Notification[]
+    type          AlertType
+    latitude      Float
+    longitude     Float
+    eventDate     DateTime
+    detectedBy    GeoEventDetectionInstrument
+    confidence    AlertConfidence
+    isProcessed   Boolean                     @default(false)
+    deletedAt     DateTime?
+    distance      Int
+    data          Json?
+}
+
+model Notification {
+    id          String    @id @default(cuid())
+    siteAlertId String
+    siteAlert   SiteAlert @relation(fields: [siteAlertId], references: [id])
+    alertMethod String
+    destination String
+    sentAt      DateTime?
+    isDelivered Boolean   @default(false)
+}
+
+enum SiteOrigin {
+    firealert
+    ttc
+}
+
+enum GeoEventSource {
+    FIRMS
+}
+
+enum GeoEventProviderSourceKey {
+    LANDSAT_NRT
+    MODIS_NRT
+    MODIS_SP
+    VIIRS_NOAA20_NRT
+    VIIRS_SNPP_NRT
+    VIIRS_SNPP_SP
 }
 
 enum Role {
-  ROLE_CLIENT
-  ROLE_ADMIN
-  ROLE_SUPPORT
+    ROLE_CLIENT
+    ROLE_ADMIN
+    ROLE_SUPPORT
 }
 
 enum AlertMethodMethod {
-  email
-  sms
-  device
-  whatsapp
-  webhook
-}
-
-enum AlertMethodDeviceType {
-  ios
-  android
+    email
+    sms
+    device
+    whatsapp
+    webhook
 }
 
 enum SiteType {
-  Point
-  Polygon
-  MultiPolygon
+    Point
+    Polygon
+    MultiPolygon
 }
 
 enum GeoEventDetectionInstrument {
-  MODIS
-  VIIRS
-  LANDSAT
-  GEOSTATIONARY
+    MODIS
+    VIIRS
+    LANDSAT
+    GEOSTATIONARY
 }
 
 enum AlertConfidence {
-  high
-  medium
-  low
+    high
+    medium
+    low
 }
 
 enum AlertType {
-  fire
+    fire
 }

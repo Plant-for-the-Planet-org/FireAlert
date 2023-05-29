@@ -4,98 +4,36 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { getUserIdByToken } from "../../../utils/token";
-import { type InnerTRPCContext, PPJwtPayload } from "../trpc"
-import { makeDetectionCoordinates } from '../../../utils/turf'
 import { Prisma } from "@prisma/client";
-
-
-interface TRPCContext extends InnerTRPCContext {
-    token: PPJwtPayload;
-}
-type checkUserHasSitePermissionArgs = {
-    ctx: TRPCContext; // the TRPC context object
-    siteId: string; // the ID of the site to be updated
-    userId: string; // the ID of the user attempting to update the site
-};
-
-type checkIfPlanetROSiteArgs = {
-    ctx: TRPCContext; // the TRPC context object
-    siteId: string; // the ID of the site to be updated
-}
-
-// Compares the User in session or token with the Site that is being Read, Updated or Deleted
-const checkUserHasSitePermission = async ({ ctx, siteId, userId }: checkUserHasSitePermissionArgs) => {
-    const siteToCRUD = await ctx.prisma.site.findFirst({
-        where: {
-            id: siteId,
-        }
-    });
-    if (!siteToCRUD) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Site with that id does not exist, cannot update site",
-        });
-    }
-    if (siteToCRUD.userId !== userId) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "You are not authorized to update this site",
-        });
-    }
-    return siteToCRUD
-};
-
-const checkIfPlanetROSite = async ({ ctx, siteId }: checkIfPlanetROSiteArgs) => {
-    const siteToCRUD = await ctx.prisma.site.findFirst({
-        where: {
-            id: siteId,
-        },
-        select: {
-            userId: true,
-            projectId: true,
-        },
-    });
-    if (siteToCRUD?.projectId) {
-        return true
-    } else {
-        return false
-    }
-}
-
+import { getUser } from '../../../utils/routers/user'
+import { checkUserHasSitePermission, checkIfPlanetROSite, returnSite } from '../../../utils/routers/site'
 
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
         .input(createSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
+            const user = await getUser(ctx)
             try {
                 const radius = input.radius ?? 0
-                const detectionCoordinates = makeDetectionCoordinates(input.geometry, radius)
                 const origin = 'firealert'
+                const lastUpdated = new Date()
                 const site = await ctx.prisma.site.create({
                     data: {
                         origin: origin,
                         type: input.type,
                         name: input.name,
-                        geometry: JSON.stringify(input.geometry),
-                        detectionCoordinates: JSON.stringify(detectionCoordinates),
+                        geometry: input.geometry,
                         radius: radius,
                         isMonitored: input.isMonitored,
-                        userId: userId,
-                        projectId: input.projectId,
+                        userId: user.id,
+                        lastUpdated: lastUpdated,
                     },
                 });
+                const returnedSite = returnSite(site)
                 return {
                     status: "success",
-                    data: site,
+                    data: returnedSite,
                 };
             } catch (error) {
                 console.log(error);
@@ -106,13 +44,15 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-    getAllSitesForProject: protectedProcedure
+    getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
         .query(async ({ ctx, input }) => {
             try {
+                await getUser(ctx)
                 const sitesForProject = await ctx.prisma.site.findMany({
                     where: {
                         projectId: input.projectId,
+                        deletedAt: null,
                     },
                     select: {
                         id: true,
@@ -121,7 +61,6 @@ export const siteRouter = createTRPCRouter({
                         geometry: true,
                         radius: true,
                         isMonitored: true,
-                        deletedAt: true,
                         projectId: true,
                         lastUpdated: true,
                         userId: true,
@@ -140,31 +79,25 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-    getAllSites: protectedProcedure
+    getSites: protectedProcedure
         .query(async ({ ctx }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found in session",
-                });
-            }
+            const user = await getUser(ctx)
             try {
                 const sites = await ctx.prisma.site.findMany({
                     where: {
-                        userId: userId,
+                        userId: user.id,
+                        deletedAt: null,
                     },
                     select: {
                         id: true,
                         name: true,
                         type: true,
-                        geometry: true,
                         radius: true,
                         isMonitored: true,
-                        deletedAt: true,
                         projectId: true,
                         lastUpdated: true,
                         userId: true,
+                        geometry: true,
                     }
                 })
 
@@ -204,18 +137,25 @@ export const siteRouter = createTRPCRouter({
     getSite: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
-                });
-            }
+            const user = await getUser(ctx)
             try {
-                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
+                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
                 const site = await ctx.prisma.site.findFirst({
                     where: {
-                        id: input.siteId
+                        id: input.siteId,
+                        deletedAt: null
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                        radius: true,
+                        isMonitored: true,
+                        lastUpdated: true,
+                        userId: true,
+                        projectId: true,
+                        project: true,
+                        geometry: true,
                     }
                 })
                 if (site) {
@@ -241,87 +181,39 @@ export const siteRouter = createTRPCRouter({
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
+            const user = await getUser(ctx)
+
+            const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: user.id });
+            if (!site) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: "User ID not found",
+                    message: "Site with that id does not exist, cannot update site",
                 });
             }
             try {
-                const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
-                if (!site) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "Site with that id does not exist, cannot update site",
-                    });
-                }
-                const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
-                let updatedData = {
-                    ...input.body,
-                    detectionCoordinates: '',
-                };
-                // let updatedData = input.body as typeof input.body & { detectionCoordinates?: string };
-
-                // Check to see if the input.body has radius or geometry, or both in it.
-                const hasRadius = updatedData.hasOwnProperty('radius');
-                const hasGeometry = updatedData.hasOwnProperty('geometry');
-                const hasType = updatedData.hasOwnProperty('type');
-
-                // If input.body.radius is only there, then find the site using siteId, then find the coordinates, then use makeDetectionCoordinates to find the detectionCoordinates to update it.
-                if (hasRadius && !hasGeometry) {
-                    const siteGeometryString = JSON.stringify(site.geometry)
-                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(siteGeometryString), updatedData.radius!);
-                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
-                    updatedData = {
-                        ...updatedData,
-                        detectionCoordinates,
-                    };
-                }
-                // If input.body.geometry is only there but no radius, then find the radius from site, then update detectionCoordinates
-                else if (hasGeometry && !hasRadius) {
-                    const updatedDataGeometryString = JSON.stringify(updatedData.geometry)
-                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(updatedDataGeometryString), site.radius);
-                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
-                    updatedData = {
-                        ...updatedData,
-                        detectionCoordinates,
-                    };
-                }
-                // If both is there, then makeDetectionCoordinates and update it
-                else if (hasRadius && hasGeometry) {
-                    const updatedDataGeometryString = JSON.stringify(updatedData.geometry)
-                    const bufferedCoordinates = makeDetectionCoordinates(JSON.parse(updatedDataGeometryString), updatedData.radius!);
-                    const detectionCoordinates = JSON.stringify(bufferedCoordinates)
-                    updatedData = {
-                        ...updatedData,
-                        detectionCoordinates,
-                    };
-                }
-                // Check if the 'type' property is present in input.body and that the value of 'type' matches the value of 'type' in input.body.geometry.
-                if (hasType) {
-                    if (!hasGeometry || updatedData.geometry?.type !== updatedData.type) {
-                        throw new TRPCError({
-                            code: "PARSE_ERROR",
-                            message: "Invalid input: 'type' property must match the 'type' property of the 'geometry' object",
-                        });
-                    }
-                }
-                if (isPlanetROSite) {
-                    const { geometry, type, name, projectId, ...rest } = updatedData;
-                    updatedData = rest;
-                }
-                // If none of them is there, then just update:
-                let data:Prisma.SiteUpdateInput = {}; // Create a copy of updatedData
-
+                let updatedData = input.body
+                // Initialize data
+                let data: Prisma.SiteUpdateInput = {}; // Create a copy of updatedData
+                // stringify the geometry before adding it in database
                 if (updatedData.geometry) {
-                    const {geometry, ...rest} = updatedData;
+                    const { geometry, ...rest } = updatedData;
                     data = {
                         ...rest,
-                        geometry: JSON.stringify(geometry),
+                        geometry: geometry,
                     };
                 }
-
+                // If Site is associated with PlanetRO User then don't allow changes on fields other than radius and isMonitored
+                const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
+                if (isPlanetROSite) {
+                    const { geometry, type, name, ...rest } = updatedData;
+                    if (geometry || type || name) {
+                        throw new TRPCError({
+                            code: "UNAUTHORIZED",
+                            message: `PlanetRO Users can only update Geometry and isMonitored Field`,
+                        });
+                    }
+                    data = rest;
+                }
                 // Update the site using the modified data object
                 const updatedSite = await ctx.prisma.site.update({
                     where: {
@@ -329,10 +221,10 @@ export const siteRouter = createTRPCRouter({
                     },
                     data: data,
                 });
-
+                const returnedSite = returnSite(updatedSite)
                 return {
                     status: 'success',
-                    data: updatedSite,
+                    data: returnedSite,
                 };
 
             } catch (error) {
@@ -348,26 +240,44 @@ export const siteRouter = createTRPCRouter({
     deleteSite: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
-            // Check if user is authenticated
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
+            // Check if user is authenticated and not soft deleted
+            const user = await getUser(ctx)
+
+            await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
+            const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.siteId })
+
+            if (isPlanetROSite) {
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found",
+                    code: "UNAUTHORIZED",
+                    message: "FireAlert cannot delete Site fetched from Plant-for-the-Planet, Please delete it from Plant-for-the-Planet Platform",
                 });
             }
             try {
-                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
-                await checkIfPlanetROSite({ ctx, siteId: input.siteId })
-                const deletedSite = await ctx.prisma.site.delete({
+                // Soft Delete the site & Alerts associated with it. Set deletedAt to current time
+                await ctx.prisma.site.update({
                     where: {
                         id: input.siteId,
                     },
+                    data: {
+                        deletedAt: new Date(),
+                    }
                 });
+
+                await ctx.prisma.siteAlert.updateMany({
+                    where: {
+                        siteId: input.siteId,
+                    },
+                    data: {
+                        deletedAt: new Date(),
+                    }
+                });
+
                 return {
                     status: "success",
-                    data: deletedSite,
+                    message: `Site with id ${input.siteId} deleted successfully`,
                 };
+
+
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
@@ -377,5 +287,3 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 });
-
-

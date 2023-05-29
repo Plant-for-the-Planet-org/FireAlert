@@ -1,80 +1,59 @@
 import { TRPCError } from "@trpc/server";
 import { queryAlertSchema } from '../zodSchemas/alert.schema'
-import { params as siteParams } from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
 
-import { Alert } from "@prisma/client";
-import { getUserIdByToken } from "../../../utils/token";
+import { SiteAlert } from "@prisma/client";
+import { getUser } from "../../../utils/routers/user";
 import { subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
 
-    getAlertsForSite: protectedProcedure
-        .input(siteParams)
-        .query(async ({ ctx, input }) => {
-            try {
-                const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-                if (!userId) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "User ID not found",
-                    });
-                }
-                const thirtyDaysAgo = subtractDays(new Date(), 30);
-                const alertsForSite = await ctx.prisma.alert.findMany({
-                    where: {
-                        siteId: input.siteId,
-                        eventDate: {
-                            gte: thirtyDaysAgo
-                        },
-                    }
-                })
-                return {
-                    status: 'success',
-                    data: alertsForSite,
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
-
-    getAlertsForUser: protectedProcedure
+    getAlerts: protectedProcedure
         .query(async ({ ctx }) => {
+            debugger;
             try {
-                const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-                if (!userId) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: "User ID not found",
-                    });
-                }
-                const alertsForUser: Alert[] = [];
-                const sites = await ctx.prisma.site.findMany({
+                const user = await getUser(ctx)
+                const thirtyDaysAgo = subtractDays(new Date(), 30);
+                const sitesWithAlerts = await ctx.prisma.site.findMany({
                     where: {
-                        userId,
-                    },
-                });
-
-                // Fetch alerts for each site
-                for (const site of sites) {
-                    const thirtyDaysAgo = subtractDays(new Date(), 30);
-                    const alertsForEachSite = await ctx.prisma.alert.findMany({
-                        where: {
-                            siteId: site.id,
-                            eventDate: {
-                                gte: thirtyDaysAgo
+                        userId: user.id,
+                        deletedAt: null,
+                        alerts: {
+                            some: {
+                                eventDate: {
+                                    gte: thirtyDaysAgo,
+                                },
+                                deletedAt: null,
                             },
                         },
-                    });
-                    alertsForUser.push(...alertsForEachSite);
-                }
+                    },
+                    include: {
+                        alerts: {
+                            select: {
+                                id: true,
+                                siteId: true,
+                                eventDate: true,
+                                type: true,
+                                latitude: true,
+                                longitude: true,
+                                detectedBy: true,
+                                confidence: true,
+                                distance: true,
+                            },
+                            where: {
+                                eventDate: {
+                                    gte: thirtyDaysAgo,
+                                },
+                                deletedAt: null,
+                            },
+                        },
+                    },
+                });
+                // Flatten the array of site alerts
+                const alertsForUser = sitesWithAlerts.flatMap(site => site.alerts);
                 return {
                     status: 'success',
                     data: alertsForUser,
@@ -92,33 +71,25 @@ export const alertRouter = createTRPCRouter({
     getAlert: protectedProcedure
         .input(queryAlertSchema)
         .query(async ({ ctx, input }) => {
+            await getUser(ctx)
             try {
-                const alert = await ctx.prisma.alert.findFirst({
-                    where: { id: input.alertId }
+                const alert = await ctx.prisma.siteAlert.findFirst({
+                    select: {
+                        id: true,
+                        siteId: true,
+                        eventDate: true,
+                        type: true,
+                        latitude: true,
+                        longitude: true,
+                        detectedBy: true,
+                        confidence: true,
+                        distance: true,
+                    },
+                    where: { id: input.id }
                 })
                 return {
                     status: 'success',
                     data: alert,
-                }
-            } catch (error) {
-                console.log(error)
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
-                });
-            }
-        }),
-
-    deleteAnAlert: protectedProcedure
-        .input(queryAlertSchema)
-        .mutation(async ({ ctx, input }) => {
-            try {
-                const deletedAlert = await ctx.prisma.alert.delete({
-                    where: { id: input.alertId }
-                })
-                return {
-                    status: 'success',
-                    data: deletedAlert
                 }
             } catch (error) {
                 console.log(error)

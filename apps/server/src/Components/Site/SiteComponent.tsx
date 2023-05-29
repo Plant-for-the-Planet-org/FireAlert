@@ -1,7 +1,7 @@
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { api } from "../../utils/api";
-import { makeCoordinates } from "../../utils/math";
+import { makeCoordinates } from "../../utils/notification/otp";
 import styles from './SiteComponent.module.css';
 import  SingleSite  from "./SingleSite";
 
