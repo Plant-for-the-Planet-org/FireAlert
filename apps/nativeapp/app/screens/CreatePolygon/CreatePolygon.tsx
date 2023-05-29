@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
+import {useQueryClient} from '@tanstack/react-query';
 import React, {useEffect, useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
@@ -81,10 +82,25 @@ const CreatePolygon = ({navigation}) => {
   });
 
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
+    onSuccess: res => {
+      delete res.json.data.remoteId;
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: [...oldData.json.data, res.json.data],
+                },
+              }
+            : null,
+      );
       setLoading(false);
       setSiteNameModalVisible(false);
       navigation.navigate('Home');

@@ -24,6 +24,7 @@ import {
 import centroid from '@turf/centroid';
 import rewind from '@mapbox/geojson-rewind';
 import OneSignal from 'react-native-onesignal';
+import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 
@@ -102,6 +103,7 @@ const Settings = ({navigation}) => {
 
   const toast = useToast();
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const {userDetails} = useAppSelector(state => state.loginSlice);
 
   async function deviceNotification() {
@@ -135,9 +137,12 @@ const Settings = ({navigation}) => {
     data: sites,
     refetch: refetchSites,
     isSuccess: sitesSuccess,
-  } = trpc.site.getSites.useQuery(undefined, {
+  } = trpc.site.getSites.useQuery(['site', 'getSites'], {
     enabled: true,
     retryDelay: 3000,
+    staleTime: 'Infinity',
+    cacheTime: 'Infinity',
+    keepPreviousData: true,
     onSuccess: () => {
       setRefreshing(false);
     },
@@ -169,8 +174,22 @@ const Settings = ({navigation}) => {
   );
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
-      refetchSites();
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req.json.siteId,
+                  ),
+                },
+              }
+            : null,
+      );
       setSitesInfoModal(false);
     },
     onError: () => {

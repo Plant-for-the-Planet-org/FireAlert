@@ -20,6 +20,7 @@ import {polygon} from '@turf/helpers';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
+import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
@@ -128,6 +129,7 @@ const Home = ({navigation, route}) => {
   const toast = useToast();
   const modalToast = useRef();
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const camera = useRef<MapboxGL.Camera | null>(null);
 
   useEffect(() => {
@@ -184,7 +186,7 @@ const Home = ({navigation, route}) => {
   });
 
   const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
-    undefined,
+    ['site', 'getSites'],
     {
       enabled: true,
       retryDelay: 3000,
@@ -221,8 +223,22 @@ const Home = ({navigation, route}) => {
 
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
-      refetchSites();
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req.json.siteId,
+                  ),
+                },
+              }
+            : null,
+      );
       setSelectedSite({});
       setSelectedArea(null);
     },
