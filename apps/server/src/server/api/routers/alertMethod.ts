@@ -224,7 +224,10 @@ export const alertMethodRouter = createTRPCRouter({
             const user = await getUser(ctx)
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
-                const deletedAlertMethod = await ctx.prisma.alertMethod.delete({
+                const deletedAlertMethod = await ctx.prisma.alertMethod.update({
+                    data: {
+                        deletedAt: new Date(),
+                    },
                     where: {
                         id: input.alertMethodId,
                     },
