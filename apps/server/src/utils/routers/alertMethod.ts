@@ -199,7 +199,7 @@ export interface VerificationResponse {
     data?: AlertMethod
 }
 
-export const handlePendingVerification = async ( ctx:TRPCContext, alertMethod:AlertMethod ): Promise<VerificationResponse> => {
+export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: AlertMethod): Promise<VerificationResponse> => {
     if (alertMethod.method === 'device') {
         // check if the playerID exists in Onesignal
         // if yes, set the alertMethod.isVerified to true
@@ -217,10 +217,10 @@ export const handlePendingVerification = async ( ctx:TRPCContext, alertMethod:Al
         // we can check if id in response matches the destination to return true.
 
         if (!response.ok) {
-            return {
-                status: 'error',
-                message: "Destination can't be verified with Onesignal"
-            };
+            throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: `Destination can't be verified with Onesignal`,
+            });
         }
         //Mark device alertMethod verified without sending any notification or OTP.
         const updatedAlertMethod = await ctx.prisma.alertMethod.update({
@@ -262,8 +262,8 @@ export const handlePendingVerification = async ( ctx:TRPCContext, alertMethod:Al
             data: alertMethod
         }
     }
-    return {
-        status: 'error',
-        message: 'Error in sending verification code'
-    }
+    throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Error in sending verification code`,
+    });
 }
