@@ -1171,9 +1171,8 @@ const Settings = ({navigation}) => {
               },
             ]}>
             {RADIUS_ARR.map((item, index) => (
-              <View style={styles.subDropDownCon}>
+              <View key={`RADIUS_ARR_${index}`} style={styles.subDropDownCon}>
                 <TouchableOpacity
-                  key={`RADIUS_ARR_${index}`}
                   style={styles.siteRadiusCon}
                   disabled={item?.value === pageXY?.siteRadius}
                   onPress={() => handleSelectRadius(item.value)}>
