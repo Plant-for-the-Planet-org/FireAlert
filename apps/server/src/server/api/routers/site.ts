@@ -31,6 +31,41 @@ export const siteRouter = createTRPCRouter({
                     },
                 });
                 const returnedSite = returnSite(site)
+                // Todo: Generate alerts (but no notifications) for the new site from the (last 30 days) on GeoEvents where isProcessed = true.
+                // const genAlertsForNewSite = Prisma.Sql`INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
+                // SELECT
+                //     gen_random_uuid (),
+                //     e.type,
+                //     TRUE,
+                //     e. "eventDate",
+                //     e. "identityGroup"::"GeoEventDetectionInstrument",
+                //     e.confidence,
+                //     e.latitude,
+                //     e.longitude,
+                //     s.id,
+                //     e.data,
+                //     ST_Distance(ST_SetSRID (e.geometry, 4326), s. "detectionGeometry") AS distance
+                // FROM
+                //     "GeoEvent" e
+                //     INNER JOIN "Site" s ON ST_Within(ST_SetSRID (e.geometry, 4326), s. "detectionGeometry")
+                //         AND s. "deletedAt" IS NULL
+                //         AND s.id = '${returnedSite.id}'
+                // WHERE
+                //     e. "isProcessed" = FALSE
+                //     AND NOT EXISTS (
+                //         SELECT
+                //             1
+                //         FROM
+                //             "SiteAlert"
+                //         WHERE
+                //             "SiteAlert"."isProcessed" = FALSE
+                //             AND "SiteAlert".longitude = e.longitude
+                //             AND "SiteAlert".latitude = e.latitude
+                //             AND "SiteAlert"."eventDate" = e. "eventDate");`
+                // //Todo: Refactor the above
+
+                // await Prisma.$executeRaw(genAlertsForNewSite)
+
                 return {
                     status: "success",
                     data: returnedSite,
@@ -58,12 +93,17 @@ export const siteRouter = createTRPCRouter({
                         id: true,
                         name: true,
                         type: true,
-                        geometry: true,
                         radius: true,
                         isMonitored: true,
-                        projectId: true,
+                        project: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        },
                         lastUpdated: true,
                         userId: true,
+                        geometry: true,
                     }
                 })
                 return {
@@ -94,36 +134,20 @@ export const siteRouter = createTRPCRouter({
                         type: true,
                         radius: true,
                         isMonitored: true,
-                        projectId: true,
                         lastUpdated: true,
+                        project: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        },
                         userId: true,
                         geometry: true,
                     }
                 })
-
-                const sitesWithProjectName = await Promise.all(sites.map(async (site) => {
-                    if (site.projectId) {
-                        const project = await ctx.prisma.project.findFirst({
-                            where: {
-                                id: site.projectId
-                            },
-                            select: {
-                                name: true
-                            }
-                        })
-                        const projectName = project?.name;
-                        return {
-                            ...site,
-                            projectName
-                        };
-                    }
-                    return {
-                        ...site,
-                    };
-                }));
                 return {
                     status: 'success',
-                    data: sitesWithProjectName,
+                    data: sites,
                 };
             } catch (error) {
                 console.log(error)
@@ -153,8 +177,12 @@ export const siteRouter = createTRPCRouter({
                         isMonitored: true,
                         lastUpdated: true,
                         userId: true,
-                        projectId: true,
-                        project: true,
+                        project: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        },
                         geometry: true,
                     }
                 })
@@ -193,15 +221,7 @@ export const siteRouter = createTRPCRouter({
             try {
                 let updatedData = input.body
                 // Initialize data
-                let data: Prisma.SiteUpdateInput = {}; // Create a copy of updatedData
-                // stringify the geometry before adding it in database
-                if (updatedData.geometry) {
-                    const { geometry, ...rest } = updatedData;
-                    data = {
-                        ...rest,
-                        geometry: geometry,
-                    };
-                }
+                let data: Prisma.SiteUpdateInput = updatedData;
                 // If Site is associated with PlanetRO User then don't allow changes on fields other than radius and isMonitored
                 const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.params.siteId })
                 if (isPlanetROSite) {
@@ -220,11 +240,26 @@ export const siteRouter = createTRPCRouter({
                         id: input.params.siteId,
                     },
                     data: data,
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                        radius: true,
+                        isMonitored: true,
+                        lastUpdated: true,
+                        project: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        },
+                        userId: true,
+                        geometry: true,
+                    }
                 });
-                const returnedSite = returnSite(updatedSite)
                 return {
                     status: 'success',
-                    data: returnedSite,
+                    data: updatedSite,
                 };
 
             } catch (error) {

@@ -9,7 +9,8 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { NextApiRequest } from "next";
-import { checkSoftDelete, tokenAuthentication} from '../../utils/routers/trpc'
+import { checkSoftDelete, tokenAuthentication} from '../../utils/routers/trpc';
+import * as Sentry from "@sentry/nextjs";
 
 type CreateContextOptions = {
   session: Session | null;
@@ -85,6 +86,9 @@ const enforceUserIsAuthedAndNotSoftDeleted = t.middleware(async ({ ctx, next }) 
 
 const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
   const { isTokenAuthentication, decodedToken, access_token } = await tokenAuthentication(ctx)
+  Sentry.Handlers.trpcMiddleware({
+    attachRpcInput: true,
+  })
   if (isTokenAuthentication && decodedToken) {
     return next({
       ctx: {

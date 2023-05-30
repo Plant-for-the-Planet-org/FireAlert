@@ -83,7 +83,7 @@ model AlertMethod {
     user                User                   @relation(fields: [userId], references: [id])
     verificationRequest VerificationRequest?
 
-    @@unique([destination, userId])
+    @@unique([destination, userId, method])
 }
 
 model Site {
