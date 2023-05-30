@@ -45,17 +45,16 @@ export const checkIfPlanetROSite = async ({ ctx, siteId }: CheckIfPlanetROSiteAr
 export function returnSite(site: Site) {
     return {
         id: site.id,
-        remoteId: site.remoteId,
         name: site.name,
         type: site.type,
         radius: site.radius,
         isMonitored: site.isMonitored,
         lastUpdated: site.lastUpdated,
-        userId: site.userId,
-        geometry: site.geometry,
         project: {
             id: site.projectId?.id,
             name: site.projectId?.name,
-        }
+        },
+        userId: site.userId,
+        geometry: site.geometry,
     };
 }
