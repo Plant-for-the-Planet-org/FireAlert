@@ -3,6 +3,7 @@ import { queryAlertSchema } from '../zodSchemas/alert.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
+    publicProcedure,
 } from "../trpc";
 
 import { SiteAlert } from "@prisma/client";
@@ -68,25 +69,43 @@ export const alertRouter = createTRPCRouter({
         }),
 
 
-    getAlert: protectedProcedure
+    getAlert: publicProcedure
         .input(queryAlertSchema)
         .query(async ({ ctx, input }) => {
-            await getUser(ctx)
             try {
                 const alert = await ctx.prisma.siteAlert.findFirst({
                     select: {
                         id: true,
-                        siteId: true,
-                        eventDate: true,
                         type: true,
+                        eventDate: true,
                         latitude: true,
                         longitude: true,
                         detectedBy: true,
                         confidence: true,
                         distance: true,
+                        data: true,
+                        site: {
+                            select: {
+                                id: true,
+                                name: true,
+                                geometry: true,
+                                project: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                    }
+                                }
+                            }
+                        }
                     },
                     where: { id: input.id }
                 })
+                if (!alert) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: `Alert not found`,
+                    });
+                }
                 return {
                     status: 'success',
                     data: alert,

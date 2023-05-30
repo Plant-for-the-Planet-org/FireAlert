@@ -2,14 +2,9 @@ import styles from "./index.module.css";
 import { type NextPage } from "next";
 import Head from "next/head";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useCookies } from "react-cookie"
-
- 
 import { api } from "../utils/api";
-import Sites from "../Components/Site/SiteComponent";
 
 const Home: NextPage = () => {
-  const { data: sessionData } = useSession();
   return (
     <>
       <Head>
@@ -53,7 +48,6 @@ const AuthShowcase: React.FC = () => {
         {sessionData && <span>Logged in as {sessionData.user.email} </span>}
         {/* {userData && <span>Here's the user data {JSON.stringify(userData)} </span> } */}
       </p>
-      <Sites />
       <button
         className={styles.loginButton}
         onClick={sessionData ? () => void signOut() : () => void signIn()}

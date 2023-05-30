@@ -8,6 +8,7 @@ import {
 import {
     createTRPCRouter,
     protectedProcedure,
+    publicProcedure,
 } from "../trpc";
 import { getUser } from "../../../utils/routers/user";
 import {
@@ -24,7 +25,7 @@ export const alertMethodRouter = createTRPCRouter({
     //Todo: Abstract the functions in SendVerification and createAlertMethod to a separate file so that it can be reused in the verify function.
     sendVerification: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             try {
                 await getUser(ctx)
                 const alertMethodId = input.alertMethodId
@@ -46,9 +47,9 @@ export const alertMethodRouter = createTRPCRouter({
 
         }),
 
-    verify: protectedProcedure
+    verify: publicProcedure
         .input(verifySchema)
-        .query(async ({ ctx, input }) => {
+        .mutation(async ({ ctx, input }) => {
             await getUser(ctx)
             const alertMethodId = input.params.alertMethodId
             await findAlertMethod({ ctx, alertMethodId })
