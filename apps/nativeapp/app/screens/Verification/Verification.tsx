@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import React, {useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
 
 import {trpc} from '../../services/trpc';
@@ -32,6 +33,7 @@ const Verification = ({navigation, route}) => {
   const {configData} = useAppSelector(state => state.loginSlice);
 
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
     retryDelay: 3000,
@@ -43,6 +45,19 @@ const Verification = ({navigation, route}) => {
         });
       }
       const result = data?.json?.data;
+      queryClient.setQueryData(
+        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: [...oldData.json.data, result],
+                },
+              }
+            : null,
+      );
       setLoading(false);
       navigation.navigate('Otp', {
         verificationType,

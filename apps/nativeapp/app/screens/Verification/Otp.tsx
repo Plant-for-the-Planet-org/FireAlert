@@ -4,10 +4,11 @@ import {
   Platform,
   StyleSheet,
   TouchableOpacity,
-  KeyboardAvoidingView,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import React, {useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
 
 import {trpc} from '../../services/trpc';
@@ -22,6 +23,7 @@ const Otp = ({navigation, route}) => {
 
   const toast = useToast();
   const otpInputRef = useRef();
+  const queryClient = useQueryClient();
   const [count, setCount] = useCountdown(30);
 
   const verifyAlertMethod = trpc.alertMethod.verify.useMutation({
@@ -32,6 +34,21 @@ const Otp = ({navigation, route}) => {
           type: 'warning',
         });
       }
+      queryClient.setQueryData(
+        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === data?.json?.data?.id ? data?.json?.data : item,
+                  ),
+                },
+              }
+            : null,
+      );
       navigation.navigate('Settings');
     },
     onError: () => {

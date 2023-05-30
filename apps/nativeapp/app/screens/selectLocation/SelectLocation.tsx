@@ -92,7 +92,6 @@ const SelectLocation = ({navigation}) => {
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
     onSuccess: res => {
-      delete res.json.data.remoteId;
       queryClient.setQueryData(
         [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
         oldData =>

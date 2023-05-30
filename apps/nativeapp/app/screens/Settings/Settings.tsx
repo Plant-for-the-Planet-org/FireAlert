@@ -212,12 +212,26 @@ const Settings = ({navigation}) => {
 
   const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
     retryDelay: 3000,
-    onSuccess: data => {
+    onSuccess: (data, req) => {
+      queryClient.setQueryData(
+        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req?.json?.alertMethodId,
+                  ),
+                },
+              }
+            : null,
+      );
       const loadingArr = delAlertMethodArr.filter(
         el => el !== data?.json?.data?.id,
       );
       setDelAlertMethodArr(loadingArr);
-      refetchAlertPreferences();
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -252,8 +266,22 @@ const Settings = ({navigation}) => {
   const updateAlertPreferences = trpc.alertMethod.updateAlertMethod.useMutation(
     {
       retryDelay: 3000,
-      onSuccess: () => {
-        refetchAlertPreferences();
+      onSuccess: res => {
+        queryClient.setQueryData(
+          [['alertMethod', 'getAlertMethods'], {type: 'query'}],
+          oldData =>
+            oldData
+              ? {
+                  ...oldData,
+                  json: {
+                    ...oldData?.json,
+                    data: oldData?.json?.data?.map(item =>
+                      item.id === res?.json?.data?.id ? res?.json?.data : item,
+                    ),
+                  },
+                }
+              : null,
+        );
         setReRender(!reRender);
       },
       onError: () => {
