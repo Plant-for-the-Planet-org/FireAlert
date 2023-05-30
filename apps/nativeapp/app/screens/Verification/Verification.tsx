@@ -36,13 +36,13 @@ const Verification = ({navigation, route}) => {
   const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
     retryDelay: 3000,
     onSuccess: data => {
-      if (data?.json?.status === 403) {
+      if ([405, 403].includes(data?.json?.status)) {
         setLoading(false);
         return toast.show(data?.json?.message || 'something went wrong', {
           type: 'warning',
         });
       }
-      const result = data?.json?.data?.alertMethod;
+      const result = data?.json?.data;
       setLoading(false);
       navigation.navigate('Otp', {
         verificationType,
@@ -73,8 +73,6 @@ const Verification = ({navigation, route}) => {
           : verificationType === 'Webhook'
           ? webhookUrl
           : newEmail,
-      isVerified: false,
-      isEnabled: false,
     };
     createAlertPreference.mutate({json: payload});
   };

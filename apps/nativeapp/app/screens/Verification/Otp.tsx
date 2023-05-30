@@ -51,13 +51,17 @@ const Otp = ({navigation, route}) => {
     },
   });
 
-  const handleClose = () => navigation.goBack();
+  const handleClose = () => navigation.navigate('Settings');
 
   const handleContinue = () => {
     verifyAlertMethod.mutate({
       json: {
-        alertMethodId: route?.params?.alertMethod?.id,
-        token: code,
+        params: {
+          alertMethodId: route?.params?.alertMethod?.id,
+        },
+        body: {
+          token: code,
+        },
       },
     });
   };
