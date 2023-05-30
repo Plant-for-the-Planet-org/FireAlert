@@ -52,7 +52,10 @@ export function returnSite(site: Site) {
         isMonitored: site.isMonitored,
         lastUpdated: site.lastUpdated,
         userId: site.userId,
-        projectId: site.projectId,
-        geometry: site.geometry
+        geometry: site.geometry,
+        project: {
+            id: site.projectId?.id,
+            name: site.projectId?.name,
+        }
     };
 }
