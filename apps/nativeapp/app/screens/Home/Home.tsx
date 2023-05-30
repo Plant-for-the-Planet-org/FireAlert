@@ -800,9 +800,10 @@ const Home = ({navigation, route}) => {
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
             <View>
-              {selectedSite?.site?.projectId && (
+              {selectedSite?.site?.project?.id && (
                 <Text style={styles.projectsName}>
-                  {selectedSite?.site?.projectName || selectedSite?.site?.id}
+                  {selectedSite?.site?.project?.name ||
+                    selectedSite?.site?.project?.id}
                 </Text>
               )}
               <Text style={styles.siteTitle}>
@@ -810,17 +811,17 @@ const Home = ({navigation, route}) => {
               </Text>
             </View>
             <TouchableOpacity
-              disabled={selectedSite?.site?.projectId}
+              disabled={selectedSite?.site?.project?.id}
               onPress={() => handleEditSite(selectedSite?.site)}>
               <PencilIcon />
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            disabled={deleteSite?.isLoading || selectedSite?.site?.projectId}
+            disabled={deleteSite?.isLoading || selectedSite?.site?.project?.id}
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
             style={[
               styles.btn,
-              selectedSite?.site?.projectId && {
+              selectedSite?.site?.project?.id && {
                 borderColor: Colors.GRAY_LIGHTEST,
               },
             ]}>
@@ -828,7 +829,7 @@ const Home = ({navigation, route}) => {
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <>
-                {selectedSite?.site?.projectId ? (
+                {selectedSite?.site?.project?.id ? (
                   <DisabledTrashOutlineIcon />
                 ) : (
                   <TrashOutlineIcon />
@@ -836,7 +837,7 @@ const Home = ({navigation, route}) => {
                 <Text
                   style={[
                     styles.siteActionText,
-                    selectedSite?.site?.projectId && {
+                    selectedSite?.site?.project?.id && {
                       color: Colors.GRAY_LIGHTEST,
                     },
                   ]}>
@@ -845,7 +846,7 @@ const Home = ({navigation, route}) => {
               </>
             )}
           </TouchableOpacity>
-          {selectedSite?.site?.projectId && (
+          {selectedSite?.site?.project?.id && (
             <Text style={styles.projectSyncInfo}>
               This site is synced from pp.eco. To make changes, please visit the
               Plant-for-the-Planet Platform.

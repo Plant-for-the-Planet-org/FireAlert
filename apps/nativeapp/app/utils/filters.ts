@@ -17,26 +17,29 @@ export function categorizedRes(data: Array<ResStructure>, typeKey: string) {
   return newObj;
 }
 
-export function groupSitesAsProject(
-  data: Array<ResStructure>,
-  typeKey: string,
-) {
+export function groupSitesAsProject(data: Array<ResStructure>) {
   const newObj: ResStructure = {};
   let arr: Array<ResStructure> = [];
+  let newArr: Array<ResStructure> = [];
   data
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map(item => item[typeKey])
-    .filter(site => site !== null)
-    .forEach(method => {
-      const filteredData = data?.filter(item => item[typeKey] === method);
-      newObj[String(method).toLowerCase()] = filteredData;
-    });
+    .filter(site => site !== null);
+  for (const key in data) {
+    if (data[key]?.project) arr.push(data[key]);
+  }
+  arr.forEach(method => {
+    const filteredData = arr?.filter(
+      item => item?.project?.id === method?.project?.id,
+    );
+    newObj[String(method?.project?.id).toLowerCase()] = filteredData;
+  });
   for (const key in newObj) {
-    arr.push({
-      name: newObj[key][0]?.projectName,
-      id: newObj[key][0]?.projectId,
+    newArr.push({
+      name: newObj[key][0]?.project?.name,
+      id: newObj[key][0]?.project?.id,
       sites: newObj[key],
     });
   }
-  return arr;
+
+  return newArr;
 }

@@ -9,6 +9,7 @@ import {
   BackHandler,
   TouchableOpacity,
   KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
@@ -267,6 +268,11 @@ const SelectLocation = ({navigation}) => {
 
   return (
     <>
+      <StatusBar
+        translucent
+        barStyle={'light-content'}
+        backgroundColor={'transparent'}
+      />
       <MapboxGL.MapView
         ref={map}
         style={styles.map}
@@ -295,8 +301,11 @@ const SelectLocation = ({navigation}) => {
         </View>
       </MapboxGL.MapView>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleClose}>
-          <CrossIcon fill={'#4D5153'} />
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.crossIcon}
+          onPress={handleClose}>
+          <CrossIcon width={15} height={15} fill={'#4D5153'} />
         </TouchableOpacity>
       </View>
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
@@ -434,7 +443,7 @@ const styles = StyleSheet.create({
     bottom: 67,
   },
   header: {
-    top: 43,
+    top: 50,
     width: 336,
     alignSelf: 'center',
     position: 'absolute',
@@ -510,5 +519,13 @@ const styles = StyleSheet.create({
   },
   commonPadding: {
     paddingHorizontal: 40,
+  },
+  crossIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
   },
 });

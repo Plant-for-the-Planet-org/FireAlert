@@ -5,6 +5,7 @@ import {
   Modal,
   Linking,
   Platform,
+  StatusBar,
   StyleSheet,
   BackHandler,
   TouchableOpacity,
@@ -333,6 +334,11 @@ const CreatePolygon = ({navigation}) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar
+        translucent
+        barStyle={'light-content'}
+        backgroundColor={'transparent'}
+      />
       <Map
         map={map}
         camera={camera}
@@ -347,8 +353,11 @@ const CreatePolygon = ({navigation}) => {
       />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleClose}>
-          <CrossIcon fill={'#4D5153'} />
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.crossIcon}
+          onPress={handleClose}>
+          <CrossIcon width={15} height={15} fill={'#4D5153'} />
         </TouchableOpacity>
       </View>
       {geoJSON.features[0].geometry.coordinates.length <= 2 ? (
@@ -463,7 +472,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
   header: {
-    top: 43,
+    top: 50,
     width: 336,
     alignSelf: 'center',
     position: 'absolute',
@@ -541,5 +550,13 @@ const styles = StyleSheet.create({
   },
   commonPadding: {
     paddingHorizontal: 40,
+  },
+  crossIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
   },
 });

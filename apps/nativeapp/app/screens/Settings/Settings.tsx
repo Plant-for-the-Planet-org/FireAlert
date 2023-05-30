@@ -46,6 +46,7 @@ import {
   EmailIcon,
   PlanetLogo,
   PencilIcon,
+  LayerCheck,
   WarningIcon,
   GlobeWebIcon,
   DistanceIcon,
@@ -152,7 +153,7 @@ const Settings = ({navigation}) => {
     },
   });
   const groupOfSites = useMemo(
-    () => groupSitesAsProject(sites?.json?.data || [], 'projectId'),
+    () => groupSitesAsProject(sites?.json?.data || []),
     [sites],
   );
 
@@ -282,8 +283,6 @@ const Settings = ({navigation}) => {
     },
   });
 
-  const handleSwitch = (index, val) => {};
-
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
       updateSite.mutate({
@@ -297,21 +296,23 @@ const Settings = ({navigation}) => {
     setDropDownModal(false);
   };
 
-  const handleRadius = (evt, projectId, siteId) => {
+  const handleRadius = (evt, projectId, siteId, siteRadius) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       projectId,
       siteId,
+      siteRadius,
     });
     setDropDownModal(!dropDownModal);
   };
 
-  const handleSiteRadius = (evt, siteId) => {
+  const handleSiteRadius = (evt, siteId, siteRadius) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       siteId,
+      siteRadius,
     });
     setDropDownModal(!dropDownModal);
   };
@@ -456,10 +457,6 @@ const Settings = ({navigation}) => {
               <View key={`projects_${index}`} style={styles.projectsInfo}>
                 <View style={styles.projectsNameInfo}>
                   <Text style={styles.projectsName}>{item.name}</Text>
-                  {/* <Switch
-                    value={item.enabled}
-                    onValueChange={val => handleSwitch(index, val)}
-                  /> */}
                 </View>
                 {item?.sites?.length > 0 && <View style={{marginTop: 16}} />}
                 {item?.sites
@@ -472,7 +469,12 @@ const Settings = ({navigation}) => {
                           <View style={styles.rightConPro}>
                             <TouchableOpacity
                               onPress={evt =>
-                                handleRadius(evt, item?.id, sites?.id)
+                                handleRadius(
+                                  evt,
+                                  item?.id,
+                                  sites?.id,
+                                  sites?.radius,
+                                )
                               }
                               style={[styles.dropDownRadius, {marginRight: 5}]}>
                               <Text style={styles.siteRadius}>
@@ -506,14 +508,14 @@ const Settings = ({navigation}) => {
           </View>
         ) : null}
         {/* my sites */}
-        {sites?.json?.data?.filter(site => site?.projectId === null).length >
+        {sites?.json?.data?.filter(site => site?.project === null).length >
         0 ? (
           <View style={[styles.mySites, styles.commonPadding]}>
             <View style={styles.mySitesHead}>
               <Text style={styles.mainHeading}>My Sites</Text>
             </View>
             {sites?.json?.data
-              ?.filter(site => site?.projectId === null)
+              ?.filter(site => site?.project === null)
               .map((item, index) => (
                 <TouchableOpacity
                   onPress={() => handleSiteInformation(item)}
@@ -524,7 +526,9 @@ const Settings = ({navigation}) => {
                   </Text>
                   <View style={styles.rightConPro}>
                     <TouchableOpacity
-                      onPress={evt => handleSiteRadius(evt, item?.id)}
+                      onPress={evt =>
+                        handleSiteRadius(evt, item?.id, item?.radius)
+                      }
                       style={[
                         styles.dropDownRadius,
                         {marginRight: 5, paddingVertical: 16},
@@ -690,7 +694,7 @@ const Settings = ({navigation}) => {
                           <Switch
                             value={item?.isEnabled}
                             onValueChange={val =>
-                              handleNotifySwitch({guid: item.guid}, val)
+                              handleNotifySwitch({alertMethodId: item?.id}, val)
                             }
                           />
                         ) : (
@@ -1054,17 +1058,18 @@ const Settings = ({navigation}) => {
             <View style={styles.modalHeader} />
             <View style={styles.siteTitleCon}>
               <View>
-                {selectedSiteInfo?.projectId && (
+                {selectedSiteInfo?.project && (
                   <Text style={styles.projectsName}>
-                    {selectedSiteInfo?.projectName || selectedSiteInfo?.guid}
+                    {selectedSiteInfo?.project?.name ||
+                      selectedSiteInfo?.project?.id}
                   </Text>
                 )}
                 <Text style={styles.siteTitle}>
-                  {selectedSiteInfo?.name || selectedSiteInfo?.guid}
+                  {selectedSiteInfo?.name || selectedSiteInfo?.id}
                 </Text>
               </View>
               <TouchableOpacity
-                disabled={selectedSiteInfo?.projectId !== null}
+                disabled={selectedSiteInfo?.project !== null}
                 onPress={() => handleEditSite(selectedSiteInfo)}>
                 <PencilIcon />
               </TouchableOpacity>
@@ -1077,12 +1082,12 @@ const Settings = ({navigation}) => {
             </TouchableOpacity>
             <TouchableOpacity
               disabled={
-                deleteSite?.isLoading || selectedSiteInfo?.projectId !== null
+                deleteSite?.isLoading || selectedSiteInfo?.project !== null
               }
               onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
               style={[
                 styles.btn,
-                selectedSiteInfo?.projectId !== null && {
+                selectedSiteInfo?.project !== null && {
                   borderColor: Colors.GRAY_LIGHTEST,
                 },
               ]}>
@@ -1090,7 +1095,7 @@ const Settings = ({navigation}) => {
                 <ActivityIndicator color={Colors.PRIMARY} />
               ) : (
                 <>
-                  {selectedSiteInfo?.projectId !== null ? (
+                  {selectedSiteInfo?.project !== null ? (
                     <DisabledTrashOutlineIcon />
                   ) : (
                     <TrashOutlineIcon />
@@ -1098,7 +1103,7 @@ const Settings = ({navigation}) => {
                   <Text
                     style={[
                       styles.siteActionText,
-                      selectedSiteInfo?.projectId !== null && {
+                      selectedSiteInfo?.project !== null && {
                         color: Colors.GRAY_LIGHTEST,
                       },
                     ]}>
@@ -1107,7 +1112,7 @@ const Settings = ({navigation}) => {
                 </>
               )}
             </TouchableOpacity>
-            {selectedSiteInfo?.projectId && (
+            {selectedSiteInfo?.project && (
               <Text style={styles.projectSyncInfo}>
                 This site is synced from pp.eco. To make changes, please visit
                 the Plant-for-the-Planet Platform.
@@ -1166,11 +1171,28 @@ const Settings = ({navigation}) => {
               },
             ]}>
             {RADIUS_ARR.map((item, index) => (
-              <TouchableOpacity
-                key={`RADIUS_ARR_${index}`}
-                onPress={() => handleSelectRadius(item.value)}>
-                <Text style={styles.siteRadiusText}>{item.name}</Text>
-              </TouchableOpacity>
+              <View style={styles.subDropDownCon}>
+                <TouchableOpacity
+                  key={`RADIUS_ARR_${index}`}
+                  style={styles.siteRadiusCon}
+                  disabled={item?.value === pageXY?.siteRadius}
+                  onPress={() => handleSelectRadius(item.value)}>
+                  <Text
+                    style={[
+                      styles.siteRadiusText,
+                      item?.value === pageXY?.siteRadius && {
+                        fontFamily: Typography.FONT_FAMILY_BOLD,
+                        color: Colors.GRADIENT_PRIMARY,
+                      },
+                    ]}>
+                    {item.name}
+                  </Text>
+                  {item?.value === pageXY?.siteRadius && <LayerCheck />}
+                </TouchableOpacity>
+                {RADIUS_ARR.length - 1 !== index && (
+                  <View style={[styles.separator, {marginHorizontal: 16}]} />
+                )}
+              </View>
             ))}
           </View>
         </>
@@ -1267,6 +1289,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 1.3,
   },
   rightConPro: {
     flexDirection: 'row',
@@ -1297,25 +1320,33 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   dropDownModal: {
-    right: 40,
-    paddingVertical: 15,
-    paddingHorizontal: 25,
+    right: 70,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 12,
     position: 'absolute',
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_MEDIUM,
+  },
+  subDropDownCon: {
+    width: 150,
   },
   overlay: {
     height: SCREEN_HEIGHT,
     width: SCREEN_WIDTH,
     position: 'absolute',
   },
+  siteRadiusCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+  },
   siteRadiusText: {
-    fontSize: Typography.FONT_SIZE_16,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.BLACK,
-    paddingVertical: 5,
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    paddingVertical: 8,
   },
   mySitesHead: {
     flexDirection: 'row',
@@ -1566,6 +1597,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_24,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 1.3,
   },
   btn: {
     height: 56,
@@ -1620,7 +1652,6 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 0.5,
-    width: '100%',
     backgroundColor: '#e0e0e0',
   },
   verifiedChipsCon: {
