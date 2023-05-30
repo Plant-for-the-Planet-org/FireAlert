@@ -60,6 +60,7 @@ import {
 
 import {WEB_URLS} from '../../constants';
 import {trpc} from '../../services/trpc';
+import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {daysFromToday} from '../../utils/moment';
 import {clearAll} from '../../utils/localStorage';
@@ -177,13 +178,7 @@ const Home = ({navigation, route}) => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location, onUpdateUserLocation]);
 
-  const {data: alerts} = trpc.alert.getAlerts.useQuery(undefined, {
-    enabled: true,
-    retryDelay: 3000,
-    onError: () => {
-      toast.show('something went wrong', {type: 'danger'});
-    },
-  });
+  const {data: alerts} = useFetchSites({enabled: true});
 
   const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],

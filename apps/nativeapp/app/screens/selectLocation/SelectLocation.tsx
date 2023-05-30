@@ -4,12 +4,12 @@ import {
   Modal,
   Linking,
   Platform,
+  StatusBar,
   StyleSheet,
   Dimensions,
   BackHandler,
   TouchableOpacity,
   KeyboardAvoidingView,
-  StatusBar,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
@@ -35,6 +35,7 @@ import {
   FloatingInput,
 } from '../../components';
 import {trpc} from '../../services/trpc';
+import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {useQueryClient} from '@tanstack/react-query';
 import {locationPermission} from '../../utils/permissions';
@@ -74,6 +75,9 @@ const SelectLocation = ({navigation}) => {
   const [loading, setLoading] = useState(false);
   const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
 
+  const [enableGetFireAlerts, setEnableGetFireAlerts] =
+    useState<boolean>(false);
+
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
   >();
@@ -83,6 +87,7 @@ const SelectLocation = ({navigation}) => {
 
   const toast = useToast();
   const queryClient = useQueryClient();
+  useFetchSites({enabled: enableGetFireAlerts});
 
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
@@ -101,6 +106,7 @@ const SelectLocation = ({navigation}) => {
               }
             : null,
       );
+      setEnableGetFireAlerts(true);
       setLoading(false);
       setSiteNameModalVisible(false);
       navigation.navigate('Home');

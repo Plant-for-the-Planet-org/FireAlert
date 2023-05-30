@@ -25,6 +25,7 @@ import {
 } from '../../components';
 import Map from './mapMarking/map';
 import {trpc} from '../../services/trpc';
+import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {
   PermissionBlockedAlert,
@@ -54,6 +55,8 @@ const CreatePolygon = ({navigation}) => {
     useState<boolean>(false);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
+  const [enableGetFireAlerts, setEnableGetFireAlerts] =
+    useState<boolean>(false);
 
   const [activeMarkerIndex, setActiveMarkerIndex] = useState<number>(0);
   const [isPermissionDenied, setIsPermissionDenied] = useState<boolean>(false);
@@ -84,6 +87,7 @@ const CreatePolygon = ({navigation}) => {
 
   const toast = useToast();
   const queryClient = useQueryClient();
+  useFetchSites({enabled: enableGetFireAlerts});
 
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
@@ -102,6 +106,7 @@ const CreatePolygon = ({navigation}) => {
               }
             : null,
       );
+      setEnableGetFireAlerts(true);
       setLoading(false);
       setSiteNameModalVisible(false);
       navigation.navigate('Home');
