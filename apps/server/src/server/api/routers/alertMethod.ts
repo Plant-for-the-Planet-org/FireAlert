@@ -29,7 +29,7 @@ export const alertMethodRouter = createTRPCRouter({
             try {
                 await getUser(ctx)
                 const alertMethodId = input.alertMethodId
-                const alertMethod = await findAlertMethod({ ctx, alertMethodId })
+                const alertMethod = await findAlertMethod(alertMethodId)
                 return (alertMethod.isVerified)
                     ? {
                         status: 'error',
@@ -50,10 +50,9 @@ export const alertMethodRouter = createTRPCRouter({
     verify: publicProcedure
         .input(verifySchema)
         .mutation(async ({ ctx, input }) => {
-            await getUser(ctx)
             const alertMethodId = input.params.alertMethodId
-            await findAlertMethod({ ctx, alertMethodId })
-            const verificatonRequest = await findVerificationRequest({ ctx, alertMethodId })
+            await findAlertMethod(alertMethodId)
+            const verificatonRequest = await findVerificationRequest(alertMethodId)
             const currentTime = new Date();
             // TODO: Also check if it is expired or not, by checking if the verificationRequest.expires is less than the time right now, if yes, set isExpired to true.
             if (verificatonRequest.token === input.body.token && (verificatonRequest.expires >= currentTime)) {
@@ -172,7 +171,7 @@ export const alertMethodRouter = createTRPCRouter({
             await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
             try {
                 const alertMethodId = input.alertMethodId
-                const alertMethod = await findAlertMethod({ ctx, alertMethodId })
+                const alertMethod = await findAlertMethod(alertMethodId)
                 const returnedAlertMethod = returnAlertMethod(alertMethod)
                 return {
                     status: 'success',
