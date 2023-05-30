@@ -40,7 +40,6 @@ const LayerModal = ({visible, onRequestClose = () => {}}: ILayerModalProps) => {
                     styles.layerText,
                     item?.value === state && {
                       fontFamily: Typography.FONT_FAMILY_BOLD,
-
                       color: Colors.GRADIENT_PRIMARY,
                     },
                   ]}>

@@ -20,6 +20,7 @@ import {polygon} from '@turf/helpers';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
 import Auth0, {useAuth0} from 'react-native-auth0';
+import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
@@ -59,6 +60,7 @@ import {
 
 import {WEB_URLS} from '../../constants';
 import {trpc} from '../../services/trpc';
+import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {daysFromToday} from '../../utils/moment';
 import {clearAll} from '../../utils/localStorage';
@@ -128,6 +130,7 @@ const Home = ({navigation, route}) => {
   const toast = useToast();
   const modalToast = useRef();
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const camera = useRef<MapboxGL.Camera | null>(null);
 
   useEffect(() => {
@@ -148,8 +151,6 @@ const Home = ({navigation, route}) => {
       }, 500);
     }
   }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat, siteInfo?.siteInfo]);
-
-  console.log(selectedArea);
 
   useEffect(() => {
     if (
@@ -177,16 +178,10 @@ const Home = ({navigation, route}) => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location, onUpdateUserLocation]);
 
-  const {data: alerts} = trpc.alert.getAlerts.useQuery(undefined, {
-    enabled: true,
-    retryDelay: 3000,
-    onError: () => {
-      toast.show('something went wrong', {type: 'danger'});
-    },
-  });
+  const {data: alerts} = useFetchSites({enabled: true});
 
   const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
-    undefined,
+    ['site', 'getSites'],
     {
       enabled: true,
       retryDelay: 3000,
@@ -223,9 +218,24 @@ const Home = ({navigation, route}) => {
 
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
-      refetchSites();
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req.json.siteId,
+                  ),
+                },
+              }
+            : null,
+      );
       setSelectedSite({});
+      setSelectedArea(null);
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -234,8 +244,22 @@ const Home = ({navigation, route}) => {
 
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
-      refetchSites();
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
+            : null,
+      );
       setSiteNameModalVisible(false);
     },
     onError: () => {
@@ -420,10 +444,10 @@ const Home = ({navigation, route}) => {
     const alertsArr = alerts?.json?.data;
     const id = alertsArr[counter]?.id;
     const coordinate = [
-      alertsArr[counter]?.latitude,
       alertsArr[counter]?.longitude,
+      alertsArr[counter]?.latitude,
     ];
-    const title = `Longitude: ${alertsArr[counter]?.latitude} Latitude: ${alertsArr[counter]?.longitude}`;
+    const title = `Longitude: ${alertsArr[counter]?.longitude} Latitude: ${alertsArr[counter]?.latitude}`;
 
     return (
       <MapboxGL.PointAnnotation
@@ -433,8 +457,8 @@ const Home = ({navigation, route}) => {
         onSelected={e => {
           camera.current.setCamera({
             centerCoordinate: [
-              alertsArr[counter]?.latitude,
               alertsArr[counter]?.longitude,
+              alertsArr[counter]?.latitude,
             ],
             padding: {paddingBottom: SCREEN_HEIGHT / 4},
             zoomLevel: ZOOM_LEVEL,
@@ -452,7 +476,7 @@ const Home = ({navigation, route}) => {
   };
 
   const renderSelectedPoint = counter => {
-    const id = formattedSites?.point[counter]?.guid;
+    const id = formattedSites?.point[counter]?.id;
     const coordinate = formattedSites?.point[counter]?.geometry?.coordinates;
     const title = `Longitude: ${coordinate[0]} Latitude: ${coordinate[1]}`;
     return (
@@ -460,9 +484,17 @@ const Home = ({navigation, route}) => {
         id={id}
         key={id}
         title={title}
-        // onSelected={e => {
-        //   setSelectedAlert(formattedSites?.point[counter]), console.log(e);
-        // }}
+        onSelected={e => {
+          let pointInfo = formattedSites?.point?.filter(
+            site => site.id === e?.id,
+          )[0];
+          camera.current.setCamera({
+            centerCoordinate: pointInfo?.geometry?.coordinates,
+            zoomLevel: 15,
+            animationDuration: 500,
+          });
+          setSelectedSite({site: pointInfo});
+        }}
         coordinate={coordinate}>
         <PointSiteIcon />
       </MapboxGL.PointAnnotation>
@@ -702,7 +734,7 @@ const Home = ({navigation, route}) => {
                 ({moment(selectedAlert?.eventDate).format('DD MMM YYYY')})
               </Text>
               <Text style={styles.confidence}>
-                {selectedAlert?.confidence}% alert confidence
+                {selectedAlert?.confidence} alert confidence
               </Text>
             </View>
           </View>
@@ -763,9 +795,10 @@ const Home = ({navigation, route}) => {
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
             <View>
-              {selectedSite?.site?.projectId && (
+              {selectedSite?.site?.project?.id && (
                 <Text style={styles.projectsName}>
-                  {selectedSite?.site?.projectName || selectedSite?.site?.id}
+                  {selectedSite?.site?.project?.name ||
+                    selectedSite?.site?.project?.id}
                 </Text>
               )}
               <Text style={styles.siteTitle}>
@@ -773,17 +806,17 @@ const Home = ({navigation, route}) => {
               </Text>
             </View>
             <TouchableOpacity
-              disabled={selectedSite?.site?.projectId}
+              disabled={selectedSite?.site?.project?.id}
               onPress={() => handleEditSite(selectedSite?.site)}>
               <PencilIcon />
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            disabled={deleteSite?.isLoading || selectedSite?.site?.projectId}
+            disabled={deleteSite?.isLoading || selectedSite?.site?.project?.id}
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
             style={[
               styles.btn,
-              selectedSite?.site?.projectId && {
+              selectedSite?.site?.project?.id && {
                 borderColor: Colors.GRAY_LIGHTEST,
               },
             ]}>
@@ -791,7 +824,7 @@ const Home = ({navigation, route}) => {
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <>
-                {selectedSite?.site?.projectId ? (
+                {selectedSite?.site?.project?.id ? (
                   <DisabledTrashOutlineIcon />
                 ) : (
                   <TrashOutlineIcon />
@@ -799,7 +832,7 @@ const Home = ({navigation, route}) => {
                 <Text
                   style={[
                     styles.siteActionText,
-                    selectedSite?.site?.projectId && {
+                    selectedSite?.site?.project?.id && {
                       color: Colors.GRAY_LIGHTEST,
                     },
                   ]}>
@@ -808,7 +841,7 @@ const Home = ({navigation, route}) => {
               </>
             )}
           </TouchableOpacity>
-          {selectedSite?.site?.projectId && (
+          {selectedSite?.site?.project?.id && (
             <Text style={styles.projectSyncInfo}>
               This site is synced from pp.eco. To make changes, please visit the
               Plant-for-the-Planet Platform.

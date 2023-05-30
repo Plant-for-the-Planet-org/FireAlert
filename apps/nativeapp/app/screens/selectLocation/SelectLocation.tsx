@@ -4,11 +4,11 @@ import {
   Modal,
   Linking,
   Platform,
+  StatusBar,
   StyleSheet,
   Dimensions,
   BackHandler,
   TouchableOpacity,
-  ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
@@ -35,7 +35,9 @@ import {
   FloatingInput,
 } from '../../components';
 import {trpc} from '../../services/trpc';
+import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
+import {useQueryClient} from '@tanstack/react-query';
 import {locationPermission} from '../../utils/permissions';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
@@ -73,6 +75,9 @@ const SelectLocation = ({navigation}) => {
   const [loading, setLoading] = useState(false);
   const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
 
+  const [enableGetFireAlerts, setEnableGetFireAlerts] =
+    useState<boolean>(false);
+
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
   >();
@@ -81,10 +86,26 @@ const SelectLocation = ({navigation}) => {
   const camera = useRef<MapboxGL.Camera | null>(null);
 
   const toast = useToast();
+  const queryClient = useQueryClient();
+  useFetchSites({enabled: enableGetFireAlerts});
 
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
+    onSuccess: res => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: [...oldData.json.data, res.json.data],
+                },
+              }
+            : null,
+      );
+      setEnableGetFireAlerts(true);
       setLoading(false);
       setSiteNameModalVisible(false);
       navigation.navigate('Home');
@@ -252,6 +273,11 @@ const SelectLocation = ({navigation}) => {
 
   return (
     <>
+      <StatusBar
+        translucent
+        barStyle={'light-content'}
+        backgroundColor={'transparent'}
+      />
       <MapboxGL.MapView
         ref={map}
         style={styles.map}
@@ -280,8 +306,11 @@ const SelectLocation = ({navigation}) => {
         </View>
       </MapboxGL.MapView>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleClose}>
-          <CrossIcon fill={'#4D5153'} />
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.crossIcon}
+          onPress={handleClose}>
+          <CrossIcon width={15} height={15} fill={'#4D5153'} />
         </TouchableOpacity>
       </View>
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
@@ -419,7 +448,7 @@ const styles = StyleSheet.create({
     bottom: 67,
   },
   header: {
-    top: 43,
+    top: 50,
     width: 336,
     alignSelf: 'center',
     position: 'absolute',
@@ -495,5 +524,13 @@ const styles = StyleSheet.create({
   },
   commonPadding: {
     paddingHorizontal: 40,
+  },
+  crossIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
   },
 });
