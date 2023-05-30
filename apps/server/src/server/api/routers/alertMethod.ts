@@ -30,13 +30,14 @@ export const alertMethodRouter = createTRPCRouter({
                 await getUser(ctx)
                 const alertMethodId = input.alertMethodId
                 const alertMethod = await findAlertMethod(alertMethodId)
-                return (alertMethod.isVerified)
-                    ? {
-                        status: 'error',
-                        message: 'AlertMethod is already verified'
-                    }
-                    : await handlePendingVerification(ctx, alertMethod)
-
+                if(alertMethod.isVerified){
+                    throw new TRPCError({
+                        code: 'FORBIDDEN',
+                        message: `AlertMethod is already verified`,
+                    });
+                }else{
+                    await handlePendingVerification(ctx, alertMethod)
+                }
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({
@@ -44,7 +45,6 @@ export const alertMethodRouter = createTRPCRouter({
                     message: `${error}`,
                 });
             }
-
         }),
 
     verify: publicProcedure
@@ -81,10 +81,10 @@ export const alertMethodRouter = createTRPCRouter({
                     data: returnedAlertMethod
                 }
             } else {
-                return {
-                    status: 'error',
-                    message: 'incorrect token'
-                }
+                throw new TRPCError({
+                    code: 'UNAUTHORIZED',
+                    message: `Incorrect token`,
+                });
             }
         }),
 
