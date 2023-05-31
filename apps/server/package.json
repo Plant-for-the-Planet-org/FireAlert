@@ -10,13 +10,14 @@
     "dev": "dotenv -e ../../.env next dev",
     "postinstall": "cd ../../ && npx prisma generate",
     "lint": "dotenv -e ../../.env next lint",
-    "start": "dotenv -e ../../.env next start",
+    "start": "dotenv -e ../../.env next start -p $PORT",
     "db:migrate": "dotenv -e ../../.env npx prisma migrate dev --name note-entity --create-only && npx prisma generate",
     "db:push": "dotenv -e ../../.env npx prisma db push",
     "db:pull": "dotenv -e ../../.env npx prisma db pull",
     "db:deploy": "dotenv -e ../../.env npx prisma migrate deploy",
     "db:reset": "dotenv -e ../../.env npx prisma migrate reset",
     "db:generate": "dotenv -e ../../.env npx prisma generate"
+    
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.5",
