@@ -60,11 +60,27 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
 
   const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(identityGroup), geoEvents);
 
+  const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
+    const filteredNewGeoEvents: GeoEvent[] = [];
+    const idsSet: Set<string> = new Set();
+  
+    for (const geoEvent of newGeoEvents) {
+      if (!idsSet.has(geoEvent.id)) {
+        filteredNewGeoEvents.push(geoEvent);
+        idsSet.add(geoEvent.id);
+      }
+    }
+  
+    return filteredNewGeoEvents;
+  };
+
+  const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
+  
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
-  if (newGeoEvents.length > 0) {
+  if (filteredDuplicateNewGeoEvents.length > 0) {
     await prisma.geoEvent.createMany({
-      data: newGeoEvents.map(geoEvent => ({
+      data: filteredDuplicateNewGeoEvents.map(geoEvent => ({
         id: geoEvent.id,
         type: AlertType.fire,
         latitude: geoEvent.latitude,

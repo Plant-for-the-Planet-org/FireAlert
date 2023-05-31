@@ -55,7 +55,13 @@ export const alertMethodRouter = createTRPCRouter({
             const verificatonRequest = await findVerificationRequest(alertMethodId)
             const currentTime = new Date();
             // TODO: Also check if it is expired or not, by checking if the verificationRequest.expires is less than the time right now, if yes, set isExpired to true.
-            if (verificatonRequest.token === input.body.token && (verificatonRequest.expires >= currentTime)) {
+            if(verificatonRequest.expires < currentTime){
+                throw new TRPCError({
+                    code: 'UNAUTHORIZED',
+                    message: `Token Expired. Request a new token.`,
+                });
+            }
+            if (verificatonRequest.token === input.body.token) {
                 const alertMethod = await ctx.prisma.$transaction(async (prisma) => {
                     const alertMethod = await prisma.alertMethod.update({
                         where: {

@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 
 const matchGeoEvents = async () => {
     try {
+        debugger;
         const siteAlertCreationQuery = Prisma.sql`
         INSERT INTO "SiteAlert" (id, type, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance") 
         SELECT gen_random_uuid(), e.type, false, e."eventDate", e."identityGroup"::"GeoEventDetectionInstrument", e.confidence, e.latitude, e.longitude, s.id, e.data, ST_Distance(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") as distance 
@@ -17,12 +18,15 @@ const matchGeoEvents = async () => {
                     FROM "SiteAlert" WHERE "SiteAlert"."isProcessed" = false AND "SiteAlert".longitude = e.longitude AND "SiteAlert".latitude = e.latitude AND "SiteAlert"."eventDate" = e."eventDate" 
                     )`;
         const identityGroup = 'VIIRS' // Define this or get this before processing.
-        const updateIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false and identityGroup = '${identityGroup}'`;
+        const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "identityGroup" = '${identityGroup}'`;
         // Todo: Ensure we only mark GeoEvents as processed if they are from the same source as the SiteAlerts that were created from them
         // Break in a different function:
         // After Creating SiteAlerts, trigger a different event, to create AlertNotifications for each SiteAlert.
         // Break the process of sending Notifications from creation of Notifications.
 
+
+        // In this query, the subquery retrieves all enabled and verified AlertMethods (m) for the user associated with the site. 
+        // Then, a cross join is performed between the SiteAlert table (a) and the AlertMethod subquery (m), ensuring that each siteAlert is paired with all relevant alertMethods.
         const notificationCreationQuery = Prisma.sql`
         INSERT INTO "Notification" (id, "siteAlertId", "alertMethod", destination, "isDelivered") 
         SELECT gen_random_uuid(), a.id, m.method, m.destination, false 
@@ -31,10 +35,11 @@ const matchGeoEvents = async () => {
                 INNER JOIN "AlertMethod" m ON m."userId" = s."userId" 
                     WHERE a."isProcessed" = false AND a."deletedAt" IS NULL AND m."isEnabled" = true AND m."isVerified" = true`;
 
-        const updateSiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false and "deletedAt" is null`;
+        const updateSiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false AND "deletedAt" IS NULL`;
 
         // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
         await prisma.$executeRaw(siteAlertCreationQuery);
+        // DEBUG: SiteAlerts can be created twice with the same data.
 
         // Set all GeoEvents as processed
         await prisma.$executeRaw(updateIsProcessedToTrue);
@@ -69,7 +74,7 @@ const matchGeoEvents = async () => {
                 }
             }
         });
-
+        debugger;
         await Promise.all(notifications.map(async (notification) => {
             const { id, alertMethod, destination, siteAlert } = notification;
             const { id: alertId, confidence, data, type, longitude, latitude, distance, detectedBy, eventDate, site } = siteAlert;
@@ -87,7 +92,7 @@ const matchGeoEvents = async () => {
             if (distance == 0) {
                 message = `Detected inside ${siteName} with ${confidence} confidence. Check ${latitude}, ${longitude} for fires.`;
             }
-            
+
             const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
             // Todo: Create a page that shows a simple map, with a coordinate and site geojson.
             // Show information about the fire, just like on the mobile app.

@@ -38,9 +38,8 @@ class NasaGeoEventProvider implements GeoEventProvider {
     initialize(config?: GeoEventProviderConfig): void {
         this.config = config;
     }
-
+    
     async getLatestGeoEvents(): Promise<GeoEvent[]> {
-
         const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);
