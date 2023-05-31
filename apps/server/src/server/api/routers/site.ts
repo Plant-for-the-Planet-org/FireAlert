@@ -6,7 +6,7 @@ import {
 } from "../trpc";
 import { Prisma } from "@prisma/client";
 import { getUser } from '../../../utils/routers/user'
-import { checkUserHasSitePermission, checkIfPlanetROSite, returnSite } from '../../../utils/routers/site'
+import { checkUserHasSitePermission, checkIfPlanetROSite } from '../../../utils/routers/site'
 
 export const siteRouter = createTRPCRouter({
 
@@ -29,8 +29,23 @@ export const siteRouter = createTRPCRouter({
                         userId: user.id,
                         lastUpdated: lastUpdated,
                     },
+                    select:{
+                        id: true,
+                        name: true,
+                        type: true,
+                        radius: true,
+                        project: {
+                            select: {
+                                id: true,
+                                name: true,
+                            }
+                        },
+                        isMonitored: true,
+                        lastUpdated: true,
+                        userId: true,
+                        geometry: true,
+                    }
                 });
-                const returnedSite = returnSite(site)
                 // Todo: Generate alerts (but no notifications) for the new site from the (last 30 days) on GeoEvents where isProcessed = true.
                 // const genAlertsForNewSite = Prisma.Sql`INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
                 // SELECT
@@ -68,7 +83,7 @@ export const siteRouter = createTRPCRouter({
 
                 return {
                     status: "success",
-                    data: returnedSite,
+                    data: site,
                 };
             } catch (error) {
                 console.log(error);
