@@ -5,12 +5,14 @@ import {
   Modal,
   Linking,
   Platform,
+  StatusBar,
   StyleSheet,
   BackHandler,
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
+import {useQueryClient} from '@tanstack/react-query';
 import React, {useEffect, useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
@@ -23,6 +25,7 @@ import {
 } from '../../components';
 import Map from './mapMarking/map';
 import {trpc} from '../../services/trpc';
+import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {
   PermissionBlockedAlert,
@@ -52,6 +55,8 @@ const CreatePolygon = ({navigation}) => {
     useState<boolean>(false);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
+  const [enableGetFireAlerts, setEnableGetFireAlerts] =
+    useState<boolean>(false);
 
   const [activeMarkerIndex, setActiveMarkerIndex] = useState<number>(0);
   const [isPermissionDenied, setIsPermissionDenied] = useState<boolean>(false);
@@ -81,10 +86,26 @@ const CreatePolygon = ({navigation}) => {
   });
 
   const toast = useToast();
+  const queryClient = useQueryClient();
+  useFetchSites({enabled: enableGetFireAlerts});
 
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
+    onSuccess: res => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: [...oldData.json.data, res.json.data],
+                },
+              }
+            : null,
+      );
+      setEnableGetFireAlerts(true);
       setLoading(false);
       setSiteNameModalVisible(false);
       navigation.navigate('Home');
@@ -317,6 +338,11 @@ const CreatePolygon = ({navigation}) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar
+        translucent
+        barStyle={'light-content'}
+        backgroundColor={'transparent'}
+      />
       <Map
         map={map}
         camera={camera}
@@ -331,8 +357,11 @@ const CreatePolygon = ({navigation}) => {
       />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleClose}>
-          <CrossIcon fill={'#4D5153'} />
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={styles.crossIcon}
+          onPress={handleClose}>
+          <CrossIcon width={15} height={15} fill={'#4D5153'} />
         </TouchableOpacity>
       </View>
       {geoJSON.features[0].geometry.coordinates.length <= 2 ? (
@@ -447,7 +476,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
   header: {
-    top: 43,
+    top: 50,
     width: 336,
     alignSelf: 'center',
     position: 'absolute',
@@ -525,5 +554,13 @@ const styles = StyleSheet.create({
   },
   commonPadding: {
     paddingHorizontal: 40,
+  },
+  crossIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
   },
 });

@@ -51,11 +51,11 @@
 		</dict>
 	</dict>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>We need access to precise location to be able to register trees.</string>
+	<string>We need access to precise location to show your current location for creating sites.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>We need access to precise location to be able to register trees.</string>
+	<string>We need access to precise location to show your current location for creating sites.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need access to precise location to be able to register trees.</string>
+	<string>We need access to precise location to show your current location for creating sites.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>OpenSans-Bold.ttf</string>
