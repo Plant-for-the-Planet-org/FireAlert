@@ -4,20 +4,21 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { Prisma } from "@prisma/client";
 import { getUser } from '../../../utils/routers/user'
 import { checkUserHasSitePermission, checkIfPlanetROSite } from '../../../utils/routers/site'
+import { Prisma } from "@prisma/client";
 
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
         .input(createSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await getUser(ctx)
+            const user = await getUser(ctx);
             try {
-                const radius = input.radius ?? 0
-                const origin = 'firealert'
-                const lastUpdated = new Date()
+                const radius = input.radius ?? 0;
+                const origin = 'firealert';
+                const lastUpdated = new Date();
+
                 const site = await ctx.prisma.site.create({
                     data: {
                         origin: origin,
@@ -29,7 +30,7 @@ export const siteRouter = createTRPCRouter({
                         userId: user.id,
                         lastUpdated: lastUpdated,
                     },
-                    select:{
+                    select: {
                         id: true,
                         name: true,
                         type: true,
@@ -38,49 +39,52 @@ export const siteRouter = createTRPCRouter({
                             select: {
                                 id: true,
                                 name: true,
-                            }
+                            },
                         },
                         isMonitored: true,
                         lastUpdated: true,
                         userId: true,
                         geometry: true,
-                    }
+                    },
                 });
-                // Todo: Generate alerts (but no notifications) for the new site from the (last 30 days) on GeoEvents where isProcessed = true.
-                // const genAlertsForNewSite = Prisma.Sql`INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
-                // SELECT
-                //     gen_random_uuid (),
-                //     e.type,
-                //     TRUE,
-                //     e. "eventDate",
-                //     e. "identityGroup"::"GeoEventDetectionInstrument",
-                //     e.confidence,
-                //     e.latitude,
-                //     e.longitude,
-                //     s.id,
-                //     e.data,
-                //     ST_Distance(ST_SetSRID (e.geometry, 4326), s. "detectionGeometry") AS distance
-                // FROM
-                //     "GeoEvent" e
-                //     INNER JOIN "Site" s ON ST_Within(ST_SetSRID (e.geometry, 4326), s. "detectionGeometry")
-                //         AND s. "deletedAt" IS NULL
-                //         AND s.id = '${returnedSite.id}'
-                // WHERE
-                //     e. "isProcessed" = FALSE
-                //     AND NOT EXISTS (
-                //         SELECT
-                //             1
-                //         FROM
-                //             "SiteAlert"
-                //         WHERE
-                //             "SiteAlert"."isProcessed" = FALSE
-                //             AND "SiteAlert".longitude = e.longitude
-                //             AND "SiteAlert".latitude = e.latitude
-                //             AND "SiteAlert"."eventDate" = e. "eventDate");`
-                // //Todo: Refactor the above
 
-                // await Prisma.$executeRaw(genAlertsForNewSite)
 
+                const siteAlertCreationQuery = Prisma.sql`
+                INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
+                SELECT
+                    gen_random_uuid(),
+                    e.type,
+                    TRUE,
+                    e."eventDate",
+                    e."identityGroup"::"GeoEventDetectionInstrument",
+                    e.confidence,
+                    e.latitude,
+                    e.longitude,
+                    s.id,
+                    e.data,
+                    ST_Distance(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") AS distance
+                FROM
+                    "GeoEvent" e
+                    INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry")
+                        AND s."deletedAt" IS NULL
+                        AND s.id = ${site.id}
+                WHERE
+                    e."isProcessed" = TRUE
+                    AND NOT EXISTS (
+                        SELECT
+                            1
+                        FROM
+                            "SiteAlert"
+                        WHERE
+                            "SiteAlert"."isProcessed" = FALSE
+                            AND "SiteAlert".longitude = e.longitude
+                            AND "SiteAlert".latitude = e.latitude
+                            AND "SiteAlert"."eventDate" = e."eventDate"
+                    );
+            `;
+                const response = await ctx.prisma.$executeRaw(siteAlertCreationQuery);
+
+                console.log(response)
                 return {
                     status: "success",
                     data: site,
@@ -93,6 +97,18 @@ export const siteRouter = createTRPCRouter({
                 });
             }
         }),
+
+
+
+
+
+
+    // Todo: Generate alerts (but no notifications) for the new site from the (last 30 days) on GeoEvents where isProcessed = true.
+
+    // //Todo: Refactor the above
+
+    // await Prisma.$executeRaw(genAlertsForNewSite)
+
 
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
