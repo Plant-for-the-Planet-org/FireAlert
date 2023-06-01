@@ -34,6 +34,7 @@ import {
   FloatingInput,
 } from '../../components';
 import {
+  SiteIcon,
   CopyIcon,
   LayerIcon,
   MyLocIcon,
@@ -411,14 +412,13 @@ const Home = ({navigation, route}) => {
   const handleGoogleRedirect = () => {
     const lat = Number.parseFloat(selectedAlert?.latitude);
     const lng = Number.parseFloat(selectedAlert?.longitude);
-    const scheme = Platform.select({ios: 'maps:0,0?q=', android: 'geo:0,0?q='});
+    const scheme = Platform.select({ios: 'maps:', android: 'geo:'});
     const latLng = `${lat},${lng}`;
-    const label = selectedAlert?.site;
     const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
+      ios: `${scheme}//?q=${lat},${lng}`,
+      android: `${scheme}${latLng}`,
     });
-    handleLink(url);
+    handleLink(url, lat, lng);
   };
 
   const _copyToClipboard = loc => () => {
@@ -731,30 +731,61 @@ const Home = ({navigation, route}) => {
                 <Text style={styles.eventFromNow}>
                   {moment(selectedAlert?.eventDate).fromNow()}
                 </Text>{' '}
-                ({moment(selectedAlert?.eventDate).format('DD MMM YYYY')})
+                (
+                {moment(selectedAlert?.eventDate).format(
+                  'DD MMM YYYY [at] HH:mm',
+                )}
+                )
               </Text>
               <Text style={styles.confidence}>
-                {selectedAlert?.confidence} alert confidence
+                <Text style={styles.confidenceVal}>
+                  {selectedAlert?.confidence}
+                </Text>{' '}
+                alert confidence
               </Text>
             </View>
           </View>
           <View
             style={[
-              styles.satelliteInfoCon,
-              {justifyContent: 'space-between'},
+              styles.alertLocInfoCon,
+              {marginTop: 30, justifyContent: 'space-between'},
             ]}>
+            <View style={styles.satelliteInfoLeft}>
+              <View style={styles.satelliteIcon}>
+                <SiteIcon />
+              </View>
+              {selectedAlert?.site?.project ? (
+                <View style={styles.satelliteInfo}>
+                  <Text style={styles.satelliteLocText}>PROJECT</Text>
+                  <Text style={styles.alertLocText}>
+                    {selectedAlert?.site?.project?.name}{' '}
+                    <Text style={{fontSize: Typography.FONT_SIZE_12}}>
+                      {selectedAlert?.site?.name}
+                    </Text>
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.satelliteInfo}>
+                  <Text style={styles.satelliteLocText}>SITE</Text>
+                  <Text style={styles.alertLocText}>
+                    {selectedAlert?.site?.name}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={styles.separator} />
+          <View
+            style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
                 <LocationPinIcon />
               </View>
               <View style={styles.satelliteInfo}>
-                <Text style={styles.satelliteText}>LOCATION</Text>
-                <Text style={styles.eventDate}>
+                <Text style={styles.satelliteLocText}>LOCATION</Text>
+                <Text style={styles.alertLocText}>
                   {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
                   {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
-                </Text>
-                <Text style={styles.confidence}>
-                  {selectedAlert?.confidence} alert confidence
                 </Text>
               </View>
             </View>
@@ -766,13 +797,18 @@ const Home = ({navigation, route}) => {
               <CopyIcon />
             </TouchableOpacity>
           </View>
-          <View style={styles.satelliteInfoCon}>
+          <View style={styles.separator} />
+          <View style={styles.alertRadiusInfoCon}>
             <View style={styles.satelliteIcon}>
               <RadarIcon />
             </View>
             <View style={styles.satelliteInfo}>
-              <Text style={styles.eventDate}>
-                Search for the fire within a 1km radius around the location.
+              <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
+                Search for the fire within a{' '}
+                <Text style={styles.confidenceVal}>
+                  {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}km
+                </Text>{' '}
+                radius around the location.
               </Text>
             </View>
           </View>
@@ -1013,6 +1049,18 @@ const styles = StyleSheet.create({
     marginTop: 30,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.GRADIENT_PRIMARY + '10',
+    paddingHorizontal: 22,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  alertLocInfoCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  alertRadiusInfoCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   satelliteInfoLeft: {
     flexDirection: 'row',
@@ -1026,6 +1074,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_10,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
+  satelliteLocText: {
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_8,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+  },
   eventFromNow: {
     color: Colors.GRADIENT_PRIMARY,
     fontSize: Typography.FONT_SIZE_18,
@@ -1037,10 +1090,20 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
+  alertLocText: {
+    marginVertical: 2,
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
   confidence: {
     color: Colors.TEXT_COLOR,
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
+  confidenceVal: {
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    textTransform: 'capitalize',
   },
   crossContainer: {
     width: 25,
@@ -1078,5 +1141,10 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     fontFamily: Typography.FONT_FAMILY_ITALIC,
     paddingHorizontal: 10,
+  },
+  separator: {
+    height: 0.4,
+    marginVertical: 16,
+    backgroundColor: '#BDBDBD',
   },
 });

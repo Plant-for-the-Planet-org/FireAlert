@@ -2,6 +2,7 @@ import Logo from './logo.jsx';
 import MapIcon from './mapIcon.jsx';
 import AddIcon from './addIcon.jsx';
 import SmsIcon from './smsIcon.jsx';
+import SiteIcon from './siteIcon.jsx';
 import CopyIcon from './copyIcon.jsx';
 import ListIcon from './listIcon.jsx';
 import BellIcon from './bellIcon.jsx';
@@ -49,6 +50,7 @@ export {
   AddIcon,
   MapIcon,
   CopyIcon,
+  SiteIcon,
   BellIcon,
   NasaLogo,
   ListIcon,
