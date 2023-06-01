@@ -30,11 +30,30 @@ class EmailNotifier implements Notifier {
 
     notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const { message, subject, url } = parameters;
+        
+        // if env.SMTP_URL is not set return promise with false
+        if (!env.SMTP_URL) {
+            console.error(`Error sending email: SMTP_URL is not set`);
+            return Promise.resolve(false);
+        }
+        // Establish a transporter using SMTP settings
+        // Be aware that AWS SES may assign passwords that include special characters such as "+", "/", "=", etc., which are not in line with URL standards
+        // To accommodate these characters for env.SMTP_URL, encode them using encodeURIComponent() and then decode them prior to supplying to nodemailer
+        // To employ secure SMTP, the AWS SES URL needs to start with smtps://
+        
+        const SMTP_URL = new URL(env.SMTP_URL);
+        const transporter = nodemailer.createTransport({
+            host: SMTP_URL.hostname,
+            port: SMTP_URL.port,
+            //secure = true if smtp_url  begins with smtps:// 
+            secure: SMTP_URL.protocol === 'smtps:',
+            auth: {
+                user: SMTP_URL.username,
+                pass: decodeURIComponent(SMTP_URL.password)
+            }
+        }
+        );
 
-        console.log(`Sending message ${message} to ${destination}`)
-
-        // Create a transporter with SMTP configuration for Gmail
-        const transporter = nodemailer.createTransport(env.SMTP_URL);
         const mailBody = `${message} </br>${url ? url : ''}`;
         // Define email options
         const mailOptions = {
