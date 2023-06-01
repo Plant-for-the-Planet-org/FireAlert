@@ -802,7 +802,7 @@ const Settings = ({navigation}) => {
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <SmsIcon />
-                <Text style={styles.smallHeading}>Sms</Text>
+                <Text style={styles.smallHeading}>SMS</Text>
               </View>
               <TouchableOpacity onPress={handleAddSms}>
                 <AddIcon />
