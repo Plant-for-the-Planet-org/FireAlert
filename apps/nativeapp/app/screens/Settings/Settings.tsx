@@ -193,6 +193,24 @@ const Settings = ({navigation}) => {
               }
             : null,
       );
+      queryClient.setQueryData(
+        [
+          ['alert', 'getAlerts'],
+          {input: ['alerts', 'getAlerts'], type: 'query'},
+        ],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item?.site?.id !== req.json.siteId,
+                  ),
+                },
+              }
+            : null,
+      );
       setSitesInfoModal(false);
     },
     onError: () => {

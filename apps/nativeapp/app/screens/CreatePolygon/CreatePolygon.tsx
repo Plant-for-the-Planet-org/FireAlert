@@ -11,9 +11,16 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
+import {
+  Point,
+  point,
+  polygon,
+  Feature,
+  Properties,
+  convertArea,
+} from '@turf/helpers';
 import area from '@turf/area';
 import MapboxGL from '@rnmapbox/maps';
-import {convertArea, polygon} from '@turf/helpers';
 import {useQueryClient} from '@tanstack/react-query';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
@@ -92,6 +99,26 @@ const CreatePolygon = ({navigation}) => {
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
 
+  const _handleViewMap = (siteInfo: object) => {
+    let center: Feature<Point, Properties>;
+    let highlightSiteInfo = siteInfo;
+    center = point(siteInfo?.geometry.coordinates);
+    highlightSiteInfo = siteInfo?.geometry;
+    const lat = center?.geometry?.coordinates[0];
+    const long = center?.geometry?.coordinates[1];
+    navigation.navigate('Home', {
+      lat,
+      long,
+      siteInfo: [
+        {
+          type: 'Feature',
+          geometry: highlightSiteInfo,
+          properties: {site: siteInfo},
+        },
+      ],
+    });
+  };
+
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
     onSuccess: res => {
@@ -111,7 +138,7 @@ const CreatePolygon = ({navigation}) => {
       setEnableGetFireAlerts(true);
       setLoading(false);
       setSiteNameModalVisible(false);
-      navigation.navigate('Home');
+      _handleViewMap(res.json.data);
     },
     onError: () => {
       setLoading(false);

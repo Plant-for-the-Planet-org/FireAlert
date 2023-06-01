@@ -11,8 +11,17 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
+import {
+  Point,
+  point,
+  polygon,
+  Feature,
+  Properties,
+  multiPolygon,
+} from '@turf/helpers';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
+import rewind from '@mapbox/geojson-rewind';
 import React, {useEffect, useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
@@ -89,6 +98,34 @@ const SelectLocation = ({navigation}) => {
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
 
+  const _handleViewMap = (siteInfo: object) => {
+    let center: Feature<Point, Properties>;
+    let highlightSiteInfo = siteInfo;
+    if (siteInfo?.geometry?.type === 'MultiPolygon') {
+      center = centroid(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
+      highlightSiteInfo = rewind(siteInfo?.geometry);
+    } else if (siteInfo?.geometry?.type === 'Point') {
+      center = point(siteInfo?.geometry.coordinates);
+      highlightSiteInfo = siteInfo?.geometry;
+    } else {
+      center = centroid(polygon(siteInfo?.geometry.coordinates));
+      highlightSiteInfo = siteInfo?.geometry;
+    }
+    const lat = center?.geometry?.coordinates[0];
+    const long = center?.geometry?.coordinates[1];
+    navigation.navigate('Home', {
+      lat,
+      long,
+      siteInfo: [
+        {
+          type: 'Feature',
+          geometry: highlightSiteInfo,
+          properties: {site: siteInfo},
+        },
+      ],
+    });
+  };
+
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
     onSuccess: res => {
@@ -108,7 +145,7 @@ const SelectLocation = ({navigation}) => {
       setEnableGetFireAlerts(true);
       setLoading(false);
       setSiteNameModalVisible(false);
-      navigation.navigate('Home');
+      _handleViewMap(res?.json?.data);
     },
     onError: () => {
       setLoading(false);
