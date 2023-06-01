@@ -18,6 +18,7 @@ import {
     checkUserHasAlertMethodPermission,
     returnAlertMethod,
     handlePendingVerification,
+    deviceVerification
 } from "../../../utils/routers/alertMethod";
 
 export const alertMethodRouter = createTRPCRouter({
@@ -30,13 +31,20 @@ export const alertMethodRouter = createTRPCRouter({
                 await getUser(ctx)
                 const alertMethodId = input.alertMethodId
                 const alertMethod = await findAlertMethod(alertMethodId)
-                if(alertMethod.isVerified){
+                if (alertMethod.isVerified) {
                     throw new TRPCError({
                         code: 'FORBIDDEN',
                         message: `AlertMethod is already verified`,
                     });
-                }else{
-                    await handlePendingVerification(ctx, alertMethod)
+                } else {
+                    const sendVerification = await handlePendingVerification(ctx, alertMethod)
+                    if (sendVerification.status === 'success') {
+                        return sendVerification
+                    }
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `${sendVerification.message}`,
+                    });
                 }
             } catch (error) {
                 console.log(error);
@@ -55,7 +63,7 @@ export const alertMethodRouter = createTRPCRouter({
             const verificatonRequest = await findVerificationRequest(alertMethodId)
             const currentTime = new Date();
             // TODO: Also check if it is expired or not, by checking if the verificationRequest.expires is less than the time right now, if yes, set isExpired to true.
-            if(verificatonRequest.expires < currentTime){
+            if (verificatonRequest.expires < currentTime) {
                 throw new TRPCError({
                     code: 'UNAUTHORIZED',
                     message: `Token Expired. Request a new token.`,
@@ -116,6 +124,31 @@ export const alertMethodRouter = createTRPCRouter({
             }
             // Check if the user has reached the maximum limit of alert methods (e.g., 5)
             await limitAlertMethodPerUser({ ctx, userId: user.id, count: 10 })
+            if (input.method === 'device') {
+                const isDeviceVerified = await deviceVerification(input.destination)
+                if (isDeviceVerified) {
+                    const alertMethod = await ctx.prisma.alertMethod.create({
+                        data: {
+                            method: input.method,
+                            destination: input.destination,
+                            deviceName: input.deviceName,
+                            deviceId: input.deviceId,
+                            isVerified: true,
+                            userId: user.id,
+                        },
+                    });
+                    return {
+                        status: 'success',
+                        message: 'Device has been Verified. Successfully create alertMethod.',
+                        data: alertMethod
+                    }
+                } else {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: `Device verification failed. Please try again.`,
+                    });
+                }
+            }
             try {
                 const alertMethod = await ctx.prisma.alertMethod.create({
                     data: {
@@ -126,7 +159,12 @@ export const alertMethodRouter = createTRPCRouter({
                         userId: user.id,
                     },
                 });
-                return handlePendingVerification(ctx, alertMethod)
+                const sendVerification = await handlePendingVerification(ctx, alertMethod)
+                return {
+                    status: "success",
+                    message: 'Successfully Created AlertMethod. ' + sendVerification.message,
+                    data: returnAlertMethod(alertMethod)
+                }
             } catch (error) {
                 console.log(error);
                 throw new TRPCError({

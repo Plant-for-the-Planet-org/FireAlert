@@ -6,6 +6,7 @@ import { AlertMethod, Prisma, PrismaClient, User } from '@prisma/client';
 import { env } from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import { prisma } from '../../server/db';
+import { getDefaultSettings } from 'http2';
 
 
 export const limitAlertMethodPerUser = async ({ ctx, userId, count }: CtxWithUserID) => {
@@ -199,14 +200,13 @@ export interface VerificationResponse {
     data?: AlertMethod
 }
 
-export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: AlertMethod): Promise<VerificationResponse> => {
-    if (alertMethod.method === 'device') {
+export const deviceVerification = async (destination: string): Promise<boolean> => {
         // check if the playerID exists in Onesignal
         // if yes, set the alertMethod.isVerified to true
         // else return error
 
         // call OneSignal API to send the notification
-        const playerIdUrl = `https://onesignal.com/api/v1/players/${alertMethod.destination}?app_id=${env.ONESIGNAL_APP_ID}`
+        const playerIdUrl = `https://onesignal.com/api/v1/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`
         const response = await fetch(playerIdUrl, {
             method: 'GET',
             headers: {
@@ -215,31 +215,14 @@ export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: A
             }
         });
         // we can check if id in response matches the destination to return true.
-
-        if (!response.ok) {
-            throw new TRPCError({
-                code: 'BAD_REQUEST',
-                message: `Destination can't be verified with Onesignal`,
-            });
+        if (response.ok) {
+            return true
+        } else {
+            return false
         }
-        //Mark device alertMethod verified without sending any notification or OTP.
-        const updatedAlertMethod = await ctx.prisma.alertMethod.update({
-            where: {
-                id: alertMethod.id,
-            },
-            data: {
-                isVerified: true,
-                tokenSentCount: 0,
-                isEnabled: true,
-            }
-        });
-        return {
-            status: 'success',
-            message: 'Device has been Verified Successfully',
-            data: updatedAlertMethod
-        }
+}
 
-    }
+export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: AlertMethod): Promise<VerificationResponse> => {
     await handleOTPSendLimitation({ ctx, alertMethod })
     const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
 
@@ -254,16 +237,18 @@ export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: A
         subject: subject,
         url: url
     }
-    const sendVerificationCode = notifier.notify(destination, params);
-    if ((await sendVerificationCode).valueOf() === true) {
+    const sendVerificationCode = await notifier.notify(destination, params);
+    if (sendVerificationCode === true) {
         return {
             status: 'success',
             message: 'Verification code sent successfully',
             data: alertMethod
         }
+    }else {
+        return {
+            status: 'error',
+            message: 'Fail to send verification code.'
+        }
     }
-    throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: `Error in sending verification code`,
-    });
+    
 }
