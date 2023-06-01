@@ -92,6 +92,7 @@ const Settings = ({navigation}) => {
   const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
   const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
+  const [radiusLoaderArr, setRadiusLoaderArr] = useState<Array<string>>([]);
   const [reRender, setReRender] = useState<boolean>(false);
   const [deviceAlertPreferences, setDeviceAlertPreferences] = useState<
     object[]
@@ -256,6 +257,10 @@ const Settings = ({navigation}) => {
               }
             : null,
       );
+      const loadingArr = radiusLoaderArr.filter(
+        el => el !== res?.json?.data?.id,
+      );
+      setRadiusLoaderArr(loadingArr);
       setSiteNameModalVisible(false);
     },
     onError: () => {
@@ -491,6 +496,7 @@ const Settings = ({navigation}) => {
                   ? item?.sites?.map((sites, index) => (
                       <View key={`sites_${index}`}>
                         <TouchableOpacity
+                          disabled={radiusLoaderArr.includes(sites?.id)}
                           onPress={() => handleSiteInformation(sites)}
                           style={styles.sitesInProjects}>
                           <Text style={styles.sitesName}>{sites?.name}</Text>
@@ -504,6 +510,7 @@ const Settings = ({navigation}) => {
                                   sites?.radius,
                                 )
                               }
+                              disabled={radiusLoaderArr.includes(sites?.id)}
                               style={[styles.dropDownRadius, {marginRight: 5}]}>
                               <Text style={styles.siteRadius}>
                                 {sites?.radius
@@ -512,17 +519,28 @@ const Settings = ({navigation}) => {
                               </Text>
                               <DropdownArrow />
                             </TouchableOpacity>
-                            <Switch
-                              value={sites?.isMonitored}
-                              onValueChange={val =>
-                                updateSite.mutate({
-                                  json: {
-                                    params: {siteId: sites?.id},
-                                    body: {isMonitored: val},
-                                  },
-                                })
-                              }
-                            />
+                            {radiusLoaderArr.includes(sites?.id) ? (
+                              <ActivityIndicator
+                                size={'small'}
+                                color={Colors.PRIMARY}
+                              />
+                            ) : (
+                              <Switch
+                                value={sites?.isMonitored}
+                                onValueChange={val => {
+                                  updateSite.mutate({
+                                    json: {
+                                      params: {siteId: sites?.id},
+                                      body: {isMonitored: val},
+                                    },
+                                  });
+                                  setRadiusLoaderArr(prevState => [
+                                    ...prevState,
+                                    sites?.id,
+                                  ]);
+                                }}
+                              />
+                            )}
                           </View>
                         </TouchableOpacity>
                         {item?.sites?.length - 1 !== index && (
@@ -546,6 +564,7 @@ const Settings = ({navigation}) => {
               ?.filter(site => site?.project === null)
               .map((item, index) => (
                 <TouchableOpacity
+                  disabled={radiusLoaderArr.includes(item?.id)}
                   onPress={() => handleSiteInformation(item)}
                   key={`mySites_${index}`}
                   style={styles.mySiteNameContainer}>
@@ -554,6 +573,7 @@ const Settings = ({navigation}) => {
                   </Text>
                   <View style={styles.rightConPro}>
                     <TouchableOpacity
+                      disabled={radiusLoaderArr.includes(item?.id)}
                       onPress={evt =>
                         handleSiteRadius(evt, item?.id, item?.radius)
                       }
@@ -570,17 +590,28 @@ const Settings = ({navigation}) => {
                       </Text>
                       <DropdownArrow />
                     </TouchableOpacity>
-                    <Switch
-                      value={item?.isMonitored}
-                      onValueChange={val =>
-                        updateSite.mutate({
-                          json: {
-                            params: {siteId: item?.id},
-                            body: {isMonitored: val},
-                          },
-                        })
-                      }
-                    />
+                    {radiusLoaderArr.includes(item?.id) ? (
+                      <ActivityIndicator
+                        size={'small'}
+                        color={Colors.PRIMARY}
+                      />
+                    ) : (
+                      <Switch
+                        value={item?.isMonitored}
+                        onValueChange={val => {
+                          updateSite.mutate({
+                            json: {
+                              params: {siteId: item?.id},
+                              body: {isMonitored: val},
+                            },
+                          });
+                          setRadiusLoaderArr(prevState => [
+                            ...prevState,
+                            item?.id,
+                          ]);
+                        }}
+                      />
+                    )}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -695,7 +726,7 @@ const Settings = ({navigation}) => {
             )}
           </View>
           {/* whatsapp */}
-          <View style={styles.mySiteNameMainContainer}>
+          {/* <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
@@ -749,7 +780,7 @@ const Settings = ({navigation}) => {
                 ))}
               </View>
             )}
-          </View>
+          </View> */}
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
