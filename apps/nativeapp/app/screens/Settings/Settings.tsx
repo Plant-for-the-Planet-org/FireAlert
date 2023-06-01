@@ -24,6 +24,7 @@ import {
 import centroid from '@turf/centroid';
 import rewind from '@mapbox/geojson-rewind';
 import OneSignal from 'react-native-onesignal';
+import DeviceInfo from 'react-native-device-info';
 import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
@@ -1111,6 +1112,15 @@ const Settings = ({navigation}) => {
         <TouchableOpacity onPress={handleDelAccount} style={styles.delTextCon}>
           <Text style={styles.delText}>Delete Account</Text>
         </TouchableOpacity>
+        <View style={styles.appInfoContainer}>
+          <Text style={styles.versionText}>
+            Version {DeviceInfo.getVersion()} ({DeviceInfo.getBuildNumber()}) •{' '}
+            <Text onPress={_handleEcoWeb(WEB_URLS.PP_IMPRINT)}>Imprint</Text> •{' '}
+            <Text onPress={_handleEcoWeb(WEB_URLS.PP_PRIVACY_POLICY)}>
+              Privacy Policy
+            </Text>
+          </Text>
+        </View>
         {/* Del Account Alert */}
         <AlertModal
           visible={showDelAccount}
@@ -1757,5 +1767,16 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     fontFamily: Typography.FONT_FAMILY_ITALIC,
     paddingHorizontal: 10,
+  },
+  appInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 5,
+  },
+  versionText: {
+    textAlign: 'center',
+    color: Colors.GRAY_LIGHTEST,
+    fontSize: Typography.FONT_SIZE_12,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
 });
