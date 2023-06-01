@@ -10,6 +10,8 @@ geoEventEmitter
     .on(GEO_EVENTS_CREATED, (providerKey: GeoEventSource, identityGroup: string, geoEvents: Array<GeoEvent>) => {
         processGeoEvents(providerKey, identityGroup, geoEvents)
     })
-    .on(GEO_EVENTS_PROCESSED, matchGeoEvents);
+    .on(GEO_EVENTS_PROCESSED, (identityGroup) => {
+        matchGeoEvents(identityGroup)
+    });
 
 export default geoEventEmitter;

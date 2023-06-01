@@ -5,7 +5,7 @@ import DataRecord from "../Interfaces/DataRecord";
 
 const prisma = new PrismaClient();
 
-const matchGeoEvents = async () => {
+const matchGeoEvents = async (identityGroup: string) => {
     try {
         debugger;
         const siteAlertCreationQuery = Prisma.sql`
@@ -17,8 +17,7 @@ const matchGeoEvents = async () => {
                     SELECT 1 
                     FROM "SiteAlert" WHERE "SiteAlert"."isProcessed" = false AND "SiteAlert".longitude = e.longitude AND "SiteAlert".latitude = e.latitude AND "SiteAlert"."eventDate" = e."eventDate" 
                     )`;
-        const identityGroup = 'VIIRS' // Define this or get this before processing.
-        const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "identityGroup" = '${identityGroup}'`;
+        const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "identityGroup" = ${identityGroup}`;
         // Todo: Ensure we only mark GeoEvents as processed if they are from the same source as the SiteAlerts that were created from them
         // Break in a different function:
         // After Creating SiteAlerts, trigger a different event, to create AlertNotifications for each SiteAlert.
@@ -42,7 +41,7 @@ const matchGeoEvents = async () => {
         // DEBUG: SiteAlerts can be created twice with the same data.
 
         // Set all GeoEvents as processed
-        await prisma.$executeRaw(updateIsProcessedToTrue);
+        await prisma.$executeRaw(updateGeoEventIsProcessedToTrue);
 
         // Create Notifications for all unprocessed SiteAlerts
         await prisma.$executeRaw(notificationCreationQuery);

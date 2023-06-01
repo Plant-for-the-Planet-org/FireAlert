@@ -107,7 +107,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
     });
   }
 
-  geoEventEmitter.emit(GEO_EVENTS_PROCESSED);
+  geoEventEmitter.emit(GEO_EVENTS_PROCESSED, identityGroup);
 };
 
 export default processGeoEvents;
