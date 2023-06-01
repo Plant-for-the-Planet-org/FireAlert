@@ -120,6 +120,8 @@ model Project {
 
 model GeoEventProvider {
     id             String         @id @default(cuid())
+    name           String?
+    description    String?
     type           AlertType
     isActive       Boolean
     providerKey    GeoEventSource
