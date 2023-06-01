@@ -230,7 +230,7 @@ const Settings = ({navigation}) => {
             : null,
       );
       const loadingArr = delAlertMethodArr.filter(
-        el => el !== data?.json?.data?.id,
+        el => el !== req?.json?.data?.id,
       );
       setDelAlertMethodArr(loadingArr);
     },
@@ -651,6 +651,21 @@ const Settings = ({navigation}) => {
                             handleNotifySwitch({alertMethodId: item.id}, val)
                           }
                         />
+                        {!(i === 0) && (
+                          <TouchableOpacity
+                            style={styles.trashIcon}
+                            disabled={delAlertMethodArr.includes(item?.id)}
+                            onPress={() => handleRemoveAlertMethod(item?.id)}>
+                            {delAlertMethodArr.includes(item?.id) ? (
+                              <ActivityIndicator
+                                size={'small'}
+                                color={Colors.PRIMARY}
+                              />
+                            ) : (
+                              <TrashSolidIcon />
+                            )}
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                     {deviceAlertPreferences?.length - 1 !== i && (
