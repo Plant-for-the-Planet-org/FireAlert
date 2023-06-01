@@ -1,4 +1,5 @@
 import Logo from './logo.jsx';
+import EyeIcon from './eyeIcon.jsx';
 import MapIcon from './mapIcon.jsx';
 import AddIcon from './addIcon.jsx';
 import SmsIcon from './smsIcon.jsx';
@@ -15,6 +16,7 @@ import MyLocIcon from './myLocIcon.jsx';
 import PhoneIcon from './phoneIcon.jsx';
 import EmailIcon from './emailIcon.jsx';
 import GlobeIcon from './globeIcon.jsx';
+import EyeOffIcon from './eyeOffIcon.jsx';
 import LayerCheck from './layerCheck.jsx';
 import LogoutIcon from './logoutIcon.jsx';
 import PlanetLogo from './planetLogo.jsx';
@@ -46,6 +48,7 @@ import DisabledTrashOutlineIcon from './disabledTrashOutlineIcon.jsx';
 
 export {
   Logo,
+  EyeIcon,
   SmsIcon,
   AddIcon,
   MapIcon,
@@ -62,6 +65,7 @@ export {
   LayerIcon,
   MyLocIcon,
   GlobeIcon,
+  EyeOffIcon,
   LayerCheck,
   PencilIcon,
   PlanetLogo,

@@ -34,6 +34,7 @@ import {
   FloatingInput,
 } from '../../components';
 import {
+  EyeIcon,
   SiteIcon,
   CopyIcon,
   LayerIcon,
@@ -41,6 +42,7 @@ import {
   RadarIcon,
   CrossIcon,
   LogoutIcon,
+  EyeOffIcon,
   PencilIcon,
   PointSiteIcon,
   SatelliteIcon,
@@ -261,6 +263,12 @@ const Home = ({navigation, route}) => {
               }
             : null,
       );
+      if (req?.json?.body.hasOwnProperty('isMonitored')) {
+        setSelectedSite({site: res?.json?.data});
+      } else {
+        setSelectedSite({});
+        setSelectedArea(null);
+      }
       setSiteNameModalVisible(false);
     },
     onError: () => {
@@ -848,6 +856,30 @@ const Home = ({navigation, route}) => {
               <PencilIcon />
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            disabled={updateSite?.isLoading}
+            onPress={() =>
+              updateSite.mutate({
+                json: {
+                  params: {siteId: selectedSite?.site?.id},
+                  body: {isMonitored: !selectedSite?.site?.isMonitored},
+                },
+              })
+            }
+            style={[styles.btn]}>
+            {updateSite?.isLoading ? (
+              <ActivityIndicator color={Colors.PRIMARY} />
+            ) : (
+              <>
+                {selectedSite?.site?.isMonitored ? <EyeOffIcon /> : <EyeIcon />}
+                <Text style={[styles.siteActionText]}>
+                  {selectedSite?.site?.isMonitored
+                    ? 'Disable Monitoring'
+                    : 'Enable Monitoring'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
           <TouchableOpacity
             disabled={deleteSite?.isLoading || selectedSite?.site?.project?.id}
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
