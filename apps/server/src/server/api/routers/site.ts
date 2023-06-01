@@ -68,6 +68,7 @@ export const siteRouter = createTRPCRouter({
                     INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry")
                         AND s."deletedAt" IS NULL
                         AND s.id = ${site.id}
+                        AND s."isMonitored" IS TRUE
                 WHERE
                     e."isProcessed" = TRUE
                     AND NOT EXISTS (

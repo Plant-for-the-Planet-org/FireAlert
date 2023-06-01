@@ -4,7 +4,7 @@ import { adminProcedure, createTRPCRouter, protectedProcedure, userProcedure } f
 import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
 import { getUser, createUserInPrismaTransaction, returnUser } from '../../../utils/routers/user';
 import { createAlertMethodInPrismaTransaction } from '../../../utils/routers/alertMethod';
-import { type Prisma, type Project } from '@prisma/client';
+import { Prisma, type Project } from '@prisma/client';
 import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
 
 export const userRouter = createTRPCRouter({
@@ -51,6 +51,7 @@ export const userRouter = createTRPCRouter({
                     // Collect project and site data for bulk creation
                     const projectData: Project[] = [];
                     const siteData: Prisma.SiteCreateManyInput[] = [];
+                    const remoteIdsForSiteAlerts: string[] = [];
                     for (const project of projects) {
                         const { id: projectId, name: projectName, slug: projectSlug, sites } = project.properties;
 
@@ -79,10 +80,12 @@ export const userRouter = createTRPCRouter({
                                                 type: siteType,
                                                 geometry: siteGeometry,
                                                 radius: siteRadius,
+                                                isMonitored: true,
                                                 userId: userId,
                                                 projectId: projectId,
                                                 lastUpdated: new Date(),
                                             });
+                                            remoteIdsForSiteAlerts.push(siteId)
                                         }
                                     } else {
                                         // Handle the case where geometry or type is null
@@ -102,6 +105,42 @@ export const userRouter = createTRPCRouter({
                         const sites = await prisma.site.createMany({
                             data: siteData,
                         });
+                        const siteAlertCreationQuery = Prisma.sql`
+                        INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
+                        SELECT
+                            gen_random_uuid(),
+                            e.type,
+                            TRUE,
+                            e."eventDate",
+                            e."identityGroup"::"GeoEventDetectionInstrument",
+                            e.confidence,
+                            e.latitude,
+                            e.longitude,
+                            s.id,
+                            e.data,
+                            ST_Distance(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") AS distance
+                        FROM
+                            "GeoEvent" e
+                            INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry")
+                            AND s."deletedAt" IS NULL
+                            AND s."remoteId" IN (${remoteIdsForSiteAlerts.map(() => "?").join(", ")})
+                            AND s."isMonitored" IS TRUE
+                        WHERE
+                            e."isProcessed" = TRUE
+                            AND NOT EXISTS (
+                            SELECT
+                                1
+                            FROM
+                                "SiteAlert"
+                            WHERE
+                                "SiteAlert"."isProcessed" = FALSE
+                                AND "SiteAlert".longitude = e.longitude
+                                AND "SiteAlert".latitude = e.latitude
+                                AND "SiteAlert"."eventDate" = e."eventDate"
+                        );
+                        `;
+                        // Don't wait for the executeRaw. 
+                        prisma.$executeRaw(siteAlertCreationQuery, ...remoteIdsForSiteAlerts);
                         return {
                             user: createdUser,
                             alertMethod: createdAlertMethod,
@@ -109,7 +148,7 @@ export const userRouter = createTRPCRouter({
                             sitesCount: sites.count,
                         };
                     });
-                    const { user, alertMethod, projectsCount, sitesCount } = result;
+                    const { user, projectsCount, sitesCount } = result;
                     const createdUser = returnUser(user)
                     return {
                         status: 'success',
