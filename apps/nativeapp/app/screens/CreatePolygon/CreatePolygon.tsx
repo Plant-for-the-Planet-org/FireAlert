@@ -11,11 +11,13 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
+import area from '@turf/area';
 import MapboxGL from '@rnmapbox/maps';
+import {convertArea, polygon} from '@turf/helpers';
 import {useQueryClient} from '@tanstack/react-query';
 import React, {useEffect, useRef, useState} from 'react';
-import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
+import Toast, {useToast} from 'react-native-toast-notifications';
 
 import {
   AlertModal,
@@ -86,6 +88,7 @@ const CreatePolygon = ({navigation}) => {
   });
 
   const toast = useToast();
+  const modalToast = useRef();
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
 
@@ -259,15 +262,27 @@ const CreatePolygon = ({navigation}) => {
 
   const postPolygon = () => {
     setLoading(true);
-    const payload = {
-      type: 'Polygon',
-      name: siteName,
-      geometry: {
-        coordinates: [geoJSON.features[0].geometry.coordinates],
+    const areaInHactares = convertArea(
+      area(polygon([geoJSON.features[0].geometry.coordinates])),
+      'meters',
+      'hectares',
+    );
+    if (areaInHactares <= 1000000) {
+      const payload = {
         type: 'Polygon',
-      },
-    };
-    postSite.mutate({json: payload});
+        name: siteName,
+        geometry: {
+          coordinates: [geoJSON.features[0].geometry.coordinates],
+          type: 'Polygon',
+        },
+      };
+      postSite.mutate({json: payload});
+    } else {
+      modalToast.current.show('The area is exceeds 1 million hectares', {
+        type: 'warning',
+      });
+      setLoading(false);
+    }
   };
 
   const addPolygon = () => {
@@ -433,6 +448,7 @@ const CreatePolygon = ({navigation}) => {
         <KeyboardAvoidingView
           {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
+          <Toast ref={modalToast} offsetBottom={100} duration={1000} />
           <TouchableOpacity
             onPress={handleCloseSiteModal}
             style={styles.crossContainer}>
