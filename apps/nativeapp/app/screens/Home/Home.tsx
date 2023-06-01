@@ -385,6 +385,7 @@ const Home = ({navigation, route}) => {
       });
       auth0.webAuth.clearSession().then(async () => {
         dispatch(updateIsLoggedIn(false));
+        queryClient.clear();
         await clearAll();
         await clearCredentials();
       });

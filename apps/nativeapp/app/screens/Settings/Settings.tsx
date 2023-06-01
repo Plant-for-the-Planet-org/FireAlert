@@ -203,6 +203,7 @@ const Settings = ({navigation}) => {
     retryDelay: 3000,
     onSuccess: async () => {
       setShowDelAccount(false);
+      queryClient.clear();
       await clearAll();
       dispatch(updateIsLoggedIn(false));
     },
