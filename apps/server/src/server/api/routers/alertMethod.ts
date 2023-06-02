@@ -32,10 +32,10 @@ export const alertMethodRouter = createTRPCRouter({
                 const alertMethodId = input.alertMethodId
                 const alertMethod = await findAlertMethod(alertMethodId)
                 if (alertMethod.isVerified) {
-                    throw new TRPCError({
-                        code: 'FORBIDDEN',
-                        message: `AlertMethod is already verified`,
-                    });
+                    return {
+                        status: 'success',
+                        message: "alertMethod is already verified."
+                    }
                 } else {
                     const sendVerification = await handlePendingVerification(ctx, alertMethod)
                     if (sendVerification.status === 'success') {
