@@ -1,16 +1,16 @@
 import { TRPCError } from '@trpc/server';
-import { TRPCContext } from '../../Interfaces/Context'
-import { CheckUserHasAlertMethodPermissionArgs, CtxWithAlertMethod, CtxWithAlertMethodId, CtxWithUserID } from '../../Interfaces/AlertMethod'
+import { type TRPCContext } from '../../Interfaces/Context'
+import { type CheckUserHasAlertMethodPermissionArgs, type CtxWithAlertMethod, CtxWithAlertMethodId, type CtxWithUserID } from '../../Interfaces/AlertMethod'
 import { generate5DigitOTP } from '../notification/otp';
-import { AlertMethod, Prisma, PrismaClient, User } from '@prisma/client';
+import { type AlertMethod, type Prisma, type PrismaClient, type User } from '@prisma/client';
 import { env } from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import { prisma } from '../../server/db';
-import { getDefaultSettings } from 'http2';
+import { sendEmailVerificationCode } from '../notification/userEmails';
 
 
 export const limitAlertMethodPerUser = async ({ ctx, userId, count }: CtxWithUserID) => {
-    const alertMethodCount = await prisma.alertMethod.count({
+    const alertMethodCount = await ctx.prisma.alertMethod.count({
         where: {
             userId,
         },
@@ -202,54 +202,60 @@ export interface VerificationResponse {
 }
 
 export const deviceVerification = async (destination: string): Promise<boolean> => {
-        // check if the playerID exists in Onesignal
-        // if yes, set the alertMethod.isVerified to true
-        // else return error
+    // check if the playerID exists in Onesignal
+    // if yes, set the alertMethod.isVerified to true
+    // else return error
 
-        // call OneSignal API to send the notification
-        const playerIdUrl = `https://onesignal.com/api/v1/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`
-        const response = await fetch(playerIdUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Basic ${env.ONESIGNAL_REST_API_KEY}`,
-                'Content-Type': 'application/json; charset=utf-8'
-            }
-        });
-        // we can check if id in response matches the destination to return true.
-        if (response.ok) {
-            return true
-        } else {
-            return false
+    // call OneSignal API to send the notification
+    const playerIdUrl = `https://onesignal.com/api/v1/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`
+    const response = await fetch(playerIdUrl, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Basic ${env.ONESIGNAL_REST_API_KEY}`,
+            'Content-Type': 'application/json; charset=utf-8'
         }
+    });
+    // we can check if id in response matches the destination to return true.
+    if (response.ok) {
+        return true
+    } else {
+        return false
+    }
 }
 
-export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: AlertMethod): Promise<VerificationResponse> => {
+export const handlePendingVerification = async (ctx:TRPCContext, user:User, alertMethod: AlertMethod): Promise<VerificationResponse> => {
     await handleOTPSendLimitation({ ctx, alertMethod })
     const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
 
-    // Use NotifierRegistry to send the verification code
-    const notifier = NotifierRegistry.get(alertMethod.method)
-    const message = `${otp} is your FireAlert one time code.`
-    const subject = "Fire Alert Verification"
-    const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethod.id}/${otp}`
-    const destination = alertMethod.destination
-    const params = {
-        message: message,
-        subject: subject,
-        url: url
+    let sendVerificationCode;
+    if (alertMethod.method === "email") {
+        sendVerificationCode = await sendEmailVerificationCode(user, alertMethod.destination, otp)
     }
-    const sendVerificationCode = await notifier.notify(destination, params);
+    else {
+        // Use NotifierRegistry to send the verification code
+        const notifier = NotifierRegistry.get(alertMethod.method)
+        const message = `${otp} is your FireAlert one time code.`
+        const subject = "Fire Alert Verification"
+        const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethod.id}/${otp}`
+        const destination = alertMethod.destination
+        const params = {
+            message: message,
+            subject: subject,
+            url: url
+        }
+        sendVerificationCode = await notifier.notify(destination, params);
+    }
     if (sendVerificationCode === true) {
         return {
             status: 'success',
             message: 'Verification code sent successfully',
             data: alertMethod
         }
-    }else {
+    } else {
         return {
             status: 'error',
-            message: 'Fail to send verification code.'
+            message: 'Failed to send verification code.'
         }
     }
-    
+
 }

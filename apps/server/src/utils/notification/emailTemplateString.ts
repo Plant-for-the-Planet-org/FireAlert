@@ -64,7 +64,7 @@ td {
 }
 
 p {
-  margin: 0;
+  margin: 12px;
 }
 
 .ie-container table,

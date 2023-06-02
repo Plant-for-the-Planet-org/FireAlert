@@ -28,7 +28,7 @@ export const alertMethodRouter = createTRPCRouter({
         .input(params)
         .mutation(async ({ ctx, input }) => {
             try {
-                await getUser(ctx)
+                const user = await getUser(ctx)
                 const alertMethodId = input.alertMethodId
                 const alertMethod = await findAlertMethod(alertMethodId)
                 if (alertMethod.isVerified) {
@@ -37,7 +37,7 @@ export const alertMethodRouter = createTRPCRouter({
                         message: "alertMethod is already verified."
                     }
                 } else {
-                    const sendVerification = await handlePendingVerification(ctx, alertMethod)
+                    const sendVerification = await handlePendingVerification(ctx, user, alertMethod)
                     if (sendVerification.status === 'success') {
                         return sendVerification
                     }
@@ -181,7 +181,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
                 // sendVerification is an object that has message key which contains either success message string or error message string.
                 // Use that message string in constructing return message
-                const sendVerification = await handlePendingVerification(ctx, alertMethod)
+                const sendVerification = await handlePendingVerification(ctx, user, alertMethod)
                 return {
                     status: "success",
                     message: 'Successfully Created AlertMethod. ' + sendVerification.message,
