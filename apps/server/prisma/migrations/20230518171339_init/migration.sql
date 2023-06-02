@@ -136,6 +136,8 @@ CREATE TABLE "Project" (
 -- CreateTable
 CREATE TABLE "GeoEventProvider" (
     "id" TEXT NOT NULL,
+    "name" TEXT,
+    "description" TEXT,
     "type" "AlertType" NOT NULL,
     "isActive" BOOLEAN NOT NULL,    
     "providerKey" "GeoEventSource" NOT NULL,
