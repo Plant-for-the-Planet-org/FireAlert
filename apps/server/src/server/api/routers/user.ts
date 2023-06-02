@@ -5,7 +5,7 @@ import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi 
 import { getUser, createUserInPrismaTransaction, returnUser } from '../../../utils/routers/user';
 import { createAlertMethodInPrismaTransaction } from '../../../utils/routers/alertMethod';
 import { Prisma, type Project } from '@prisma/client';
-import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
+import { sendAccountDeletionCancellationEmail, sendSoftDeletionEmail } from '../../../utils/notification/userEmails';
 
 export const userRouter = createTRPCRouter({
     profile: userProcedure
@@ -183,14 +183,8 @@ export const userRouter = createTRPCRouter({
                                 deletedAt: null,
                             },
                         });
-                        // Define Email
-                        const destination = user.email;
-                        const params = {
-                            message: 'Thank you for logging in to FireAlert. Deletion was canceled as you have logged into your account.',
-                            subject: 'Restore Deleted FireAlert Account'
-                        }
-                        const notifier = NotifierRegistry.get('email');
-                        await notifier.notify(destination, params);
+                        // Send email to user
+                        await sendAccountDeletionCancellationEmail(user);
 
                     }
                     const returnedUser = await ctx.prisma.user.update({
@@ -286,18 +280,12 @@ export const userRouter = createTRPCRouter({
                         message: `Error in deletion process. Cannot delete user`,
                     });
                 } else {
-
-                    // Define Email
-                    const destination = deletedUser.email;
-                    const params = {
-                        message: 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.',
-                        subject: 'Soft Delete Fire Alert Account'
-                    }
-                    const notifier = NotifierRegistry.get('email');
-                    const emailSent = await notifier.notify(destination, params);
+                    // Send Email
+                    const emailSent = await sendSoftDeletionEmail(deletedUser);
+                    
                     return {
                         status: 'Success',
-                        message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
+                        message: `User ${deletedUser.id} will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
                         data: null
                     };
                 }
