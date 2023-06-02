@@ -47,21 +47,25 @@ export async function getUserBySub(sub: string) {
 interface CreateUserArgs {
     id?:string;
     prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use">;
-    ctx: TRPCContext;
     name: string;
+    sub: string;
+    email: string;
+    emailVerified: boolean;
+    image: string;
     isPlanetRO: boolean;
     detectionMethods: ('MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY')[];
 }
 
-export async function createUserInPrismaTransaction({id, prisma, ctx, name, isPlanetRO, detectionMethods}:CreateUserArgs){
+export async function createUserInPrismaTransaction({id, prisma, sub, name, email, emailVerified, image, isPlanetRO, detectionMethods}:CreateUserArgs){
     const createdUser = await prisma.user.create({
         data: {
             id: id ? id : undefined,
-            sub: ctx.token.sub,
+            sub: sub,
             isPlanetRO: isPlanetRO,
             name: name,
-            email: ctx.token["https://app.plant-for-the-planet.org/email"],
-            emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"] ? ctx.token["https://app.plant-for-the-planet.org/email_verified"] : false,
+            image: image,
+            email: email,
+            emailVerified: emailVerified,
             lastLogin: new Date(),
             detectionMethods: detectionMethods,
         },

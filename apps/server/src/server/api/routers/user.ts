@@ -1,11 +1,23 @@
 import { TRPCError } from '@trpc/server';
 import { updateUserSchema } from '../zodSchemas/user.schema';
 import { adminProcedure, createTRPCRouter, protectedProcedure, userProcedure } from '../trpc';
-import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
+import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi, planetUser } from "../../../utils/fetch"
 import { getUser, createUserInPrismaTransaction, returnUser } from '../../../utils/routers/user';
 import { createAlertMethodInPrismaTransaction } from '../../../utils/routers/alertMethod';
 import { Prisma, type Project } from '@prisma/client';
 import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
+import { env } from '../../../env.mjs';
+import { get } from 'http';
+
+interface Auth0User {
+    sub: string;
+    nickname: string;
+    name: string;
+    picture: string;
+    updated_at: string;
+    email: string;
+    email_verified: boolean;
+}
 
 export const userRouter = createTRPCRouter({
     profile: userProcedure
@@ -19,158 +31,189 @@ export const userRouter = createTRPCRouter({
                     sub: ctx.token.sub
                 }
             });
-            const name = await getNameFromPPApi(bearer_token);
             const detectionMethods: ('MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY')[] = ["MODIS", "VIIRS", "LANDSAT"]
+            // If user doesn't exist:
             if (!user) {
                 // SIGNUP FUNCTIONALITY
-                // Check if the user requesting access is PlanetRO
-                const isPlanetRO = await checkIfUserIsPlanetRO(bearer_token)
-                // If not planetRO // create the User
-                if (!isPlanetRO) {
-                    const result = await ctx.prisma.$transaction(async (prisma) => {
-                        const createdUser = await createUserInPrismaTransaction({ prisma, ctx, name, isPlanetRO: false, detectionMethods })
-                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
-                        return {
-                            user: createdUser,
-                            alertMethod: createdAlertMethod,
-                        };
+
+                //First get user data from Auth0 UserInfo
+                const response = await fetch(`${env.AUTH0_DOMAIN}/userinfo`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': bearer_token,
+                        },
+                    },
+                );
+                if (!response.ok) {
+                    throw new TRPCError({
+                        code: 'TIMEOUT',
+                        message: 'Unable to fetch User Details, Please try again later.',
                     });
-                    const { user } = result;
-                    const createdUser = returnUser(user)
-                    return {
-                        status: 'success',
-                        data: createdUser
-                    };
                 }
-                // Else, create user, create project, and create sites associated with that user in the pp.
-                const projects = await fetchProjectsWithSitesForUser(bearer_token)
-                // If new user is planetRO and has projects
-                if (projects.length > 0) {
-                    // Find the tpo id and use that as userId
-                    const userId = projects[0].properties.tpo.id;
-                    // Collect project and site data for bulk creation
-                    const projectData: Project[] = [];
-                    const siteData: Prisma.SiteCreateManyInput[] = [];
-                    const remoteIdsForSiteAlerts: string[] = [];
-                    for (const project of projects) {
-                        const { id: projectId, name: projectName, slug: projectSlug, sites } = project.properties;
+                const data: Auth0User = response.json();
+                const { sub, name, picture, email, email_verified } = data;
+                
+                const getPlanetUser = await planetUser(bearer_token)
+                const isPlanetRO = getPlanetUser.isPlanetRo
+            
 
-                        projectData.push({
-                            id: projectId,
-                            name: projectName ?? "",
-                            slug: projectSlug ?? "",
-                            userId: userId,
-                            lastUpdated: new Date(),
-                        });
+                // Create FireAlert User
+                const result = await ctx.prisma.$transaction(async (prisma) => {
+                    const createdUser = await createUserInPrismaTransaction({ prisma, sub, name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, detectionMethods })
+                    const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, email, isVerified: email_verified, method: "email", isEnabled: false, userId: createdUser.id })
+                    return {
+                        user: createdUser,
+                        alertMethod: createdAlertMethod,
+                    };
+                });
+                const { user } = result;
+                const createdUser = returnUser(user)
 
-                        if (sites) {
-                            for (const site of sites) {
-                                if (site) {
-                                    const { id: siteId, name: siteName, geometry: siteGeometry } = site;
-                                    const siteType = siteGeometry?.type || null; // Use null as the fallback value if siteGeometry is null or undefined
-                                    const siteRadius = 0;
-                                    // Check if siteType and siteGeometry are not null before proceeding
-                                    if (siteType && siteGeometry) {
-                                        // Check if siteType and siteGeometry.type are the same
-                                        if (siteType === siteGeometry.type) {
-                                            siteData.push({
-                                                remoteId: siteId,
-                                                origin: 'ttc',
-                                                name: siteName ?? "",
-                                                type: siteType,
-                                                geometry: siteGeometry,
-                                                radius: siteRadius,
-                                                isMonitored: true,
-                                                userId: userId,
-                                                projectId: projectId,
-                                                lastUpdated: new Date(),
-                                            });
-                                            remoteIdsForSiteAlerts.push(siteId)
+                // Todo: Emit an event if User is PlanetRO, so that we can create projects and sites for them
+                // Remove Project Creation from this File. Move it to a separate file
+
+                // If user is a Planet RO, create projects and sites for them
+                if (isPlanetRO) {
+
+                    // create projects
+                    const projects = await fetchProjectsWithSitesForUser(bearer_token)
+                    if (projects.length > 0) {
+                        // Find the tpo id and use that as userId
+                        // const userId = projects[0].properties.tpo.id;
+                        // Collect project and site data for bulk creation
+                        const projectData: Project[] = [];
+                        const siteData: Prisma.SiteCreateManyInput[] = [];
+                        const remoteIdsForSiteAlerts: string[] = [];
+                        for (const project of projects) {
+                            const { id: projectId, name: projectName, slug: projectSlug, sites } = project.properties;
+    
+                            projectData.push({
+                                id: projectId,
+                                name: projectName ?? "",
+                                slug: projectSlug ?? "",
+                                userId: userId,
+                                lastUpdated: new Date(),
+                            });
+    
+                            if (sites) {
+                                for (const site of sites) {
+                                    if (site) {
+                                        const { id: siteId, name: siteName, geometry: siteGeometry } = site;
+                                        const siteType = siteGeometry?.type || null; // Use null as the fallback value if siteGeometry is null or undefined
+                                        const siteRadius = 0;
+                                        // Check if siteType and siteGeometry are not null before proceeding
+                                        if (siteType && siteGeometry) {
+                                            // Check if siteType and siteGeometry.type are the same
+                                            if (siteType === siteGeometry.type) {
+                                                siteData.push({
+                                                    remoteId: siteId,
+                                                    origin: 'ttc',
+                                                    name: siteName ?? "",
+                                                    type: siteType,
+                                                    geometry: siteGeometry,
+                                                    radius: siteRadius,
+                                                    isMonitored: true,
+                                                    userId: userId,
+                                                    projectId: projectId,
+                                                    lastUpdated: new Date(),
+                                                });
+                                                remoteIdsForSiteAlerts.push(siteId)
+                                            }
+                                        } else {
+                                            // Handle the case where geometry or type is null
+                                            console.log(`Skipping site with id ${siteId} due to null geometry or type.`);
                                         }
-                                    } else {
-                                        // Handle the case where geometry or type is null
-                                        console.log(`Skipping site with id ${siteId} due to null geometry or type.`);
                                     }
                                 }
                             }
                         }
-                    }
-                    // Create user and alert method in a transaction
-                    const result = await ctx.prisma.$transaction(async (prisma) => {
-                        const createdUser = await createUserInPrismaTransaction({ id: userId, prisma, ctx, name: name, isPlanetRO: true, detectionMethods: detectionMethods })
-                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
-                        const projects = await prisma.project.createMany({
-                            data: projectData,
-                        });
-                        const sites = await prisma.site.createMany({
-                            data: siteData,
-                        });
-                        const siteAlertCreationQuery = Prisma.sql`
-                        INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
-                        SELECT
-                            gen_random_uuid(),
-                            e.type,
-                            TRUE,
-                            e."eventDate",
-                            e."identityGroup"::"GeoEventDetectionInstrument",
-                            e.confidence,
-                            e.latitude,
-                            e.longitude,
-                            s.id,
-                            e.data,
-                            ST_Distance(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") AS distance
-                        FROM
-                            "GeoEvent" e
-                            INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry")
-                            AND s."deletedAt" IS NULL
-                            AND s."remoteId" IN (${remoteIdsForSiteAlerts.map(() => "?").join(", ")})
-                            AND s."isMonitored" IS TRUE
-                        WHERE
-                            e."isProcessed" = TRUE
-                            AND NOT EXISTS (
+                        // Create user and alert method in a transaction
+                        const result = await ctx.prisma.$transaction(async (prisma) => {
+                            const createdUser = await createUserInPrismaTransaction({ id: userId, prisma, ctx, name: name, isPlanetRO: true, detectionMethods: detectionMethods })
+                            const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
+                            const projects = await prisma.project.createMany({
+                                data: projectData,
+                            });
+                            const sites = await prisma.site.createMany({
+                                data: siteData,
+                            });
+                            const siteAlertCreationQuery = Prisma.sql`
+                            INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
                             SELECT
-                                1
+                                gen_random_uuid(),
+                                e.type,
+                                TRUE,
+                                e."eventDate",
+                                e."identityGroup"::"GeoEventDetectionInstrument",
+                                e.confidence,
+                                e.latitude,
+                                e.longitude,
+                                s.id,
+                                e.data,
+                                ST_Distance(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") AS distance
                             FROM
-                                "SiteAlert"
+                                "GeoEvent" e
+                                INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry")
+                                AND s."deletedAt" IS NULL
+                                AND s."remoteId" IN (${remoteIdsForSiteAlerts.map(() => "?").join(", ")})
+                                AND s."isMonitored" IS TRUE
                             WHERE
-                                "SiteAlert"."isProcessed" = FALSE
-                                AND "SiteAlert".longitude = e.longitude
-                                AND "SiteAlert".latitude = e.latitude
-                                AND "SiteAlert"."eventDate" = e."eventDate"
-                        );
-                        `;
-                        // Don't wait for the executeRaw. 
-                        prisma.$executeRaw(siteAlertCreationQuery, ...remoteIdsForSiteAlerts);
+                                e."isProcessed" = TRUE
+                                AND NOT EXISTS (
+                                SELECT
+                                    1
+                                FROM
+                                    "SiteAlert"
+                                WHERE
+                                    "SiteAlert"."isProcessed" = FALSE
+                                    AND "SiteAlert".longitude = e.longitude
+                                    AND "SiteAlert".latitude = e.latitude
+                                    AND "SiteAlert"."eventDate" = e."eventDate"
+                            );
+                            `;
+                            // Don't wait for the executeRaw. 
+                            prisma.$executeRaw(siteAlertCreationQuery, ...remoteIdsForSiteAlerts);
+                            return {
+                                user: createdUser,
+                                alertMethod: createdAlertMethod,
+                                projectsCount: projects.count,
+                                sitesCount: sites.count,
+                            };
+                        });
+                        const { user, projectsCount, sitesCount } = result;
+                        const createdUser = returnUser(user)
                         return {
-                            user: createdUser,
-                            alertMethod: createdAlertMethod,
-                            projectsCount: projects.count,
-                            sitesCount: sites.count,
+                            status: 'success',
+                            data: createdUser,
+                            message: `Successfully created User, Alert Method and added ${sitesCount} sites for ${projectsCount} projects`
                         };
-                    });
-                    const { user, projectsCount, sitesCount } = result;
-                    const createdUser = returnUser(user)
-                    return {
-                        status: 'success',
-                        data: createdUser,
-                        message: `Successfully created User, Alert Method and added ${sitesCount} sites for ${projectsCount} projects`
-                    };
-                } else {
-                    const result = await ctx.prisma.$transaction(async (prisma) => {
-                        const createdUser = await createUserInPrismaTransaction({ prisma, ctx, name: name, isPlanetRO: true, detectionMethods: detectionMethods })
-                        const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
+                    } else {
+                        const result = await ctx.prisma.$transaction(async (prisma) => {
+                            const createdUser = await createUserInPrismaTransaction({ prisma, ctx, name: name, isPlanetRO: true, detectionMethods: detectionMethods })
+                            const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, ctx, method: "email", isEnabled: false, userId: createdUser.id })
+                            return {
+                                user: createdUser,
+                                alertMethod: createdAlertMethod,
+                            };
+                        });
+                        const { user } = result;
+                        const createdUser = returnUser(user)
                         return {
-                            user: createdUser,
-                            alertMethod: createdAlertMethod,
-                        };
-                    });
-                    const { user } = result;
-                    const createdUser = returnUser(user)
-                    return {
-                        status: 'success',
-                        data: createdUser
+                            status: 'success',
+                            data: createdUser
+                        }
                     }
+                    // create sites
+
+                    // create alerts
+
                 }
+                // Else, create user, create project, and create sites associated with that user in the pp.
+                
+                // If new user is planetRO and has projects
+
             } else {
                 // When user is there - LOGIN FUNCTIONALITY
                 try {

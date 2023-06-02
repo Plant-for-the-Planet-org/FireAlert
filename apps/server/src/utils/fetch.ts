@@ -1,25 +1,39 @@
-import {env} from '../env.mjs'
-import {} from '@planet-sdk/common'
+import { env } from '../env.mjs'
+import { type BaseUser } from '@planet-sdk/common'
 
-export const checkIfUserIsPlanetRO = async (
-    bearer_token: string
-): Promise<boolean> => {
+interface PlanetUser {
+    id: string;
+    isPlanetRo: boolean;
+    name: string;
+}
+
+// Fetch User from PlanetAPI, if user exists return id and isPlanetRo else return false.
+export const planetUser = async (bearer_token: string): Promise<PlanetUser> => {
     try {
-        const response = await fetch(
-            `${env.PLANET_API_URL}/app/profile`, 
-            {
-                headers: {
-                    Authorization: bearer_token,
-                },
-            }
-        );
-        const data = await response.json();
-        return data.type === "tpo";
+        const response = await fetch(`${env.PLANET_API_URL}/app/profile`, {
+
+            headers: {
+                Authorization: bearer_token,
+            },
+        });
+        const data: BaseUser = await response.json();
+        return {
+            id: data.id,
+            isPlanetRo: data.type === "tpo",
+            name: data.displayName
+        }
     } catch (error) {
         console.error(error);
-        return false;
+        return {
+            id: "",
+            isPlanetRo: false,
+            name: ""
+        }
+        //Todo: identify whether we should return error or simply ignore the fact that we couldn't fetch the user.
+
     }
 };
+
 
 export const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
     // fetch data from https://app.plant-for-the-planet.org/app/profile/projects?_scope=sites with authorization headers of Bearer token using bearer_token
@@ -30,6 +44,7 @@ export const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
         {
             headers: {
                 Authorization: bearer_token,
+                "X-SESSION-ID": "firealert-nextjs"
             },
         }
     );
@@ -50,6 +65,7 @@ export const getNameFromPPApi = async (bearer_token: string): Promise<string> =>
         let response = await fetch(initialUrl, {
             headers: {
                 Authorization: bearer_token,
+                "X-SESSION-ID": "firealert-nextjs"
             },
         });
 
@@ -57,7 +73,8 @@ export const getNameFromPPApi = async (bearer_token: string): Promise<string> =>
             const redirectUrl = response.headers.get("Location")!;
             response = await fetch(redirectUrl, {
                 headers: {
-                    Authorization: bearer_token,
+                    "Authorization": bearer_token,
+                    "X-SESSION-ID": "firealert-nextjs"
                 },
             });
         }
