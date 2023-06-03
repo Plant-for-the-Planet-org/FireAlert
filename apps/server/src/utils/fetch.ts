@@ -1,5 +1,5 @@
 import { env } from '../env.mjs'
-import { type BaseUser } from '@planet-sdk/common'
+import { type Project, type BaseUser } from '@planet-sdk/common'
 
 interface PlanetUser {
     id: string;
@@ -25,7 +25,7 @@ export const planetUser = async (bearer_token: string): Promise<PlanetUser> => {
     } catch (error) {
         console.error(error);
         return {
-            id: "",
+            id: '',
             isPlanetRo: false,
             name: ""
         }
@@ -48,7 +48,7 @@ export const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
             },
         }
     );
-    const data = await response.json();
+    const data:Project = await response.json();
     return data;
 }
 
