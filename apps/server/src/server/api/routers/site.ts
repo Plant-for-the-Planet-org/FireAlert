@@ -84,8 +84,6 @@ export const siteRouter = createTRPCRouter({
                     );
             `;
                 const response = await ctx.prisma.$executeRaw(siteAlertCreationQuery);
-
-                console.log(response)
                 return {
                     status: "success",
                     data: site,

@@ -1,8 +1,8 @@
 import { AlertType, type GeoEventSource, PrismaClient } from "@prisma/client";
-import { GEO_EVENTS_PROCESSED } from "../Events/messageConstants";
+import { SITE_ALERTS_CREATED } from "../../Events/messageConstants";
 // import GeoEvent from "../Interfaces/GeoEvent";
 import { type GeoEvent } from "@prisma/client";
-import geoEventEmitter from "../Events/EventEmitter/GeoEventEmitter";
+import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
 import md5 from "md5";
 
 const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEvents: Array<GeoEvent>) => {
@@ -59,7 +59,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
   };
 
   const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(identityGroup), geoEvents);
-
+  debugger;
   const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
     const filteredNewGeoEvents: GeoEvent[] = [];
     const idsSet: Set<string> = new Set();
@@ -75,7 +75,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
   };
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
-  
+  debugger;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
@@ -106,8 +106,8 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       },
     });
   }
-
-  geoEventEmitter.emit(GEO_EVENTS_PROCESSED, identityGroup);
+  debugger;
+  siteAlertEmitter.emit(SITE_ALERTS_CREATED, identityGroup);
 };
 
 export default processGeoEvents;

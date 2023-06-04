@@ -9,7 +9,7 @@ import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
 
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
-
+  debugger;
   const prisma = new PrismaClient()
 
   // get all active providers
