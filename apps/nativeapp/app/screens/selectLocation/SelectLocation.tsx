@@ -101,16 +101,8 @@ const SelectLocation = ({navigation}) => {
   const _handleViewMap = (siteInfo: object) => {
     let center: Feature<Point, Properties>;
     let highlightSiteInfo = siteInfo;
-    if (siteInfo?.geometry?.type === 'MultiPolygon') {
-      center = centroid(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
-      highlightSiteInfo = rewind(siteInfo?.geometry);
-    } else if (siteInfo?.geometry?.type === 'Point') {
-      center = point(siteInfo?.geometry.coordinates);
-      highlightSiteInfo = siteInfo?.geometry;
-    } else {
-      center = centroid(polygon(siteInfo?.geometry.coordinates));
-      highlightSiteInfo = siteInfo?.geometry;
-    }
+    center = point(siteInfo?.geometry.coordinates);
+    highlightSiteInfo = siteInfo?.geometry;
     const lat = center?.geometry?.coordinates[0];
     const long = center?.geometry?.coordinates[1];
     navigation.navigate('Home', {

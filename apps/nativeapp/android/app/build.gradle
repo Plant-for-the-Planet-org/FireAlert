@@ -109,6 +109,7 @@ android {
     namespace "eco.pp.firealert"
     defaultConfig {
         applicationId "eco.pp.firealert"
+        multiDexEnabled true
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

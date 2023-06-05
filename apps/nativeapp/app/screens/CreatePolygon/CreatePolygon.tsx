@@ -20,6 +20,7 @@ import {
   convertArea,
 } from '@turf/helpers';
 import area from '@turf/area';
+import centroid from '@turf/centroid';
 import MapboxGL from '@rnmapbox/maps';
 import {useQueryClient} from '@tanstack/react-query';
 import React, {useEffect, useRef, useState} from 'react';
@@ -102,7 +103,7 @@ const CreatePolygon = ({navigation}) => {
   const _handleViewMap = (siteInfo: object) => {
     let center: Feature<Point, Properties>;
     let highlightSiteInfo = siteInfo;
-    center = point(siteInfo?.geometry.coordinates);
+    center = centroid(polygon(siteInfo?.geometry.coordinates));
     highlightSiteInfo = siteInfo?.geometry;
     const lat = center?.geometry?.coordinates[0];
     const long = center?.geometry?.coordinates[1];

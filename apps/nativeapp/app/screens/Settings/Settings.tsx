@@ -1680,6 +1680,7 @@ const styles = StyleSheet.create({
   },
   geoDesc: {
     marginLeft: 5,
+    color: Colors.PLANET_DARK_GRAY,
   },
   primaryUnderline: {
     fontFamily: FONT_FAMILY_BOLD,
