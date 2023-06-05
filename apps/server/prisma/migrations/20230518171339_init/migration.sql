@@ -158,6 +158,7 @@ CREATE TABLE "GeoEvent" (
     "confidence" "AlertConfidence" NOT NULL,
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
     "identityGroup" TEXT NOT NULL,
+    "geoEventProviderId" TEXT NOT NULL,
     "providerKey" "GeoEventSource" NOT NULL,
     "geometry" GEOMETRY,
     "radius" INTEGER,

@@ -4,8 +4,8 @@ const siteAlertEmitter = new EventEmitter();
 import createSiteAlerts from '../../Services/SiteAlert/CreateSiteAlert';
 
 siteAlertEmitter    
-    .on(SITE_ALERTS_CREATED, (identityGroup: string) => {
-        createSiteAlerts(identityGroup)
+    .on(SITE_ALERTS_CREATED, (geoEventProviderId: string) => {
+        createSiteAlerts(geoEventProviderId)
     });
 
 export default siteAlertEmitter;

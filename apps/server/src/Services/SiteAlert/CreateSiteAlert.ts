@@ -3,7 +3,7 @@ import notificationEmitter from "../../Events/EventEmitter/NotificationEmitter";
 import { NOTIFICATION_CREATED } from "../../Events/messageConstants";
 const prisma = new PrismaClient();
 
-const createSiteAlerts = async (identityGroup: string) => {
+const createSiteAlerts = async (geoEventProviderId: string) => {
     try {
         debugger;
         const siteAlertCreationQuery = Prisma.sql`
@@ -15,7 +15,7 @@ const createSiteAlerts = async (identityGroup: string) => {
                     SELECT 1 
                     FROM "SiteAlert" WHERE "SiteAlert"."isProcessed" = false AND "SiteAlert".longitude = e.longitude AND "SiteAlert".latitude = e.latitude AND "SiteAlert"."eventDate" = e."eventDate" 
                     )`;
-        const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "identityGroup" = ${identityGroup}`;
+        const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId}`;
         // Todo: Ensure we only mark GeoEvents as processed if they are from the same source as the SiteAlerts that were created from them
         // Break in a different function:
         // After Creating SiteAlerts, trigger a different event, to create AlertNotifications for each SiteAlert.
