@@ -1,0 +1,70 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {"name": "Slice 1"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, -90], [180, -90], [180, -30], [-180, -30], [-180, -90]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {"name": "Slice 2"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, -30], [180, -30], [180, -15], [-180, -15], [-180, -30]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {"name": "Slice 3"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, -15], [180, -15], [180, 0], [-180, 0], [-180, -15]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {"name": "Slice 4"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, 0], [180, 0], [180, 15], [-180, 15], [-180, 0]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {"name": "Slice 5"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, 15], [180, 15], [180, 30], [-180, 30], [-180, 15]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {"name": "Slice 6"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, 30], [180, 30], [180, 45], [-180, 45], [-180, 30]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {"name": "Slice 7"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, 45], [180, 45], [180, 60], [-180, 60], [-180, 45]]]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {"name": "Slice 8"},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, 60], [180, 60], [180, 90], [-180, 90], [-180, 60]]]
+        }
+      }
+    ]
+  }
+  
