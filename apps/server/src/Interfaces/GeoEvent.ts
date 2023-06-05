@@ -9,6 +9,7 @@ interface GeoEventData {
     confidence: "high" | "medium" | "low",
     providerKey:"FIRMS",
     identityGroup: string,
+    geoEventProviderId: string,
     data: DataRecord
 }
 
