@@ -8,12 +8,14 @@ The world is divided into eight horizontal slices based on latitude. Each slice 
 
 | Slice Name | Bounding Box     | Description |
 | :--------- | :--------------- | :---------- |
-| Slice 1    | "-180,-90,180,-60" | Covers the Southernmost regions of the world including the majority of Antarctica. |
-| Slice 2    | "-180,-60,180,-30" | Covers the southernmost part of South America, parts of southern Africa, and a section of Antarctica. |
-| Slice 3    | "-180,-30,180,0"   | Covers the parts of South America, southern Africa, and Australia. |
-| Slice 4    | "-180,0,180,30"    | Covers parts of South America, Africa, and South Asia. |
-| Slice 5    | "-180,30,180,60"   | Covers parts of the United States, Europe, and Asia. |
-| Slice 6    | "-180,60,180,90"   | Covers the Northernmost regions of the world including Greenland, Arctic Ocean, and Northern Russia. |
+| Slice 1    | "-180,-90,180,-30" | Covers the Southernmost regions of the world including the majority of Antarctica and parts of Southern South America. |
+| Slice 2    | "-180,-30,180,-15" | Covers parts of Southern South America, South Africa and Australia. |
+| Slice 3    | "-180,-15,180,0"   | Covers parts of South America, Africa and Australia. |
+| Slice 4    | "-180,0,180,15"    | Covers parts of South America, Africa, Asia and northern Australia. |
+| Slice 5    | "-180,15,180,30"   | Covers parts of United States, Europe, Asia, North Africa and the northern tip of Australia. |
+| Slice 6    | "-180,30,180,45"   | Covers parts of United States, Europe, Asia and North Africa. |
+| Slice 7    | "-180,45,180,60"   | Covers Northern parts of United States, Europe, Asia, and the majority of Russia. |
+| Slice 8    | "-180,60,180,90"   | Covers the Northernmost regions of the world including Greenland, Arctic Ocean, and Northern Russia. |
 
 With site size limitation of 1 million hectares, a monitored site can belong to max two Geo Slices.
 
