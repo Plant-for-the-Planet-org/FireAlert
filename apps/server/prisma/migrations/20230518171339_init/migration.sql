@@ -62,6 +62,7 @@ CREATE TABLE "User" (
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "detectionMethods" JSONB NOT NULL,
     "isPlanetRO" BOOLEAN,
+    "remoteId" TEXT,
     "image" TEXT,
     "deletedAt" TIMESTAMP(3),
     "isVerified" BOOLEAN,
