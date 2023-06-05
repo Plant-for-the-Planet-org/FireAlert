@@ -60,7 +60,6 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
   };
 
   const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
-  debugger;
   const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
     const filteredNewGeoEvents: GeoEvent[] = [];
     const idsSet: Set<string> = new Set();
@@ -76,7 +75,6 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
   };
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
-  debugger;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
@@ -108,7 +106,6 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       },
     });
   }
-  debugger;
   siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId);
 };
 

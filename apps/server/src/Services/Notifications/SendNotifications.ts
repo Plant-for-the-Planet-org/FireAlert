@@ -6,7 +6,6 @@ import DataRecord from "../../Interfaces/DataRecord";
 const prisma = new PrismaClient();
 
 const sendNotifications = async () => {
-    debugger;
     // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
     // for each notification, send the notification to the destination
     // After sending notification update the notification table to set isDelivered to true and sentAt to current time
@@ -26,7 +25,6 @@ const sendNotifications = async () => {
                 }
             }
         });
-        debugger;
         await Promise.all(notifications.map(async (notification) => {
             const { id, alertMethod, destination, siteAlert } = notification;
             const { id: alertId, confidence, data, type, longitude, latitude, distance, detectedBy, eventDate, site } = siteAlert;
@@ -67,10 +65,8 @@ const sendNotifications = async () => {
                     data: data as DataRecord
                 }
             }
-            debugger;
             const notifier = NotifierRegistry.get(alertMethod);
 
-            debugger;
             const isDelivered = await notifier.notify(destination, notificationParameters)
 
             // Update notification's isDelivered status and sentAt
@@ -81,7 +77,6 @@ const sendNotifications = async () => {
                     sentAt: new Date()
                 }
             })
-            debugger;
             // If notification was not delivered, increment the failCount
             if (!isDelivered) {
                 await prisma.alertMethod.updateMany({
@@ -97,7 +92,6 @@ const sendNotifications = async () => {
                 })
                 // TODO: increment the retry count if a pre-defined limit has not been reached
             }
-            debugger;
         }));
     } catch (error) {
         console.log(error)

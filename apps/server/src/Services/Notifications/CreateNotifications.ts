@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 
 const createNotifications = async () => {
     try {
-        debugger;
         // In this query, the subquery retrieves all enabled and verified AlertMethods (m) for the user associated with the site. 
         // Then, a cross join is performed between the SiteAlert table (a) and the AlertMethod subquery (m), ensuring that each siteAlert is paired with all relevant alertMethods.
         const notificationCreationQuery = Prisma.sql`
@@ -23,7 +22,6 @@ const createNotifications = async () => {
 
         // Set all SiteAlert as processed
         await prisma.$executeRaw(updateSiteAlertIsProcessedToTrue);
-        debugger;
     } catch (error) {
         console.log(error)
     }

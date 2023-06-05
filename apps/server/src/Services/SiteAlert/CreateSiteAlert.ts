@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 
 const createSiteAlerts = async (geoEventProviderId: string) => {
     try {
-        debugger;
         const siteAlertCreationQuery = Prisma.sql`
         INSERT INTO "SiteAlert" (id, type, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance") 
         SELECT gen_random_uuid(), e.type, false, e."eventDate", e."identityGroup"::"GeoEventDetectionInstrument", e.confidence, e.latitude, e.longitude, s.id, e.data, ST_Distance(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") as distance 
@@ -28,7 +27,6 @@ const createSiteAlerts = async (geoEventProviderId: string) => {
         // Set all GeoEvents as processed
         await prisma.$executeRaw(updateGeoEventIsProcessedToTrue);
         
-        debugger;
     } catch (error) {
         console.log(error)
     }
