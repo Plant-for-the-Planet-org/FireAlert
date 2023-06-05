@@ -68,7 +68,10 @@ import handleLink from '../../utils/browserLinking';
 import {getDeviceInfo} from '../../utils/deviceInfo';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
+import {
+  updateIsLoggedIn,
+  updateUserDetails,
+} from '../../redux/slices/login/loginSlice';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -259,6 +262,16 @@ const Settings = ({navigation}) => {
     },
   });
 
+  const updateUser = trpc.user.updateUser.useMutation({
+    retryDelay: 3000, // Delay between retry attempts in milliseconds
+    onSuccess: res => {
+      dispatch(updateUserDetails(res?.json));
+    },
+    onError: () => {
+      toast.show('Something went wrong', {type: 'danger'});
+    },
+  });
+
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
     onSuccess: (res, req) => {
@@ -422,6 +435,22 @@ const Settings = ({navigation}) => {
     });
   };
 
+  const handleGeostationary = val => {
+    let detectionMethods = [...userDetails?.data?.detectionMethods];
+    if (!val) {
+      detectionMethods = detectionMethods.filter(el => el !== 'GEOSTATIONARY');
+    } else {
+      detectionMethods = [...detectionMethods, 'GEOSTATIONARY'];
+    }
+    updateUser.mutate({
+      json: {
+        body: {
+          detectionMethods,
+        },
+      },
+    });
+  };
+
   const handleWebhook = () => {
     navigation.navigate('Verification', {
       verificationType: 'Webhook',
@@ -466,7 +495,7 @@ const Settings = ({navigation}) => {
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   const onDeleteAccount = () => {
-    softDeleteUser.mutate({json: {id: userDetails?.id}});
+    softDeleteUser.mutate({json: {id: userDetails?.data?.id}});
   };
   const onGoBack = () => setShowDelAccount(false);
 
@@ -981,8 +1010,10 @@ const Settings = ({navigation}) => {
           <View style={styles.geostationaryContainer}>
             <Text style={styles.subHeading}>Geostationary</Text>
             <Switch
-              value={mobileNotify}
-              onValueChange={val => setMobileNotify(val)}
+              value={userDetails?.data?.detectionMethods?.includes(
+                'GEOSTATIONARY',
+              )}
+              onValueChange={handleGeostationary}
             />
           </View>
           <Text style={styles.desc}>Quick but many false alarms [BETA]</Text>
