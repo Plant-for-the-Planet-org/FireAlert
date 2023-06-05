@@ -9,7 +9,6 @@ import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
 
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
-
   const prisma = new PrismaClient()
 
   // get all active providers
@@ -47,13 +46,13 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   });
 
   const promises = activeProviders.map(async (provider) => {
-    const { providerKey, config } = provider
+    const { providerKey, config, id: geoEventProviderId } = provider
     const geoEventProvider = GeoEventProviderRegistry.get(providerKey);
     geoEventProvider.initialize(JSON.parse(JSON.stringify(config)));
 
     const geoEvents = await geoEventProvider.getLatestGeoEvents()
     const identityGroup = geoEventProvider.getIdentityGroup()
-    geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEvents)
+    geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEventProviderId , geoEvents)
 
     // Update lastRun value of the provider to the current Date()
     await prisma.geoEventProvider.update({
