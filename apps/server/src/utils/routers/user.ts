@@ -129,7 +129,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
 
     // Create FireAlert User
 
-    const createdUser: User = await createUserInPrismaTransaction({ prisma, sub, name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, remoteId: planetId })
+    const createdUser: User = await createUserInPrismaTransaction({ prisma, sub, name: name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, remoteId: planetId })
     const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, email, isVerified: email_verified, method: "email", isEnabled: true, userId: createdUser.id })
     if (isPlanetRO) {
         const projects = await fetchProjectsWithSitesForUser(bearer_token)
@@ -152,7 +152,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                 if (sites) {
                     for (const site of sites) {
                         if (site) {
-                            const { id: siteId, name: siteName, geometry: siteGeometry } = site;
+                            const { id: remoteSiteId, name: siteName, geometry: siteGeometry } = site;
                             const siteType = siteGeometry?.type || null; // Use null as the fallback value if siteGeometry is null or undefined
                             const siteRadius = 0;
                             // Check if siteType and siteGeometry are not null before proceeding
@@ -160,7 +160,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                                 // Check if siteType and siteGeometry.type are the same
                                 if (siteType === siteGeometry.type) {
                                     siteData.push({
-                                        remoteId: siteId,
+                                        remoteId: remoteSiteId,
                                         origin: 'ttc',
                                         name: siteName ?? "",
                                         type: siteType,
@@ -171,11 +171,11 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                                         projectId: projectId,
                                         lastUpdated: new Date(),
                                     });
-                                    remoteIdsForSiteAlerts.push(siteId)
+                                    remoteIdsForSiteAlerts.push(remoteSiteId)
                                 }
                             } else {
                                 // Handle the case where geometry or type is null
-                                console.log(`Skipping site with id ${siteId} due to null geometry or type.`);
+                                console.log(`Skipping site with remoteSiteId ${remoteSiteId} due to null geometry or type.`);
                             }
                         }
                     }
@@ -189,9 +189,26 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                 const sites = await prisma.site.createMany({
                     data: siteData,
                 });
-                debugger;
-                // Don't wait for the executeRaw. 
-                const siteAlertsCreationQuery = Prisma.sql`
+                return {
+                    projectsCount: projects.count,
+                    sitesCount: sites.count,
+                };
+            })
+            // Fetch the newly created sites using their remoteId values
+            const createdSites = await ctx.prisma.site.findMany({
+                where: {
+                    remoteId: {
+                        in: remoteIdsForSiteAlerts,
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            });
+            // Extract the siteIds from the createdSites array
+            const siteIds = createdSites.map((site) => site.id);
+            // Don't wait for the executeRaw. 
+            const siteAlertsCreationQuery = Prisma.sql`
                 INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
                 SELECT
                     gen_random_uuid(),
@@ -209,7 +226,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                     "GeoEvent" e
                     INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry")
                     AND s."deletedAt" IS NULL
-                    AND s."remoteId" IN (${Prisma.join(remoteIdsForSiteAlerts)})
+                    AND s.id IN (${Prisma.join(siteIds)})
                     AND s."isMonitored" IS TRUE
                 WHERE
                     e."isProcessed" = TRUE
@@ -219,23 +236,22 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                     FROM
                         "SiteAlert"
                     WHERE
-                        "SiteAlert"."isProcessed" = FALSE
-                        AND "SiteAlert".longitude = e.longitude
+                        "SiteAlert".longitude = e.longitude
                         AND "SiteAlert".latitude = e.latitude
                         AND "SiteAlert"."eventDate" = e."eventDate"
                 )`
-                prisma.$executeRaw(siteAlertsCreationQuery);
-                return {
-                    projectsCount: projects.count,
-                    sitesCount: sites.count,
-                };
-            });
-            //const createdUser = returnUser(user)
+            // todo: remove the await, change false to true in siteAlert isProcessed
+            await prisma.$executeRaw(siteAlertsCreationQuery);
+            const returnedUser = returnUser(createdUser)
             return {
                 status: 'success',
-                data: createdUser,
+                data: { user: returnedUser },
                 message: `Successfully created User, Alert Method and added ${result.sitesCount} sites for ${result.projectsCount} projects.`
             };
         }
+    }
+    return {
+        status: 'success',
+        data: createdUser
     }
 }
