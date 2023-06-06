@@ -161,18 +161,19 @@ export const findVerificationRequest = async (alertMethodId: string) => {
 
 interface CreateAlertMethodInPrismaTransactionArgs {
     prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use">;
-    ctx: TRPCContext;
     method: "email" | "sms" | "device" | "whatsapp" | "webhook";
     isEnabled: boolean;
+    email: string;
+    isVerified: boolean;
     userId: string;
 }
 
-export async function createAlertMethodInPrismaTransaction({ prisma, ctx, method, isEnabled, userId }: CreateAlertMethodInPrismaTransactionArgs) {
+export async function createAlertMethodInPrismaTransaction({ prisma, email, isVerified, method, isEnabled, userId }: CreateAlertMethodInPrismaTransactionArgs) {
     const createdAlertMethod = await prisma.alertMethod.create({
         data: {
             method: method,
-            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
-            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+            destination: email,
+            isVerified: isVerified,
             isEnabled: isEnabled,
             userId: userId,
         },
