@@ -1,10 +1,11 @@
 import { TRPCError } from '@trpc/server';
 import { type TRPCContext } from '../../Interfaces/Context'
 import { getUserIdByToken } from '../authorization/token';
-import { type Project, type Prisma, PrismaClient, type User } from '@prisma/client';
+import { type Project, Prisma, PrismaClient, type User } from '@prisma/client';
 import { fetchProjectsWithSitesForUser, planetUser } from '../fetch';
 import { createAlertMethodInPrismaTransaction } from './alertMethod';
 import { env } from '../../env.mjs';
+// import { prisma } from '../../server/db';
 
 const prisma = new PrismaClient();
 export const getUser = async (ctx: TRPCContext) => {
@@ -33,7 +34,7 @@ export const getUser = async (ctx: TRPCContext) => {
 };
 
 export async function getUserBySub(sub: string) {
-    const user = await Prisma.user.findFirst({
+    const user = await prisma.user.findFirst({
         where: {
             sub: sub
         }
@@ -56,11 +57,10 @@ interface CreateUserArgs {
     emailVerified: boolean;
     image: string;
     isPlanetRO: boolean;
-   // detectionMethods: ('MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY')[];
     remoteId?: string;
 }
 
-export async function createUserInPrismaTransaction({ id, prisma, sub, name, email, emailVerified, image, isPlanetRO,remoteId }: CreateUserArgs) {
+export async function createUserInPrismaTransaction({ id, prisma, sub, name, email, emailVerified, image, isPlanetRO, remoteId }: CreateUserArgs) {
     const detectionMethods: ('MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY')[] = ["MODIS", "VIIRS", "LANDSAT"]
     const createdUser = await prisma.user.create({
         data: {
@@ -124,27 +124,23 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
     const { sub, name, picture, email, email_verified } = userData;
 
     const getPlanetUser = await planetUser(bearer_token)
-    const isPlanetRO = getPlanetUser.isPlanetRo
+    const isPlanetRO = getPlanetUser.isPlanetRO
     const planetId = getPlanetUser.id
 
     // Create FireAlert User
 
-    const createdUser:User = await createUserInPrismaTransaction({ prisma, sub, name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, remoteId:planetId })
-    await createAlertMethodInPrismaTransaction({ prisma, email, isVerified: email_verified, method: "email", isEnabled: true, userId: createdUser.id })
-
+    const createdUser: User = await createUserInPrismaTransaction({ prisma, sub, name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, remoteId: planetId })
+    const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, email, isVerified: email_verified, method: "email", isEnabled: true, userId: createdUser.id })
     if (isPlanetRO) {
-
         const projects = await fetchProjectsWithSitesForUser(bearer_token)
         if (projects.length > 0) {
-            // Find the tpo id and use that as userId
-            // const userId = projects[0].properties.tpo.id;
             // Collect project and site data for bulk creation
             const projectData: Project[] = [];
             const siteData: Prisma.SiteCreateManyInput[] = [];
             const remoteIdsForSiteAlerts: string[] = [];
             for (const project of projects) {
                 const { id: projectId, name: projectName, slug: projectSlug, sites } = project.properties;
-    
+
                 projectData.push({
                     id: projectId,
                     name: projectName ?? "",
@@ -152,7 +148,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                     userId: createdUser.id,
                     lastUpdated: new Date(),
                 });
-    
+
                 if (sites) {
                     for (const site of sites) {
                         if (site) {
@@ -185,15 +181,17 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                     }
                 }
             }
-            // Create user and alert method in a transaction
-            const result = await ctx.prisma.$transaction(async (prisma: { project: { createMany: (arg0: { data: Project[]; }) => any; }; site: { createMany: (arg0: { data: Prisma.SiteCreateManyInput[]; }) => any; }; $executeRaw: (arg0: Prisma.Sql, arg1: string) => void; }) => {
+            // Bulk create sites, projects and siteAlerts in a prisma transaction
+            const result = await ctx.prisma.$transaction(async (prisma) => {
                 const projects = await prisma.project.createMany({
                     data: projectData,
                 });
                 const sites = await prisma.site.createMany({
                     data: siteData,
                 });
-                const siteAlertCreationQuery = Prisma.sql`
+                debugger;
+                // Don't wait for the executeRaw. 
+                const siteAlertsCreationQuery = Prisma.sql`
                 INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
                 SELECT
                     gen_random_uuid(),
@@ -211,7 +209,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                     "GeoEvent" e
                     INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry")
                     AND s."deletedAt" IS NULL
-                    AND s."remoteId" IN (${remoteIdsForSiteAlerts.map(() => "?").join(", ")})
+                    AND s."remoteId" IN (${Prisma.join(remoteIdsForSiteAlerts)})
                     AND s."isMonitored" IS TRUE
                 WHERE
                     e."isProcessed" = TRUE
@@ -225,12 +223,9 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                         AND "SiteAlert".longitude = e.longitude
                         AND "SiteAlert".latitude = e.latitude
                         AND "SiteAlert"."eventDate" = e."eventDate"
-                );
-                `;
-                // Don't wait for the executeRaw. 
-                prisma.$executeRaw(siteAlertCreationQuery, ...remoteIdsForSiteAlerts);
+                )`
+                prisma.$executeRaw(siteAlertsCreationQuery);
                 return {
-                    alertMethod: createdAlertMethod,
                     projectsCount: projects.count,
                     sitesCount: sites.count,
                 };
@@ -239,7 +234,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
             return {
                 status: 'success',
                 data: createdUser,
-                message: `Successfully created User, Alert Method and added ${sitesCount} sites for ${projectsCount} projects`
+                message: `Successfully created User, Alert Method and added ${result.sitesCount} sites for ${result.projectsCount} projects.`
             };
         }
     }

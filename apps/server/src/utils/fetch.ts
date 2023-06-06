@@ -1,13 +1,13 @@
 import { env } from '../env.mjs'
-import { type Project, type BaseUser } from '@planet-sdk/common'
+import { type BaseProjectExtended, type BaseUser } from '@planet-sdk/common'
 
 interface PlanetUser {
     id: string;
-    isPlanetRo: boolean;
+    isPlanetRO: boolean;
     name: string;
 }
 
-// Fetch User from PlanetAPI, if user exists return id and isPlanetRo else return false.
+// Fetch User from PlanetAPI, if user exists return id and isPlanetRO else return false.
 export const planetUser = async (bearer_token: string): Promise<PlanetUser> => {
     try {
         const response = await fetch(`${env.PLANET_API_URL}/app/profile`, {
@@ -19,14 +19,14 @@ export const planetUser = async (bearer_token: string): Promise<PlanetUser> => {
         const data: BaseUser = await response.json();
         return {
             id: data.id,
-            isPlanetRo: data.type === "tpo",
+            isPlanetRO: data.type === "tpo",
             name: data.displayName
         }
     } catch (error) {
         console.error(error);
         return {
             id: '',
-            isPlanetRo: false,
+            isPlanetRO: false,
             name: ""
         }
         //Todo: identify whether we should return error or simply ignore the fact that we couldn't fetch the user.
@@ -48,7 +48,7 @@ export const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
             },
         }
     );
-    const data:Project = await response.json();
+    const data = await response.json();
     return data;
 }
 
