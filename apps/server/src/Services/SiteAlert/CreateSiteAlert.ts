@@ -12,7 +12,11 @@ const createSiteAlerts = async (geoEventProviderId: string) => {
                 INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") AND s."deletedAt" IS NULL AND s."isMonitored" = TRUE
                 WHERE e."isProcessed" = false AND NOT EXISTS ( 
                     SELECT 1 
-                    FROM "SiteAlert" WHERE "SiteAlert"."isProcessed" = false AND "SiteAlert".longitude = e.longitude AND "SiteAlert".latitude = e.latitude AND "SiteAlert"."eventDate" = e."eventDate" 
+                    FROM "SiteAlert" 
+                    WHERE 
+                    "SiteAlert".longitude = e.longitude 
+                    AND "SiteAlert".latitude = e.latitude 
+                    AND "SiteAlert"."eventDate" = e."eventDate" 
                     )`;
         const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId}`;
         // Todo: Ensure we only mark GeoEvents as processed if they are from the same source as the SiteAlerts that were created from them
