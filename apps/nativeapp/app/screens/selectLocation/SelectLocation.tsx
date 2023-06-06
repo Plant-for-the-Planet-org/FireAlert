@@ -240,7 +240,7 @@ const SelectLocation = ({navigation}) => {
   const onPressLocationAlertPrimaryBtn = () => {
     setIsLocationAlertShow(false);
     if (IS_ANDROID) {
-      updateCurrentPosition();
+      checkPermission();
     } else {
       Linking.openURL('app-settings:');
     }
@@ -330,10 +330,10 @@ const SelectLocation = ({navigation}) => {
             onUpdate={data => setLocation(data)}
           />
         )}
-        <View style={styles.fakeMarkerCont}>
-          <SvgXml xml={active_marker} style={styles.markerImage} />
-        </View>
       </MapboxGL.MapView>
+      <View style={styles.fakeMarkerCont}>
+        <SvgXml xml={active_marker} style={styles.markerImage} />
+      </View>
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.7}

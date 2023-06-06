@@ -11,14 +11,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import {
-  Point,
-  point,
-  polygon,
-  Feature,
-  Properties,
-  convertArea,
-} from '@turf/helpers';
 import area from '@turf/area';
 import centroid from '@turf/centroid';
 import MapboxGL from '@rnmapbox/maps';
@@ -26,6 +18,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
+import {Point, polygon, Feature, Properties, convertArea} from '@turf/helpers';
 
 import {
   AlertModal,
@@ -170,7 +163,7 @@ const CreatePolygon = ({navigation}) => {
   const onPressLocationAlertPrimaryBtn = () => {
     setIsLocationAlertShow(false);
     if (IS_ANDROID) {
-      updateCurrentPosition();
+      checkPermission();
     } else {
       Linking.openURL('app-settings:');
     }

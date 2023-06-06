@@ -253,7 +253,7 @@ const Settings = ({navigation}) => {
             : null,
       );
       const loadingArr = delAlertMethodArr.filter(
-        el => el !== req?.json?.data?.id,
+        el => el !== req?.json?.alertMethodId,
       );
       setDelAlertMethodArr(loadingArr);
     },
