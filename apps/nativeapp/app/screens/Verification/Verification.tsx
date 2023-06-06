@@ -136,7 +136,7 @@ const Verification = ({navigation, route}) => {
               label={`${verificationType} URL`}
               inputStyle={styles.webhookInput}
               containerStyle={styles.webhookInputCon}
-              onChangeText={txt => setWebhookUrl(txt)}
+              onChangeText={setWebhookUrl}
             />
           ) : (
             <FloatingInput
@@ -145,7 +145,7 @@ const Verification = ({navigation, route}) => {
               autoCapitalize={'none'}
               verifier={verifyingLoader}
               label={`${verificationType}`}
-              onChangeText={txt => handleEmail(txt)}
+              onChangeText={handleEmail}
             />
           )}
           <CustomButton
@@ -181,22 +181,23 @@ const styles = StyleSheet.create({
     color: Colors.WHITE,
   },
   heading: {
-    marginVertical: 20,
-    fontSize: Typography.FONT_SIZE_24,
+    marginTop: 20,
+    marginBottom: 10,
+    fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
   },
   commonPadding: {
-    paddingHorizontal: 40,
+    paddingHorizontal: 16,
   },
   crossContainer: {
     width: 25,
     marginTop: 60,
-    marginHorizontal: 40,
-    // alignSelf: 'flex-end',
+    marginHorizontal: 16,
   },
   containerStyle: {
     position: 'absolute',
+    width: 360,
   },
   webhookInput: {
     height: 150,

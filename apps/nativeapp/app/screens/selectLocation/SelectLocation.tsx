@@ -11,25 +11,19 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import {
-  Point,
-  point,
-  polygon,
-  Feature,
-  Properties,
-  multiPolygon,
-} from '@turf/helpers';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
-import rewind from '@mapbox/geojson-rewind';
 import React, {useEffect, useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
+import {Point, point, Feature, Properties} from '@turf/helpers';
 
 import {
   CrossIcon,
   LayerIcon,
   MyLocIcon,
+  LayerCheck,
+  DropdownArrow,
   active_marker,
 } from '../../assets/svgs';
 import {
@@ -69,20 +63,34 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
+const RADIUS_ARR = [
+  {name: 'within 100 km', value: 100},
+  {name: 'within 10 km', value: 10},
+  {name: 'within 5 km', value: 5},
+  {name: 'inside', value: 0},
+];
+
 const SelectLocation = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
-  const [loader, setLoader] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [loader, setLoader] = useState<boolean>(false);
+  const [visible, setVisible] = useState<boolean>(false);
   const [isInitial, setIsInitial] = useState(true);
-  const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
+  const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
 
-  const [isPermissionDenied, setIsPermissionDenied] = useState(false);
-  const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
-  const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
+  const [isPermissionDenied, setIsPermissionDenied] = useState<boolean>(false);
+  const [isPermissionBlocked, setIsPermissionBlocked] =
+    useState<boolean>(false);
+  const [isLocationAlertShow, setIsLocationAlertShow] =
+    useState<boolean>(false);
 
   const [siteName, setSiteName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [siteNameModalVisible, setSiteNameModalVisible] =
+    useState<boolean>(false);
+
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
+  const [pageXY, setPageXY] = useState<object | null>(null);
+  const [dropDownModal, setDropDownModal] = useState<boolean>(false);
 
   const [enableGetFireAlerts, setEnableGetFireAlerts] =
     useState<boolean>(false);
@@ -225,8 +233,17 @@ const SelectLocation = ({navigation}) => {
         geometry,
         type: 'Point',
         name: siteName,
+        radius: siteRad?.value,
       },
     });
+  };
+
+  const handleRadius = evt => {
+    setPageXY({
+      x: evt.nativeEvent.pageX,
+      y: evt.nativeEvent.pageY,
+    });
+    setDropDownModal(!dropDownModal);
   };
 
   const handleMyLocation = () => {
@@ -400,17 +417,33 @@ const SelectLocation = ({navigation}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, styles.commonPadding]}>
+          <Text
+            style={[
+              styles.heading,
+              styles.commonPadding,
+              {marginTop: 20, marginBottom: 10},
+            ]}>
             Enter Site Name
           </Text>
           <View
             style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
-            <FloatingInput
-              autoFocus
-              isFloat={false}
-              label={'Site Name'}
-              onChangeText={setSiteName}
-            />
+            <View>
+              <FloatingInput
+                autoFocus
+                isFloat={false}
+                label={'Site Name'}
+                onChangeText={setSiteName}
+              />
+              <View style={[styles.selectRadCon, styles.commonPadding]}>
+                <Text style={[styles.heading]}>Monitoring Boundry</Text>
+                <TouchableOpacity
+                  onPress={evt => handleRadius(evt)}
+                  style={[styles.dropDownRadius, {marginRight: 5}]}>
+                  <Text style={styles.siteRadius}>{siteRad?.name}</Text>
+                  <DropdownArrow />
+                </TouchableOpacity>
+              </View>
+            </View>
             <CustomButton
               title="Continue"
               isLoading={loading}
@@ -419,6 +452,52 @@ const SelectLocation = ({navigation}) => {
               style={styles.btnContinueSiteModal}
             />
           </View>
+          {dropDownModal ? (
+            <>
+              <TouchableOpacity
+                style={styles.overlay}
+                onPress={() => setDropDownModal(false)}
+              />
+              <View
+                style={[
+                  styles.dropDownModal,
+                  {
+                    top: pageXY.y + 15,
+                  },
+                ]}>
+                {RADIUS_ARR.map((item, index) => (
+                  <View
+                    key={`RADIUS_ARR_${index}`}
+                    style={styles.subDropDownCon}>
+                    <TouchableOpacity
+                      style={styles.siteRadiusCon}
+                      disabled={item?.value === siteRad?.value}
+                      onPress={() => {
+                        setSiteRad(item);
+                        setDropDownModal(false);
+                      }}>
+                      <Text
+                        style={[
+                          styles.siteRadiusText,
+                          item?.value === siteRad?.value && {
+                            fontFamily: Typography.FONT_FAMILY_BOLD,
+                            color: Colors.GRADIENT_PRIMARY,
+                          },
+                        ]}>
+                        {item.name}
+                      </Text>
+                      {item?.value === siteRad?.value && <LayerCheck />}
+                    </TouchableOpacity>
+                    {RADIUS_ARR.length - 1 !== index && (
+                      <View
+                        style={[styles.separator, {marginHorizontal: 16}]}
+                      />
+                    )}
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
         </KeyboardAvoidingView>
       </Modal>
     </>
@@ -542,17 +621,15 @@ const styles = StyleSheet.create({
   crossContainer: {
     width: 25,
     marginTop: 60,
-    marginHorizontal: 40,
+    marginHorizontal: 16,
   },
   heading: {
-    marginTop: 20,
-    marginBottom: 10,
-    fontSize: Typography.FONT_SIZE_24,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
   },
   commonPadding: {
-    paddingHorizontal: 40,
+    paddingHorizontal: 16,
   },
   crossIcon: {
     width: 30,
@@ -561,5 +638,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.WHITE,
+  },
+  dropDownModal: {
+    right: 16,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: 12,
+    position: 'absolute',
+    backgroundColor: Colors.WHITE,
+    borderColor: Colors.GRAY_MEDIUM,
+  },
+  overlay: {
+    height: SCREEN_HEIGHT,
+    width: SCREEN_WIDTH,
+    position: 'absolute',
+  },
+  siteRadiusCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+  },
+  siteRadiusText: {
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    paddingVertical: 8,
+  },
+  subDropDownCon: {
+    width: 150,
+  },
+  separator: {
+    height: 0.5,
+    backgroundColor: '#e0e0e0',
+  },
+  selectRadCon: {
+    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropDownRadius: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    // paddingVertical: 14,
+  },
+  siteRadius: {
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    color: Colors.GRADIENT_PRIMARY,
   },
 });

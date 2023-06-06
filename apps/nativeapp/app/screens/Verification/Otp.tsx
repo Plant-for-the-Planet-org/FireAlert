@@ -177,13 +177,13 @@ const styles = StyleSheet.create({
     color: Colors.GRAY_DEEP,
   },
   commonPadding: {
-    paddingHorizontal: 40,
+    paddingHorizontal: 16,
   },
   resendOtpBtn: {
     top: 85,
     right: 0,
     position: 'absolute',
-    paddingHorizontal: 40,
+    paddingHorizontal: 16,
   },
   resendOtp: {
     color: Colors.TEXT_COLOR,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   crossContainer: {
     width: 25,
     marginTop: 60,
-    marginHorizontal: 40,
+    marginHorizontal: 16,
   },
   link: {
     color: Colors.GRADIENT_PRIMARY,

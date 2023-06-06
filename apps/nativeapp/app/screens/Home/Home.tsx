@@ -946,7 +946,7 @@ const Home = ({navigation, route}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Edit Your Name
           </Text>
           <View
@@ -977,7 +977,7 @@ const Home = ({navigation, route}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Enter Site Name
           </Text>
           <View
@@ -1159,12 +1159,12 @@ const styles = StyleSheet.create({
   crossContainer: {
     width: 25,
     marginTop: 60,
-    marginHorizontal: 40,
+    marginHorizontal: 16,
   },
   heading: {
     marginTop: 20,
     marginBottom: 10,
-    fontSize: Typography.FONT_SIZE_24,
+    fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
   },

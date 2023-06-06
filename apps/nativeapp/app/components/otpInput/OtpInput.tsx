@@ -35,7 +35,7 @@ export default OtpInput;
 const styles = StyleSheet.create({
   otpInput: {
     height: 80,
-    width: '80%',
+    width: '90%',
     alignSelf: 'center',
   },
 
