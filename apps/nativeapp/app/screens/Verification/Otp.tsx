@@ -100,12 +100,13 @@ const Otp = ({navigation, route}) => {
         <Text style={[styles.heading, styles.commonPadding]}>
           Verify {verificationType}
         </Text>
-        {verificationType === 'Email' && (
-          <Text style={[styles.subHeading, styles.commonPadding]}>
-            We've sent you a code to verify your email. Please check your email
-            and enter the code below.
-          </Text>
-        )}
+        {verificationType === 'Email' ||
+          (verificationType === 'email' && (
+            <Text style={[styles.subHeading, styles.commonPadding]}>
+              We've sent you a code to verify your email. Please check your
+              email and enter the code below.
+            </Text>
+          ))}
         <View style={styles.subContainer}>
           <OtpInput
             code={code}
