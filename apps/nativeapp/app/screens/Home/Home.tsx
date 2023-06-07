@@ -27,6 +27,7 @@ import Toast, {useToast} from 'react-native-toast-notifications';
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 
 import {
+  DropDown,
   LayerModal,
   AlertModal,
   BottomSheet,
@@ -61,7 +62,6 @@ import {
   PermissionBlockedAlert,
 } from './permissionAlert/locationPermissionAlerts';
 
-import {WEB_URLS} from '../../constants';
 import {trpc} from '../../services/trpc';
 import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
@@ -70,6 +70,7 @@ import {clearAll} from '../../utils/localStorage';
 import {categorizedRes} from '../../utils/filters';
 import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
+import {RADIUS_ARR, WEB_URLS} from '../../constants';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
@@ -128,6 +129,8 @@ const Home = ({navigation, route}) => {
   const [siteName, setSiteName] = useState<string | null>('');
   const [siteId, setSiteId] = useState<string | null>('');
   const [selectedArea, setSelectedArea] = useState<any>(null);
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
+  const [isEditSite, setIsEditSite] = useState<boolean>(false);
 
   const map = useRef(null);
   const toast = useToast();
@@ -298,11 +301,19 @@ const Home = ({navigation, route}) => {
     setSelectedSite({});
     setSiteName(site.name);
     setSiteId(site.id);
+    setIsEditSite(!!site.project);
+    setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 500);
   };
 
   const handleEditSiteInfo = () => {
-    updateSite.mutate({json: {params: {siteId}, body: {name: siteName}}});
+    let payload = {
+      json: {params: {siteId}, body: {name: siteName, radius: siteRad?.value}},
+    };
+    if (isEditSite) {
+      delete payload.json.body.name;
+    }
+    updateSite.mutate(payload);
   };
 
   const handleDeleteSite = (id: string) => {
@@ -869,7 +880,6 @@ const Home = ({navigation, route}) => {
               </Text>
             </View>
             <TouchableOpacity
-              disabled={selectedSite?.site?.project?.id}
               onPress={() => handleEditSite(selectedSite?.site)}>
               <PencilIcon />
             </TouchableOpacity>
@@ -982,12 +992,25 @@ const Home = ({navigation, route}) => {
           </Text>
           <View
             style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
-            <FloatingInput
-              autoFocus
-              isFloat={false}
-              value={siteName}
-              onChangeText={setSiteName}
-            />
+            <View>
+              <FloatingInput
+                autoFocus
+                isFloat={false}
+                value={siteName}
+                editable={!isEditSite}
+                onChangeText={setSiteName}
+              />
+              <View style={[styles.commonPadding]}>
+                <DropDown
+                  expandHeight={10}
+                  items={RADIUS_ARR}
+                  value={siteRad?.value}
+                  onSelectItem={setSiteRad}
+                  defaultValue={siteRad?.value}
+                  label={'Monitoring Boundry'}
+                />
+              </View>
+            </View>
             <CustomButton
               title="Continue"
               titleStyle={styles.title}

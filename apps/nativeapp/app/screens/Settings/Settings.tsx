@@ -31,6 +31,7 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {
   Switch,
+  DropDown,
   AlertModal,
   BottomSheet,
   CustomButton,
@@ -61,11 +62,11 @@ import {
 } from '../../assets/svgs';
 
 import {trpc} from '../../services/trpc';
-import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
 import {clearAll} from '../../utils/localStorage';
 import handleLink from '../../utils/browserLinking';
 import {getDeviceInfo} from '../../utils/deviceInfo';
+import {RADIUS_ARR, WEB_URLS} from '../../constants';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {
@@ -79,19 +80,13 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const RADIUS_ARR = [
-  {name: 'within 100 km', value: 100},
-  {name: 'within 10 km', value: 10},
-  {name: 'within 5 km', value: 5},
-  {name: 'inside', value: 0},
-];
-
 const Settings = ({navigation}) => {
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
+  const [isEditSite, setIsEditSite] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [mobileNotify, setMobileNotify] = useState<boolean>(false);
   const [dropDownModal, setDropDownModal] = useState<boolean>(false);
   const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
   const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
@@ -410,11 +405,19 @@ const Settings = ({navigation}) => {
     setSitesInfoModal(false);
     setSiteName(site.name);
     setSiteId(site.id);
-    setTimeout(() => setSiteNameModalVisible(true), 500);
+    setIsEditSite(!!site.project);
+    setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
+    setTimeout(() => setSiteNameModalVisible(true), 1000);
   };
 
   const handleEditSiteInfo = () => {
-    updateSite.mutate({json: {params: {siteId}, body: {name: siteName}}});
+    let payload = {
+      json: {params: {siteId}, body: {name: siteName, radius: siteRad?.value}},
+    };
+    if (isEditSite) {
+      delete payload.json.body.name;
+    }
+    updateSite.mutate(payload);
   };
 
   const handleAddEmail = () => {
@@ -1203,7 +1206,6 @@ const Settings = ({navigation}) => {
                 </Text>
               </View>
               <TouchableOpacity
-                disabled={selectedSiteInfo?.project !== null}
                 onPress={() => handleEditSite(selectedSiteInfo)}>
                 <PencilIcon />
               </TouchableOpacity>
@@ -1274,12 +1276,25 @@ const Settings = ({navigation}) => {
                 styles.siteModalStyle,
                 {justifyContent: 'space-between'},
               ]}>
-              <FloatingInput
-                autoFocus
-                isFloat={false}
-                value={siteName}
-                onChangeText={setSiteName}
-              />
+              <View>
+                <FloatingInput
+                  autoFocus
+                  isFloat={false}
+                  value={siteName}
+                  editable={!isEditSite}
+                  onChangeText={setSiteName}
+                />
+                <View style={[styles.commonPadding]}>
+                  <DropDown
+                    expandHeight={10}
+                    items={RADIUS_ARR}
+                    value={siteRad?.value}
+                    onSelectItem={setSiteRad}
+                    defaultValue={siteRad?.value}
+                    label={'Monitoring Boundry'}
+                  />
+                </View>
+              </View>
               <CustomButton
                 title="Continue"
                 titleStyle={styles.title}
