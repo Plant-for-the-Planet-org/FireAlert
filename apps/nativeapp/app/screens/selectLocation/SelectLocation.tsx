@@ -260,7 +260,8 @@ const SelectLocation = ({navigation}) => {
   const closeMapLayer = () => setVisible(false);
   const handleContinue = () => setSiteNameModalVisible(true);
 
-  const onPressPerBlockedAlertPrimaryBtn = () => {};
+  const onPressPerBlockedAlertPrimaryBtn = () =>
+    onPressLocationAlertPrimaryBtn();
   const onPressPerBlockedAlertSecondaryBtn = () => {
     BackHandler.exitApp();
   };
@@ -273,11 +274,10 @@ const SelectLocation = ({navigation}) => {
   useEffect(() => {
     const watchId = Geolocation.watchPosition(
       position => {
-        onUpdateUserLocation(position);
         setLocation(position);
       },
       err => {
-        setIsLocationAlertShow(true);
+        console.log(err);
       },
       {
         enableHighAccuracy: true,
@@ -292,10 +292,6 @@ const SelectLocation = ({navigation}) => {
       Geolocation.clearWatch(watchId);
     };
   }, []);
-
-  useEffect(() => {
-    onUpdateUserLocation(location);
-  }, [isCameraRefVisible, location]);
 
   return (
     <>

@@ -218,7 +218,7 @@ const CreatePolygon = ({navigation}) => {
       await locationPermission();
       // MapboxGL.setTelemetryEnabled(false);
 
-      updateCurrentPosition(showAlert);
+      await updateCurrentPosition(showAlert);
       return true;
     } catch (err: any) {
       if (err?.message == 'blocked') {
@@ -329,7 +329,8 @@ const CreatePolygon = ({navigation}) => {
     }
   };
 
-  const onPressPerBlockedAlertPrimaryBtn = () => {};
+  const onPressPerBlockedAlertPrimaryBtn = () =>
+    onPressLocationAlertPrimaryBtn();
   const onPressPerBlockedAlertSecondaryBtn = () => {
     BackHandler.exitApp();
   };
@@ -342,11 +343,11 @@ const CreatePolygon = ({navigation}) => {
   useEffect(() => {
     const watchId = Geolocation.watchPosition(
       position => {
-        onUpdateUserLocation(position);
+        // onUpdateUserLocation(position);
         setLocation(position);
       },
       err => {
-        setIsLocationAlertShow(true);
+        console.log(err);
       },
       {
         enableHighAccuracy: true,
@@ -361,10 +362,6 @@ const CreatePolygon = ({navigation}) => {
       Geolocation.clearWatch(watchId);
     };
   }, []);
-
-  useEffect(() => {
-    onUpdateUserLocation(location);
-  }, [isCameraRefVisible, location]);
 
   useEffect(() => {
     if (geoJSON.features[0].geometry.coordinates.length <= 2) {
