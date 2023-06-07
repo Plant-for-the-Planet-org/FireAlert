@@ -99,7 +99,7 @@ interface Auth0User {
     picture: string;
     updated_at: string;
     email: string;
-    email_verified: boolean;
+    email_verified: string;
 }
 
 // User Handlers
@@ -121,12 +121,13 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
     }
     const userData: Auth0User = await response.json();
 
-    const { sub, name, picture, email, email_verified } = userData;
-
+    const { sub, name, picture, email } = userData;
+    const email_verified = userData.email_verified === "true" ? true : false
+    
     const getPlanetUser = await planetUser(bearer_token)
     const isPlanetRO = getPlanetUser.isPlanetRO
     const planetId = getPlanetUser.id
-
+    
     // Create FireAlert User
 
     const createdUser: User = await createUserInPrismaTransaction({ prisma, sub, name: name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, remoteId: planetId })
