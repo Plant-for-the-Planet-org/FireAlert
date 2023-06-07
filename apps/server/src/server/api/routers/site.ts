@@ -35,15 +35,16 @@ export const siteRouter = createTRPCRouter({
                         name: true,
                         type: true,
                         radius: true,
-                        project: {
-                            select: {
-                                id: true,
-                                name: true,
-                            },
-                        },
                         isMonitored: true,
                         lastUpdated: true,
                         userId: true,
+                        remoteId: true,
+                        project: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        },
                         geometry: true,
                     },
                 });
@@ -125,14 +126,15 @@ export const siteRouter = createTRPCRouter({
                         type: true,
                         radius: true,
                         isMonitored: true,
+                        lastUpdated: true,
+                        userId: true,
+                        remoteId: true,
                         project: {
                             select: {
                                 id: true,
                                 name: true
                             }
                         },
-                        lastUpdated: true,
-                        userId: true,
                         geometry: true,
                     }
                 })
@@ -165,13 +167,14 @@ export const siteRouter = createTRPCRouter({
                         radius: true,
                         isMonitored: true,
                         lastUpdated: true,
+                        userId: true,
+                        remoteId: true,
                         project: {
                             select: {
                                 id: true,
                                 name: true
                             }
                         },
-                        userId: true,
                         geometry: true,
                     }
                 })
@@ -207,6 +210,7 @@ export const siteRouter = createTRPCRouter({
                         isMonitored: true,
                         lastUpdated: true,
                         userId: true,
+                        remoteId: true,
                         project: {
                             select: {
                                 id: true,
