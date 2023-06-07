@@ -17,9 +17,9 @@ import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
 import centroid from '@turf/centroid';
 import {polygon} from '@turf/helpers';
+import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
-import Auth0, {useAuth0} from 'react-native-auth0';
 import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
@@ -97,7 +97,6 @@ const ANIMATION_DURATION = 1000;
 
 const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
-  const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
   const {userDetails, configData} = useAppSelector(state => state.loginSlice);
 
@@ -301,7 +300,7 @@ const Home = ({navigation, route}) => {
     setSelectedSite({});
     setSiteName(site.name);
     setSiteId(site.id);
-    setIsEditSite(!!site.project);
+    setIsEditSite(!!site.remoteId);
     setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 500);
   };
@@ -424,7 +423,6 @@ const Home = ({navigation, route}) => {
         dispatch(updateIsLoggedIn(false));
         queryClient.clear();
         await clearAll();
-        await clearCredentials();
       });
     } catch (e) {
       console.log('Log out cancelled');

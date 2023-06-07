@@ -405,7 +405,7 @@ const Settings = ({navigation}) => {
     setSitesInfoModal(false);
     setSiteName(site.name);
     setSiteId(site.id);
-    setIsEditSite(!!site.project);
+    setIsEditSite(!!site.remoteId);
     setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 1000);
   };
