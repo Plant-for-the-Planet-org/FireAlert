@@ -1,6 +1,4 @@
 import { TRPCError } from '@trpc/server';
-import { TRPCContext } from '../../Interfaces/Context'
-import { getUserIdByToken } from '../authorization/token';
 import { type Project, Prisma, PrismaClient, type User } from '@prisma/client';
 import { fetchProjectsWithSitesForUser, planetUser } from '../fetch';
 import { createAlertMethodInPrismaTransaction } from './alertMethod';
@@ -144,7 +142,7 @@ export async function handleNewUser(bearer_token: string) {
                 }
             }
             // Bulk create sites, projects and siteAlerts in a prisma transaction
-            const result = await ctx.prisma.$transaction(async (prisma) => {
+            const result = await prisma.$transaction(async (prisma) => {
                 const projects = await prisma.project.createMany({
                     data: projectData,
                 });
@@ -157,7 +155,7 @@ export async function handleNewUser(bearer_token: string) {
                 };
             })
             // Fetch the newly created sites using their remoteId values
-            const createdSites = await ctx.prisma.site.findMany({
+            const createdSites = await prisma.site.findMany({
                 where: {
                     remoteId: {
                         in: remoteIdsForSiteAlerts,
