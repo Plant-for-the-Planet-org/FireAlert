@@ -38,6 +38,7 @@
     "nodemailer": "^6.9.1",
     "pg-promise": "^11.4.3",
     "phone": "^3.1.37",
+    "prisma": "^4.15.0",
     "react-cookie": "^4.1.1",
     "superjson": "1.9.1",
     "twilio": "^4.11.0",

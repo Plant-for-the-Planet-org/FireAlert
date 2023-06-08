@@ -1,13 +1,6 @@
 import jwt, { VerifyOptions } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import { TRPCError } from '@trpc/server';
-import { type InnerTRPCContext } from '../../server/api/trpc'
-import { PPJwtPayload } from "../../utils/routers/trpc"
-
-
-interface TRPCContext extends InnerTRPCContext {
-    token: PPJwtPayload;
-}
 
 
 export const checkTokenIsValid = async (token: string) => {
@@ -33,22 +26,3 @@ export const checkTokenIsValid = async (token: string) => {
     };
     return jwt.verify(token, signingKey, options);
 };
-
-// Find the account which has the sub from token and find userId for that account
-export async function getUserIdByToken(ctx: TRPCContext) {
-    const user = await ctx.prisma.user.findFirst({
-        where: {
-            sub: ctx.token.sub
-        },
-        select: {
-            id: true,
-        },
-    });
-    if (!user) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Cannot find user associated with the token, make sure the user has logged in atleast once",
-        });
-    }
-    return user.id;
-}
