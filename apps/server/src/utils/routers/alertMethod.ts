@@ -1,15 +1,16 @@
 import { TRPCError } from '@trpc/server';
-import { TRPCContext } from '../../Interfaces/Context'
-import { CheckUserHasAlertMethodPermissionArgs, CtxWithAlertMethod, CtxWithAlertMethodId, CtxWithUserID } from '../../Interfaces/AlertMethod'
+import { type TRPCContext } from '../../Interfaces/Context'
+import { type CheckUserHasAlertMethodPermissionArgs, type CtxWithAlertMethod, CtxWithAlertMethodId, type CtxWithUserID } from '../../Interfaces/AlertMethod'
 import { generate5DigitOTP } from '../notification/otp';
-import { AlertMethod, Prisma, PrismaClient, User } from '@prisma/client';
+import { type AlertMethod, type Prisma, type PrismaClient, type User } from '@prisma/client';
 import { env } from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import { prisma } from '../../server/db';
+import { sendEmailVerificationCode } from '../notification/userEmails';
 
 
 export const limitAlertMethodPerUser = async ({ ctx, userId, count }: CtxWithUserID) => {
-    const alertMethodCount = await prisma.alertMethod.count({
+    const alertMethodCount = await ctx.prisma.alertMethod.count({
         where: {
             userId,
         },
@@ -160,18 +161,19 @@ export const findVerificationRequest = async (alertMethodId: string) => {
 
 interface CreateAlertMethodInPrismaTransactionArgs {
     prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use">;
-    ctx: TRPCContext;
     method: "email" | "sms" | "device" | "whatsapp" | "webhook";
     isEnabled: boolean;
+    email: string;
+    isVerified: boolean;
     userId: string;
 }
 
-export async function createAlertMethodInPrismaTransaction({ prisma, ctx, method, isEnabled, userId }: CreateAlertMethodInPrismaTransactionArgs) {
+export async function createAlertMethodInPrismaTransaction({ prisma, email, isVerified, method, isEnabled, userId }: CreateAlertMethodInPrismaTransactionArgs) {
     const createdAlertMethod = await prisma.alertMethod.create({
         data: {
             method: method,
-            destination: ctx.token["https://app.plant-for-the-planet.org/email"],
-            isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
+            destination: email,
+            isVerified: isVerified,
             isEnabled: isEnabled,
             userId: userId,
         },
@@ -199,71 +201,61 @@ export interface VerificationResponse {
     data?: AlertMethod
 }
 
-export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: AlertMethod): Promise<VerificationResponse> => {
-    if (alertMethod.method === 'device') {
-        // check if the playerID exists in Onesignal
-        // if yes, set the alertMethod.isVerified to true
-        // else return error
+export const deviceVerification = async (destination: string): Promise<boolean> => {
+    // check if the playerID exists in Onesignal
+    // if yes, set the alertMethod.isVerified to true
+    // else return error
 
-        // call OneSignal API to send the notification
-        const playerIdUrl = `https://onesignal.com/api/v1/players/${alertMethod.destination}?app_id=${env.ONESIGNAL_APP_ID}`
-        const response = await fetch(playerIdUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Basic ${env.ONESIGNAL_REST_API_KEY}`,
-                'Content-Type': 'application/json; charset=utf-8'
-            }
-        });
-        // we can check if id in response matches the destination to return true.
-
-        if (!response.ok) {
-            throw new TRPCError({
-                code: 'BAD_REQUEST',
-                message: `Destination can't be verified with Onesignal`,
-            });
+    // call OneSignal API to send the notification
+    const playerIdUrl = `https://onesignal.com/api/v1/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`
+    const response = await fetch(playerIdUrl, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Basic ${env.ONESIGNAL_REST_API_KEY}`,
+            'Content-Type': 'application/json; charset=utf-8'
         }
-        //Mark device alertMethod verified without sending any notification or OTP.
-        const updatedAlertMethod = await ctx.prisma.alertMethod.update({
-            where: {
-                id: alertMethod.id,
-            },
-            data: {
-                isVerified: true,
-                tokenSentCount: 0,
-                isEnabled: true,
-            }
-        });
-        return {
-            status: 'success',
-            message: 'Device has been Verified Successfully',
-            data: updatedAlertMethod
-        }
-
+    });
+    // we can check if id in response matches the destination to return true.
+    if (response.ok) {
+        return true
+    } else {
+        return false
     }
+}
+
+export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: AlertMethod): Promise<VerificationResponse> => {
     await handleOTPSendLimitation({ ctx, alertMethod })
     const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
 
-    // Use NotifierRegistry to send the verification code
-    const notifier = NotifierRegistry.get(alertMethod.method)
-    const message = `${otp} is your FireAlert one time code.`
-    const subject = "Fire Alert Verification"
-    const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethod.id}/${otp}`
-    const destination = alertMethod.destination
-    const params = {
-        message: message,
-        subject: subject,
-        url: url
+    let sendVerificationCode;
+    if (alertMethod.method === "email") {
+        sendVerificationCode = await sendEmailVerificationCode(ctx.user!, alertMethod.destination, otp)
     }
-    const sendVerificationCode = notifier.notify(destination, params);
-    if ((await sendVerificationCode).valueOf() === true) {
+    else {
+        // Use NotifierRegistry to send the verification code
+        const notifier = NotifierRegistry.get(alertMethod.method)
+        const message = `${otp} is your FireAlert one time code.`
+        const subject = "Fire Alert Verification"
+        const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethod.id}/${otp}`
+        const destination = alertMethod.destination
+        const params = {
+            message: message,
+            subject: subject,
+            url: url
+        }
+        sendVerificationCode = await notifier.notify(destination, params);
+    }
+    if (sendVerificationCode === true) {
         return {
             status: 'success',
             message: 'Verification code sent successfully',
             data: alertMethod
         }
+    } else {
+        return {
+            status: 'error',
+            message: 'Failed to send verification code.'
+        }
     }
-    throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: `Error in sending verification code`,
-    });
+
 }

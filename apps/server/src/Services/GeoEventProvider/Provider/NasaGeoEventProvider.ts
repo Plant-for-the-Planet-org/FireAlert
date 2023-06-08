@@ -29,18 +29,15 @@ class NasaGeoEventProvider implements GeoEventProvider {
             ["MODIS_SP", "MODIS"],
             ["VIIRS_SNPP_SP", "VIIRS"],
         ]);
-
-        // the returned identityGroup is being used by the caller of this provider to identify duplicate GeoEvents
-        // events from multiple sources but same satellite with the same identityGroup will be considered duplicates
+        // this returned Identity group is being used as a detectedBy in siteAlert.
         return identityMap.get(this.config?.sourceKey) ?? null;
     }
 
     initialize(config?: GeoEventProviderConfig): void {
         this.config = config;
     }
-
+    
     async getLatestGeoEvents(): Promise<GeoEvent[]> {
-
         const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);

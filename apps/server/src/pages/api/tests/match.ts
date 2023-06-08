@@ -4,5 +4,4 @@
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
 import { GEO_EVENTS_PROCESSED } from '../../../Events/messageConstants'
 
-debugger;
 geoEventEmitter.emit(GEO_EVENTS_PROCESSED)

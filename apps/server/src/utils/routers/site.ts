@@ -3,7 +3,6 @@ import {
   CheckUserHasSitePermissionArgs,
   CheckIfPlanetROSiteArgs,
 } from '../../Interfaces/Site';
-import { Site } from '@prisma/client';
 
 // Compares the User in session or token with the Site that is being Read, Updated or Deleted
 export const checkUserHasSitePermission = async ({
@@ -51,24 +50,3 @@ export const checkIfPlanetROSite = async ({
     return false;
   }
 };
-
-export function returnSite(site: Site) {
-  const project =
-    !!site.projectId?.id && !!site.projectId?.name
-      ? {
-          id: site.projectId?.id,
-          name: site.projectId?.name,
-        }
-      : null;
-  return {
-    project,
-    id: site.id,
-    name: site.name,
-    type: site.type,
-    radius: site.radius,
-    isMonitored: site.isMonitored,
-    lastUpdated: site.lastUpdated,
-    userId: site.userId,
-    geometry: site.geometry,
-  };
-}

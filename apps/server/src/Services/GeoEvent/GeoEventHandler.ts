@@ -1,11 +1,11 @@
 import { AlertType, type GeoEventSource, PrismaClient } from "@prisma/client";
-import { GEO_EVENTS_PROCESSED } from "../Events/messageConstants";
+import { SITE_ALERTS_CREATED } from "../../Events/messageConstants";
 // import GeoEvent from "../Interfaces/GeoEvent";
 import { type GeoEvent } from "@prisma/client";
-import geoEventEmitter from "../Events/EventEmitter/GeoEventEmitter";
+import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
 import md5 from "md5";
 
-const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEvents: Array<GeoEvent>) => {
+const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, geoEvents: Array<GeoEvent>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -14,6 +14,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       geoEvent.eventDate.toISOString()
     );
   };
+  // events from multiple sources but same satellite with the same geoEventProviderId will be considered duplicates
 
   const compareIds = (dbEventIds: string[], fetchedEvents: GeoEvent[]): {
     newGeoEvents: GeoEvent[];
@@ -46,25 +47,39 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
   const prisma = new PrismaClient();
 
   const fetchDbEventIds = async (
-    identityGroup: string
+    geoEventProviderId: string
   ): Promise<Array<string>> => {
     // the the ids of all events from AreaEvent that are either 'pending' or 'notfied'
     // having the provided providerKey
     const geoEvents = await prisma.geoEvent.findMany({
       select: { id: true },
-      where: { identityGroup: identityGroup }
+      where: { geoEventProviderId: geoEventProviderId }
     });
 
     return geoEvents.map(geoEvent => geoEvent.id);
   };
 
-  const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(identityGroup), geoEvents);
+  const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
+  const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
+    const filteredNewGeoEvents: GeoEvent[] = [];
+    const idsSet: Set<string> = new Set();
+  
+    for (const geoEvent of newGeoEvents) {
+      if (!idsSet.has(geoEvent.id)) {
+        filteredNewGeoEvents.push(geoEvent);
+        idsSet.add(geoEvent.id);
+      }
+    }
+  
+    return filteredNewGeoEvents;
+  };
 
+  const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
-  if (newGeoEvents.length > 0) {
+  if (filteredDuplicateNewGeoEvents.length > 0) {
     await prisma.geoEvent.createMany({
-      data: newGeoEvents.map(geoEvent => ({
+      data: filteredDuplicateNewGeoEvents.map(geoEvent => ({
         id: geoEvent.id,
         type: AlertType.fire,
         latitude: geoEvent.latitude,
@@ -74,6 +89,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
         isProcessed: false,
         providerKey: providerKey,
         identityGroup: identityGroup,
+        geoEventProviderId: geoEventProviderId,
         radius: 0,
         data: geoEvent.data,
       })),
@@ -90,8 +106,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       },
     });
   }
-
-  geoEventEmitter.emit(GEO_EVENTS_PROCESSED);
+  siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId);
 };
 
 export default processGeoEvents;

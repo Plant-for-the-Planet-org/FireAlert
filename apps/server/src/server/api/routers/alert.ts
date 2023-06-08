@@ -5,22 +5,19 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-
-import { SiteAlert } from "@prisma/client";
-import { getUser } from "../../../utils/routers/user";
+import { getUserIdFromCtx } from "../../../utils/routers/trpc";
 import { subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
 
     getAlerts: protectedProcedure
         .query(async ({ ctx }) => {
-            debugger;
             try {
-                const user = await getUser(ctx)
+                const userId = getUserIdFromCtx(ctx)
                 const thirtyDaysAgo = subtractDays(new Date(), 30);
                 const sitesWithAlerts = await ctx.prisma.site.findMany({
                     where: {
-                        userId: user.id,
+                        userId: userId,
                         deletedAt: null,
                         alerts: {
                             some: {
@@ -31,11 +28,22 @@ export const alertRouter = createTRPCRouter({
                             },
                         },
                     },
-                    include: {
+                    select: {
                         alerts: {
                             select: {
                                 id: true,
-                                siteId: true,
+                                site:{
+                                    select:{
+                                        id:true,
+                                        name: true,
+                                        project: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                            },
+                                        }
+                                    },
+                                },
                                 eventDate: true,
                                 type: true,
                                 latitude: true,
@@ -43,15 +51,16 @@ export const alertRouter = createTRPCRouter({
                                 detectedBy: true,
                                 confidence: true,
                                 distance: true,
+                                data: true,
                             },
                             where: {
                                 eventDate: {
                                     gte: thirtyDaysAgo,
                                 },
                                 deletedAt: null,
-                            },
+                            }
                         },
-                    },
+                    }
                 });
                 // Flatten the array of site alerts
                 const alertsForUser = sitesWithAlerts.flatMap(site => site.alerts);
@@ -74,31 +83,33 @@ export const alertRouter = createTRPCRouter({
         .query(async ({ ctx, input }) => {
             try {
                 const alert = await ctx.prisma.siteAlert.findFirst({
+                    where: { 
+                        id: input.id 
+                    },
                     select: {
                         id: true,
-                        type: true,
-                        eventDate: true,
-                        latitude: true,
-                        longitude: true,
-                        detectedBy: true,
-                        confidence: true,
-                        distance: true,
-                        data: true,
-                        site: {
-                            select: {
-                                id: true,
+                        site:{
+                            select:{
+                                id:true,
                                 name: true,
                                 geometry: true,
                                 project: {
                                     select: {
                                         id: true,
                                         name: true,
-                                    }
+                                    },
                                 }
-                            }
-                        }
-                    },
-                    where: { id: input.id }
+                            },
+                        },
+                        eventDate: true,
+                        type: true,
+                        latitude: true,
+                        longitude: true,
+                        detectedBy: true,
+                        confidence: true,
+                        distance: true,
+                        data: true,
+                    }
                 })
                 if (!alert) {
                     throw new TRPCError({
