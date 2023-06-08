@@ -92,6 +92,9 @@ const Settings = ({navigation}) => {
   const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
   const [radiusLoaderArr, setRadiusLoaderArr] = useState<Array<string>>([]);
+  const [alertMethodLoaderArr, setAlertMethodLoaderArr] = useState<
+    Array<string>
+  >([]);
   const [reRender, setReRender] = useState<boolean>(false);
   const [deviceAlertPreferences, setDeviceAlertPreferences] = useState<
     object[]
@@ -315,6 +318,10 @@ const Settings = ({navigation}) => {
                 }
               : null,
         );
+        const loadingArr = alertMethodLoaderArr.filter(
+          el => el !== res?.json?.data?.id,
+        );
+        setAlertMethodLoaderArr(loadingArr);
         setReRender(!reRender);
       },
       onError: () => {
@@ -380,6 +387,7 @@ const Settings = ({navigation}) => {
 
   const handleNotifySwitch = (data, isEnabled) => {
     const {alertMethodId} = data;
+    setAlertMethodLoaderArr(prevState => [...prevState, alertMethodId]);
     updateAlertPreferences.mutate({
       json: {params: {alertMethodId}, body: {isEnabled}},
     });
@@ -697,12 +705,19 @@ const Settings = ({navigation}) => {
                         )}
                       </Text>
                       <View style={styles.emailSubContainer}>
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({alertMethodId: item.id}, val)
-                          }
-                        />
+                        {alertMethodLoaderArr.includes(item?.id) ? (
+                          <ActivityIndicator
+                            size={'small'}
+                            color={Colors.PRIMARY}
+                          />
+                        ) : (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item.id}, val)
+                            }
+                          />
+                        )}
                         {!(i === 0) && (
                           <TouchableOpacity
                             style={styles.trashIcon}
@@ -753,12 +768,22 @@ const Settings = ({navigation}) => {
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item.id}, val)
-                            }
-                          />
+                          alertMethodLoaderArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <Switch
+                              value={item?.isEnabled}
+                              onValueChange={val =>
+                                handleNotifySwitch(
+                                  {alertMethodId: item.id},
+                                  val,
+                                )
+                              }
+                            />
+                          )
                         ) : (
                           <TouchableOpacity
                             style={styles.verifiedChipsCon}
@@ -817,12 +842,22 @@ const Settings = ({navigation}) => {
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item?.id}, val)
-                            }
-                          />
+                          alertMethodLoaderArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <Switch
+                              value={item?.isEnabled}
+                              onValueChange={val =>
+                                handleNotifySwitch(
+                                  {alertMethodId: item?.id},
+                                  val,
+                                )
+                              }
+                            />
+                          )
                         ) : (
                           <TouchableOpacity
                             style={styles.verifiedChipsCon}
@@ -873,12 +908,22 @@ const Settings = ({navigation}) => {
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item.id}, val)
-                            }
-                          />
+                          alertMethodLoaderArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <Switch
+                              value={item?.isEnabled}
+                              onValueChange={val =>
+                                handleNotifySwitch(
+                                  {alertMethodId: item.id},
+                                  val,
+                                )
+                              }
+                            />
+                          )
                         ) : (
                           <TouchableOpacity
                             style={styles.verifiedChipsCon}
@@ -935,12 +980,22 @@ const Settings = ({navigation}) => {
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item.id}, val)
-                            }
-                          />
+                          alertMethodLoaderArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <Switch
+                              value={item?.isEnabled}
+                              onValueChange={val =>
+                                handleNotifySwitch(
+                                  {alertMethodId: item.id},
+                                  val,
+                                )
+                              }
+                            />
+                          )
                         ) : (
                           <TouchableOpacity
                             style={styles.verifiedChipsCon}
@@ -1012,12 +1067,16 @@ const Settings = ({navigation}) => {
         <View style={[styles.geostationaryMainContainer, styles.commonPadding]}>
           <View style={styles.geostationaryContainer}>
             <Text style={styles.subHeading}>Geostationary</Text>
-            <Switch
-              value={userDetails?.data?.detectionMethods?.includes(
-                'GEOSTATIONARY',
-              )}
-              onValueChange={handleGeostationary}
-            />
+            {updateUser?.isLoading ? (
+              <ActivityIndicator color={Colors.PRIMARY} />
+            ) : (
+              <Switch
+                value={userDetails?.data?.detectionMethods?.includes(
+                  'GEOSTATIONARY',
+                )}
+                onValueChange={handleGeostationary}
+              />
+            )}
           </View>
           <Text style={styles.desc}>Quick but many false alarms [BETA]</Text>
           <View style={styles.geostationaryInfoContainer}>
