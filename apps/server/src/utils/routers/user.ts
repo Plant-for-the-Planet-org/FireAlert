@@ -1,52 +1,11 @@
 import { TRPCError } from '@trpc/server';
-import { type TRPCContext } from '../../Interfaces/Context'
+import { TRPCContext } from '../../Interfaces/Context'
 import { getUserIdByToken } from '../authorization/token';
 import { type Project, Prisma, PrismaClient, type User } from '@prisma/client';
 import { fetchProjectsWithSitesForUser, planetUser } from '../fetch';
 import { createAlertMethodInPrismaTransaction } from './alertMethod';
 import { env } from '../../env.mjs';
-// import { prisma } from '../../server/db';
-
-const prisma = new PrismaClient();
-export const getUser = async (ctx: TRPCContext) => {
-    const userId = ctx.token
-        ? await getUserIdByToken(ctx)
-        : ctx.session?.user?.id;
-    if (!userId) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "User ID not found",
-        });
-    }
-    const user = await ctx.prisma.user.findUnique({
-        where: {
-            id: userId,
-        },
-    });
-    if (!user) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "User not found",
-        });
-    } else {
-        return user;
-    }
-};
-
-export async function getUserBySub(sub: string) {
-    const user = await prisma.user.findFirst({
-        where: {
-            sub: sub
-        }
-    });
-    if (!user) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Cannot find user associated with the token, make sure the user has logged in atleast once",
-        });
-    }
-    return user;
-}
+import { prisma } from '../../server/db';
 
 interface CreateUserArgs {
     id?: string;
@@ -102,8 +61,10 @@ interface Auth0User {
     email_verified: boolean;
 }
 
+
+
 // User Handlers
-export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
+export async function handleNewUser(bearer_token: string) {
 
     // Fetch user data from Auth0
     const response = await fetch(`${env.AUTH0_DOMAIN}/userinfo`, {
