@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-export function daysFromToday(inputDate: Date, format = 'MM/DD/YYYY') {
-  let eventDate = moment(inputDate, format);
+export function daysFromToday(inputDate: Date) {
+  let eventDate = moment(inputDate);
   let today = moment();
   return today.diff(eventDate, 'days');
 }

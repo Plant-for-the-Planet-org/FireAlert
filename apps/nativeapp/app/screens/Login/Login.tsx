@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnContainer: {
-    top: 551,
+    bottom: 50,
     alignSelf: 'center',
     position: 'absolute',
   },

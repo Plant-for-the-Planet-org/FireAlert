@@ -8,11 +8,13 @@ import {
   getUserDetails,
   updateIsLoggedIn,
   updateAccessToken,
+  getConfigData,
 } from '../redux/slices/login/loginSlice';
 import {getData} from '../utils/localStorage';
 import {CommonStack, SignInStack} from './stack';
-import {useAppDispatch, useAppSelector} from '../hooks';
-import {getAlerts} from '../redux/slices/alerts/alertSlice';
+import {useAppDispatch, useAppSelector, useOneSignal} from '../hooks';
+
+const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
 
 export default function AppNavigator() {
   const {isLoggedIn} = useAppSelector(state => state.loginSlice);
@@ -33,19 +35,29 @@ export default function AppNavigator() {
     }
   };
 
-  React.useEffect(() => {
-    checkUserValidation();
-  }, []);
+  useOneSignal(onesignalAppId, {
+    onReceived: notification => {
+      // Handle received notification
+      console.log('Notification received:', notification);
+    },
+    onOpened: openResult => {
+      // Handle notification opened
+      console.log('Notification opened:', openResult);
+    },
+    onIds: device => {
+      // Save device ID for sending personalized notifications
+      console.log('Device info:', device);
+    },
+  });
 
   React.useEffect(() => {
-    if (isLoggedIn) {
-      const request = {
-        onSuccess: () => {},
-        onFail: () => {},
-      };
-      dispatch(getAlerts(request));
-    }
-  }, [isLoggedIn]);
+    const request = {
+      onSuccess: async message => {},
+      onFail: message => {},
+    };
+    checkUserValidation();
+    dispatch(getConfigData(request));
+  }, []);
 
   React.useEffect(() => {
     (async () => {

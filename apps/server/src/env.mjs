@@ -5,7 +5,9 @@ import { z } from "zod";
  * built with invalid env vars.
  */
 const server = z.object({
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().url().optional(),
+  DATABASE_PRISMA_URL: z.string().url(),
+  DATABASE_URL_NON_POOLING: z.string().url(),
   NODE_ENV: z.enum(["development", "test", "production"]),
   NEXTAUTH_SECRET:
     process.env.NODE_ENV === "production"
@@ -24,12 +26,12 @@ const server = z.object({
   NEXT_AUTH0_CLIENT_SECRET: z.string(),
   AUTH0_ISSUER: z.string(),
   AUTH0_DOMAIN: z.string(),
-  MAP_KEY: z.string(),
   ONESIGNAL_APP_ID: z.string(),
   ONESIGNAL_REST_API_KEY: z.string(),
   TWILIO_ACCOUNT_SID: z.string(),
   TWILIO_AUTH_TOKEN: z.string(),
   TWILIO_PHONE_NUMBER: z.string(),
+  TWILIO_WHATSAPP_NUMBER: z.string().optional(),
   SMTP_URL: z.string().url(),
   EMAIL_FROM: z.string(),
   PLANET_API_URL: z.string(),
@@ -51,7 +53,9 @@ const client = z.object({
  * @type {Record<keyof z.infer<typeof server> | keyof z.infer<typeof client>, string | undefined>}
  */
 const processEnv = {
-  DATABASE_URL: process.env.DATABASE_PRISMA_URL ? process.env.DATABASE_PRISMA_URL : process.env.DATABASE_URL,
+  DATABASE_PRISMA_URL: process.env.DATABASE_PRISMA_URL,
+  DATABASE_URL: process.env.DATABASE_URL ? process.env.DATABASE_URL : process.env.DATABASE_PRISMA_URL,
+  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING ? process.env.DATABASE_URL_NON_POOLING : process.env.DATABASE_URL, 
   // DATABASE_PRISMA_URL is set by VERCEL POSTGRES and had pooling built in.
   NODE_ENV: process.env.NODE_ENV,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
@@ -60,12 +64,12 @@ const processEnv = {
   NEXT_AUTH0_CLIENT_SECRET: process.env.NEXT_AUTH0_CLIENT_SECRET,
   AUTH0_ISSUER: process.env.AUTH0_ISSUER,
   AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
-  MAP_KEY: process.env.MAP_KEY,
   ONESIGNAL_APP_ID: process.env.ONESIGNAL_APP_ID,
   ONESIGNAL_REST_API_KEY: process.env.ONESIGNAL_REST_API_KEY,
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
+  TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
   SMTP_URL: process.env.SMTP_URL,
   EMAIL_FROM: process.env.EMAIL_FROM,
   PLANET_API_URL: process.env.PLANET_API_URL,

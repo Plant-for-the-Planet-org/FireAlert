@@ -3,32 +3,15 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { getUserIdByToken } from "../../../utils/token";
+import { getUserIdFromCtx } from '../../../utils/routers/trpc'
 
 export const projectRouter = createTRPCRouter({
 
-    getAllProjects: protectedProcedure
+    getProjects: protectedProcedure
         .query(async ({ ctx }) => {
-            const userId = ctx.token ? await getUserIdByToken(ctx) : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: "User ID not found in session",
-                });
-            }
-            try{
-                const user = await ctx.prisma.user.findFirst({
-                    where: {
-                        id: userId,
-                    }
-                })
-                if(!user){
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: 'User does not exist',
-                    });
-                }
-                if(!user.isPlanetRO){
+            try {
+                const userId = getUserIdFromCtx(ctx)
+                if (ctx.user?.isPlanetRO === false) {
                     throw new TRPCError({
                         code: "METHOD_NOT_SUPPORTED",
                         message: 'User is not planetRO, user does not have projects',
@@ -43,13 +26,13 @@ export const projectRouter = createTRPCRouter({
                     status: 'success',
                     data: projects,
                 }
-            }catch (error) {
+            } catch (error) {
                 console.log(error)
                 throw new TRPCError({
                     code: "NOT_FOUND",
-                    message: 'Error fetching projects',
+                    message: `${error}`,
                 });
             }
         }),
-        
+
 });

@@ -13,9 +13,20 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import {
+  point,
+  Point,
+  Feature,
+  polygon,
+  Properties,
+  multiPolygon,
+} from '@turf/helpers';
+import centroid from '@turf/centroid';
+import rewind from '@mapbox/geojson-rewind';
+import OneSignal from 'react-native-onesignal';
+import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {
   Switch,
@@ -35,7 +46,9 @@ import {
   EmailIcon,
   PlanetLogo,
   PencilIcon,
+  LayerCheck,
   WarningIcon,
+  GlobeWebIcon,
   DistanceIcon,
   WhatsAppIcon,
   DropdownArrow,
@@ -45,57 +58,22 @@ import {
   VerificationWarning,
   DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
-import {getSites} from '../../redux/slices/sites/siteSlice';
-import {getAlertsPreferences} from '../../redux/slices/alerts/alertSlice';
 
 import {trpc} from '../../services/trpc';
 import {WEB_URLS} from '../../constants';
-import {useAppDispatch} from '../../hooks';
 import {Colors, Typography} from '../../styles';
+import {clearAll} from '../../utils/localStorage';
 import handleLink from '../../utils/browserLinking';
+import {getDeviceInfo} from '../../utils/deviceInfo';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
+import {useAppDispatch, useAppSelector} from '../../hooks';
+import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const IS_ANDROID = Platform.OS === 'android';
-
-const PROJECTS = [
-  {
-    id: 1,
-    name: 'Yucatan Restoration',
-    enabled: true,
-    sites: [
-      {
-        id: 1,
-        name: 'Las Americas 1',
-        radius: 100,
-      },
-      {
-        id: 2,
-        name: 'Las Americas 2',
-        radius: 10,
-      },
-      {
-        id: 3,
-        name: 'Las Americas 3',
-        radius: null,
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Volcano Valley',
-    enabled: false,
-    sites: null,
-  },
-];
-
-const MY_SITES = [
-  {id: 1, name: 'Balam Kú Sur', radius: 100, enabled: false},
-  {id: 2, name: 'Balam Kú Norte', radius: 100, enabled: false},
-];
 
 const RADIUS_ARR = [
   {name: 'within 100 km', value: 100},
@@ -105,63 +83,127 @@ const RADIUS_ARR = [
 ];
 
 const Settings = ({navigation}) => {
-  const [projects, setProjects] = useState(PROJECTS);
+  const [siteId, setSiteId] = useState<string | null>('');
+  const [pageXY, setPageXY] = useState<object | null>(null);
+  const [siteName, setSiteName] = useState<string | null>('');
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [mobileNotify, setMobileNotify] = useState<boolean>(false);
   const [dropDownModal, setDropDownModal] = useState<boolean>(false);
   const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
-  const [pageXY, setPageXY] = useState<object | null>(null);
-  const [mobileNotify, setMobileNotify] = useState<boolean>(false);
-  const [siteName, setSiteName] = useState<string | null>('');
-  const [siteId, setSiteId] = useState<string | null>('');
-  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
+  const [reRender, setReRender] = useState<boolean>(false);
+  const [deviceAlertPreferences, setDeviceAlertPreferences] = useState<
+    object[]
+  >([]);
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
   const [selectedSiteInfo, setSelectedSiteInfo] = useState<boolean | null>(
     null,
   );
 
-  const dispatch = useAppDispatch();
   const toast = useToast();
+  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
+  const {userDetails} = useAppSelector(state => state.loginSlice);
+
+  async function deviceNotification() {
+    try {
+      const {deviceId} = await getDeviceInfo();
+      const {userId} = await OneSignal.getDeviceState();
+      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
+        el => userId === el?.destination && el.deviceId === deviceId,
+      );
+      if (filterDeviceAlertMethod.length > 0) {
+        const filteredData = filterDeviceAlertMethod[0];
+        const nonFilteredData = formattedAlertPreferences.device.filter(
+          el => userId !== el?.destination || el.deviceId !== deviceId,
+        );
+        formattedAlertPreferences.device = [
+          filteredData,
+          ...nonFilteredData,
+        ].filter(el => el.deviceName !== '');
+      }
+      setDeviceAlertPreferences(formattedAlertPreferences?.device);
+    } catch {
+      setDeviceAlertPreferences([]);
+    }
+  }
+
+  useEffect(() => {
+    deviceNotification();
+  }, [reRender]);
+
+  const {
+    data: sites,
+    refetch: refetchSites,
+    isSuccess: sitesSuccess,
+  } = trpc.site.getSites.useQuery(['site', 'getSites'], {
+    enabled: true,
+    retryDelay: 3000,
+    staleTime: 'Infinity',
+    cacheTime: 'Infinity',
+    keepPreviousData: true,
+    onSuccess: () => {
+      setRefreshing(false);
+    },
+    onError: () => {
+      setRefreshing(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+  const groupOfSites = useMemo(
+    () => groupSitesAsProject(sites?.json?.data || []),
+    [sites],
+  );
 
   const {data: alertPreferences, refetch: refetchAlertPreferences} =
-    trpc.alertMethod.getAllAlertMethods.useQuery(undefined, {
-      enabled: true,
+    trpc.alertMethod.getAlertMethods.useQuery(undefined, {
+      enabled: sitesSuccess,
       retryDelay: 3000,
-      refetchInterval: 10000,
-      refetchIntervalInBackground: true,
+      onSuccess: () => {
+        setRefreshing(false);
+      },
       onError: () => {
+        setRefreshing(false);
         toast.show('something went wrong', {type: 'danger'});
       },
     });
   const formattedAlertPreferences = useMemo(
     () => categorizedRes(alertPreferences?.json?.data || [], 'method'),
-    [categorizedRes, alertPreferences],
+    [alertPreferences],
   );
-
-  const {data: sites, refetch: refetchSites} = trpc.site.getAllSites.useQuery(
-    undefined,
-    {
-      enabled: true,
-      retryDelay: 3000,
-      refetchInterval: 10000,
-      refetchIntervalInBackground: true,
-      onError: () => {
-        toast.show('something went wrong', {type: 'danger'});
-      },
-    },
-  );
-
-  const groupOfSites = useMemo(
-    () => groupSitesAsProject(sites?.json?.data || [], 'projectId'),
-    [groupSitesAsProject, sites],
-  );
-
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
-      refetchSites();
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req.json.siteId,
+                  ),
+                },
+              }
+            : null,
+      );
       setSitesInfoModal(false);
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const softDeleteUser = trpc.user.softDeleteUser.useMutation({
+    retryDelay: 3000,
+    onSuccess: async () => {
+      setShowDelAccount(false);
+      await clearAll();
+      dispatch(updateIsLoggedIn(false));
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -170,12 +212,26 @@ const Settings = ({navigation}) => {
 
   const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
     retryDelay: 3000,
-    onSuccess: data => {
+    onSuccess: (data, req) => {
+      queryClient.setQueryData(
+        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req?.json?.alertMethodId,
+                  ),
+                },
+              }
+            : null,
+      );
       const loadingArr = delAlertMethodArr.filter(
         el => el !== data?.json?.data?.id,
       );
       setDelAlertMethodArr(loadingArr);
-      refetchAlertPreferences();
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -184,8 +240,22 @@ const Settings = ({navigation}) => {
 
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
-      refetchSites();
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
+            : null,
+      );
       setSiteNameModalVisible(false);
     },
     onError: () => {
@@ -196,8 +266,23 @@ const Settings = ({navigation}) => {
   const updateAlertPreferences = trpc.alertMethod.updateAlertMethod.useMutation(
     {
       retryDelay: 3000,
-      onSuccess: () => {
-        refetchAlertPreferences();
+      onSuccess: res => {
+        queryClient.setQueryData(
+          [['alertMethod', 'getAlertMethods'], {type: 'query'}],
+          oldData =>
+            oldData
+              ? {
+                  ...oldData,
+                  json: {
+                    ...oldData?.json,
+                    data: oldData?.json?.data?.map(item =>
+                      item.id === res?.json?.data?.id ? res?.json?.data : item,
+                    ),
+                  },
+                }
+              : null,
+        );
+        setReRender(!reRender);
       },
       onError: () => {
         toast.show('something went wrong', {type: 'danger'});
@@ -208,6 +293,11 @@ const Settings = ({navigation}) => {
   const verifyAlertPreference = trpc.alertMethod.sendVerification.useMutation({
     retryDelay: 3000,
     onSuccess: (data, variables) => {
+      if (data?.json?.status === 403) {
+        return toast.show(data?.json?.message || 'something went wrong', {
+          type: 'warning',
+        });
+      }
       const alertMethod = alertPreferences?.json?.data?.filter(
         item => item.id === variables?.json?.alertMethodId,
       );
@@ -220,12 +310,6 @@ const Settings = ({navigation}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
-
-  const handleSwitch = (index, val) => {
-    let arr = [...projects];
-    arr[index].enabled = val;
-    setProjects(arr);
-  };
 
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
@@ -240,21 +324,23 @@ const Settings = ({navigation}) => {
     setDropDownModal(false);
   };
 
-  const handleRadius = (evt, projectId, siteId) => {
+  const handleRadius = (evt, projectId, siteId, siteRadius) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       projectId,
       siteId,
+      siteRadius,
     });
     setDropDownModal(!dropDownModal);
   };
 
-  const handleSiteRadius = (evt, siteId) => {
+  const handleSiteRadius = (evt, siteId, siteRadius) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       siteId,
+      siteRadius,
     });
     setDropDownModal(!dropDownModal);
   };
@@ -311,6 +397,12 @@ const Settings = ({navigation}) => {
     });
   };
 
+  const handleWebhook = () => {
+    navigation.navigate('Verification', {
+      verificationType: 'Webhook',
+    });
+  };
+
   const handleDeleteSite = (id: string) => {
     deleteSite.mutate({json: {siteId: id}});
   };
@@ -318,13 +410,39 @@ const Settings = ({navigation}) => {
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
 
   const _handleViewMap = (siteInfo: object) => () => {
+    let center: Feature<Point, Properties>;
+    let highlightSiteInfo = siteInfo;
     setSitesInfoModal(false);
-    navigation.navigate('Home', siteInfo);
+    if (siteInfo?.geometry?.type === 'MultiPolygon') {
+      center = centroid(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
+      highlightSiteInfo = rewind(siteInfo?.geometry);
+    } else if (siteInfo?.geometry?.type === 'Point') {
+      center = point(siteInfo?.geometry.coordinates);
+      highlightSiteInfo = siteInfo?.geometry;
+    } else {
+      center = centroid(polygon(siteInfo?.geometry.coordinates));
+      highlightSiteInfo = siteInfo?.geometry;
+    }
+    const lat = center?.geometry?.coordinates[0];
+    const long = center?.geometry?.coordinates[1];
+    navigation.navigate('Home', {
+      lat,
+      long,
+      siteInfo: [
+        {
+          type: 'Feature',
+          geometry: highlightSiteInfo,
+          properties: {site: siteInfo},
+        },
+      ],
+    });
   };
 
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
-  const onDeleteAccount = () => {};
+  const onDeleteAccount = () => {
+    softDeleteUser.mutate({json: {id: userDetails?.id}});
+  };
   const onGoBack = () => setShowDelAccount(false);
 
   const handleDelAccount = () => {
@@ -333,23 +451,9 @@ const Settings = ({navigation}) => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    const req = {
-      onSuccess: () => {
-        setRefreshing(false);
-      },
-      onFail: () => {
-        setRefreshing(false);
-      },
-    };
-    dispatch(getSites(req));
-    dispatch(getAlertsPreferences(req));
+    refetchSites();
+    refetchAlertPreferences();
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      onRefresh();
-    }, []),
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -360,10 +464,16 @@ const Settings = ({navigation}) => {
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            title="refreshing"
+            onRefresh={onRefresh}
+            refreshing={refreshing}
+            tintColor={Colors.GRADIENT_PRIMARY}
+            titleColor={Colors.GRADIENT_PRIMARY}
+          />
         }>
         {/* my projects */}
-        {Object.keys(groupOfSites[0])?.length > 0 ? (
+        {Object.keys(groupOfSites[0] || {})?.length > 0 ? (
           <View style={[styles.myProjects, styles.commonPadding]}>
             <Text style={styles.mainHeading}>
               My Projects via{' '}
@@ -371,33 +481,33 @@ const Settings = ({navigation}) => {
                 <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
               </Text>
             </Text>
-            {groupOfSites.map((item, index) => (
+            {groupOfSites?.map((item, index) => (
               <View key={`projects_${index}`} style={styles.projectsInfo}>
                 <View style={styles.projectsNameInfo}>
                   <Text style={styles.projectsName}>{item.name}</Text>
-                  <Switch
-                    value={item.enabled}
-                    onValueChange={val => handleSwitch(index, val)}
-                  />
                 </View>
-                {item?.sites?.length > 0 && <View style={{marginTop: 30}} />}
-                {item.sites
-                  ? item.sites.map((sites, index) => (
-                      <>
+                {item?.sites?.length > 0 && <View style={{marginTop: 16}} />}
+                {item?.sites
+                  ? item?.sites?.map((sites, index) => (
+                      <View key={`sites_${index}`}>
                         <TouchableOpacity
                           onPress={() => handleSiteInformation(sites)}
-                          key={`sites_${index}`}
                           style={styles.sitesInProjects}>
-                          <Text style={styles.sitesName}>{sites.name}</Text>
+                          <Text style={styles.sitesName}>{sites?.name}</Text>
                           <View style={styles.rightConPro}>
                             <TouchableOpacity
                               onPress={evt =>
-                                handleRadius(evt, item.id, sites.id)
+                                handleRadius(
+                                  evt,
+                                  item?.id,
+                                  sites?.id,
+                                  sites?.radius,
+                                )
                               }
                               style={[styles.dropDownRadius, {marginRight: 5}]}>
                               <Text style={styles.siteRadius}>
-                                {sites.radius
-                                  ? `within ${sites.radius} km`
+                                {sites?.radius
+                                  ? `within ${sites?.radius} km`
                                   : 'inside'}
                               </Text>
                               <DropdownArrow />
@@ -418,7 +528,7 @@ const Settings = ({navigation}) => {
                         {item?.sites?.length - 1 !== index && (
                           <View style={styles.separator} />
                         )}
-                      </>
+                      </View>
                     ))
                   : null}
               </View>
@@ -426,14 +536,14 @@ const Settings = ({navigation}) => {
           </View>
         ) : null}
         {/* my sites */}
-        {sites?.json?.data?.filter(site => site?.projectId === null).length >
+        {sites?.json?.data?.filter(site => site?.project === null).length >
         0 ? (
           <View style={[styles.mySites, styles.commonPadding]}>
             <View style={styles.mySitesHead}>
               <Text style={styles.mainHeading}>My Sites</Text>
             </View>
             {sites?.json?.data
-              ?.filter(site => site?.projectId === null)
+              ?.filter(site => site?.project === null)
               .map((item, index) => (
                 <TouchableOpacity
                   onPress={() => handleSiteInformation(item)}
@@ -444,7 +554,9 @@ const Settings = ({navigation}) => {
                   </Text>
                   <View style={styles.rightConPro}>
                     <TouchableOpacity
-                      onPress={evt => handleSiteRadius(evt, item?.id)}
+                      onPress={evt =>
+                        handleSiteRadius(evt, item?.id, item?.radius)
+                      }
                       style={[
                         styles.dropDownRadius,
                         {marginRight: 5, paddingVertical: 16},
@@ -477,15 +589,46 @@ const Settings = ({navigation}) => {
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
-          <View style={styles.notificationContainer}>
-            <View style={styles.mobileContainer}>
-              <PhoneIcon />
-              <Text style={[styles.smallHeading]}>Mobile</Text>
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <PhoneIcon />
+                <Text style={[styles.smallHeading]}>Mobile</Text>
+              </View>
             </View>
-            <Switch
-              value={mobileNotify}
-              onValueChange={val => setMobileNotify(val)}
-            />
+            {deviceAlertPreferences?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {deviceAlertPreferences?.map((item, i) => (
+                  <View key={`emails_${i}`}>
+                    <View
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.deviceName}
+                        {i === 0 && (
+                          <Text style={styles.projectSyncInfo}>
+                            {''} ( this device )
+                          </Text>
+                        )}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        <Switch
+                          value={item?.isEnabled}
+                          onValueChange={val =>
+                            handleNotifySwitch({alertMethodId: item.id}, val)
+                          }
+                        />
+                      </View>
+                    </View>
+                    {deviceAlertPreferences?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
           {/* emails */}
           <View style={styles.mySiteNameMainContainer}>
@@ -498,55 +641,58 @@ const Settings = ({navigation}) => {
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            <View style={styles.emailContainer}>
-              {formattedAlertPreferences?.email?.map((item, i) => (
-                <>
-                  <View
-                    key={`emails_${i}`}
-                    style={[
-                      styles.emailSubContainer,
-                      {justifyContent: 'space-between'},
-                    ]}>
-                    <Text style={styles.myEmailName}>{item?.destination}</Text>
-                    <View style={styles.emailSubContainer}>
-                      {item?.isVerified ? (
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({alertMethodId: item.id}, val)
-                          }
-                        />
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.verifiedChipsCon}
-                          onPress={_handleVerify(item)}>
-                          <View style={styles.verifiedChips}>
-                            <VerificationWarning />
-                            <Text style={styles.verifiedTxt}>Verify</Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
-                      <TouchableOpacity
-                        style={styles.trashIcon}
-                        disabled={delAlertMethodArr.includes(item?.id)}
-                        onPress={() => handleRemoveAlertMethod(item?.id)}>
-                        {delAlertMethodArr.includes(item?.id) ? (
-                          <ActivityIndicator
-                            size={'small'}
-                            color={Colors.PRIMARY}
+            {formattedAlertPreferences?.email?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {formattedAlertPreferences?.email?.map((item, i) => (
+                  <View key={`emails_${i}`}>
+                    <View
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.destination}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        {item?.isVerified ? (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item.id}, val)
+                            }
                           />
                         ) : (
-                          <TrashSolidIcon />
+                          <TouchableOpacity
+                            style={styles.verifiedChipsCon}
+                            onPress={_handleVerify(item)}>
+                            <View style={styles.verifiedChips}>
+                              <VerificationWarning />
+                              <Text style={styles.verifiedTxt}>Verify</Text>
+                            </View>
+                          </TouchableOpacity>
                         )}
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.trashIcon}
+                          disabled={delAlertMethodArr.includes(item?.id)}
+                          onPress={() => handleRemoveAlertMethod(item?.id)}>
+                          {delAlertMethodArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <TrashSolidIcon />
+                          )}
+                        </TouchableOpacity>
+                      </View>
                     </View>
+                    {formattedAlertPreferences?.email?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
                   </View>
-                  {formattedAlertPreferences?.email?.length - 1 !== i && (
-                    <View style={[styles.separator, {marginVertical: 12}]} />
-                  )}
-                </>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
           </View>
           {/* whatsapp */}
           <View style={styles.mySiteNameMainContainer}>
@@ -559,45 +705,50 @@ const Settings = ({navigation}) => {
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            <View style={styles.emailContainer}>
-              {formattedAlertPreferences?.whatsapp?.map((item, i) => (
-                <>
-                  <View
-                    key={`whatsapp_${i}`}
-                    style={[
-                      styles.emailSubContainer,
-                      {justifyContent: 'space-between'},
-                    ]}>
-                    <Text style={styles.myEmailName}>{item?.destination}</Text>
-                    <View style={styles.emailSubContainer}>
-                      {item?.isVerified ? (
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({guid: item.guid}, val)
-                          }
-                        />
-                      ) : (
-                        <View style={styles.verifiedChips}>
-                          <VerificationWarning />
-                          <Text style={styles.verifiedTxt}>
-                            Verification Required
-                          </Text>
-                        </View>
-                      )}
-                      <TouchableOpacity
-                        style={{marginLeft: 20}}
-                        onPress={() => handleRemoveAlertMethod(item?.id)}>
-                        <TrashSolidIcon />
-                      </TouchableOpacity>
+            {formattedAlertPreferences?.whatsapp?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {formattedAlertPreferences?.whatsapp?.map((item, i) => (
+                  <View key={`whatsapp_${i}`}>
+                    <View
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.destination}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        {item?.isVerified ? (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item?.id}, val)
+                            }
+                          />
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.verifiedChipsCon}
+                            onPress={_handleVerify(item)}>
+                            <View style={styles.verifiedChips}>
+                              <VerificationWarning />
+                              <Text style={styles.verifiedTxt}>Verify</Text>
+                            </View>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={{marginLeft: 20}}
+                          onPress={() => handleRemoveAlertMethod(item?.id)}>
+                          <TrashSolidIcon />
+                        </TouchableOpacity>
+                      </View>
                     </View>
+                    {formattedAlertPreferences?.whatsapp?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
                   </View>
-                  {formattedAlertPreferences?.whatsapp?.length - 1 !== i && (
-                    <View style={[styles.separator, {marginVertical: 12}]} />
-                  )}
-                </>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
           </View>
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
@@ -610,51 +761,117 @@ const Settings = ({navigation}) => {
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            <View style={styles.emailContainer}>
-              {formattedAlertPreferences?.sms?.map((item, i) => (
-                <>
-                  <View
-                    key={`sms_${i}`}
-                    style={[
-                      styles.emailSubContainer,
-                      {justifyContent: 'space-between'},
-                    ]}>
-                    <Text style={styles.myEmailName}>{item?.destination}</Text>
-                    <View style={styles.emailSubContainer}>
-                      {item?.isVerified ? (
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({alertMethodId: item.id}, val)
-                          }
-                        />
-                      ) : (
-                        <View style={styles.verifiedChips}>
-                          <VerificationWarning />
-                          <Text style={styles.verifiedTxt}>
-                            Verification Required
-                          </Text>
-                        </View>
-                      )}
-
-                      <TouchableOpacity
-                        style={styles.trashIcon}
-                        disabled={delAlertMethodArr.includes(item?.id)}
-                        onPress={() => handleRemoveAlertMethod(item?.id)}>
-                        {delAlertMethodArr.includes(item?.id) ? (
-                          <ActivityIndicator color={Colors.PRIMARY} />
+            {formattedAlertPreferences?.sms?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {formattedAlertPreferences?.sms?.map((item, i) => (
+                  <View key={`sms_${i}`}>
+                    <View
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.destination}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        {item?.isVerified ? (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item.id}, val)
+                            }
+                          />
                         ) : (
-                          <TrashSolidIcon />
+                          <TouchableOpacity
+                            style={styles.verifiedChipsCon}
+                            onPress={_handleVerify(item)}>
+                            <View style={styles.verifiedChips}>
+                              <VerificationWarning />
+                              <Text style={styles.verifiedTxt}>Verify</Text>
+                            </View>
+                          </TouchableOpacity>
                         )}
-                      </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.trashIcon}
+                          disabled={delAlertMethodArr.includes(item?.id)}
+                          onPress={() => handleRemoveAlertMethod(item?.id)}>
+                          {delAlertMethodArr.includes(item?.id) ? (
+                            <ActivityIndicator color={Colors.PRIMARY} />
+                          ) : (
+                            <TrashSolidIcon />
+                          )}
+                        </TouchableOpacity>
+                      </View>
                     </View>
+                    {formattedAlertPreferences?.sms?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
                   </View>
-                  {formattedAlertPreferences?.sms?.length - 1 !== i && (
-                    <View style={[styles.separator, {marginVertical: 12}]} />
-                  )}
-                </>
-              ))}
+                ))}
+              </View>
+            )}
+          </View>
+          {/* webhooks */}
+          <View style={styles.mySiteNameMainContainer}>
+            <View style={styles.mySiteNameSubContainer}>
+              <View style={styles.mobileContainer}>
+                <GlobeWebIcon width={17} height={17} />
+                <Text style={styles.smallHeading}>Webhook</Text>
+              </View>
+              <TouchableOpacity onPress={handleWebhook}>
+                <AddIcon />
+              </TouchableOpacity>
             </View>
+            {formattedAlertPreferences?.webhook?.length > 0 && (
+              <View style={styles.emailContainer}>
+                {formattedAlertPreferences?.webhook?.map((item, i) => (
+                  <View key={`webhook_${i}`}>
+                    <View
+                      style={[
+                        styles.emailSubContainer,
+                        {justifyContent: 'space-between'},
+                      ]}>
+                      <Text style={styles.myEmailName}>
+                        {item?.destination}
+                      </Text>
+                      <View style={styles.emailSubContainer}>
+                        {item?.isVerified ? (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item.id}, val)
+                            }
+                          />
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.verifiedChipsCon}
+                            onPress={_handleVerify(item)}>
+                            <View style={styles.verifiedChips}>
+                              <VerificationWarning />
+                              <Text style={styles.verifiedTxt}>Verify</Text>
+                            </View>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={styles.trashIcon}
+                          disabled={delAlertMethodArr.includes(item?.id)}
+                          onPress={() => handleRemoveAlertMethod(item?.id)}>
+                          {delAlertMethodArr.includes(item?.id) ? (
+                            <ActivityIndicator color={Colors.PRIMARY} />
+                          ) : (
+                            <TrashSolidIcon />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    {formattedAlertPreferences?.webhook?.length - 1 !== i && (
+                      <View style={[styles.separator, {marginVertical: 12}]} />
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
         {/* Warning */}
@@ -852,7 +1069,7 @@ const Settings = ({navigation}) => {
           visible={showDelAccount}
           heading={'Delete Account'}
           message={
-            'If you proceed your account will be scheduled for deletion and will be deleted in 7 days. If you change your mind, please login again to cancel the deletion process.'
+            'If you proceed, your FireAlert data will be scheduled for deletion in 7 days. If you change your mind please login again to cancel the deletion.\n\nTo delete your Plant-for-the-Planet Account, and Platform data, please visit pp.eco'
           }
           primaryBtnText={'Delete'}
           secondaryBtnText={'Go Back'}
@@ -869,17 +1086,18 @@ const Settings = ({navigation}) => {
             <View style={styles.modalHeader} />
             <View style={styles.siteTitleCon}>
               <View>
-                {selectedSiteInfo?.projectId && (
+                {selectedSiteInfo?.project && (
                   <Text style={styles.projectsName}>
-                    {selectedSiteInfo?.projectName || selectedSiteInfo?.guid}
+                    {selectedSiteInfo?.project?.name ||
+                      selectedSiteInfo?.project?.id}
                   </Text>
                 )}
                 <Text style={styles.siteTitle}>
-                  {selectedSiteInfo?.name || selectedSiteInfo?.guid}
+                  {selectedSiteInfo?.name || selectedSiteInfo?.id}
                 </Text>
               </View>
               <TouchableOpacity
-                disabled={selectedSiteInfo?.projectId !== null}
+                disabled={selectedSiteInfo?.project !== null}
                 onPress={() => handleEditSite(selectedSiteInfo)}>
                 <PencilIcon />
               </TouchableOpacity>
@@ -892,12 +1110,12 @@ const Settings = ({navigation}) => {
             </TouchableOpacity>
             <TouchableOpacity
               disabled={
-                deleteSite?.isLoading || selectedSiteInfo?.projectId !== null
+                deleteSite?.isLoading || selectedSiteInfo?.project !== null
               }
               onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
               style={[
                 styles.btn,
-                selectedSiteInfo?.projectId !== null && {
+                selectedSiteInfo?.project !== null && {
                   borderColor: Colors.GRAY_LIGHTEST,
                 },
               ]}>
@@ -905,7 +1123,7 @@ const Settings = ({navigation}) => {
                 <ActivityIndicator color={Colors.PRIMARY} />
               ) : (
                 <>
-                  {selectedSiteInfo?.projectId !== null ? (
+                  {selectedSiteInfo?.project !== null ? (
                     <DisabledTrashOutlineIcon />
                   ) : (
                     <TrashOutlineIcon />
@@ -913,7 +1131,7 @@ const Settings = ({navigation}) => {
                   <Text
                     style={[
                       styles.siteActionText,
-                      selectedSiteInfo?.projectId !== null && {
+                      selectedSiteInfo?.project !== null && {
                         color: Colors.GRAY_LIGHTEST,
                       },
                     ]}>
@@ -922,7 +1140,7 @@ const Settings = ({navigation}) => {
                 </>
               )}
             </TouchableOpacity>
-            {selectedSiteInfo?.projectId && (
+            {selectedSiteInfo?.project && (
               <Text style={styles.projectSyncInfo}>
                 This site is synced from pp.eco. To make changes, please visit
                 the Plant-for-the-Planet Platform.
@@ -981,11 +1199,27 @@ const Settings = ({navigation}) => {
               },
             ]}>
             {RADIUS_ARR.map((item, index) => (
-              <TouchableOpacity
-                key={`RADIUS_ARR_${index}`}
-                onPress={() => handleSelectRadius(item.value)}>
-                <Text style={styles.siteRadiusText}>{item.name}</Text>
-              </TouchableOpacity>
+              <View key={`RADIUS_ARR_${index}`} style={styles.subDropDownCon}>
+                <TouchableOpacity
+                  style={styles.siteRadiusCon}
+                  disabled={item?.value === pageXY?.siteRadius}
+                  onPress={() => handleSelectRadius(item.value)}>
+                  <Text
+                    style={[
+                      styles.siteRadiusText,
+                      item?.value === pageXY?.siteRadius && {
+                        fontFamily: Typography.FONT_FAMILY_BOLD,
+                        color: Colors.GRADIENT_PRIMARY,
+                      },
+                    ]}>
+                    {item.name}
+                  </Text>
+                  {item?.value === pageXY?.siteRadius && <LayerCheck />}
+                </TouchableOpacity>
+                {RADIUS_ARR.length - 1 !== index && (
+                  <View style={[styles.separator, {marginHorizontal: 16}]} />
+                )}
+              </View>
             ))}
           </View>
         </>
@@ -1082,6 +1316,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 1.3,
   },
   rightConPro: {
     flexDirection: 'row',
@@ -1097,6 +1332,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 2.5,
+    paddingVertical: 5,
   },
   siteRadius: {
     fontSize: Typography.FONT_SIZE_14,
@@ -1109,27 +1346,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 14,
   },
-
   dropDownModal: {
-    right: 40,
-    paddingVertical: 15,
-    paddingHorizontal: 25,
+    right: 70,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 12,
     position: 'absolute',
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_MEDIUM,
+  },
+  subDropDownCon: {
+    width: 150,
   },
   overlay: {
     height: SCREEN_HEIGHT,
     width: SCREEN_WIDTH,
     position: 'absolute',
   },
+  siteRadiusCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+  },
   siteRadiusText: {
-    fontSize: Typography.FONT_SIZE_16,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.BLACK,
-    paddingVertical: 5,
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    paddingVertical: 8,
   },
   mySitesHead: {
     flexDirection: 'row',
@@ -1151,9 +1395,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4.62,
     elevation: 8,
   },
-
   mySiteNameSubContainer: {
-    marginTop: 20,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -1222,9 +1465,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emailContainer: {
-    marginTop: 25,
     paddingHorizontal: 16,
-    marginBottom: 20,
+    paddingBottom: 20,
   },
   emailSubContainer: {
     flexDirection: 'row',
@@ -1382,6 +1624,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_24,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 1.3,
   },
   btn: {
     height: 56,
@@ -1436,7 +1679,6 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 0.5,
-    width: '100%',
     backgroundColor: '#e0e0e0',
   },
   verifiedChipsCon: {

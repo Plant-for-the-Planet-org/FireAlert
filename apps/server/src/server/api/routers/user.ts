@@ -1,241 +1,71 @@
 import { TRPCError } from '@trpc/server';
 import { updateUserSchema } from '../zodSchemas/user.schema';
-import { adminProcedure, createTRPCRouter, protectedProcedure } from '../trpc';
-import { getUserIdByToken } from '../../../utils/token';
-import { checkIfUserIsPlanetRO, fetchProjectsWithSitesForUser, getNameFromPPApi } from "../../../utils/fetch"
-import { makeDetectionCoordinates } from '../../../utils/turf';
-import { sendEmail } from '../../../utils/notification/sendEmail';
-import { Prisma, Project} from '@prisma/client';
+import { createTRPCRouter, protectedProcedure } from '../trpc';
+import { returnUser, handleNewUser } from '../../../utils/routers/user';
+import { User } from '@prisma/client';
+import { sendAccountDeletionCancellationEmail, sendSoftDeletionEmail } from '../../../utils/notification/userEmails';
+import { ensureAdmin, getUserIdFromCtx } from '../../../utils/routers/trpc'
 
 export const userRouter = createTRPCRouter({
+
+    // profile procedure signs in only clients, but cannot sign in an admin. // However, it logs both client and admin (admin with or without impersonatedUser headers )
     profile: protectedProcedure
         .query(async ({ ctx }) => {
-            // Get the access token
-            const access_token = ctx.token.access_token
-            const bearer_token = "Bearer " + access_token
-            // check if this user already exists in the database
-            const user = await ctx.prisma.user.findFirst({
-                where: {
-                    email: ctx.token["https://app.plant-for-the-planet.org/email"]
+            try {
+                // If ctx.user is null, then sign in a new user.
+                if (ctx.user === null) {
+                    //Signup logic
+                    const bearer_token = `Bearer ${ctx.token.access_token}`;
+                    return await handleNewUser(bearer_token); //Create New User, fetch projects and sites if PlanetRO
                 }
-            })
-            const name = await getNameFromPPApi(bearer_token);
-            if (!user) {
-                // SIGNUP FUNCTIONALITY
-                // Check if the user requesting access is PlanetRO
-                const isPlanetRO = await checkIfUserIsPlanetRO(bearer_token)
-                // If not planetRO // create the User
-                if (!isPlanetRO) {
-                    const result = await ctx.prisma.$transaction(async (prisma) => {
-                        const createdUser = await prisma.user.create({
-                            data: {
-                                sub: ctx.token.sub,
-                                isPlanetRO: false,
-                                name: name,
-                                email: ctx.token["https://app.plant-for-the-planet.org/email"],
-                                emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                                lastLogin: new Date(),
-                            },
-                        });
-                        const createdAlertMethod = await prisma.alertMethod.create({
-                            data: {
-                                method: "email",
-                                destination: ctx.token["https://app.plant-for-the-planet.org/email"],
-                                isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                                isEnabled: false,
-                                userId: createdUser.id,
-                            },
-                        });
+                // If isAdmin is true, either the admin is logging in themselves, or accessing someone else's data
+                if (ctx.isAdmin === true) {
+                    // If impersonatedUser is null, login the admin themself
+                    if (ctx.impersonatedUser === null) {
+                        const adminUser = ctx.user as User
                         return {
-                            user: createdUser,
-                            alertMethod: createdAlertMethod,
+                            status: 'success',
+                            data: adminUser,
                         };
-                    });
-                    const { user } = result;
-                    return {
-                        id: user.id,
-                        sub: user.sub,
-                        email: user.email,
-                        name: user.name,
-                        avatar: user.avatar,
-                        isPlanetRO: user.isPlanetRO,
-                        lastLogin: user.lastLogin,
-                        useGeostationary: user.useGeostationary
-                    };
-                }
-                // Else, create user, create project, and create sites associated with that user in the pp.
-                const projects = await fetchProjectsWithSitesForUser(bearer_token)
-                // If new user is planetRO and has projects
-                if (projects.length > 0) {
-                    // Find the tpo id and use that as userId
-                    const userId = projects[0].properties.tpo.id;
-                    // Collect project and site data for bulk creation
-                    const projectData:Project[] = [];
-                    const siteData:Prisma.SiteCreateManyInput[] = [];
-                    for (const project of projects) {
-                        const { id: projectId, name: projectName, slug: projectSlug, sites } = project.properties;
-
-                        projectData.push({
-                            id: projectId,
-                            name: projectName ?? "",
-                            slug: projectSlug ?? "",
-                            userId: userId,
-                            lastUpdated: new Date(),
-                        });
-
-                        if (sites) {
-                            for (const site of sites) {
-                                if (site) {
-                                    const { id: siteId, name: siteName, geometry: siteGeometry } = site;
-                                    const siteType = siteGeometry?.type || null; // Use null as the fallback value if siteGeometry is null or undefined
-                                    const siteRadius = 0;
-
-                                    // Check if siteType and siteGeometry are not null before proceeding
-                                    if (siteType && siteGeometry) {
-                                        const detectionCoordinates = makeDetectionCoordinates(siteGeometry, siteRadius);
-
-                                        // Check if siteType and siteGeometry.type are the same
-                                        if (siteType === siteGeometry.type) {
-                                            siteData.push({
-                                                remoteId: siteId,
-                                                origin: 'ttc',
-                                                name: siteName ?? "",
-                                                type: siteType,
-                                                geometry: JSON.stringify(siteGeometry),
-                                                radius: siteRadius,
-                                                detectionCoordinates: JSON.stringify(detectionCoordinates),
-                                                userId: userId,
-                                                projectId: projectId,
-                                                lastUpdated: new Date(),
-                                            });
-                                        }
-                                    } else {
-                                        // Handle the case where geometry or type is null
-                                        console.log(`Skipping site with id ${siteId} due to null geometry or type.`);
-                                    }
-                                }
-                            }
-                        }
                     }
-                    // Create user and alert method in a transaction
-                    const createdUser = await ctx.prisma.$transaction(async (prisma) => {
-                        const user = await prisma.user.create({
-                            data: {
-                                id: userId,
-                                sub: ctx.token.sub,
-                                isPlanetRO: true,
-                                name: name,
-                                email: ctx.token["https://app.plant-for-the-planet.org/email"],
-                                emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                                lastLogin: new Date(),
-                            },
-                        });
-                        await prisma.alertMethod.create({
-                            data: {
-                                method: "email",
-                                destination: ctx.token["https://app.plant-for-the-planet.org/email"],
-                                isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                                isEnabled: false,
-                                userId: user.id,
-                            },
-                        });
-                        await prisma.project.createMany({
-                            data: projectData,
-                        });
-                        await prisma.site.createMany({
-                            data: siteData,
-                        });
-                        return user;
-                    });
+                    //Here, impersonatedUser is user that admin is trying to reach, don't undo soft deleted
+                    const impersonatedUser = ctx.impersonatedUser as User
                     return {
-                        id: createdUser.id,
-                        sub: createdUser.sub,
-                        email: createdUser.email,
-                        name: createdUser.name,
-                        avatar: createdUser.avatar,
-                        isPlanetRO: createdUser.isPlanetRO,
-                        lastLogin: createdUser.lastLogin,
-                        useGeostationary: createdUser.useGeostationary,
-                    };
-                } else {
-                    const user = await ctx.prisma.$transaction(async (prisma) => {
-                        const createdUser = await prisma.user.create({
-                            data: {
-                                sub: ctx.token.sub,
-                                isPlanetRO: true,
-                                name: name,
-                                email: ctx.token["https://app.plant-for-the-planet.org/email"],
-                                emailVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                                lastLogin: new Date(),
-                            },
-                        });
-
-                        await prisma.alertMethod.create({
-                            data: {
-                                method: 'email',
-                                destination: ctx.token["https://app.plant-for-the-planet.org/email"],
-                                isVerified: ctx.token["https://app.plant-for-the-planet.org/email_verified"],
-                                isEnabled: false,
-                                userId: createdUser.id,
-                            },
-                        });
-
-                        return createdUser;
-                    });
-
-                    return {
-                        id: user.id,
-                        sub: user.sub,
-                        email: user.email,
-                        name: user.name,
-                        avatar: user.avatar,
-                        isPlanetRO: user.isPlanetRO,
-                        lastLogin: user.lastLogin,
-                        useGeostationary: user.useGeostationary,
-                    };
-
-                }
-            } else {
-                // When user is there - LOGIN FUNCTIONALITY
-                const updatedUser = await ctx.prisma.$transaction(async (prisma) => {
-                    if (user.deletedAt) {
-                        await prisma.user.update({
-                            where: {
-                                email: ctx.token["https://app.plant-for-the-planet.org/email"],
-                            },
-                            data: {
-                                deletedAt: null,
-                            },
-                        });
-                        const emailSubject = 'Restore Deleted FireAlert Account';
-                        const emailBody = 'Thank you for logging in to FireAlert. Deletion was canceled as you have logged into your account.';
-                        await sendEmail(user.email, emailSubject, emailBody);
+                        status: 'success',
+                        data: impersonatedUser,
                     }
-                    await prisma.user.update({
-                        where: {
-                            email: ctx.token["https://app.plant-for-the-planet.org/email"],
-                        },
-                        data: {
-                            lastLogin: new Date(),
-                        },
-                    });
-                    return user;
+                }
+                // Since authorized client is not admin, do normal login concept
+                const user = ctx.user as User
+                // If user is deleted, send account deletion cancellation email
+                if (user.deletedAt) {
+                    await sendAccountDeletionCancellationEmail(user);
+                }
+                // Update lastLogin to current date and set deletedAt to null, then return user
+                const returnedUser = await ctx.prisma.user.update({
+                    where: { sub: ctx.token.sub },
+                    data: {
+                        lastLogin: new Date(),
+                        deletedAt: null,
+                    },
                 });
+                const loggedInUser = returnUser(returnedUser);
                 return {
-                    id: updatedUser.id,
-                    sub: updatedUser.sub,
-                    email: updatedUser.email,
-                    name: updatedUser.name,
-                    avatar: updatedUser.avatar,
-                    isPlanetRO: updatedUser.isPlanetRO,
-                    lastLogin: updatedUser.lastLogin,
-                    useGeostationary: updatedUser.useGeostationary,
+                    status: 'success',
+                    data: loggedInUser,
                 };
+
+            } catch (error) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
+                });
             }
         }),
 
-    getAllUsers: adminProcedure
+    getAllUsers: protectedProcedure
         .query(async ({ ctx }) => {
+            ensureAdmin(ctx)
             try {
                 const users = await ctx.prisma.user.findMany();
                 return {
@@ -251,60 +81,11 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    getUser: protectedProcedure.query(async ({ ctx }) => {
-        const userId = ctx.token
-            ? await getUserIdByToken(ctx)
-            : ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'User ID not found',
-            });
-        }
-        try {
-            const user = await ctx.prisma.user.findFirst({
-                where: {
-                    id: userId,
-                },
-            });
-            if (user) {
-                return {
-                    id: user.id,
-                    sub: user.sub,
-                    email: user.email,
-                    name: user.name,
-                    avatar: user.avatar,
-                    isPlanetRO: user.isPlanetRO,
-                    lastLogin: user.lastLogin,
-                    useGeostationary: user.useGeostationary
-                };;
-            } else {
-                throw new TRPCError({
-                    code: 'NOT_FOUND',
-                    message: `Cannot find a user with that userId!`,
-                });
-            }
-        } catch (error) {
-            console.log(error)
-            throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: `${error}`,
-            });
-        }
-    }),
-
     updateUser: protectedProcedure
         .input(updateUserSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.token
-                ? await getUserIdByToken(ctx)
-                : ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: 'NOT_FOUND',
-                    message: 'User ID not found',
-                });
-            }
+            // Throw an error if ctx.user is null
+            const userId = getUserIdFromCtx(ctx)
             try {
                 const updatedUser = await ctx.prisma.user.update({
                     where: {
@@ -312,16 +93,11 @@ export const userRouter = createTRPCRouter({
                     },
                     data: input.body,
                 });
+                const returnedUser = returnUser(updatedUser)
                 return {
-                    id: updatedUser.id,
-                    sub: updatedUser.sub,
-                    email: updatedUser.email,
-                    name: updatedUser.name,
-                    avatar: updatedUser.avatar,
-                    isPlanetRO: updatedUser.isPlanetRO,
-                    lastLogin: updatedUser.lastLogin,
-                    useGeostationary: updatedUser.useGeostationary
-                };
+                    status: 'success',
+                    data: returnedUser
+                }
             } catch (error) {
                 console.log(error)
                 throw new TRPCError({
@@ -331,178 +107,41 @@ export const userRouter = createTRPCRouter({
             }
         }),
 
-    softDeleteUser: protectedProcedure.mutation(async ({ ctx }) => {
-        const userId = ctx.token
-            ? await getUserIdByToken(ctx)
-            : ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'User ID not found',
-            });
-        }
-        try {
-            const deletedUser = await ctx.prisma.user.update({
-                where: {
-                    id: userId,
-                },
-                data: {
-                    deletedAt: new Date(),
-                },
-            });
-            if (!deletedUser) {
+    softDeleteUser: protectedProcedure
+        .mutation(async ({ ctx }) => {
+            const userId = getUserIdFromCtx(ctx)
+            try {
+                const deletedUser = await ctx.prisma.user.update({
+                    where: {
+                        id: userId,
+                    },
+                    data: {
+                        deletedAt: new Date(),
+                    },
+                });
+                if (!deletedUser) {
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: `Error in deletion process. Cannot delete user`,
+                    });
+                } else {
+                    // Send Email
+                    const emailSent = await sendSoftDeletionEmail(deletedUser);
+                    return {
+                        status: 'Success',
+                        message: `User ${deletedUser.id} will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
+                        data: null
+                    };
+                }
+            } catch (error) {
+                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `Error in deletion process. Cannot delete user`,
+                    message: `${error}`,
                 });
-            } else {
-                const emailSubject = 'Soft Delete Fire Alert Account'
-                const emailBody = 'You have successfully deleted your account. Your account will be scheduled for deletion, and will be deleted in 7 days. If you change your mind, please log in again within 7 days to cancel the deletion.'
-                const emailSent = await sendEmail(deletedUser.email, emailSubject, emailBody)
-                return {
-                    status: 'success',
-                    message: `Soft deleted user ${deletedUser.name}. User will be permanently deleted in 7 days` + emailSent ? 'Successfully sent email' : '',
-                };
             }
-        } catch (error) {
-            console.log(error)
-            throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: `${error}`,
-            });
-        }
-    }),
+        }),
 
-    syncProjectsAndSite: protectedProcedure
-        .mutation(async ({ ctx }) => {
-            // Get the access token
-            const access_token = ctx.token.access_token
-            const bearer_token = "Bearer " + access_token
-            // check if this user already exists in the database
-            const user = await ctx.prisma.user.findFirst({
-                where: {
-                    email: ctx.token["https://app.plant-for-the-planet.org/email"]
-                }
-            })
-            if(!user){
-                throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: `User not found`,
-                });
-            }
-            // then check to see if PlanetRO is true for this user or not
-            if (user.isPlanetRO) {
-                // If yes planetRO, check if any new projects or sites have been added for this user or not
-                const projectsFromPP = await fetchProjectsWithSitesForUser(bearer_token)
-                const projectsFromDB = await ctx.prisma.project.findMany({
-                    where: {
-                        userId: user!.id,
-                    }
-                })
-                const projectIdsFromPP = projectsFromPP.map(project => project.id);
-                for (const projectFromDB of projectsFromDB) {
-                    if (!projectIdsFromPP.includes(projectFromDB.id)) {
-                        await ctx.prisma.project.delete({
-                            where: {
-                                id: projectFromDB.id,
-                            },
-                        });
-                        await ctx.prisma.site.updateMany({
-                            where: {
-                                projectId: projectFromDB.id
-                            },
-                            data: {
-                                deletedAt: new Date(),
-                                projectId: null,
-                            }
-                        })
-                    }
-                }
-                for (const projectFromPP of projectsFromPP) {
-                    const { id: projectId, name: projectNameFormPP, slug: projectSlugFormPP, sites: sitesFromPPProject } = projectFromPP.properties;
-                    const userId = user.id;
-                    // See if the project exists in db
-                    const projectFromDatabase = await ctx.prisma.project.findFirst({
-                        where: {
-                            id: projectId
-                        }
-                    })
-                    // If project does not exist, create project
-                    if (!projectFromDatabase) {
-                        // Add that new project from pp to database
-                        await ctx.prisma.project.create({
-                            data: {
-                                id: projectId,
-                                userId: userId,
-                                lastUpdated: new Date(),
-                                name: projectNameFormPP,
-                                slug: projectSlugFormPP,
-                            },
-                        });
-                    }
-                    // Similarly for each site, find if there are sites that are missing in db, if yes, add that site to db
-                    for (const siteFromPP of sitesFromPPProject) {
-                        const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP, geometry } = siteFromPP;
-                        const radius = 0
-                        const type = geometry.type
-                        const detectionCoordinates = makeDetectionCoordinates(geometry, radius);
-                        const siteFromDatabase = await ctx.prisma.site.findUnique({
-                            where: {
-                                id: siteIdFromPP,
-                            }
-                        })
-                        if (!siteFromDatabase) {
-                            // create a new site based on the info
-                            await ctx.prisma.site.create({
-                                data: {
-                                    type: type,
-                                    geometry: JSON.stringify(geometry),
-                                    radius: radius,
-                                    detectionCoordinates: JSON.stringify(detectionCoordinates),
-                                    userId: userId,
-                                    projectId: projectId,
-                                    lastUpdated: siteLastUpdatedFromPP.date,
-                                },
-                            });
-                        } else if (siteFromDatabase.lastUpdated !== siteLastUpdatedFromPP.date) {
-                            await ctx.prisma.site.update({
-                                where: {
-                                    id: siteIdFromPP
-                                },
-                                data: {
-                                    type: type,
-                                    geometry: JSON.stringify(geometry),
-                                    radius: radius,
-                                    detectionCoordinates: JSON.stringify(detectionCoordinates),
-                                    lastUpdated: siteLastUpdatedFromPP.date,
-                                },
-                            });
-                        }
-                    }
-                    // Find all the sites with that projectId in DB
-                    const sitesFromDBProject = await ctx.prisma.site.findMany({
-                        where: {
-                            projectId: projectId,
-                        }
-                    })
-                    const siteIdsFromPP = sitesFromPPProject.map(site => site.properties.id);
-                    // If there are any sites that has been deleted in PP, make it's projectId as null, and add deletedAt
-                    for (const siteFromDB of sitesFromDBProject) {
-                        if (!siteIdsFromPP.includes(siteFromDB.id)) {
-                            await ctx.prisma.site.update({
-                                where: {
-                                    id: siteFromDB.id,
-                                },
-                                data: {
-                                    deletedAt: new Date(),
-                                    projectId: null
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-        })
 });
 
 export type UserRouter = typeof userRouter;

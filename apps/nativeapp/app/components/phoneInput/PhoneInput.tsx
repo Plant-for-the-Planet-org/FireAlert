@@ -6,7 +6,7 @@ import {Colors, Typography} from '../../styles';
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const PhoneInput = ({containerStyle, inputValue, valid}) => {
+const PhoneInput = ({containerStyle, inputValue, valid, defaultCode}) => {
   const [value, setValue] = useState('');
   const [formattedValue, setFormattedValue] = useState('');
   const [showMessage, setShowMessage] = useState(false);
@@ -28,7 +28,7 @@ const PhoneInput = ({containerStyle, inputValue, valid}) => {
       <PhoneNoInput
         ref={phoneInput}
         defaultValue={value}
-        defaultCode="DM"
+        defaultCode={defaultCode || 'DE'}
         layout="first"
         onChangeText={text => {
           setValue(text);

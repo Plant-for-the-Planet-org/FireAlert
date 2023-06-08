@@ -83,6 +83,23 @@ yarn nativeapp start
 The mobile app can be accessed using an iOS or Android emulator.
 
 
+### System Architecture
+The FireAlert application, a comprehensive geolocation-based alert system, ingests and processes GeoEvents before notifying users who have subscriptions to the impacted locations. GeoEvents encapsulate diverse environmental anomalies, ranging from heat deviations and flood occurrences to hurricanes and other meteorological extremes.
+
+The application supports both push and pull mechanisms for various alert types, facilitated by modules known as GeoEvent Providers. Engineered with extensibility as a core attribute, FireAlert has the potential to integrate with a multitude of GeoEvent Providers. At the moment, it interfaces with FIRMS and MODIS GeoEvent Providers.
+
+Each GeoEvent Provider is implemented as a distinct class under the apps/server/src/Services/GeoEventProvider directory, extending the abstract base GeoEventProvider class. This superclass provides a blueprint for two primary methods:
+
+getGeoEvents: Scheduled via a cron job, this method fetches GeoEvents from the assigned provider, influenced by variables such as fetch frequency and the timestamp of the last retrieval.
+
+Upcoming feature: An API route is in the pipeline to support "push" based GeoEvent Providers, allowing them to directly transmit events to the FireAlert system.
+
+Post-fetching, GeoEvents undergo a transformation to the PostGIS Geometry format. Subsequently, an intersection operation is performed against each user's "sites" using the detectionGeometry attribute. If an intersection is detected, it triggers a 'SiteAlert'.
+
+The lifecycle of a SiteAlert involves processing by a predefined "AlertMethod", encapsulated in the user's "alertMethod" attribute. Each SiteAlert consequently transpires into a dedicated notification.
+
+To facilitate the inclusion of new AlertMethods, the system allows developers to extend the Notifier Services, located in the apps/server/src/Services/Notifier directory. Every Notifier Service constitutes a class that extends the Notifier superclass. At present, the Notifier superclass delineates several methods including 'device', 'email', 'sms', 'webhook', and 'push'.
+
 ### Deployment
 To deploy the applications, follow the specific deployment guides for Next.js and React Native. Ensure that you update any necessary configuration files or environment variables for production deployments.
 

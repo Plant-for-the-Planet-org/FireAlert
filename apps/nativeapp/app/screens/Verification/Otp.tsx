@@ -4,9 +4,11 @@ import {
   Platform,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
 
 import {trpc} from '../../services/trpc';
@@ -16,30 +18,74 @@ import {Colors, Typography} from '../../styles';
 import {CustomButton, OtpInput} from '../../components';
 
 const Otp = ({navigation, route}) => {
-  const [code, setCode] = useState<string | null>(null);
   const {verificationType} = route.params;
+  const [code, setCode] = useState<string | undefined>('');
 
   const toast = useToast();
-  const count = useCountdown(30);
+  const otpInputRef = useRef();
+  const queryClient = useQueryClient();
+  const [count, setCount] = useCountdown(30);
 
   const verifyAlertMethod = trpc.alertMethod.verify.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
+    onSuccess: data => {
+      if (data?.json?.status === 406) {
+        return toast.show(data?.json?.message || 'something went wrong', {
+          type: 'warning',
+        });
+      }
+      queryClient.setQueryData(
+        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === data?.json?.data?.id ? data?.json?.data : item,
+                  ),
+                },
+              }
+            : null,
+      );
       navigation.navigate('Settings');
+    },
+    onError: () => {
+      setCode('');
+      //  otpInputRef.current.focusField(1);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const verifyAlertPreference = trpc.alertMethod.sendVerification.useMutation({
+    retryDelay: 3000,
+    onSuccess: () => {
+      setCount(30);
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
 
-  const handleClose = () => navigation.goBack();
+  const handleClose = () => navigation.navigate('Settings');
 
   const handleContinue = () => {
     verifyAlertMethod.mutate({
       json: {
-        alertMethodId: route?.params?.alertMethod?.id,
-        notificationToken: code,
+        params: {
+          alertMethodId: route?.params?.alertMethod?.id,
+        },
+        body: {
+          token: code,
+        },
       },
+    });
+  };
+
+  const handleGetCode = () => {
+    verifyAlertPreference.mutate({
+      json: {alertMethodId: route?.params?.alertMethod?.id},
     });
   };
 
@@ -54,15 +100,29 @@ const Otp = ({navigation, route}) => {
         <Text style={[styles.heading, styles.commonPadding]}>
           Verify {verificationType}
         </Text>
+        {verificationType === 'Email' && (
+          <Text style={[styles.subHeading, styles.commonPadding]}>
+            We've sent you a code to verify your email. Please check your email
+            and enter the code below.
+          </Text>
+        )}
         <View style={styles.subContainer}>
-          <OtpInput onCodeFilled={setCode} />
+          <OtpInput
+            code={code}
+            onCodeChanged={setCode}
+            otpInputRef={otpInputRef}
+          />
           <View style={styles.resendOtpBtn}>
             {count === 0 ? (
-              <TouchableOpacity>
-                <Text style={[styles.resendOtp, styles.link]}>
-                  Get a new code
-                </Text>
-              </TouchableOpacity>
+              verifyAlertPreference?.isLoading ? (
+                <ActivityIndicator size={'small'} />
+              ) : (
+                <TouchableOpacity onPress={handleGetCode}>
+                  <Text style={[styles.resendOtp, styles.link]}>
+                    Get a new code
+                  </Text>
+                </TouchableOpacity>
+              )
             ) : (
               <Text style={styles.resendOtp}>
                 You can request a new code in{' '}
@@ -104,10 +164,17 @@ const styles = StyleSheet.create({
     color: Colors.WHITE,
   },
   heading: {
-    marginVertical: 20,
+    marginTop: 20,
     fontSize: Typography.FONT_SIZE_24,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+  },
+  subHeading: {
+    marginTop: 5,
+    marginBottom: 15,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+    color: Colors.GRAY_DEEP,
   },
   commonPadding: {
     paddingHorizontal: 40,

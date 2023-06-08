@@ -1,15 +1,8 @@
 import styles from "./index.module.css";
 import { type NextPage } from "next";
 import Head from "next/head";
-import { signIn, signOut, useSession } from "next-auth/react";
-import { useCookies } from "react-cookie"
-
- 
-import { api } from "../utils/api";
-import Sites from "../Components/Site/SiteComponent";
 
 const Home: NextPage = () => {
-  const { data: sessionData } = useSession();
   return (
     <>
       <Head>
@@ -23,7 +16,6 @@ const Home: NextPage = () => {
             <h1 className={styles.showcaseText}>
               Fire Alert Dummy Frontend
             </h1>
-            <AuthShowcase />
           </div>
         </div>
       </main>
@@ -32,37 +24,6 @@ const Home: NextPage = () => {
 };
 
 export default Home;
-
-const AuthShowcase: React.FC = () => {
-  const { data: sessionData } = useSession();
-  
-  // const {data: userData, refetch: refetchData} = api.user.profile.useQuery(
-  //   undefined,
-  //   {
-  //     enabled: true,
-  //     headers: {
-  //       Authorization: `Bearer ${sessionData?.accessToken}`,
-  //     },
-  //   },
-  // );
-
-
-  return (
-    <div className={styles.authContainer}>
-      <p className={styles.showcaseText}>
-        {sessionData && <span>Logged in as {sessionData.user.email} </span>}
-        {/* {userData && <span>Here's the user data {JSON.stringify(userData)} </span> } */}
-      </p>
-      <Sites />
-      <button
-        className={styles.loginButton}
-        onClick={sessionData ? () => void signOut() : () => void signIn()}
-      >
-        {sessionData ? "Sign out" : "Sign in"}
-      </button>
-    </div>
-  );
-};
 
 
 

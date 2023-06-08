@@ -8,12 +8,14 @@ interface LoginState {
   isLoggedIn: boolean;
   accessToken: string;
   userDetails: any;
+  configData: any;
 }
 
 const initialState: LoginState = {
   isLoggedIn: false,
   accessToken: '',
   userDetails: null,
+  configData: null,
 };
 
 export const loginSlice = createSlice({
@@ -29,11 +31,18 @@ export const loginSlice = createSlice({
     updateUserDetails: (state, action: PayloadAction<any>) => {
       state.userDetails = action.payload;
     },
+    updateConfigData: (state, action: PayloadAction<any>) => {
+      state.configData = action.payload;
+    },
   },
 });
 
-export const {updateIsLoggedIn, updateAccessToken, updateUserDetails} =
-  loginSlice.actions;
+export const {
+  updateIsLoggedIn,
+  updateConfigData,
+  updateAccessToken,
+  updateUserDetails,
+} = loginSlice.actions;
 export default loginSlice.reducer;
 
 export const getUserDetails = (request: any) => {
@@ -55,16 +64,16 @@ export const getUserDetails = (request: any) => {
   };
 };
 
-export const editUserProfile = (request: any) => {
+export const getConfigData = (request: any) => {
   return async (dispatch: AppDispatch, getState: RootState) => {
-    const {payload, onSuccess, onFail} = request;
+    const {onSuccess, onFail} = request;
     try {
-      const res = await ApiService.editUserDetails(
+      const res = await ApiService.configData(
         getState().loginSlice?.accessToken,
-        payload,
       );
       if (res?.status === 200) {
         onSuccess();
+        dispatch(updateConfigData(res?.data));
       } else {
         onFail(res?.data?.message || 'Something went wrong');
       }

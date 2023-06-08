@@ -32,6 +32,11 @@ const config = {
     locales: ["en"],
     defaultLocale: "en",
   },
+
+  // Add the compiler option and remove console logs in production
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production"
+  },
 };
 export default withSentryConfig(config, {
 // For all available options, see:
