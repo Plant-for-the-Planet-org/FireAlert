@@ -58,7 +58,7 @@ interface Auth0User {
     picture: string;
     updated_at: string;
     email: string;
-    email_verified: boolean;
+    email_verified: string;
 }
 
 
@@ -82,7 +82,8 @@ export async function handleNewUser(bearer_token: string) {
     }
     const userData: Auth0User = await response.json();
 
-    const { sub, name, picture, email, email_verified } = userData;
+    const { sub, name, picture, email } = userData;
+    const email_verified = userData.email_verified === "true" ? true : false
 
     const getPlanetUser = await planetUser(bearer_token)
     const isPlanetRO = getPlanetUser.isPlanetRO
