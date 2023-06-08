@@ -6,6 +6,8 @@ import { AlertType } from '@prisma/client';
 import DataRecord from '../../../Interfaces/DataRecord';
 
 interface NasaGeoEventProviderConfig {
+    bbox: string,
+    slice: string,
     apiUrl: string,
     mapKey: string,
     sourceKey: string
@@ -38,6 +40,7 @@ class NasaGeoEventProvider implements GeoEventProvider {
     }
     
     async getLatestGeoEvents(): Promise<GeoEvent[]> {
+        const slice = this.config?.slice as string;
         const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);
@@ -97,14 +100,14 @@ class NasaGeoEventProvider implements GeoEventProvider {
                 eventDate: date,
                 confidence: confidenceLevels?.[source]?.[record.confidence] ?? Confidence.Medium,
                 detectedBy: source,
+                slice: slice,
                 data: record
             };
         }
 
         return new Promise<GeoEvent[]>(async (resolve, reject) => {
             try {
-                const sourceKey = this.config?.sourceKey;
-                const url = this.getUrl(sourceKey);
+                const url = this.getUrl();
                 const response = await fetch(url);
                 const csv = await response.text();
                 const parser = parse(csv, { columns: true });
@@ -129,10 +132,10 @@ class NasaGeoEventProvider implements GeoEventProvider {
         });
     }
 
-    getUrl(source: string): string {
-        const { apiUrl, mapKey, sourceKey } = this.getConfig()
+    getUrl(): string {
+        const { apiUrl, mapKey, sourceKey, bbox} = this.getConfig()
         const currentDate = new Date().toISOString().split("T")[0];
-        return `${apiUrl}/api/area/csv/${mapKey}/${source}/-180,-90,180,90/1/${currentDate}`;
+        return `${apiUrl}/api/area/csv/${mapKey}/${sourceKey}/${bbox}/1/${currentDate}`;
     }
 
     getConfig(): NasaGeoEventProviderConfig {
@@ -140,18 +143,25 @@ class NasaGeoEventProvider implements GeoEventProvider {
             throw new Error(`Invalid or incomplete alert provider configuration`);
         }
         const config = this.config
-        if (typeof config.apiUrl === 'undefined') {
+        if (typeof config.apiUrl === undefined) {
             throw new Error(`Missing property 'apiUrl' in alert provider configuration`);
         }
-        if (typeof config.mapKey === 'undefined') {
+        if (typeof config.mapKey === undefined) {
             throw new Error(`Missing property 'mapKey' in alert provider configuration`);
         }
-
-        if (typeof config.sourceKey === 'undefined') {
+        if (typeof config.sourceKey === undefined) {
             throw new Error(`Missing property 'sourceKey' in alert provider configuration`);
+        }
+        if (typeof config.bbox === undefined){
+            throw new Error(`Missing property 'bbox' in alert provider configuration`);
+        }
+        if (typeof config.slice === undefined){
+            throw new Error(`Missing property 'slice' in alert provider configuration`);
         }
 
         return {
+            bbox: config.bbox,
+            slice: config.slice,
             apiUrl: config.apiUrl,
             mapKey: config.mapKey,
             sourceKey: config.sourceKey

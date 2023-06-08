@@ -117,6 +117,7 @@ model GeoEvent {
     identityGroup      String
     geoEventProviderId String
     radius             Int?
+    slice              String
     data               Json?
 }
 

@@ -91,6 +91,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
         identityGroup: identityGroup,
         geoEventProviderId: geoEventProviderId,
         radius: 0,
+        slice: geoEvent.slice,
         data: geoEvent.data,
       })),
     });

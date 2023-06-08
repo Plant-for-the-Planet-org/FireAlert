@@ -135,6 +135,7 @@ CREATE TABLE "GeoEvent" (
     "providerKey" "GeoEventSource" NOT NULL,
     "geometry" GEOMETRY,
     "radius" INTEGER,
+    "slice" TEXT NOT NULL,
     "data" JSONB,
 
     CONSTRAINT "GeoEvent_pkey" PRIMARY KEY ("id")
