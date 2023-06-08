@@ -1,52 +1,9 @@
 import { TRPCError } from '@trpc/server';
-import { type TRPCContext } from '../../Interfaces/Context'
-import { getUserIdByToken } from '../authorization/token';
 import { type Project, Prisma, PrismaClient, type User } from '@prisma/client';
 import { fetchProjectsWithSitesForUser, planetUser } from '../fetch';
 import { createAlertMethodInPrismaTransaction } from './alertMethod';
 import { env } from '../../env.mjs';
-// import { prisma } from '../../server/db';
-
-const prisma = new PrismaClient();
-export const getUser = async (ctx: TRPCContext) => {
-    const userId = ctx.token
-        ? await getUserIdByToken(ctx)
-        : ctx.session?.user?.id;
-    if (!userId) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "User ID not found",
-        });
-    }
-    const user = await ctx.prisma.user.findUnique({
-        where: {
-            id: userId,
-        },
-    });
-    if (!user) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "User not found",
-        });
-    } else {
-        return user;
-    }
-};
-
-export async function getUserBySub(sub: string) {
-    const user = await prisma.user.findFirst({
-        where: {
-            sub: sub
-        }
-    });
-    if (!user) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Cannot find user associated with the token, make sure the user has logged in atleast once",
-        });
-    }
-    return user;
-}
+import { prisma } from '../../server/db';
 
 interface CreateUserArgs {
     id?: string;
@@ -102,8 +59,10 @@ interface Auth0User {
     email_verified: string;
 }
 
+
+
 // User Handlers
-export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
+export async function handleNewUser(bearer_token: string) {
 
     // Fetch user data from Auth0
     const response = await fetch(`${env.AUTH0_DOMAIN}/userinfo`, {
@@ -123,11 +82,11 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
 
     const { sub, name, picture, email } = userData;
     const email_verified = userData.email_verified === "true" ? true : false
-    
+
     const getPlanetUser = await planetUser(bearer_token)
     const isPlanetRO = getPlanetUser.isPlanetRO
     const planetId = getPlanetUser.id
-    
+
     // Create FireAlert User
 
     const createdUser: User = await createUserInPrismaTransaction({ prisma, sub, name: name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, remoteId: planetId })
@@ -183,7 +142,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                 }
             }
             // Bulk create sites, projects and siteAlerts in a prisma transaction
-            const result = await ctx.prisma.$transaction(async (prisma) => {
+            const result = await prisma.$transaction(async (prisma) => {
                 const projects = await prisma.project.createMany({
                     data: projectData,
                 });
@@ -196,7 +155,7 @@ export async function handleNewUser(ctx: TRPCContext, bearer_token: string) {
                 };
             })
             // Fetch the newly created sites using their remoteId values
-            const createdSites = await ctx.prisma.site.findMany({
+            const createdSites = await prisma.site.findMany({
                 where: {
                     remoteId: {
                         in: remoteIdsForSiteAlerts,

@@ -223,13 +223,13 @@ export const deviceVerification = async (destination: string): Promise<boolean> 
     }
 }
 
-export const handlePendingVerification = async (ctx:TRPCContext, user:User, alertMethod: AlertMethod): Promise<VerificationResponse> => {
+export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: AlertMethod): Promise<VerificationResponse> => {
     await handleOTPSendLimitation({ ctx, alertMethod })
     const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
 
     let sendVerificationCode;
     if (alertMethod.method === "email") {
-        sendVerificationCode = await sendEmailVerificationCode(user, alertMethod.destination, otp)
+        sendVerificationCode = await sendEmailVerificationCode(ctx.user!, alertMethod.destination, otp)
     }
     else {
         // Use NotifierRegistry to send the verification code

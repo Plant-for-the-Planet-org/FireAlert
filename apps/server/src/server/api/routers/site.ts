@@ -4,8 +4,8 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { getUser } from '../../../utils/routers/user'
 import { checkUserHasSitePermission, checkIfPlanetROSite } from '../../../utils/routers/site'
+import { getUserIdFromCtx } from '../../../utils/routers/trpc'
 import { Prisma } from "@prisma/client";
 
 export const siteRouter = createTRPCRouter({
@@ -13,7 +13,7 @@ export const siteRouter = createTRPCRouter({
     createSite: protectedProcedure
         .input(createSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await getUser(ctx);
+            const userId = getUserIdFromCtx(ctx)
             try {
                 const radius = input.radius ?? 0;
                 const origin = 'firealert';
@@ -27,7 +27,7 @@ export const siteRouter = createTRPCRouter({
                         geometry: input.geometry,
                         radius: radius,
                         isMonitored: input.isMonitored,
-                        userId: user.id,
+                        userId: userId,
                         lastUpdated: lastUpdated,
                     },
                     select: {
@@ -84,7 +84,7 @@ export const siteRouter = createTRPCRouter({
                             AND "SiteAlert"."eventDate" = e."eventDate"
                     );
             `;
-                const response = await ctx.prisma.$executeRaw(siteAlertCreationQuery);
+                await ctx.prisma.$executeRaw(siteAlertCreationQuery);
                 return {
                     status: "success",
                     data: site,
@@ -98,27 +98,18 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-
-
-
-
-
-    // Todo: Generate alerts (but no notifications) for the new site from the (last 30 days) on GeoEvents where isProcessed = true.
-
-    // //Todo: Refactor the above
-
-    // await Prisma.$executeRaw(genAlertsForNewSite)
-
-
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
         .query(async ({ ctx, input }) => {
+            const userId = getUserIdFromCtx(ctx)
             try {
-                await getUser(ctx)
+                // Only returns a list of sites if the user has sites with the inputted projectId, else returns not found.
+                // TODO: test when this returns an empty array, and when it throws an error. 
                 const sitesForProject = await ctx.prisma.site.findMany({
                     where: {
                         projectId: input.projectId,
                         deletedAt: null,
+                        userId: userId,
                     },
                     select: {
                         id: true,
@@ -153,11 +144,11 @@ export const siteRouter = createTRPCRouter({
 
     getSites: protectedProcedure
         .query(async ({ ctx }) => {
-            const user = await getUser(ctx)
+            const userId = getUserIdFromCtx(ctx)
             try {
                 const sites = await ctx.prisma.site.findMany({
                     where: {
-                        userId: user.id,
+                        userId: userId,
                         deletedAt: null,
                     },
                     select: {
@@ -194,9 +185,9 @@ export const siteRouter = createTRPCRouter({
     getSite: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const user = await getUser(ctx)
+            const userId = getUserIdFromCtx(ctx)
             try {
-                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
+                await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
                 const site = await ctx.prisma.site.findFirst({
                     where: {
                         id: input.siteId,
@@ -243,9 +234,8 @@ export const siteRouter = createTRPCRouter({
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await getUser(ctx)
-
-            const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: user.id });
+            const userId = getUserIdFromCtx(ctx)
+            const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
             if (!site) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
@@ -263,7 +253,7 @@ export const siteRouter = createTRPCRouter({
                     if (geometry || type || name) {
                         throw new TRPCError({
                             code: "UNAUTHORIZED",
-                            message: `PlanetRO Users can only update Geometry and isMonitored Field`,
+                            message: `PlanetRO Users can only update Radius and isMonitored Field`,
                         });
                     }
                     data = rest;
@@ -281,13 +271,14 @@ export const siteRouter = createTRPCRouter({
                         radius: true,
                         isMonitored: true,
                         lastUpdated: true,
+                        userId: true,
+                        remoteId: true,
                         project: {
                             select: {
                                 id: true,
                                 name: true
                             }
                         },
-                        userId: true,
                         geometry: true,
                     }
                 });
@@ -310,9 +301,8 @@ export const siteRouter = createTRPCRouter({
         .input(params)
         .mutation(async ({ ctx, input }) => {
             // Check if user is authenticated and not soft deleted
-            const user = await getUser(ctx)
-
-            await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: user.id });
+            const userId = getUserIdFromCtx(ctx)
+            await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
             const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.siteId })
 
             if (isPlanetROSite) {

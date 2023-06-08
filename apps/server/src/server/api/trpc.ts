@@ -2,37 +2,40 @@
 //  These allow you to access things when processing a request, like the database, the session, etc.
 
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
-import { type Session } from "next-auth";
-import { getServerAuthSession } from "../../server/auth";
 import { prisma } from "../../server/db";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { NextApiRequest } from "next";
-import { checkSoftDelete, tokenAuthentication} from '../../utils/routers/trpc';
+import { decodeToken } from '../../utils/routers/trpc';
 import * as Sentry from "@sentry/nextjs";
+import { User } from "@prisma/client";
 
 type CreateContextOptions = {
-  session: Session | null;
   req: NextApiRequest;
+  user: User | null;
+  impersonatedUser: User | null;
+  isAdmin: boolean;
 };
 
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
-    session: opts.session,
     req: opts.req,
     prisma,
+    user: opts.user,
+    impersonatedUser: opts.impersonatedUser,
+    isAdmin: opts.isAdmin,
   };
 };
 
-export const createTRPCContext = async (opts: CreateNextContextOptions) => {
+export const createTRPCContext = async (opts: CreateNextContextOptions, user: User | null, isAdmin: boolean, impersonatedUser: User | null) => {
   const { req, res } = opts;
-
-  const session = await getServerAuthSession({ req, res });
 
   return createInnerTRPCContext({
     req,
-    session,
+    user,
+    isAdmin,
+    impersonatedUser,
   });
 };
 
@@ -58,74 +61,127 @@ const passCtxToNext = t.middleware(async ({ ctx, next }) => {
   })
 })
 
-const enforceUserIsAuthedAndNotSoftDeleted = t.middleware(async ({ ctx, next }) => {
-  const { isTokenAuthentication, decodedToken, access_token } = await tokenAuthentication(ctx)
-  const sub = decodedToken!.sub!
-  await checkSoftDelete({ctx, sub, isTokenAuthentication})
-  if (isTokenAuthentication && decodedToken) {
-    return next({
-      ctx: {
-        token: {
-          ...decodedToken,
-          access_token,
-        },
-      },
-    });
-  } else {
-    if (!ctx.session || !ctx.session.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: `Invalid Session` });
-    }
-    return next({
-      ctx: {
-        // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
-      },
-    });
-  }
-})
 
-const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
-  const { isTokenAuthentication, decodedToken, access_token } = await tokenAuthentication(ctx)
+// There are four kinds of returns in ensureUserIsAuthed middleware. 
+// TRPC procedures are built with these returns in consideration:
+// 1) user: null, isAdmin: false, impersonatedUser: null -> this hits to profile route, were we create a new user
+// 2) user: adminUserData, isAdmin: true, impersonatedUser: null -> this means admin is trying to access their own data, not to impersonate any other user
+// 3) user: adminUserData, isAdmin: true, impersonatedUser: impersonateUser -> admin is trying to access imperonated User's data
+// 4) user: user, isAdmin: false, impersonatedUser: null -> All other normal api calls
+
+const ensureUserIsAuthed = t.middleware(async ({ ctx, next }) => {
+  // Add Sentry Handlera to middleware
   Sentry.Handlers.trpcMiddleware({
     attachRpcInput: true,
   })
-  if (isTokenAuthentication && decodedToken) {
+  // Decode the token
+  const { decodedToken, access_token } = await decodeToken(ctx)
+  // Find the user associated with the token
+  const user = await ctx.prisma.user.findFirst({
+    where: {
+      sub: decodedToken?.sub
+    }
+  })
+  // Find the procedure that is being called
+  const url = ctx.req.url
+  const procedure = url?.substring(url?.lastIndexOf('.') + 1) ? url?.substring(url?.lastIndexOf('.') + 1) : ''
+
+  // If that user is not in database
+  if (!user) {
+    // If profile procedure is called, then move to next with ctx.user as null, and isAdmin as false
+    if(procedure == 'profile'){
+      return next({
+        ctx: {
+          token: {
+            ...decodedToken,
+            access_token,
+          },
+          user: null  as User | null,
+          isAdmin: false,
+          impersonatedUser: null  as User | null,
+        },
+      });
+    }
+    // If any other procedure is called, throw a user not authenticated error, since user is not present.
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "User is not authenticated. Please sign up first.",
+    });
+  }
+  // Since user is present, check if the user is Admin, if yes:
+  if (user.roles === "ROLE_ADMIN") {
+    const adminUserData = user;
+    // Find the impersonatedUserId from headers
+    const impersonateUserId = ctx.req.headers['x-impersonate-user-id']
+    // If no impersonatedUserId, Admin must be accessing their own data, 
+    // Move to next with the token, adminUserData, and isAdmin as true, but impersonatedUser as null.
+    if (!impersonateUserId) {
+      return next({
+        ctx: {
+          token: {
+            ...decodedToken,
+            access_token,
+          },
+          user: adminUserData  as User | null,
+          isAdmin: true,
+          impersonatedUser: null  as User | null,
+        },
+      });
+    }
+    // If impersonatedUserId exists
+    // Ensure that the type of impersonatedUserId is a string
+    if (typeof impersonateUserId !== 'string') {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `The value of req.headers['x-impersonate-user-id'] must be a string` });
+    }
+    // Find the impersonatedUser from the impersonatedUserId
+    const impersonateUser = await ctx.prisma.user.findUnique({
+      where: {
+        id: impersonateUserId,
+      }
+    })
+    // Throw an error if the impersonatedUser does not exist
+    if (!impersonateUser) {
+      throw new TRPCError({ code: "NOT_FOUND", message: `Cannot find the impersonated user with the given id.` });
+    }
+    // Move to next with user, impersonatedUser, and isAdmin as true
     return next({
       ctx: {
         token: {
           ...decodedToken,
           access_token,
         },
+        user: adminUserData as User | null,
+        isAdmin: true,
+        impersonatedUser: impersonateUser  as User | null,
       },
     });
-  } else {
-    if (!ctx.session || !ctx.session.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: `Invalid Session` });
+  }
+  // User at this point in logic must be "ROLE_CLIENT"
+  // Check if the user is soft deleted, for all procedures except profile, if yes, throw an unauthorized error.
+  if (procedure !== "profile") {
+    if (user?.deletedAt) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "User account has been deleted. Please log in again.",
+      });
     }
-    return next({
-      ctx: {
-        // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
-      },
-    });
   }
-});
-
-const enforceUserIsAdmin = t.middleware(({ ctx, next }) => {
-  if (ctx.session?.user.roles !== 'ROLE_ADMIN') {
-    throw new TRPCError({ code: 'UNAUTHORIZED' })
-  }
+  // Move to next with user as user, and isAdmin as false, and impersonatedUser as null.
   return next({
     ctx: {
-      session: { ...ctx.session, user: ctx.session.user }
-    }
-  })
+      token: {
+        ...decodedToken,
+        access_token,
+      },
+      user: user  as User | null,
+      isAdmin: false,
+      impersonatedUser: null  as User | null,
+    },
+  });
 })
 
 export const publicProcedure = t.procedure.use(passCtxToNext);
-export const protectedProcedure = t.procedure.use(enforceUserIsAuthedAndNotSoftDeleted);
-export const userProcedure = t.procedure.use(enforceUserIsAuthed)
-export const adminProcedure = t.procedure.use(enforceUserIsAdmin);
+export const protectedProcedure = t.procedure.use(ensureUserIsAuthed);
 
 export type InnerTRPCContext = ReturnType<typeof createInnerTRPCContext>;
-export type MiddlewareEnsureUserIsAuthed = typeof enforceUserIsAuthed;
+export type MiddlewareEnsureUserIsAuthed = typeof ensureUserIsAuthed;

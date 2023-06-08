@@ -9,8 +9,7 @@ export const updateUserSchema = z.object({
             return uniqueValues.size === values.length;
         }, {
             message: "Detection methods must not contain duplicate values.",
-        }),
-        roles: z.enum(['ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT']),
+        })
     }).partial(),
 })
 
