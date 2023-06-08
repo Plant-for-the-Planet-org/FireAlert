@@ -5,7 +5,7 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-import { getUser } from "../../../utils/routers/user";
+import { getUserIdFromCtx } from "../../../utils/routers/trpc";
 import { subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
@@ -13,11 +13,11 @@ export const alertRouter = createTRPCRouter({
     getAlerts: protectedProcedure
         .query(async ({ ctx }) => {
             try {
-                const user = await getUser(ctx)
+                const userId = getUserIdFromCtx(ctx)
                 const thirtyDaysAgo = subtractDays(new Date(), 30);
                 const sitesWithAlerts = await ctx.prisma.site.findMany({
                     where: {
-                        userId: user.id,
+                        userId: userId,
                         deletedAt: null,
                         alerts: {
                             some: {

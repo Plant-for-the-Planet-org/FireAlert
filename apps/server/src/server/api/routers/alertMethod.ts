@@ -10,7 +10,7 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-import { getUser } from "../../../utils/routers/user";
+import { getUserIdFromCtx } from "../../../utils/routers/trpc";
 import {
     findAlertMethod,
     findVerificationRequest,
@@ -28,7 +28,6 @@ export const alertMethodRouter = createTRPCRouter({
         .input(params)
         .mutation(async ({ ctx, input }) => {
             try {
-                const user = await getUser(ctx)
                 const alertMethodId = input.alertMethodId
                 const alertMethod = await findAlertMethod(alertMethodId)
                 if (alertMethod.isVerified) {
@@ -37,7 +36,7 @@ export const alertMethodRouter = createTRPCRouter({
                         message: "alertMethod is already verified."
                     }
                 } else {
-                    const sendVerification = await handlePendingVerification(ctx, user, alertMethod)
+                    const sendVerification = await handlePendingVerification(ctx, alertMethod)
                     if (sendVerification.status === 'success') {
                         return sendVerification
                     }
@@ -105,17 +104,17 @@ export const alertMethodRouter = createTRPCRouter({
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await getUser(ctx)
+            const userId = getUserIdFromCtx(ctx)
             //Check if that AlertMethod already exists
             const existingAlertMethod = await ctx.prisma.alertMethod.findFirst({
                 where: {
-                    userId: user.id,
+                    userId: userId,
                     destination: input.destination,
                     method: input.method,
                 },
             });
             // If the existing alertMethod has been soft deleted, un-soft delete it, and return success
-            if(existingAlertMethod?.deletedAt){
+            if (existingAlertMethod?.deletedAt) {
                 const updatedAlertMethod = await ctx.prisma.alertMethod.update({
                     where: {
                         id: existingAlertMethod.id,
@@ -140,7 +139,7 @@ export const alertMethodRouter = createTRPCRouter({
             }
             // If existing alertMethod doesn't exist:
             // Check if the user has reached the maximum limit of alert methods (e.g., 5)
-            await limitAlertMethodPerUser({ ctx, userId: user.id, count: 10 })
+            await limitAlertMethodPerUser({ ctx, userId: userId, count: 10 })
 
             // If the alertMethod method is device then try deviceVerification, if it fails, throw an error, if it succeds create alertMethod
             if (input.method === 'device') {
@@ -154,7 +153,7 @@ export const alertMethodRouter = createTRPCRouter({
                             deviceId: input.deviceId,
                             isVerified: true,
                             isEnabled: true,
-                            userId: user.id,
+                            userId: userId,
                         },
                     });
                     return {
@@ -177,12 +176,12 @@ export const alertMethodRouter = createTRPCRouter({
                         destination: input.destination,
                         deviceName: input.deviceName,
                         deviceId: input.deviceId,
-                        userId: user.id,
+                        userId: userId,
                     },
                 });
                 // sendVerification is an object that has message key which contains either success message string or error message string.
                 // Use that message string in constructing return message
-                const sendVerification = await handlePendingVerification(ctx, user, alertMethod)
+                const sendVerification = await handlePendingVerification(ctx, alertMethod)
                 return {
                     status: "success",
                     message: 'Successfully Created AlertMethod. ' + sendVerification.message,
@@ -199,11 +198,11 @@ export const alertMethodRouter = createTRPCRouter({
 
     getAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
-            const user = await getUser(ctx)
+            const userId = getUserIdFromCtx(ctx)
             try {
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
                     where: {
-                        userId: user.id,
+                        userId: userId,
                         deletedAt: null,
                     },
                     select: {
@@ -234,9 +233,9 @@ export const alertMethodRouter = createTRPCRouter({
     getAlertMethod: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const user = await getUser(ctx)
-            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
-            if(existingAlertMethod.deletedAt){
+            const userId = getUserIdFromCtx(ctx)
+            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
+            if (existingAlertMethod.deletedAt) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: `This alertMethod has been deleted. Please create it again.`,
@@ -262,9 +261,9 @@ export const alertMethodRouter = createTRPCRouter({
     updateAlertMethod: protectedProcedure
         .input(updateAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            const user = await getUser(ctx)
-            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: user.id });
-            if(existingAlertMethod.deletedAt){
+            const userId = getUserIdFromCtx(ctx)
+            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: userId });
+            if (existingAlertMethod.deletedAt) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: `AlertMethod has been deleted. Please create it again to update it.`,
@@ -300,9 +299,9 @@ export const alertMethodRouter = createTRPCRouter({
     deleteAlertMethod: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
-            const user = await getUser(ctx)
-            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: user.id });
-            if(existingAlertMethod.deletedAt){
+            const userId = getUserIdFromCtx(ctx)
+            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
+            if (existingAlertMethod.deletedAt) {
                 return {
                     status: "success",
                     message: `AlertMethod with id ${existingAlertMethod.id} has already been deleted.`,
