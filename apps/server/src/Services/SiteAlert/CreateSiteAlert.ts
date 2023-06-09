@@ -12,8 +12,8 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
                 INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") AND s."deletedAt" IS NULL AND s."isMonitored" = TRUE
                 WHERE e."isProcessed" = false 
                 AND (
-                    e.slice = ANY(s."slices")::text[]
-                    OR '0' = ANY(s."slices")::text[]
+                    e.slice = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                    OR '0' = ANY(array(SELECT jsonb_array_elements_text(slices)))
                 )
                 AND NOT EXISTS ( 
                     SELECT 1 
