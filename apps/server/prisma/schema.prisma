@@ -14,7 +14,7 @@ model User {
     sub              String?       @unique
     name             String?
     email            String        @unique
-    emailVerified    Boolean       @default(false)
+    emailVerified    Boolean       @default(false)   
     detectionMethods Json // ["MODIS","VIIRS","LANDSAT","GEOSTATIONARY"]
     isPlanetRO       Boolean?
     image            String?
