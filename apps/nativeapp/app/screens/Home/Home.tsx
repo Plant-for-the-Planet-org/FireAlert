@@ -433,7 +433,7 @@ const Home = ({navigation, route}) => {
   const handleEditProfileName = () => {
     setLoading(true);
     const payload = {
-      name: profileName.trim(),
+      name: profileName?.trim(),
     };
     updateUser.mutate({json: {body: payload}});
   };
