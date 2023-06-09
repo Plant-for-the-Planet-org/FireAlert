@@ -73,6 +73,7 @@ model Site {
     projectId         String?
     lastUpdated       DateTime?
     userId            String
+    slices            Json?
     detectionGeometry Unsupported("geometry")?
     originalGeometry  Unsupported("geometry")?
     // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 

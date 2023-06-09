@@ -89,6 +89,7 @@ CREATE TABLE "Site" (
     "projectId" TEXT,
     "lastUpdated" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
+    "slices" JSONB,
     "originalGeometry" GEOMETRY,
     "detectionGeometry" GEOMETRY,
 
