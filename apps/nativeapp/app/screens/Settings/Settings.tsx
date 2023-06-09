@@ -74,6 +74,7 @@ import {
   updateUserDetails,
 } from '../../redux/slices/login/loginSlice';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
+import bbox from '@turf/bbox';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -475,24 +476,21 @@ const Settings = ({navigation}) => {
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
 
   const _handleViewMap = (siteInfo: object) => () => {
-    let center: Feature<Point, Properties>;
     let highlightSiteInfo = siteInfo;
+    let bboxGeo;
     setSitesInfoModal(false);
     if (siteInfo?.geometry?.type === 'MultiPolygon') {
-      center = centroid(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
+      bboxGeo = bbox(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
       highlightSiteInfo = rewind(siteInfo?.geometry);
     } else if (siteInfo?.geometry?.type === 'Point') {
-      center = point(siteInfo?.geometry.coordinates);
+      bboxGeo = bbox(point(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
     } else {
-      center = centroid(polygon(siteInfo?.geometry.coordinates));
+      bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
     }
-    const lat = center?.geometry?.coordinates[0];
-    const long = center?.geometry?.coordinates[1];
     navigation.navigate('Home', {
-      lat,
-      long,
+      bboxGeo,
       siteInfo: [
         {
           type: 'Feature',

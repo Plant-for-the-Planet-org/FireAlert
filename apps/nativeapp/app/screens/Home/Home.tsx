@@ -75,6 +75,7 @@ import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import bbox from '@turf/bbox';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -140,22 +141,22 @@ const Home = ({navigation, route}) => {
 
   useEffect(() => {
     if (
-      siteInfo?.long !== undefined &&
-      siteInfo?.lat !== undefined &&
       isCameraRefVisible &&
-      camera?.current?.setCamera
+      siteInfo?.bboxGeo?.length > 0 &&
+      camera?.current?.fitBounds
     ) {
       setTimeout(() => {
-        camera.current.setCamera({
-          centerCoordinate: [siteInfo.lat, siteInfo.long],
-          animationDuration: 500,
-          zoomLevel: 10,
-        });
+        camera.current.fitBounds(
+          [siteInfo?.bboxGeo[0], siteInfo?.bboxGeo[1]],
+          [siteInfo?.bboxGeo[2], siteInfo?.bboxGeo[3]],
+          60,
+          500,
+        );
         setSelectedArea(siteInfo?.siteInfo);
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
-      }, 500);
+      }, 1000);
     }
-  }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat, siteInfo?.siteInfo]);
+  }, [isCameraRefVisible, siteInfo?.siteInfo]);
 
   useEffect(() => {
     if (
@@ -600,15 +601,13 @@ const Home = ({navigation, route}) => {
       }}
       onPress={e => {
         setSelectedArea(e?.features);
-        let centerOfPolygon = centroid(
-          polygon(e?.features[0]?.geometry?.coordinates),
+        let bboxGeo = bbox(polygon(e?.features[0]?.geometry.coordinates));
+        camera.current.fitBounds(
+          [bboxGeo[0], bboxGeo[1]],
+          [bboxGeo[2], bboxGeo[3]],
+          60,
+          500,
         );
-        const centerCoordinate = centerOfPolygon?.geometry?.coordinates;
-        camera.current.setCamera({
-          centerCoordinate,
-          zoomLevel: 10,
-          animationDuration: 500,
-        });
         setSelectedSite(e?.features[0]?.properties);
       }}>
       <MapboxGL.FillLayer

@@ -40,6 +40,7 @@ import {locationPermission} from '../../utils/permissions';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import distanceCalculator from '../../utils/distanceCalculator';
 import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
+import bbox from '@turf/bbox';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
@@ -97,15 +98,12 @@ const CreatePolygon = ({navigation}) => {
   useFetchSites({enabled: enableGetFireAlerts});
 
   const _handleViewMap = (siteInfo: object) => {
-    let center: Feature<Point, Properties>;
     let highlightSiteInfo = siteInfo;
-    center = centroid(polygon(siteInfo?.geometry.coordinates));
+    let bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
     highlightSiteInfo = siteInfo?.geometry;
-    const lat = center?.geometry?.coordinates[0];
-    const long = center?.geometry?.coordinates[1];
+
     navigation.navigate('Home', {
-      lat,
-      long,
+      bboxGeo,
       siteInfo: [
         {
           type: 'Feature',

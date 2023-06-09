@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
+import bbox from '@turf/bbox';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
 import React, {useEffect, useRef, useState} from 'react';
@@ -95,15 +96,11 @@ const SelectLocation = ({navigation}) => {
   useFetchSites({enabled: enableGetFireAlerts});
 
   const _handleViewMap = (siteInfo: object) => {
-    let center: Feature<Point, Properties>;
     let highlightSiteInfo = siteInfo;
-    center = point(siteInfo?.geometry.coordinates);
+    let bboxGeo = bbox(point(siteInfo?.geometry.coordinates));
     highlightSiteInfo = siteInfo?.geometry;
-    const lat = center?.geometry?.coordinates[0];
-    const long = center?.geometry?.coordinates[1];
     navigation.navigate('Home', {
-      lat,
-      long,
+      bboxGeo,
       siteInfo: [
         {
           type: 'Feature',
