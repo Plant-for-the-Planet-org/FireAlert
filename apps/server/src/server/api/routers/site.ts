@@ -71,7 +71,11 @@ export const siteRouter = createTRPCRouter({
                         AND s.id = ${site.id}
                         AND s."isMonitored" IS TRUE
                 WHERE
-                    e."isProcessed" = TRUE
+                    e."isProcessed" = TRUE,
+                    AND (
+                        e.slice = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                        OR '0' = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                    )
                     AND NOT EXISTS (
                         SELECT
                             1

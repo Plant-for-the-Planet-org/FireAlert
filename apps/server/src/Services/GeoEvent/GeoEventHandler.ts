@@ -5,7 +5,7 @@ import { type GeoEvent } from "@prisma/client";
 import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
 import md5 from "md5";
 
-const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, geoEvents: Array<GeoEvent>) => {
+const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, slice: string, geoEvents: Array<GeoEvent>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -91,6 +91,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
         identityGroup: identityGroup,
         geoEventProviderId: geoEventProviderId,
         radius: 0,
+        slice: slice,
         data: geoEvent.data,
       })),
     });
@@ -106,7 +107,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       },
     });
   }
-  siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId);
+  siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId, slice);
 };
 
 export default processGeoEvents;

@@ -52,7 +52,8 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
     const geoEvents = await geoEventProvider.getLatestGeoEvents()
     const identityGroup = geoEventProvider.getIdentityGroup()
-    geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEventProviderId , geoEvents)
+    const slice = geoEventProvider.getSlice()
+    geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
 
     // Update lastRun value of the provider to the current Date()
     await prisma.geoEventProvider.update({

@@ -89,6 +89,7 @@ CREATE TABLE "Site" (
     "projectId" TEXT,
     "lastUpdated" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
+    "slices" JSONB,
     "originalGeometry" GEOMETRY,
     "detectionGeometry" GEOMETRY,
 
@@ -135,6 +136,7 @@ CREATE TABLE "GeoEvent" (
     "providerKey" "GeoEventSource" NOT NULL,
     "geometry" GEOMETRY,
     "radius" INTEGER,
+    "slice" TEXT NOT NULL,
     "data" JSONB,
 
     CONSTRAINT "GeoEvent_pkey" PRIMARY KEY ("id")
