@@ -2,9 +2,10 @@ import * as React from 'react';
 import jwt_decode from 'jwt-decode';
 import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
-import {useQueryClient} from '@tanstack/react-query';
+import NetInfo from '@react-native-community/netinfo';
 import SplashScreen from 'react-native-splash-screen';
 import {NavigationContainer} from '@react-navigation/native';
+import {onlineManager, useQueryClient} from '@tanstack/react-query';
 
 import {
   getConfigData,
@@ -41,6 +42,14 @@ export default function AppNavigator() {
       console.log('Device info:', device);
     },
   });
+
+  React.useEffect(() => {
+    onlineManager.setEventListener(setOnline => {
+      return NetInfo.addEventListener(state => {
+        setOnline(!!state.isConnected);
+      });
+    });
+  }, []);
 
   React.useEffect(() => {
     const request = {
