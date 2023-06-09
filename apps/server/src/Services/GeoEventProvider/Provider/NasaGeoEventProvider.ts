@@ -35,6 +35,10 @@ class NasaGeoEventProvider implements GeoEventProvider {
         return identityMap.get(this.config?.sourceKey) ?? null;
     }
 
+    getSlice(): string | null {
+        return this.config?.slice ?? null;
+    }
+
     initialize(config?: GeoEventProviderConfig): void {
         this.config = config;
     }

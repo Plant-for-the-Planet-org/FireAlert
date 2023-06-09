@@ -73,7 +73,7 @@ model Site {
     projectId         String?
     lastUpdated       DateTime?
     userId            String
-    slices            Json?
+    slices            Json?                 // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
     detectionGeometry Unsupported("geometry")?
     originalGeometry  Unsupported("geometry")?
     // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 
@@ -118,7 +118,7 @@ model GeoEvent {
     identityGroup      String
     geoEventProviderId String
     radius             Int?
-    slice              String
+    slice              String                  // Will be something like "1" or "2" or "8"
     data               Json?
 }
 
