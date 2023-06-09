@@ -12,8 +12,8 @@ import {
   updateIsLoggedIn,
   updateAccessToken,
 } from '../redux/slices/login/loginSlice';
-import {clearAll, getData} from '../utils/localStorage';
 import {CommonStack, SignInStack} from './stack';
+import {clearAll, getData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector, useOneSignal} from '../hooks';
 
 const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
@@ -62,25 +62,30 @@ export default function AppNavigator() {
               .refreshToken({refreshToken: cred?.refreshToken})
               .then(newAccessToken => {
                 const request = {
-                  onSuccess: async message => {},
+                  onSuccess: message => {},
                   onFail: message => {},
                 };
                 dispatch(updateAccessToken(newAccessToken?.accessToken));
                 dispatch(getUserDetails(request));
+                dispatch(updateIsLoggedIn(true));
+                SplashScreen.hide();
               })
               .catch(accessTokenErr => {
                 console.log('error getting new access token: ', accessTokenErr);
+                SplashScreen.hide();
               });
           } else {
             const request = {
-              onSuccess: async message => {},
+              onSuccess: message => {},
               onFail: message => {},
             };
             dispatch(updateAccessToken(cred?.accessToken));
             dispatch(getUserDetails(request));
             dispatch(updateIsLoggedIn(true));
+            SplashScreen.hide();
           }
         } catch (e) {
+          SplashScreen.hide();
           console.log(e);
           auth0.webAuth.clearSession().then(async () => {
             dispatch(updateIsLoggedIn(false));
@@ -90,7 +95,6 @@ export default function AppNavigator() {
         }
       }
     })();
-    SplashScreen.hide();
   }, []);
 
   return (
