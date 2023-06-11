@@ -4,6 +4,7 @@ import { NOTIFICATION_CREATED } from "../../Events/messageConstants";
 const prisma = new PrismaClient();
 
 const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
+    let siteAlertsCreated:number = 0;
     try {
         const siteAlertCreationQuery = Prisma.sql`
         INSERT INTO "SiteAlert" (id, type, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance") 
@@ -26,7 +27,7 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
         const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId} AND "slice" = ${slice}`;
 
         // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
-        await prisma.$executeRaw(siteAlertCreationQuery);
+        siteAlertsCreated = await prisma.$executeRaw(siteAlertCreationQuery);
         // DEBUG: SiteAlerts can be created twice with the same data.
 
         // Set all GeoEvents as processed
@@ -35,8 +36,9 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
     } catch (error) {
         console.log(error)
     }
-
-    notificationEmitter.emit(NOTIFICATION_CREATED);
+    if(siteAlertsCreated > 0){
+        notificationEmitter.emit(NOTIFICATION_CREATED);
+    }
 }
 
 export default createSiteAlerts;

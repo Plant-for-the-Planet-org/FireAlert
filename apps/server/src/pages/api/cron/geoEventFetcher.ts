@@ -6,11 +6,11 @@ import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEven
 import { PrismaClient, type GeoEventProvider } from '@prisma/client'
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
 import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
+import { GeoEventProviderConfig } from '../../../Interfaces/GeoEventProvider'
 
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
   const prisma = new PrismaClient()
-
   // get all active providers
   const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
@@ -47,26 +47,30 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   const promises = activeProviders.map(async (provider) => {
     const { providerKey, config, id: geoEventProviderId } = provider
+    const parsedConfig: GeoEventProviderConfig = JSON.parse(JSON.stringify(config))
     const geoEventProvider = GeoEventProviderRegistry.get(providerKey);
-    geoEventProvider.initialize(JSON.parse(JSON.stringify(config)));
+    geoEventProvider.initialize(parsedConfig);
+    const slice = parsedConfig.slice
 
-    const geoEvents = await geoEventProvider.getLatestGeoEvents()
-    const identityGroup = geoEventProvider.getIdentityGroup()
-    const slice = geoEventProvider.getSlice()
-    geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
-
-    // Update lastRun value of the provider to the current Date()
-    await prisma.geoEventProvider.update({
-      where: {
-        id: provider.id
-      },
-      data: {
-        lastRun: new Date()
-      },
+    return geoEventProvider.getLatestGeoEvents()
+    .then(async (geoEvents) => {
+      const identityGroup = geoEventProvider.getIdentityGroup()
+      if(geoEvents.length > 0){
+        geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
+      }
+      // Update lastRun value of the provider to the current Date()
+      return await prisma.geoEventProvider.update({
+        where: {
+          id: provider.id
+        },
+        data: {
+          lastRun: new Date()
+        },
+      });
     });
   })
-
-  await Promise.all(promises);
+  
+  await Promise.all(promises).catch(error => console.error(`Error: ${error.message}`));
 
   res.status(200).json({ message: "Cron job executed successfully" });
 }
