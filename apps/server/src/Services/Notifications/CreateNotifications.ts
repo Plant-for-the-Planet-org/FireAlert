@@ -1,10 +1,10 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import notificationEmitter from "../../Events/EventEmitter/NotificationEmitter";
 import { NOTIFICATION_SENT } from "../../Events/messageConstants";
-const prisma = new PrismaClient();
+import { prisma } from '../../server/db'
 
 const createNotifications = async () => {
-    let notificationsCreated:number = 0;
+    let notificationsCreated: number = 0;
     try {
         // In this query, the subquery retrieves all enabled and verified AlertMethods (m) for the user associated with the site. 
         // Then, a cross join is performed between the SiteAlert table (a) and the AlertMethod subquery (m), ensuring that each siteAlert is paired with all relevant alertMethods.
@@ -27,9 +27,9 @@ const createNotifications = async () => {
     } catch (error) {
         console.log(error)
     }
-    if(notificationsCreated > 0){
+    if (notificationsCreated > 0) {
         notificationEmitter.emit(NOTIFICATION_SENT)
-    }else{
+    } else {
         console.log(`No Notifications added. Terminate cron.`)
         return;
     }

@@ -1,10 +1,11 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import notificationEmitter from "../../Events/EventEmitter/NotificationEmitter";
 import { NOTIFICATION_CREATED } from "../../Events/messageConstants";
-const prisma = new PrismaClient();
+import { prisma } from '../../server/db'
+
 
 const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
-    let siteAlertsCreated:number = 0;
+    let siteAlertsCreated: number = 0;
     try {
         const siteAlertCreationQuery = Prisma.sql`
         INSERT INTO "SiteAlert" (id, type, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance") 
@@ -23,7 +24,7 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
                     "SiteAlert".longitude = e.longitude 
                     AND "SiteAlert".latitude = e.latitude 
                     AND "SiteAlert"."eventDate" = e."eventDate" 
-                )`;        
+                )`;
         const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId} AND "slice" = ${slice}`;
 
         // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
@@ -38,9 +39,9 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
     } catch (error) {
         console.log(error)
     }
-    if(siteAlertsCreated > 0){
+    if (siteAlertsCreated > 0) {
         notificationEmitter.emit(NOTIFICATION_CREATED);
-    }else{
+    } else {
         console.log(`No SiteAlerts created. Terminate cron for geoEventProvider No.${geoEventProviderId}`)
         return;
     }

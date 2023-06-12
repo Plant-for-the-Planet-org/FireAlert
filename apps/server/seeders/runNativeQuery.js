@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+import { prisma } from '../src/server/db'
+
 
 async function fetchIdsFromPostGIS() {
 

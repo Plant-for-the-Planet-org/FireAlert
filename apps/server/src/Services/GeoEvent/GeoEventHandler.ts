@@ -4,6 +4,7 @@ import { SITE_ALERTS_CREATED } from "../../Events/messageConstants";
 import { type GeoEvent } from "@prisma/client";
 import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
 import md5 from "md5";
+import { prisma } from '../../server/db'
 
 const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, slice: string, geoEvents: Array<GeoEvent>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
@@ -44,7 +45,6 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
     return { newGeoEvents, deletedIds };
   };
 
-  const prisma = new PrismaClient();
 
   const fetchDbEventIds = async (
     geoEventProviderId: string
