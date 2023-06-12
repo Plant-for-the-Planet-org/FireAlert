@@ -34,8 +34,7 @@ const UserList = ({ users }: UserListProps) => {
       <UserListWrapper
         container
         justifyContent={{
-          xs: "space-around",
-          xm: "space-around",
+          sm: "space-around",
           md: "space-between",
           lg: "space-between",
         }}
@@ -50,7 +49,7 @@ const UserList = ({ users }: UserListProps) => {
               md={5}
               lg={5}
               sm={10}
-              xs={10}
+              xs={12}
               key={user.guid}
             >
               <UserListCard {...user} />
