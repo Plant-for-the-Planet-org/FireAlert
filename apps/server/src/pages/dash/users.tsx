@@ -6,10 +6,7 @@ const UserListCardWrapper = styled("div")({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-
-  "&:last-child": {
-    borderBottom: "none",
-  },
+  flexWrap: "wrap",
 });
 
 const LeftContainer = styled("div")({
@@ -21,6 +18,10 @@ const LeftContainer = styled("div")({
 
 const AvatarContainer = styled("div")({
   marginRight: "18px",
+});
+
+const EmailContainer = styled("div")({
+  margin: "10px 0 10px 0",
 });
 
 const UserNameIDContainer = styled("div")({
@@ -46,16 +47,25 @@ const Line = styled("div")(({ theme }) => ({
   transform: "translateX(-50%)",
   transformOrigin: "top center",
   height: "inherit",
+  [theme.breakpoints.down("md")]: {
+    display: "none",
+  },
 }));
 
 const GridItem = styled(Grid)(({ theme }) => ({
   borderTop: `1px solid ${theme.borderColor}`,
-  "&:nth-child(2)": {
+
+  "&:nth-of-type(-n + 3)": {
     borderTop: "none",
   },
 
-  "&:nth-child(3)": {
-    borderTop: "none",
+  [theme.breakpoints.down("md")]: {
+    "&:nth-of-type(2)": {
+      borderTop: "none",
+    },
+    "&:nth-of-type(3)": {
+      borderTop: `1px solid ${theme.borderColor}`,
+    },
   },
 }));
 
@@ -65,7 +75,7 @@ const Text = styled("p")<TextProps>(({ theme, fontSize, color }) => ({
 }));
 
 const UserListWrapper = styled("div")({
-  padding: "40px",
+  padding: "20px",
 });
 
 const Dashboard = () => {
@@ -87,27 +97,7 @@ const Dashboard = () => {
   const userList: User[] = [
     {
       displayName: "Nathan Court",
-      guid: "user_aerf9e8rg9wer98gwer02",
-      email: "nathan@court.com",
-      joined: new Date("2022-01-21"),
-      activeMethods: [Devices.VIIRS, Devices.MODIS, Devices.GEOSTAT],
-      lastSeen: new Date(),
-      avatar:
-        "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=800",
-    },
-    {
-      displayName: "Nathan Court",
-      guid: "user_aerf9e8rg9wer98gwer02",
-      email: "nathan@court.com",
-      joined: new Date("2022-01-21"),
-      activeMethods: [Devices.VIIRS, Devices.MODIS, Devices.GEOSTAT],
-      lastSeen: new Date(),
-      avatar:
-        "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=800",
-    },
-    {
-      displayName: "Nathan Court",
-      guid: "user_aerf9e8rg9wer98gwer02",
+      guid: "user_aerf9e8rg9er02",
       email: "nathan@court.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.VIIRS, Devices.MODIS, Devices.GEOSTAT],
@@ -117,7 +107,7 @@ const Dashboard = () => {
     },
     {
       displayName: "John Doe",
-      guid: "user_qewergvaer342rgwrf",
+      guid: "user_qewerg2rgwrf",
       email: "john@doe.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.VIIRS, Devices.GEOSTAT],
@@ -127,7 +117,7 @@ const Dashboard = () => {
     },
     {
       displayName: "Jay Shattey",
-      guid: "user_efergergqweqe78qe76r7",
+      guid: "user_eferqe76r7",
       email: "jay@shetty.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.GEOSTAT],
@@ -136,7 +126,7 @@ const Dashboard = () => {
     },
     {
       displayName: "Bella Smith",
-      guid: "user_wergwrwrev348r92348rsd",
+      guid: "user_wer2348rsd",
       email: "bella@smith.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.VIIRS, Devices.MODIS],
@@ -146,7 +136,7 @@ const Dashboard = () => {
     },
     {
       displayName: "Janice",
-      guid: "user_wergwerhbjsf898",
+      guid: "user_wergbjsf898",
       email: "janice@janice.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.MODIS],
@@ -155,7 +145,7 @@ const Dashboard = () => {
     },
     {
       displayName: "Nathan Court",
-      guid: "user_aerf9e8rg9wer98gwer02",
+      guid: "user_aer8gwer02",
       email: "nathan@court.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.VIIRS, Devices.MODIS, Devices.GEOSTAT],
@@ -165,7 +155,7 @@ const Dashboard = () => {
     },
     {
       displayName: "John Doe",
-      guid: "user_qewergvaer342rgwrf",
+      guid: "user_qewer342rgwrf",
       email: "john@doe.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.VIIRS, Devices.GEOSTAT],
@@ -175,7 +165,7 @@ const Dashboard = () => {
     },
     {
       displayName: "Jay Shattey",
-      guid: "user_efergergqweqe78qe76r7",
+      guid: "user_efer78qe76r7",
       email: "jay@shetty.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.GEOSTAT],
@@ -184,7 +174,7 @@ const Dashboard = () => {
     },
     {
       displayName: "Bella Smith",
-      guid: "user_wergwrwrev348r92348rsd",
+      guid: "user_we8r92348rsd",
       email: "bella@smith.com",
       joined: new Date("2022-01-21"),
       activeMethods: [Devices.VIIRS, Devices.MODIS],
@@ -219,7 +209,9 @@ const Dashboard = () => {
             <Text color={"#BDBDBD"}>{guid}</Text>
           </UserNameIDContainer>
         </LeftContainer>
-        <Text fontSize="16px">{email}</Text>
+        <EmailContainer>
+          <Text fontSize="16px">{email}</Text>
+        </EmailContainer>
       </UserListCardWrapper>
     );
   };
@@ -228,11 +220,16 @@ const Dashboard = () => {
     <UserListWrapper>
       <Grid
         container
-        justifyContent={"space-between"}
+        justifyContent={{
+          xs: "space-around",
+          xm: "space-around",
+          md: "space-between",
+          lg: "space-between",
+        }}
         style={{ position: "relative" }}
-        columnGap={2}
       >
         <Line />
+
         {userList.map((user) => {
           return (
             <GridItem
