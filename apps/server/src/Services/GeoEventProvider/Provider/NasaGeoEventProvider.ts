@@ -41,7 +41,7 @@ class NasaGeoEventProvider implements GeoEventProvider {
         this.config = config;
     }
     
-    async getLatestGeoEvents(): Promise<GeoEvent[]> {
+    async getLatestGeoEvents(geoEventProviderId: string, slice: string): Promise<GeoEvent[]> {
         const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);
@@ -116,14 +116,19 @@ class NasaGeoEventProvider implements GeoEventProvider {
                 const parser = parse(csv, { columns: true });
 
                 const records: GeoEvent[] = [];
+                let recordCount = 0; 
+
                 parser
                     .on("readable", () => {
                         let record: DataRecord;
                         while (record = parser.read()) {
                             records.push(normalize(record, record.instrument));
+                            recordCount++;
                         }
                     })
                     .on("end", () => {
+                        console.log(`GeoEventProvider No.${geoEventProviderId} -> Slice No.${slice}`)
+                        console.log(`Found ${recordCount} records.`)
                         resolve(records)
                     })
                     .on("error", error => {

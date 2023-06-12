@@ -20,6 +20,7 @@ const createNotifications = async () => {
 
         // Create Notifications for all unprocessed SiteAlerts
         notificationsCreated = await prisma.$executeRaw(notificationCreationQuery);
+        console.log(`Created ${notificationsCreated} notifications.`)
 
         // Set all SiteAlert as processed
         await prisma.$executeRaw(updateSiteAlertIsProcessedToTrue);
@@ -28,6 +29,9 @@ const createNotifications = async () => {
     }
     if(notificationsCreated > 0){
         notificationEmitter.emit(NOTIFICATION_SENT)
+    }else{
+        console.log(`No Notifications added. Terminate cron.`)
+        return;
     }
 }
 

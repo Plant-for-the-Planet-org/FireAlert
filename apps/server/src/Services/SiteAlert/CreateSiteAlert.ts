@@ -28,16 +28,21 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
 
         // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
         siteAlertsCreated = await prisma.$executeRaw(siteAlertCreationQuery);
+
+        console.log(`Created ${siteAlertsCreated} SiteAlerts for geoEventProvider No.${geoEventProviderId}`)
+
         // DEBUG: SiteAlerts can be created twice with the same data.
 
         // Set all GeoEvents as processed
         await prisma.$executeRaw(updateGeoEventIsProcessedToTrue);
-        
     } catch (error) {
         console.log(error)
     }
     if(siteAlertsCreated > 0){
         notificationEmitter.emit(NOTIFICATION_CREATED);
+    }else{
+        console.log(`No SiteAlerts created. Terminate cron for geoEventProvider No.${geoEventProviderId}`)
+        return;
     }
 }
 

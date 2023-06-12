@@ -55,46 +55,51 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       select: { id: true },
       where: { geoEventProviderId: geoEventProviderId }
     });
-
     return geoEvents.map(geoEvent => geoEvent.id);
   };
 
   const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
+
   const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
     const filteredNewGeoEvents: GeoEvent[] = [];
     const idsSet: Set<string> = new Set();
-  
+
     for (const geoEvent of newGeoEvents) {
       if (!idsSet.has(geoEvent.id)) {
         filteredNewGeoEvents.push(geoEvent);
         idsSet.add(geoEvent.id);
       }
     }
-  
     return filteredNewGeoEvents;
   };
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
+
+  console.log(`Found ${filteredDuplicateNewGeoEvents.length} non-duplicate geoEvents for geoEventProvider No.${geoEventProviderId}`)
+  let geoEventsCreatedCount: number = 0;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
-    await prisma.geoEvent.createMany({
-      data: filteredDuplicateNewGeoEvents.map(geoEvent => ({
-        id: geoEvent.id,
-        type: AlertType.fire,
-        latitude: geoEvent.latitude,
-        longitude: geoEvent.longitude,
-        eventDate: geoEvent.eventDate,
-        confidence: geoEvent.confidence,
-        isProcessed: false,
-        providerKey: providerKey,
-        identityGroup: identityGroup,
-        geoEventProviderId: geoEventProviderId,
-        radius: 0,
-        slice: slice,
-        data: geoEvent.data,
-      })),
+    const geoEventsToBeCreated = filteredDuplicateNewGeoEvents.map(geoEvent => ({
+      id: geoEvent.id,
+      type: AlertType.fire,
+      latitude: geoEvent.latitude,
+      longitude: geoEvent.longitude,
+      eventDate: geoEvent.eventDate,
+      confidence: geoEvent.confidence,
+      isProcessed: false,
+      providerKey: providerKey,
+      identityGroup: identityGroup,
+      geoEventProviderId: geoEventProviderId,
+      radius: 0,
+      slice: slice,
+      data: geoEvent.data,
+    }))
+    const geoEventsCreated = await prisma.geoEvent.createMany({
+      data: geoEventsToBeCreated,
     });
+    geoEventsCreatedCount = geoEventsCreated.count
+    console.log(`Created ${geoEventsCreatedCount} geoEvents for geoEventProvider No.${geoEventProviderId}`)
   }
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
   if (deletedIds.length > 0) {
@@ -107,7 +112,12 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       },
     });
   }
-  siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId, slice);
+  if(geoEventsCreatedCount > 0){
+    siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId, slice);
+  } else {
+    console.log(`No geoEvents created. Terminate cron for geoEventProvider No.${geoEventProviderId}`)
+    return;
+  }
 };
 
 export default processGeoEvents;
