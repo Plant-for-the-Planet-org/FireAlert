@@ -4,7 +4,7 @@ import { createTRPCRouter, protectedProcedure } from '../trpc';
 import { returnUser, handleNewUser } from '../../../utils/routers/user';
 import { User } from '@prisma/client';
 import { sendAccountDeletionCancellationEmail, sendSoftDeletionEmail } from '../../../utils/notification/userEmails';
-import { ensureAdmin, getUserIdFromCtx } from '../../../utils/routers/trpc'
+import { ensureAdmin } from '../../../utils/routers/trpc'
 
 export const userRouter = createTRPCRouter({
 
@@ -21,18 +21,19 @@ export const userRouter = createTRPCRouter({
                 // If isAdmin is true, either the admin is logging in themselves, or accessing someone else's data
                 if (ctx.isAdmin === true) {
                     // If impersonatedUser is null, login the admin themself
-                    if (ctx.impersonatedUser === null) {
+                    if (ctx.isImpersonatedUser === false) {
                         const adminUser = ctx.user as User
                         return {
                             status: 'success',
                             data: adminUser,
                         };
                     }
-                    //Here, impersonatedUser is user that admin is trying to reach, don't undo soft deleted
-                    const impersonatedUser = ctx.impersonatedUser as User
+                    // Here, impersonatedUser is true, so admin is trying to crud the user data. 
+                    // Don't undo soft delete if user is softdeleted.
+                    const user = ctx.user as User
                     return {
                         status: 'success',
-                        data: impersonatedUser,
+                        data: user,
                     }
                 }
                 // Since authorized client is not admin, do normal login concept
@@ -84,8 +85,7 @@ export const userRouter = createTRPCRouter({
     updateUser: protectedProcedure
         .input(updateUserSchema)
         .mutation(async ({ ctx, input }) => {
-            // Throw an error if ctx.user is null
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             try {
                 const updatedUser = await ctx.prisma.user.update({
                     where: {
@@ -109,7 +109,7 @@ export const userRouter = createTRPCRouter({
 
     softDeleteUser: protectedProcedure
         .mutation(async ({ ctx }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             try {
                 const deletedUser = await ctx.prisma.user.update({
                     where: {

@@ -44,6 +44,7 @@ export function returnUser(user: User) {
         name: user.name,
         image: user.image,
         isPlanetRO: user.isPlanetRO,
+        roles: user.roles,
         lastLogin: user.lastLogin,
         detectionMethods: user.detectionMethods
     };

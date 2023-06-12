@@ -128,10 +128,12 @@ export const storeOTPInVerificationRequest = async ({ ctx, alertMethod }: CtxWit
     return otp;
 }
 
-export const findAlertMethod = async (alertMethodId: string) => {
+export const findAlertMethod = async (alertMethodId: string, userId?: string) => {
+    const uId = userId ? userId : undefined;
     const alertMethod = await prisma.alertMethod.findFirst({
         where: {
             id: alertMethodId,
+            userId: uId,
             deletedAt: null
         }
     })
