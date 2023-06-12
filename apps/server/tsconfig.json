@@ -3,7 +3,10 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "*": ["types/*"]
+      "*": ["types/*"],
+      "src/*": [
+        "./src/*"
+      ],
     },
   
     "checkJs": true,
