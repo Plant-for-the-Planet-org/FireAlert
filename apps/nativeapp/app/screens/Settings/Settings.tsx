@@ -13,20 +13,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
-import {
-  point,
-  Point,
-  Feature,
-  polygon,
-  Properties,
-  multiPolygon,
-} from '@turf/helpers';
-import centroid from '@turf/centroid';
+import bbox from '@turf/bbox';
 import rewind from '@mapbox/geojson-rewind';
 import OneSignal from 'react-native-onesignal';
 import DeviceInfo from 'react-native-device-info';
 import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
+import {point, polygon, multiPolygon} from '@turf/helpers';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {
@@ -52,7 +45,6 @@ import {
   WarningIcon,
   GlobeWebIcon,
   DistanceIcon,
-  WhatsAppIcon,
   DropdownArrow,
   TrashSolidIcon,
   MapOutlineIcon,
@@ -60,6 +52,10 @@ import {
   VerificationWarning,
   DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
+import {
+  updateIsLoggedIn,
+  updateUserDetails,
+} from '../../redux/slices/login/loginSlice';
 
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
@@ -69,12 +65,7 @@ import {getDeviceInfo} from '../../utils/deviceInfo';
 import {RADIUS_ARR, WEB_URLS} from '../../constants';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {
-  updateIsLoggedIn,
-  updateUserDetails,
-} from '../../redux/slices/login/loginSlice';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
-import bbox from '@turf/bbox';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;

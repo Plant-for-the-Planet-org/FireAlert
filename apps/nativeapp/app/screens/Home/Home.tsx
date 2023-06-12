@@ -15,11 +15,11 @@ import {
 } from 'react-native';
 import moment from 'moment';
 import MapboxGL from '@rnmapbox/maps';
-import centroid from '@turf/centroid';
-import {polygon} from '@turf/helpers';
 import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
+import rewind from '@mapbox/geojson-rewind';
+import {multiPolygon, polygon} from '@turf/helpers';
 import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
@@ -162,7 +162,7 @@ const Home = ({navigation, route}) => {
     if (
       isCameraRefVisible &&
       camera?.current?.setCamera &&
-      configData?.loc?.longitude !== ''
+      !!configData?.loc?.longitude
     ) {
       setIsInitial(false);
       camera.current.setCamera({
@@ -567,7 +567,6 @@ const Home = ({navigation, route}) => {
       }}>
       <MapboxGL.FillLayer
         id="fillLayer"
-        layerIndex={2}
         style={{
           fillColor: Colors.GRADIENT_PRIMARY,
           fillOpacity: 0.4,
@@ -584,6 +583,7 @@ const Home = ({navigation, route}) => {
       />
     </MapboxGL.ShapeSource>
   );
+  console.log(formattedSites, 'formattedSites->>');
 
   const renderMapSource = () => (
     <MapboxGL.ShapeSource
@@ -591,17 +591,26 @@ const Home = ({navigation, route}) => {
       shape={{
         type: 'FeatureCollection',
         features:
-          formattedSites?.polygon?.map((singleSite, i) => {
-            return {
-              type: 'Feature',
-              properties: {site: singleSite},
-              geometry: singleSite?.geometry,
-            };
-          }) || [],
+          [...formattedSites?.polygon, ...formattedSites?.multipolygon]?.map(
+            (singleSite, i) => {
+              return {
+                type: 'Feature',
+                properties: {site: singleSite},
+                geometry: singleSite?.geometry,
+              };
+            },
+          ) || [],
       }}
       onPress={e => {
+        let bboxGeo = null;
         setSelectedArea(e?.features);
-        let bboxGeo = bbox(polygon(e?.features[0]?.geometry.coordinates));
+        if (e?.features[0]?.type === 'MultiPolygon') {
+          bboxGeo = bbox(
+            multiPolygon(rewind(e?.features[0]?.geometry.coordinates)),
+          );
+        } else {
+          bboxGeo = bbox(polygon(e?.features[0]?.geometry.coordinates));
+        }
         camera.current.fitBounds(
           [bboxGeo[0], bboxGeo[1]],
           [bboxGeo[2], bboxGeo[3]],
@@ -856,7 +865,7 @@ const Home = ({navigation, route}) => {
       </BottomSheet>
       {/* site Info modal */}
       <BottomSheet
-        isVisible={Object.keys(selectedSite)?.length > 0}
+        isVisible={!!Object.keys(selectedSite)?.length}
         backdropColor={'transparent'}
         onBackdropPress={() => {
           setSelectedArea(null);
@@ -906,7 +915,9 @@ const Home = ({navigation, route}) => {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            disabled={deleteSite?.isLoading || selectedSite?.site?.project?.id}
+            disabled={
+              deleteSite?.isLoading || !!selectedSite?.site?.project?.id
+            }
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
             style={[
               styles.btn,

@@ -102,6 +102,8 @@ export default function AppNavigator() {
             await clearAll();
           });
         }
+      } else {
+        SplashScreen.hide();
       }
     })();
   }, []);
