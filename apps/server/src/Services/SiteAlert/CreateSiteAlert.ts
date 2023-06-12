@@ -1,41 +1,50 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import notificationEmitter from "../../Events/EventEmitter/NotificationEmitter";
 import { NOTIFICATION_CREATED } from "../../Events/messageConstants";
-const prisma = new PrismaClient();
+import { prisma } from '../../server/db'
 
-const createSiteAlerts = async (geoEventProviderId: string) => {
+
+const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
+    let siteAlertsCreated: number = 0;
     try {
         const siteAlertCreationQuery = Prisma.sql`
         INSERT INTO "SiteAlert" (id, type, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance") 
         SELECT gen_random_uuid(), e.type, false, e."eventDate", e."identityGroup"::"GeoEventDetectionInstrument", e.confidence, e.latitude, e.longitude, s.id, e.data, ST_Distance(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") as distance 
             FROM "GeoEvent" e 
                 INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") AND s."deletedAt" IS NULL AND s."isMonitored" = TRUE
-                WHERE e."isProcessed" = false AND NOT EXISTS ( 
+                WHERE e."isProcessed" = false 
+                AND (
+                    e.slice = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                    OR '0' = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                )
+                AND NOT EXISTS ( 
                     SELECT 1 
                     FROM "SiteAlert" 
                     WHERE 
                     "SiteAlert".longitude = e.longitude 
                     AND "SiteAlert".latitude = e.latitude 
                     AND "SiteAlert"."eventDate" = e."eventDate" 
-                    )`;
-        const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId}`;
-        // Todo: Ensure we only mark GeoEvents as processed if they are from the same source as the SiteAlerts that were created from them
-        // Break in a different function:
-        // After Creating SiteAlerts, trigger a different event, to create AlertNotifications for each SiteAlert.
-        // Break the process of sending Notifications from creation of Notifications.
+                )`;
+        const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId} AND "slice" = ${slice}`;
 
         // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
-        await prisma.$executeRaw(siteAlertCreationQuery);
+        siteAlertsCreated = await prisma.$executeRaw(siteAlertCreationQuery);
+
+        console.log(`Created ${siteAlertsCreated} SiteAlerts for geoEventProvider No.${geoEventProviderId}`)
+
         // DEBUG: SiteAlerts can be created twice with the same data.
 
         // Set all GeoEvents as processed
         await prisma.$executeRaw(updateGeoEventIsProcessedToTrue);
-        
     } catch (error) {
         console.log(error)
     }
-
-    notificationEmitter.emit(NOTIFICATION_CREATED);
+    if (siteAlertsCreated > 0) {
+        notificationEmitter.emit(NOTIFICATION_CREATED);
+    } else {
+        console.log(`No SiteAlerts created. Terminate cron for geoEventProvider No.${geoEventProviderId}`)
+        return;
+    }
 }
 
 export default createSiteAlerts;

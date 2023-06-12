@@ -5,7 +5,7 @@ interface GeoEventProvider {
     getKey: () => string;
     getIdentityGroup: () => string | null;
     initialize: (config?: GeoEventProviderConfig) => void;
-    getLatestGeoEvents: () => Promise<GeoEvent[]>;
+    getLatestGeoEvents: (geoEventProviderId: string, slice: string) => Promise<GeoEvent[]>;
 }
 
 export default GeoEventProvider;

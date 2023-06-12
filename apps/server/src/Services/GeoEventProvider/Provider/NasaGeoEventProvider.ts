@@ -5,8 +5,7 @@ import { parse } from 'csv-parse'
 import { AlertType } from '@prisma/client';
 import DataRecord from '../../../Interfaces/DataRecord';
 
-interface NasaGeoEventProviderConfig {
-    apiUrl: string,
+interface NasaGeoEventProviderConfig extends GeoEventProviderConfig{
     mapKey: string,
     sourceKey: string
 }
@@ -14,6 +13,10 @@ interface NasaGeoEventProviderConfig {
 class NasaGeoEventProvider implements GeoEventProvider {
 
     private config: GeoEventProviderConfig | undefined;
+
+    constructor() {
+        this.getLatestGeoEvents = this.getLatestGeoEvents.bind(this);
+    }
 
     getKey(): string {
         return 'FIRMS';
@@ -33,11 +36,12 @@ class NasaGeoEventProvider implements GeoEventProvider {
         return identityMap.get(this.config?.sourceKey) ?? null;
     }
 
+
     initialize(config?: GeoEventProviderConfig): void {
         this.config = config;
     }
     
-    async getLatestGeoEvents(): Promise<GeoEvent[]> {
+    async getLatestGeoEvents(geoEventProviderId: string, slice: string): Promise<GeoEvent[]> {
         const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);
@@ -103,25 +107,32 @@ class NasaGeoEventProvider implements GeoEventProvider {
 
         return new Promise<GeoEvent[]>(async (resolve, reject) => {
             try {
-                const sourceKey = this.config?.sourceKey;
-                const url = this.getUrl(sourceKey);
+                const url = this.getUrl();
                 const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const csv = await response.text();
                 const parser = parse(csv, { columns: true });
 
                 const records: GeoEvent[] = [];
+                let recordCount = 0; 
+
                 parser
                     .on("readable", () => {
                         let record: DataRecord;
                         while (record = parser.read()) {
                             records.push(normalize(record, record.instrument));
+                            recordCount++;
                         }
                     })
                     .on("end", () => {
+                        console.log(`GeoEventProvider No.${geoEventProviderId} -> Slice No.${slice}`)
+                        console.log(`Found ${recordCount} records.`)
                         resolve(records)
                     })
                     .on("error", error => {
-                        throw new Error("Error parsing CSV file: " + error.message)
+                        reject(new Error("Error parsing CSV file: " + error.message))
                     });
             } catch (error) {
                 reject(error);
@@ -129,10 +140,10 @@ class NasaGeoEventProvider implements GeoEventProvider {
         });
     }
 
-    getUrl(source: string): string {
-        const { apiUrl, mapKey, sourceKey } = this.getConfig()
+    getUrl(): string {
+        const { apiUrl, mapKey, sourceKey, bbox} = this.getConfig()
         const currentDate = new Date().toISOString().split("T")[0];
-        return `${apiUrl}/api/area/csv/${mapKey}/${source}/-180,-90,180,90/1/${currentDate}`;
+        return `${apiUrl}/api/area/csv/${mapKey}/${sourceKey}/${bbox}/1/${currentDate}`;
     }
 
     getConfig(): NasaGeoEventProviderConfig {
@@ -140,18 +151,25 @@ class NasaGeoEventProvider implements GeoEventProvider {
             throw new Error(`Invalid or incomplete alert provider configuration`);
         }
         const config = this.config
-        if (typeof config.apiUrl === 'undefined') {
+        if (typeof config.apiUrl === "undefined") {
             throw new Error(`Missing property 'apiUrl' in alert provider configuration`);
         }
-        if (typeof config.mapKey === 'undefined') {
+        if (typeof config.mapKey === "undefined") {
             throw new Error(`Missing property 'mapKey' in alert provider configuration`);
         }
-
-        if (typeof config.sourceKey === 'undefined') {
+        if (typeof config.sourceKey === "undefined") {
             throw new Error(`Missing property 'sourceKey' in alert provider configuration`);
+        }
+        if (typeof config.bbox === "undefined"){
+            throw new Error(`Missing property 'bbox' in alert provider configuration`);
+        }
+        if (typeof config.slice === "undefined"){
+            throw new Error(`Missing property 'slice' in alert provider configuration`);
         }
 
         return {
+            bbox: config.bbox,
+            slice: config.slice,
             apiUrl: config.apiUrl,
             mapKey: config.mapKey,
             sourceKey: config.sourceKey

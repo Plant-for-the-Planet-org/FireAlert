@@ -2,8 +2,7 @@ import { AlertMethodMethod, Prisma, PrismaClient } from "@prisma/client";
 import NotifierRegistry from "../Notifier/NotifierRegistry";
 import { NotificationParameters } from "../../Interfaces/NotificationParameters";
 import DataRecord from "../../Interfaces/DataRecord";
-
-const prisma = new PrismaClient();
+import { prisma } from '../../server/db'
 
 const sendNotifications = async () => {
     // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
@@ -25,6 +24,9 @@ const sendNotifications = async () => {
                 }
             }
         });
+
+        console.log(`Notifications to be sent: ${notifications.length}`)
+
         await Promise.all(notifications.map(async (notification) => {
             const { id, alertMethod, destination, siteAlert } = notification;
             const { id: alertId, confidence, data, type, longitude, latitude, distance, detectedBy, eventDate, site } = siteAlert;

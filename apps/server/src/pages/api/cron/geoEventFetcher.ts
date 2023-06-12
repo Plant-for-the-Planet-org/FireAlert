@@ -6,11 +6,11 @@ import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEven
 import { PrismaClient, type GeoEventProvider } from '@prisma/client'
 import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
 import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
+import { GeoEventProviderConfig } from '../../../Interfaces/GeoEventProvider'
 
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
   const prisma = new PrismaClient()
-
   // get all active providers
   const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
@@ -45,27 +45,44 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     return filterAllActiveProviders(provider.lastRun, provider.fetchFrequency)
   });
 
+  let providerLeftToFetch = activeProviders.length;
+  console.log(`Found ${allActiveProviders.length} active providers`)
+  console.log(`${providerLeftToFetch} geoEventProviders need to be fetched`)
+
+
   const promises = activeProviders.map(async (provider) => {
     const { providerKey, config, id: geoEventProviderId } = provider
+    const parsedConfig: GeoEventProviderConfig = JSON.parse(JSON.stringify(config))
     const geoEventProvider = GeoEventProviderRegistry.get(providerKey);
-    geoEventProvider.initialize(JSON.parse(JSON.stringify(config)));
+    geoEventProvider.initialize(parsedConfig);
+    const slice = parsedConfig.slice
 
-    const geoEvents = await geoEventProvider.getLatestGeoEvents()
-    const identityGroup = geoEventProvider.getIdentityGroup()
-    geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEventProviderId , geoEvents)
+    return geoEventProvider.getLatestGeoEvents(geoEventProviderId, slice)
+    .then(async (geoEvents) => {
+      const identityGroup = geoEventProvider.getIdentityGroup()
+      if(geoEvents.length > 0){
+        geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
+      }
+      console.log(`Provider fetched. ${providerLeftToFetch} providers left.`) 
+      console.log(`Set last updated for geoEventProvider No.${geoEventProviderId} to ${new Date()}`)
+      providerLeftToFetch = providerLeftToFetch - 1;
 
-    // Update lastRun value of the provider to the current Date()
-    await prisma.geoEventProvider.update({
-      where: {
-        id: provider.id
-      },
-      data: {
-        lastRun: new Date()
-      },
+      // Update lastRun value of the provider to the current Date()
+      await prisma.geoEventProvider.update({
+        where: {
+          id: provider.id
+        },
+        data: {
+          lastRun: new Date()
+        },
+      });
     });
-  })
 
-  await Promise.all(promises);
+  })
+  
+  await Promise.all(promises).catch(error => console.error(`Error: ${error.message}`));
+
+  console.log(`All done.`)
 
   res.status(200).json({ message: "Cron job executed successfully" });
 }
