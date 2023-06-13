@@ -1,15 +1,11 @@
 import { TRPCError } from '@trpc/server';
 import { InnerTRPCContext } from '../../server/api/trpc';
 import { checkTokenIsValid } from '../../utils/authorization/token'
-import {getUserBySub} from '../../utils/routers/user'
+import { User } from '@prisma/client';
+import { TRPCContext } from '../../Interfaces/Context'
 
-interface InnerCtxWithSub {
-    ctx: InnerTRPCContext,
-    sub: string,
-    isTokenAuthentication: boolean,
-}
 
-export interface JwtPayload {
+interface JwtPayload {
     [key: string]: any;
     iss?: string | undefined;
     sub?: string | undefined;
@@ -20,60 +16,48 @@ export interface JwtPayload {
     jti?: string | undefined;
 }
 
-export interface PPJwtPayload extends JwtPayload {
+interface PPJwtPayload extends JwtPayload {
     "https://app.plant-for-the-planet.org/email": string;
     "https://app.plant-for-the-planet.org/email_verified": boolean;
     azp: string;
 }
 
-export async function tokenAuthentication(ctx: InnerTRPCContext) {
-    let isTokenAuthentication = false;
+export async function decodeToken(ctx: InnerTRPCContext) {
     let decodedToken: PPJwtPayload | undefined = undefined;
     let access_token: string | undefined = undefined;
-    if (ctx.req.headers.authorization) {
-        access_token = ctx.req.headers.authorization.replace("Bearer ", "");
-        if (!access_token) {
-            isTokenAuthentication = false;
-        } else {
-            try {
-                const decoded = await checkTokenIsValid(access_token);
-                if (typeof decoded === "string") {
-                    decodedToken = JSON.parse(decoded);
-                } else {
-                    decodedToken = decoded as PPJwtPayload;
-                }
-                isTokenAuthentication = true;
-            } catch (error) {
-                throw new TRPCError({ code: "UNAUTHORIZED", message: `${error}` });
-            }
-        }
+    if (!ctx.req.headers.authorization) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Authorization header not provided` });
     }
-    return { isTokenAuthentication, decodedToken, access_token }
+    access_token = ctx.req.headers.authorization.replace("Bearer ", "");
+    if (!access_token) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `Invalid Bearer token` });
+    }
+    // checkTokenIsValid throws a trpc error if decodedToken is not valid.
+    const decoded = await checkTokenIsValid(access_token);
+    if (typeof decoded === "string") {
+        decodedToken = JSON.parse(decoded);
+    } else {
+        decodedToken = decoded as PPJwtPayload;
+    }
+    return { decodedToken, access_token }
 }
 
-export async function checkSoftDelete({ ctx, sub, isTokenAuthentication }: InnerCtxWithSub) {
-    const userId = isTokenAuthentication ? (await getUserBySub(sub)).id : ctx.session?.user?.id;
-    if (!userId) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "User ID not found",
-        });
-    }
-    const user = await ctx.prisma.user.findUnique({
-        where: {
-            id: userId,
-        },
-    });
-    if (!user) {
-        throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "User not found",
-        });
-    }
+export async function handleSoftDelete(user: User) {
+    // Check if the user is soft deleted, if yes, throw an unauthorized error.
     if (user?.deletedAt) {
         throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "User account has been deleted. Please log in again.",
+        });
+    }
+}
+
+
+export function ensureAdmin(ctx: TRPCContext) {
+    if (ctx.isAdmin === false) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `This route is only accessible for admins`,
         });
     }
 }

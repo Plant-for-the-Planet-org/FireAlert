@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+import { prisma } from '../src/server/db'
 
 // Function to calculate the distance between two points using the Haversine formula
 function calculateDistance(lat1, lon1, lat2, lon2) {

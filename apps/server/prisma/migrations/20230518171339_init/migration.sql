@@ -26,34 +26,6 @@ CREATE TYPE "AlertConfidence" AS ENUM ('high', 'medium', 'low');
 CREATE TYPE "AlertType" AS ENUM ('fire');
 
 -- CreateTable
-CREATE TABLE "Account" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "type" TEXT NOT NULL,
-    "provider" TEXT NOT NULL,
-    "providerAccountId" TEXT NOT NULL,
-    "refresh_token" TEXT,
-    "access_token" TEXT,
-    "expires_at" INTEGER,
-    "token_type" TEXT,
-    "scope" TEXT,
-    "id_token" TEXT,
-    "session_state" TEXT,
-
-    CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Session" (
-    "id" TEXT NOT NULL,
-    "sessionToken" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "expires" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "sub" TEXT,
@@ -62,6 +34,7 @@ CREATE TABLE "User" (
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "detectionMethods" JSONB NOT NULL,
     "isPlanetRO" BOOLEAN,
+    "remoteId" TEXT,
     "image" TEXT,
     "deletedAt" TIMESTAMP(3),
     "isVerified" BOOLEAN,
@@ -116,6 +89,7 @@ CREATE TABLE "Site" (
     "projectId" TEXT,
     "lastUpdated" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
+    "slices" JSONB,
     "originalGeometry" GEOMETRY,
     "detectionGeometry" GEOMETRY,
 
@@ -136,6 +110,8 @@ CREATE TABLE "Project" (
 -- CreateTable
 CREATE TABLE "GeoEventProvider" (
     "id" TEXT NOT NULL,
+    "name" TEXT,
+    "description" TEXT,
     "type" "AlertType" NOT NULL,
     "isActive" BOOLEAN NOT NULL,    
     "providerKey" "GeoEventSource" NOT NULL,
@@ -156,9 +132,11 @@ CREATE TABLE "GeoEvent" (
     "confidence" "AlertConfidence" NOT NULL,
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
     "identityGroup" TEXT NOT NULL,
+    "geoEventProviderId" TEXT NOT NULL,
     "providerKey" "GeoEventSource" NOT NULL,
     "geometry" GEOMETRY,
     "radius" INTEGER,
+    "slice" TEXT NOT NULL,
     "data" JSONB,
 
     CONSTRAINT "GeoEvent_pkey" PRIMARY KEY ("id")
@@ -195,12 +173,6 @@ CREATE TABLE "Notification" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
-
--- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- Create Index
@@ -217,12 +189,6 @@ CREATE UNIQUE INDEX "VerificationRequest_id_token_key" ON "VerificationRequest"(
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AlertMethod_destination_userId_method_key" ON "AlertMethod"("destination", "userId", "method");
-
--- AddForeignKey
-ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "VerificationRequest" ADD CONSTRAINT "VerificationRequest_alertMethodId_fkey" FOREIGN KEY ("alertMethodId") REFERENCES "AlertMethod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

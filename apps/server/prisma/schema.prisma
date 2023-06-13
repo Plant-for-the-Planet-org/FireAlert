@@ -4,34 +4,9 @@ generator client {
 
 datasource db {
     provider = "postgresql"
-    url      = env("DATABASE_URL")
-    // shadowDatabaseUrl = env("POSTGRES_URL_NON_POOLING")
-}
-
-model Account {
-    id                String  @id @default(cuid())
-    userId            String
-    type              String
-    provider          String
-    providerAccountId String
-    refresh_token     String?
-    access_token      String?
-    expires_at        Int?
-    token_type        String?
-    scope             String?
-    id_token          String?
-    session_state     String?
-    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@unique([provider, providerAccountId])
-}
-
-model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    url      = env("DATABASE_PRISMA_URL")
+    directUrl = env("DATABASE_URL_NON_POOLING")
+    shadowDatabaseUrl = env("DATABASE_URL_NON_POOLING")
 }
 
 model User {
@@ -39,7 +14,7 @@ model User {
     sub              String?       @unique
     name             String?
     email            String        @unique
-    emailVerified    Boolean       @default(false)
+    emailVerified    Boolean       @default(false)   
     detectionMethods Json // ["MODIS","VIIRS","LANDSAT","GEOSTATIONARY"]
     isPlanetRO       Boolean?
     image            String?
@@ -48,11 +23,10 @@ model User {
     lastLogin        DateTime?
     signupDate       DateTime      @default(now())
     roles            Role          @default(ROLE_CLIENT)
-    accounts         Account[]
     alertMethods     AlertMethod[]
     projects         Project[]
-    sessions         Session[]
     sites            Site[]
+    remoteId         String?
 }
 
 model VerificationRequest {
@@ -68,19 +42,19 @@ model VerificationRequest {
 }
 
 model AlertMethod {
-    id                  String                 @id @default(cuid())
+    id                  String               @id @default(cuid())
     method              AlertMethodMethod
     destination         String
-    isVerified          Boolean                @default(false)
-    isEnabled           Boolean                @default(false)
+    isVerified          Boolean              @default(false)
+    isEnabled           Boolean              @default(false)
     deletedAt           DateTime?
     deviceName          String?
     deviceId            String?
-    tokenSentCount      Int                    @default(0)
+    tokenSentCount      Int                  @default(0)
     lastTokenSentDate   DateTime?
     userId              String
-    failCount           Int                    @default(0)
-    user                User                   @relation(fields: [userId], references: [id])
+    failCount           Int                  @default(0)
+    user                User                 @relation(fields: [userId], references: [id])
     verificationRequest VerificationRequest?
 
     @@unique([destination, userId, method])
@@ -99,6 +73,7 @@ model Site {
     projectId         String?
     lastUpdated       DateTime?
     userId            String
+    slices            Json?                 // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
     detectionGeometry Unsupported("geometry")?
     originalGeometry  Unsupported("geometry")?
     // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 
@@ -120,6 +95,8 @@ model Project {
 
 model GeoEventProvider {
     id             String         @id @default(cuid())
+    name           String?
+    description    String?
     type           AlertType
     isActive       Boolean
     providerKey    GeoEventSource
@@ -129,18 +106,20 @@ model GeoEventProvider {
 }
 
 model GeoEvent {
-    id            String                   @id @default(cuid())
-    type          AlertType
-    latitude      Float
-    longitude     Float
-    eventDate     DateTime
-    geometry      Unsupported("geometry")?
-    confidence    AlertConfidence
-    isProcessed   Boolean                  @default(false)
-    providerKey   GeoEventSource
-    identityGroup String
-    radius        Int?
-    data          Json?
+    id                 String                   @id @default(cuid())
+    type               AlertType
+    latitude           Float
+    longitude          Float
+    eventDate          DateTime
+    geometry           Unsupported("geometry")?
+    confidence         AlertConfidence
+    isProcessed        Boolean                  @default(false)
+    providerKey        GeoEventSource
+    identityGroup      String
+    geoEventProviderId String
+    radius             Int?
+    slice              String                  // Will be something like "1" or "2" or "8"
+    data               Json?
 }
 
 model SiteAlert {

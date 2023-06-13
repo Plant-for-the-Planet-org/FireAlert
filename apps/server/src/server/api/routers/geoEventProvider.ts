@@ -2,14 +2,19 @@ import { TRPCError } from "@trpc/server";
 import { createGeoEventProviderSchema, updateGeoEventProviderSchema, geoEventProviderParamsSchema } from '../zodSchemas/geoEventProvider.schema'
 import {
     createTRPCRouter,
-    adminProcedure,
+    protectedProcedure,
 } from "../trpc";
+import {ensureAdmin} from '../../../utils/routers/trpc'
+
+// Every procedure in geoEventProvider Router must be an admin only procedure
+// We implement this check by using the ensureAdmin function
 
 export const geoEventProviderRouter = createTRPCRouter({
 
-    createGeoEventProvider: adminProcedure
+    createGeoEventProvider: protectedProcedure
         .input(createGeoEventProviderSchema)
         .mutation(async ({ ctx, input }) => {
+            ensureAdmin(ctx)
             try {
                 const { type, isActive, providerKey, config } = input;
                 const geoEventProvider = await ctx.prisma.geoEventProvider.create({
@@ -33,9 +38,10 @@ export const geoEventProviderRouter = createTRPCRouter({
             }
         }),
 
-    updateGeoEventProvider: adminProcedure
+    updateGeoEventProvider: protectedProcedure
         .input(updateGeoEventProviderSchema)
         .mutation(async ({ ctx, input }) => {
+            ensureAdmin(ctx)
             try {
                 const { params, body } = input;
 
@@ -72,8 +78,9 @@ export const geoEventProviderRouter = createTRPCRouter({
             }
         }),
 
-    getGeoEventProviders: adminProcedure
+    getGeoEventProviders: protectedProcedure
         .query(async ({ ctx }) => {
+            ensureAdmin(ctx)
             try {
                 const geoEventProviders = await ctx.prisma.geoEventProvider.findMany();
 
@@ -90,9 +97,10 @@ export const geoEventProviderRouter = createTRPCRouter({
             }
         }),
 
-    getGeoEventProvider: adminProcedure
+    getGeoEventProvider: protectedProcedure
         .input(geoEventProviderParamsSchema)
         .query(async ({ ctx, input }) => {
+            ensureAdmin(ctx)
             try {
                 const geoEventProvider = await ctx.prisma.geoEventProvider.findUnique({
                     where: {
@@ -106,7 +114,6 @@ export const geoEventProviderRouter = createTRPCRouter({
                         message: "GeoEventProvider with that id does not exist",
                     });
                 }
-
                 return {
                     status: "success",
                     data: geoEventProvider,
@@ -120,9 +127,10 @@ export const geoEventProviderRouter = createTRPCRouter({
             }
         }),
 
-    deleteGeoEventProvider: adminProcedure
+    deleteGeoEventProvider: protectedProcedure
         .input(geoEventProviderParamsSchema)
         .mutation(async ({ ctx, input }) => {
+            ensureAdmin(ctx)
             try {
                 const deletedGeoEventProvider = await ctx.prisma.geoEventProvider.delete({
                     where: {

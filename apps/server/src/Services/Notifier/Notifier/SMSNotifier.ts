@@ -13,6 +13,12 @@ class SMSNotifier implements Notifier {
   notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
     const { message, subject, url } = parameters;
 
+    // if env.TWILIO_ACCOUNT_SID or env.TWILIO_AUTH_TOKEN or env.TWILIO_PHONE_NUMBER is not set return promise with false
+    if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_PHONE_NUMBER) {
+      console.error(`Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`);
+      return Promise.resolve(false);
+    }
+
     console.log(`Sending message ${message} to ${destination}`)
 
     // Twilio Credentials
