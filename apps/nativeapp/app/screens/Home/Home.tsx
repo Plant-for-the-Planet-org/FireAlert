@@ -583,7 +583,6 @@ const Home = ({navigation, route}) => {
       />
     </MapboxGL.ShapeSource>
   );
-  console.log(formattedSites, 'formattedSites->>');
 
   const renderMapSource = () => (
     <MapboxGL.ShapeSource
@@ -591,15 +590,15 @@ const Home = ({navigation, route}) => {
       shape={{
         type: 'FeatureCollection',
         features:
-          [...formattedSites?.polygon, ...formattedSites?.multipolygon]?.map(
-            (singleSite, i) => {
+          (formattedSites?.polygon ?? [])
+            .concat(formattedSites?.multipolygon ?? [])
+            ?.map((singleSite, i) => {
               return {
                 type: 'Feature',
                 properties: {site: singleSite},
                 geometry: singleSite?.geometry,
               };
-            },
-          ) || [],
+            }) || [],
       }}
       onPress={e => {
         let bboxGeo = null;
