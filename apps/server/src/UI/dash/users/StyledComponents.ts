@@ -22,13 +22,12 @@ export const AvatarContainer = styled("div")({
 
 export const UserNameIDContainer = styled("div")({
   margin: 0,
-  padding: "5px",
   display: "flex",
   flexDirection: "column",
 });
 
 export const EmailContainer = styled("div")({
-  margin: "10px 0 10px 0",
+  margin: "10px 0 10px 58px",
 });
 
 export const UserListWrapper = styled(Grid)({
