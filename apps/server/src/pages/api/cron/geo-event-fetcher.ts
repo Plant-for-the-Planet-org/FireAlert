@@ -4,12 +4,25 @@
 import { type NextApiRequest, type NextApiResponse } from "next";
 import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
 import { PrismaClient, type GeoEventProvider } from '@prisma/client'
-import geoEventEmitter from '../../../Events/EventEmitter/GeoEventEmitter'
-import { GEO_EVENTS_CREATED } from '../../../Events/messageConstants'
-import { GeoEventProviderConfig } from '../../../Interfaces/GeoEventProvider'
+import { type GeoEventProviderConfig } from '../../../Interfaces/GeoEventProvider'
+import { env } from "../../../env.mjs";
+import processGeoEvents from "../../../../src/Services/GeoEvent/GeoEventHandler";
+import createNotifications from "../../../../src/Services/Notifications/CreateNotifications";
+import createSiteAlerts from "../../../../src/Services/SiteAlert/CreateSiteAlert";
+
 
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
+    // Verify the 'cron_key' in the request headers before proceeding
+    if (env.CRON_KEY) {
+      // Verify the 'cron_key' in the request headers
+      const cronKey = req.query['cron_key'];
+      if (!cronKey || cronKey !== env.CRON_KEY) {
+        res.status(403).json({ message: "Unauthorized Invalid Cron Key" });
+        return;
+      }
+    }
+
   const prisma = new PrismaClient()
   // get all active providers
   const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
@@ -45,11 +58,8 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     return filterAllActiveProviders(provider.lastRun, provider.fetchFrequency)
   });
 
-  let providerLeftToFetch = activeProviders.length;
-  console.log(`Found ${allActiveProviders.length} active providers`)
-  console.log(`${providerLeftToFetch} geoEventProviders need to be fetched`)
-
-
+  let newSiteAlertCount = 0;
+  // Loop for each active provider and fetch geoEvents
   const promises = activeProviders.map(async (provider) => {
     const { providerKey, config, id: geoEventProviderId } = provider
     const parsedConfig: GeoEventProviderConfig = JSON.parse(JSON.stringify(config))
@@ -57,16 +67,25 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     geoEventProvider.initialize(parsedConfig);
     const slice = parsedConfig.slice
 
-    return geoEventProvider.getLatestGeoEvents(geoEventProviderId, slice)
+    // First fetch all geoEvents from the provider
+    return await geoEventProvider.getLatestGeoEvents(geoEventProviderId, slice)
     .then(async (geoEvents) => {
       const identityGroup = geoEventProvider.getIdentityGroup()
-      if(geoEvents.length > 0){
-        geoEventEmitter.emit(GEO_EVENTS_CREATED, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
-      }
-      console.log(`Provider fetched. ${providerLeftToFetch} providers left.`) 
-      console.log(`Set last updated for geoEventProvider No.${geoEventProviderId} to ${new Date()}`)
-      providerLeftToFetch = providerLeftToFetch - 1;
+      
+      // If there are geoEvents, emit an event to find duplicates and persist them
+      console.log(`Slice ${slice}: ${providerKey} Fetched ${geoEvents.length} geoEvents`)
 
+      if(geoEvents.length > 0){
+        const eventCount = await processGeoEvents (providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
+
+        // and then create site Alerts
+        if (eventCount > 0) {
+          const alertCount = await createSiteAlerts (geoEventProviderId, slice)
+          newSiteAlertCount += alertCount
+        }
+        
+      }
+      
       // Update lastRun value of the provider to the current Date()
       await prisma.geoEventProvider.update({
         where: {
@@ -81,8 +100,11 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   })
   
   await Promise.all(promises).catch(error => console.error(`Error: ${error.message}`));
-
-  console.log(`All done.`)
-
+  
+  console.log(`All done. Now Creating notifications for ${newSiteAlertCount} alerts`)
+  if (newSiteAlertCount > 0){
+    await createNotifications();
+  }
+  
   res.status(200).json({ message: "Cron job executed successfully" });
 }

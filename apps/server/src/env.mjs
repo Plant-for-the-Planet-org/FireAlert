@@ -35,7 +35,8 @@ const server = z.object({
   SMTP_URL: z.string().url(),
   EMAIL_FROM: z.string(),
   PLANET_API_URL: z.string(),
-  NEXT_PUBLIC_SENTRY_DSN: z.string().optional()
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  CRON_KEY: z.string().optional()
 });
 
 /**
@@ -74,6 +75,7 @@ const processEnv = {
   EMAIL_FROM: process.env.EMAIL_FROM,
   PLANET_API_URL: process.env.PLANET_API_URL,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  CRON_KEY: process.env.CRON_KEY,
 };
 
 // Don't touch the part below

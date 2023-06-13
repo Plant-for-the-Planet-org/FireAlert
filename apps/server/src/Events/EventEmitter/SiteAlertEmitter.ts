@@ -1,10 +1,10 @@
 import EventEmitter from "eventemitter3";
-import { SITE_ALERTS_CREATED } from '../messageConstants'
+import { CREATE_SITE_ALERTS } from '../messageConstants'
 const siteAlertEmitter = new EventEmitter();
 import createSiteAlerts from '../../Services/SiteAlert/CreateSiteAlert';
 
 siteAlertEmitter    
-    .on(SITE_ALERTS_CREATED, (geoEventProviderId: string, slice: string) => {
+    .on(CREATE_SITE_ALERTS, (geoEventProviderId: string, slice: string) => {
         createSiteAlerts(geoEventProviderId, slice)
     });
 

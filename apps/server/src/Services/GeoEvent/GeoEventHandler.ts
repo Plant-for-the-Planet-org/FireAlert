@@ -1,12 +1,13 @@
-import { AlertType, type GeoEventSource, PrismaClient } from "@prisma/client";
-import { SITE_ALERTS_CREATED } from "../../Events/messageConstants";
-// import GeoEvent from "../Interfaces/GeoEvent";
+import { AlertType, type GeoEventSource } from "@prisma/client";
 import { type GeoEvent } from "@prisma/client";
-import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
 import md5 from "md5";
 import { prisma } from '../../server/db'
+import createSiteAlerts from "../SiteAlert/CreateSiteAlert";
+// import { CREATE_SITE_ALERTS } from "../../Events/messageConstants";
+// import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
+// import GeoEvent from "../Interfaces/GeoEvent";
 
-const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, slice: string, geoEvents: Array<GeoEvent>) => {
+const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string | null, geoEventProviderId: string, slice: string, geoEvents: Array<Partial<GeoEvent>>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -75,7 +76,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
 
-  console.log(`Found ${filteredDuplicateNewGeoEvents.length} non-duplicate geoEvents for geoEventProvider No.${geoEventProviderId}`)
+  console.log(`Slice ${slice}: ${providerKey} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`)
   let geoEventsCreatedCount: number = 0;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
@@ -99,7 +100,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       data: geoEventsToBeCreated,
     });
     geoEventsCreatedCount = geoEventsCreated.count
-    console.log(`Created ${geoEventsCreatedCount} geoEvents for geoEventProvider No.${geoEventProviderId}`)
+    console.log(`Slice ${slice}: ${providerKey} Created ${geoEventsCreatedCount} Geo Events`)
   }
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
   if (deletedIds.length > 0) {
@@ -112,12 +113,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       },
     });
   }
-  if(geoEventsCreatedCount > 0){
-    siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId, slice);
-  } else {
-    console.log(`No geoEvents created. Terminate cron for geoEventProvider No.${geoEventProviderId}`)
-    return;
-  }
+  return geoEventsCreatedCount;
 };
 
 export default processGeoEvents;

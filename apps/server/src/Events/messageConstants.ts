@@ -1,5 +1,7 @@
-export const GEO_EVENTS_CREATED = 'geo-events-created';
+export const CREATE_GEO_EVENTS = 'create-geo-events';
+export const CREATE_SITE_ALERTS = 'create_site_alerts';
+export const CREATE_NOTIFICATIONS = 'create-notifications';
+export const SEND_NOTIFICATIONS = 'send-notifications';
+
+// Test event
 export const GEO_EVENTS_PROCESSED = 'geo-events-processed';
-export const SITE_ALERTS_CREATED = 'site_alerts-created';
-export const NOTIFICATION_CREATED = 'notification-created';
-export const NOTIFICATION_SENT = 'notification-sent';

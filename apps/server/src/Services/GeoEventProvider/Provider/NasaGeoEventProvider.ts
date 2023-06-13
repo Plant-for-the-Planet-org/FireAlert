@@ -127,8 +127,8 @@ class NasaGeoEventProvider implements GeoEventProvider {
                         }
                     })
                     .on("end", () => {
-                        console.log(`GeoEventProvider No.${geoEventProviderId} -> Slice No.${slice}`)
-                        console.log(`Found ${recordCount} records.`)
+                        // console.log(`GeoEventProvider No.${geoEventProviderId} -> Slice No.${slice}`)
+                        // console.log(`Found ${recordCount} records.`)
                         resolve(records)
                     })
                     .on("error", error => {
@@ -142,8 +142,9 @@ class NasaGeoEventProvider implements GeoEventProvider {
 
     getUrl(): string {
         const { apiUrl, mapKey, sourceKey, bbox} = this.getConfig()
-        const currentDate = new Date().toISOString().split("T")[0];
-        return `${apiUrl}/api/area/csv/${mapKey}/${sourceKey}/${bbox}/1/${currentDate}`;
+        // const currentDate = new Date().toISOString().split("T")[0];
+        // If Date isn't passed API returns most recent data
+        return `${apiUrl}/api/area/csv/${mapKey}/${sourceKey}/${bbox}/1/`;
     }
 
     getConfig(): NasaGeoEventProviderConfig {

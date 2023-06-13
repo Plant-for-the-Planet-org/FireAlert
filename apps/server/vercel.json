@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/geoEventFetcher",
+      "path": "/api/cron/geo-event-fetcher",
       "schedule": "*/10 * * * *"
     }
   ]
