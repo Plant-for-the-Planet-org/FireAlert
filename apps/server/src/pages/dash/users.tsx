@@ -1,4 +1,5 @@
 import UserList, { Devices, User } from "src/UI/dash/users";
+import { Auth } from "./login";
 
 const userList: User[] = [
   {
@@ -91,7 +92,12 @@ const userList: User[] = [
 ];
 
 const Dashboard = () => {
-  return <UserList users={userList} />;
+  return (
+    <>
+      <Auth />
+      <UserList users={userList} />
+    </>
+  );
 };
 
 export default Dashboard;
