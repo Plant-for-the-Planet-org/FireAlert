@@ -110,6 +110,11 @@ export const alertRouter = createTRPCRouter({
                         data: true,
                     }
                 })
+                
+                // TODO: convert eventDate to localtime and add localEventDate and localTimeZone to the alert object
+                // const localTime = getLocalTime(alert.eventDate, alert.site.geometry.coordinates[1], alert.site.geometry.coordinates[0]);
+                // alert.localEventDate = currentDate(localTime.localDate);
+                // alert.localTimeZone = localTime.timeZone;
                 if (!alert) {
                     throw new TRPCError({
                         code: "NOT_FOUND",

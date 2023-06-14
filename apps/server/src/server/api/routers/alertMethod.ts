@@ -19,6 +19,7 @@ import {
     handlePendingVerification,
     deviceVerification
 } from "../../../utils/routers/alertMethod";
+import { logger } from "../../../../src/server/logger";
 
 export const alertMethodRouter = createTRPCRouter({
 
@@ -46,7 +47,7 @@ export const alertMethodRouter = createTRPCRouter({
                     });
                 }
             } catch (error) {
-                console.log(error);
+                logger(`Error in sendVerification: ${error}`, "error");
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
                     message: `${error}`,
@@ -188,7 +189,7 @@ export const alertMethodRouter = createTRPCRouter({
                     data: returnAlertMethod(alertMethod)
                 }
             } catch (error) {
-                console.log(error);
+                logger(`Error in createAlertMethod: ${error}`, "error");
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
                     message: `${error}`,
@@ -222,7 +223,7 @@ export const alertMethodRouter = createTRPCRouter({
                     data: alertMethods,
                 };
             } catch (error) {
-                console.log(error)
+                logger(`Error in getAlertMethods: ${error}`, "error");
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -250,7 +251,7 @@ export const alertMethodRouter = createTRPCRouter({
                     data: returnedAlertMethod,
                 };
             } catch (error) {
-                console.log(error)
+                logger(`Error in getAlertMethod: ${error}`, "error");
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -288,7 +289,7 @@ export const alertMethodRouter = createTRPCRouter({
                     data: returnedAlertMethod,
                 };
             } catch (error) {
-                console.log(error)
+                logger(`Error in updateAlertMethod: ${error}`, "error");
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -321,7 +322,7 @@ export const alertMethodRouter = createTRPCRouter({
                     message: `Successfully deleted AlertMethod with id: ${deletedAlertMethod.id}`,
                 };
             } catch (error) {
-                console.log(error)
+                logger(`Error in deleteAlertMethod: ${error}`, "error");
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
