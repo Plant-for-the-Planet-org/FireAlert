@@ -1,13 +1,10 @@
 import { AlertType, type GeoEventSource } from "@prisma/client";
 import { type GeoEvent } from "@prisma/client";
 import md5 from "md5";
-import { prisma } from '../../server/db'
-import createSiteAlerts from "../SiteAlert/CreateSiteAlert";
-// import { CREATE_SITE_ALERTS } from "../../Events/messageConstants";
-// import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
-// import GeoEvent from "../Interfaces/GeoEvent";
+import { prisma } from '../../server/db';
+import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string | null, geoEventProviderId: string, slice: string, geoEvents: Array<Partial<GeoEvent>>) => {
+const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventSource, identityGroup: string | null, geoEventProviderId: string, slice: string, geoEvents: Array<Partial<GeoEvent>>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -75,9 +72,9 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
   };
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
-
-  console.log(`Slice ${slice}: ${providerKey} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`)
-  let geoEventsCreatedCount: number = 0;
+  logger(`${breadcrumbPrefix} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`, "info");
+  
+  let geoEventsCreatedCount = 0;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
@@ -100,7 +97,9 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       data: geoEventsToBeCreated,
     });
     geoEventsCreatedCount = geoEventsCreated.count
-    console.log(`Slice ${slice}: ${providerKey} Created ${geoEventsCreatedCount} Geo Events`)
+
+    logger(`${breadcrumbPrefix} Created ${geoEventsCreatedCount} Geo Events`, "info");
+
   }
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
   if (deletedIds.length > 0) {

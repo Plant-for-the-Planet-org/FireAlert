@@ -1,7 +1,5 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from '../../server/db'
-// import notificationEmitter from "../../Events/EventEmitter/NotificationEmitter";
-// import { SEND_NOTIFICATIONS } from "../../Events/messageConstants";
 
 const createNotifications = async () => {
     let notificationsCreated = 0;
@@ -20,14 +18,13 @@ const createNotifications = async () => {
 
         // Create Notifications for all unprocessed SiteAlerts
         notificationsCreated = await prisma.$executeRaw(notificationCreationQuery);
-        console.log(`Created ${notificationsCreated} notifications.`)
 
         // Set all SiteAlert as processed
         await prisma.$executeRaw(updateSiteAlertIsProcessedToTrue);
     } catch (error) {
         console.log(error)
     }
-    return;
+    return notificationsCreated;
     // if (notificationsCreated > 0) {
     //     notificationEmitter.emit(SEND_NOTIFICATIONS)
     //     return;

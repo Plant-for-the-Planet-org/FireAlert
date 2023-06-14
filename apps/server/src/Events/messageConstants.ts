@@ -1,4 +1,3 @@
-export const CREATE_GEO_EVENTS = 'create-geo-events';
 export const CREATE_SITE_ALERTS = 'create_site_alerts';
 export const CREATE_NOTIFICATIONS = 'create-notifications';
 export const SEND_NOTIFICATIONS = 'send-notifications';

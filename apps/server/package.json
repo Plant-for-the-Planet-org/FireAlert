@@ -18,9 +18,9 @@
     "db:deploy": "dotenv -e ../../.env npx prisma migrate deploy",
     "db:reset": "dotenv -e ../../.env npx prisma migrate reset",
     "db:generate": "dotenv -e ../../.env npx prisma generate"
-    
   },
   "dependencies": {
+    "@logtail/node": "^0.4.0",
     "@planet-sdk/common": "^0.1.11",
     "@prisma/client": "^4.15.0",
     "@sentry/nextjs": "^7.51.2",
