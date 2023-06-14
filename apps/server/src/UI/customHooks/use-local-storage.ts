@@ -17,9 +17,10 @@ const useLocalStorageState = <T>(
     serialize?: (value: T) => string;
     deserialize?: (serialized: string) => T;
   } = {}
-): [T, React.Dispatch<React.SetStateAction<T>>] => {
+): [T, React.Dispatch<React.SetStateAction<T>>, () => void] => {
   const [state, setState] = React.useState<T>(() => {
-    const valueInLocalStorage = window.localStorage.getItem(key);
+    const valueInLocalStorage =
+      typeof window !== "undefined" && window.localStorage.getItem(key);
     if (valueInLocalStorage) {
       return deserialize(valueInLocalStorage);
     }
@@ -39,7 +40,11 @@ const useLocalStorageState = <T>(
     window.localStorage.setItem(key, serialize(state));
   }, [key, state, serialize]);
 
-  return [state, setState];
+  const removeFromLocalStorage = React.useCallback(() => {
+    window.localStorage.removeItem(key);
+  }, [key]);
+
+  return [state, setState, removeFromLocalStorage];
 };
 
 export default useLocalStorageState;

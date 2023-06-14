@@ -1,9 +1,7 @@
 import styles from "./index.module.css";
 import { type NextPage } from "next";
 import Head from "next/head";
-
-
-
+import LoginButton from "src/UI/components/LoginButton";
 
 const Home: NextPage = () => {
   return (
@@ -21,9 +19,8 @@ const Home: NextPage = () => {
       </Head>
       <main className={styles.main}>
         <div className={styles.container}>
-          
           <div className={styles.showcaseContainer}>
-            <h1 className={styles.showcaseText}>Fire Alert Dummy Frontend</h1>
+            <LoginButton />
           </div>
         </div>
       </main>

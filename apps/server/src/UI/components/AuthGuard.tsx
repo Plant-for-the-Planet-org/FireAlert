@@ -1,10 +1,13 @@
-import { useEffect, FC } from "react";
-import { withAuthenticationRequired } from "@auth0/auth0-react";
-import { useAuth } from "src/provider/AuthContext";
+import React, { useEffect } from "react";
 import { useRouter } from "next/router";
+import { useAuth } from "../providers/AuthContext";
 
-const AuthGuard: FC = ({ children }) => {
-  const { isLoading, isAuthenticated, user, loginWithRedirect, setRedirect } =
+interface Props {
+  children: React.ReactNode;
+}
+
+const AuthGuard = ({ children }: Props) => {
+  const { isLoading, isAuthenticated, setRedirect } =
     useAuth();
   const router = useRouter();
 
@@ -15,7 +18,7 @@ const AuthGuard: FC = ({ children }) => {
         // remember the page that user tried to access
         if (router.isReady) {
           setRedirect(router.asPath);
-          router.push("/login");
+          router.push("/dash/login");
         }
       }
     }
@@ -25,7 +28,7 @@ const AuthGuard: FC = ({ children }) => {
     return <h4>Loading...</h4>;
   }
 
-  if (!isLoading && user && router.isReady) {
+  if (!isLoading && router.isReady) {
     return <>{children}</>;
   }
 

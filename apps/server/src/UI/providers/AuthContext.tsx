@@ -1,4 +1,4 @@
-import { useContext, createContext, useMemo, useCallback, FC } from "react";
+import { useContext, createContext, useMemo } from "react";
 import {
   GetTokenSilentlyOptions,
   useAuth0,
@@ -6,13 +6,10 @@ import {
   User,
   RedirectLoginOptions,
 } from "@auth0/auth0-react";
-import { useRouter } from "next/router";
 import { GetTokenSilentlyVerboseResponse } from "@auth0/auth0-spa-js";
-// import { UserProfile } from "src/type";
-// import { GlobalContext } from "./GobalContext";
+import useLocalStorageState from "../customHooks/use-local-storage";
 
 interface AuthContextInterface {
-  //   user: UserProfile["data"];
   isLoading: boolean;
   isAuthenticated: boolean;
   getAccessTokenSilently: {
@@ -29,7 +26,7 @@ interface AuthContextInterface {
   auth0User: User;
   auth0Error: Error;
   setRedirect: (redirect: string) => void;
-  getRedirect: () => string | null;
+  redirect: string;
   clearRedirect: () => void;
 }
 
@@ -41,7 +38,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-export const AuthProvider: FC<Props> = ({ children }) => {
+export const AuthProvider = ({ children }: Props) => {
   const {
     isLoading,
     isAuthenticated,
@@ -51,87 +48,26 @@ export const AuthProvider: FC<Props> = ({ children }) => {
     user,
     error,
   } = useAuth0();
-  //   const { setAccessToken } = React.useContext(GlobalContext);
-  const router = useRouter();
-  //   const [profile, setUser] = useState<UserProfile["data"] | null>(null);
-  // const [token, setToken] = useState<string | null>(null);
 
-  // name, email, allowedCountries, roles
-  //   const sendProfile = () => {
-  //     return new Promise<UserProfile>((res, rej) => {
-  //       setTimeout(() => {
-  //         const shouldResolve = true;
-  //         if (shouldResolve) {
-  //           res({
-  //             data: {
-  //               name: "Ankit Gupta",
-  //               email: "ankit@gupta.com",
-  //               allCountries: ["DE", "US", "IN"],
-  //               roles: ["ROLE_ADMIN", "ROLE_BACKEND"],
-  //             },
-  //           });
-  //         } else {
-  //           rej(new Error("Something went wrong"));
-  //         }
-  //       }, 2000);
-  //     });
-  //   };
-
-  //   const fetchProfile = useCallback(async () => {
-  //     try {
-  //       const { data } = await sendProfile();
-  //       setUser(data);
-  //     } catch (err) {
-  //       console.error(err);
-  //     }
-  //   }, [setUser]);
-
-  //   useEffect(() => {
-  //     fetchProfile();
-  //   }, [fetchProfile]);
-
-  //   const loadToken = useCallback(async () => {
-  //     if (!isLoading) {
-  //       if (isAuthenticated) {
-  //         const accessToken = await getAccessTokenSilently();
-  //         // setAccessToken(accessToken);
-  //       }
-  //     }
-  //   }, [isLoading, isAuthenticated, getAccessTokenSilently]);
-
-  //   useEffect(() => {
-  //     loadToken();
-  //   }, [loadToken]);
-
-  const setRedirect = useCallback((redirect: string) => {
-    window.sessionStorage.setItem(redirectKey, redirect);
-  }, []);
-
-  const getRedirect = useCallback(() => {
-    return window.sessionStorage.getItem(redirectKey);
-  }, []);
-
-  const clearRedirect = useCallback(() => {
-    window.sessionStorage.removeItem(redirectKey);
-  }, []);
+  const [redirect, setRedirect, clearRedirect] =
+    useLocalStorageState<string>(redirectKey);
 
   const value: AuthContextInterface | null = useMemo(
     () => ({
       setRedirect,
-      getRedirect,
+      redirect,
       clearRedirect,
       isLoading,
       isAuthenticated,
       loginWithRedirect,
       getAccessTokenSilently,
       logout,
-      //   user: profile,
       auth0User: user,
       auth0Error: error,
     }),
     [
       setRedirect,
-      getRedirect,
+      redirect,
       clearRedirect,
       isLoading,
       isAuthenticated,
@@ -140,7 +76,6 @@ export const AuthProvider: FC<Props> = ({ children }) => {
       logout,
       user,
       error,
-      //   profile,
     ]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

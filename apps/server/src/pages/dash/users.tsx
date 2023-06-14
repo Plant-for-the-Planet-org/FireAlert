@@ -91,7 +91,7 @@ const userList: User[] = [
   },
 ];
 
-const Dashboard = () => {
+const Users = () => {
   return (
     <>
       <Auth />
@@ -100,4 +100,6 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+Users.auth = { protected: true };
+
+export default Users;
