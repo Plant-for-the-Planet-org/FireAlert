@@ -3,6 +3,7 @@ import NotifierRegistry from "../Notifier/NotifierRegistry";
 import { NotificationParameters } from "../../Interfaces/NotificationParameters";
 import DataRecord from "../../Interfaces/DataRecord";
 import { prisma } from '../../server/db'
+import { logger } from "../../server/logger";
 
 // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
 // for each notification, send the notification to the destination
@@ -31,9 +32,10 @@ const sendNotifications = async () => {
 
         // If no notifications are found, exit the loop
         if (notifications.length === 0) {
+            logger(`No notifications found. Terminating Cron.`, "info");
             break;
         }
-
+        logger(`Notifications to be sent: ${notifications.length}`, "info");
         console.log(`Notifications to be sent: ${notifications.length}`);
 
         await Promise.all(notifications.map(async (notification) => {
@@ -80,15 +82,15 @@ const sendNotifications = async () => {
                 const isDelivered = await notifier.notify(destination, notificationParameters)
 
                 // Update notification's isDelivered status and sentAt
-                await prisma.notification.update({
-                    where: { id: id },
-                    data: {
-                        isDelivered: isDelivered,
-                        sentAt: new Date()
-                    }
-                })
-
-                if (!isDelivered) {
+                if (isDelivered === true) {
+                    await prisma.notification.update({
+                        where: { id: id },
+                        data: {
+                            isDelivered: true,
+                            sentAt: new Date()
+                        }
+                    })
+                } else {
                     await prisma.alertMethod.updateMany({
                         where: {
                             destination: destination,
@@ -103,6 +105,7 @@ const sendNotifications = async () => {
                 }
             } catch (error) {
                 console.error(`Error processing notification ${notification.id}:`, error);
+                logger(`Error processing notification ${notification.id}:`, "error");
             }
         }));
 

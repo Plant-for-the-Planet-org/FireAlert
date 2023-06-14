@@ -1,5 +1,5 @@
 import GeoEventProvider from '../GeoEventProvider';
-import GeoEventProviderConfig from '../GeoEventProviderConfig';
+import GeoEventProviderConfig from '../../../Interfaces/GeoEventProviderConfig';
 
 class SampleGeoEventProvider implements GeoEventProvider {
 

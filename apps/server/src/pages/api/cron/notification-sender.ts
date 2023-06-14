@@ -1,7 +1,6 @@
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { env } from "../../../env.mjs";
-import notificationEmitter from "../../../Events/EventEmitter/NotificationEmitter";
-import { SEND_NOTIFICATIONS } from '../../../Events/messageConstants'
+import sendNotifications from "../../../Services/Notifications/SendNotifications";
 
 export default async function notificationSender(req: NextApiRequest, res: NextApiResponse) {
     // Verify the 'cron_key' in the request headers before proceeding
@@ -14,9 +13,7 @@ export default async function notificationSender(req: NextApiRequest, res: NextA
         }
     }
 
-    notificationEmitter.emit(SEND_NOTIFICATIONS)
-
-    await Promise.all(promises).catch(error => console.error(`Error: ${error.message}`));
+    await sendNotifications()
 
     console.log(`All done.`)
 

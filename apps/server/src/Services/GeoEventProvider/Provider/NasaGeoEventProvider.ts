@@ -1,5 +1,5 @@
 import GeoEventProvider from '../GeoEventProvider';
-import GeoEventProviderConfig from '../GeoEventProviderConfig';
+import GeoEventProviderConfig from '../../../Interfaces/GeoEventProviderConfig';
 import GeoEvent from "../../../Interfaces/GeoEvent"
 import { parse } from 'csv-parse'
 import { AlertType } from '@prisma/client';

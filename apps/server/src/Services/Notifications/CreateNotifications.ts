@@ -25,13 +25,6 @@ const createNotifications = async () => {
         console.log(error)
     }
     return notificationsCreated;
-    // if (notificationsCreated > 0) {
-    //     notificationEmitter.emit(SEND_NOTIFICATIONS)
-    //     return;
-    // } else {
-    //     console.log(`No Notifications added. Terminate cron.`)
-    //     return;
-    // }
 }
 
 export default createNotifications;
