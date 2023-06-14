@@ -1,4 +1,4 @@
-import type GeoEventProviderConfig from "./GeoEventProviderConfig";
+import type GeoEventProviderConfig from "../../Interfaces/GeoEventProviderConfig";
 import type GeoEvent from "../../Interfaces/GeoEvent"
 
 interface GeoEventProvider {

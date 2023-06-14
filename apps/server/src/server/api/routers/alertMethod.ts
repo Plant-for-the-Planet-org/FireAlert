@@ -10,7 +10,6 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-import { getUserIdFromCtx } from "../../../utils/routers/trpc";
 import {
     findAlertMethod,
     findVerificationRequest,
@@ -20,6 +19,7 @@ import {
     handlePendingVerification,
     deviceVerification
 } from "../../../utils/routers/alertMethod";
+import { logger } from "../../../../src/server/logger";
 
 export const alertMethodRouter = createTRPCRouter({
 
@@ -27,9 +27,10 @@ export const alertMethodRouter = createTRPCRouter({
     sendVerification: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
+            const userId = ctx.user!.id;
             try {
                 const alertMethodId = input.alertMethodId
-                const alertMethod = await findAlertMethod(alertMethodId)
+                const alertMethod = await findAlertMethod(alertMethodId, userId)
                 if (alertMethod.isVerified) {
                     return {
                         status: 'success',
@@ -46,7 +47,7 @@ export const alertMethodRouter = createTRPCRouter({
                     });
                 }
             } catch (error) {
-                console.log(error);
+                logger(`Error in sendVerification: ${error}`, "error");
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
                     message: `${error}`,
@@ -104,7 +105,7 @@ export const alertMethodRouter = createTRPCRouter({
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             //Check if that AlertMethod already exists
             const existingAlertMethod = await ctx.prisma.alertMethod.findFirst({
                 where: {
@@ -188,7 +189,7 @@ export const alertMethodRouter = createTRPCRouter({
                     data: returnAlertMethod(alertMethod)
                 }
             } catch (error) {
-                console.log(error);
+                logger(`Error in createAlertMethod: ${error}`, "error");
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
                     message: `${error}`,
@@ -198,7 +199,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     getAlertMethods: protectedProcedure
         .query(async ({ ctx }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             try {
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
                     where: {
@@ -222,7 +223,7 @@ export const alertMethodRouter = createTRPCRouter({
                     data: alertMethods,
                 };
             } catch (error) {
-                console.log(error)
+                logger(`Error in getAlertMethods: ${error}`, "error");
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -233,7 +234,7 @@ export const alertMethodRouter = createTRPCRouter({
     getAlertMethod: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
             if (existingAlertMethod.deletedAt) {
                 throw new TRPCError({
@@ -250,7 +251,7 @@ export const alertMethodRouter = createTRPCRouter({
                     data: returnedAlertMethod,
                 };
             } catch (error) {
-                console.log(error)
+                logger(`Error in getAlertMethod: ${error}`, "error");
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -261,7 +262,7 @@ export const alertMethodRouter = createTRPCRouter({
     updateAlertMethod: protectedProcedure
         .input(updateAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: userId });
             if (existingAlertMethod.deletedAt) {
                 throw new TRPCError({
@@ -288,7 +289,7 @@ export const alertMethodRouter = createTRPCRouter({
                     data: returnedAlertMethod,
                 };
             } catch (error) {
-                console.log(error)
+                logger(`Error in updateAlertMethod: ${error}`, "error");
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -299,7 +300,7 @@ export const alertMethodRouter = createTRPCRouter({
     deleteAlertMethod: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
             if (existingAlertMethod.deletedAt) {
                 return {
@@ -321,7 +322,7 @@ export const alertMethodRouter = createTRPCRouter({
                     message: `Successfully deleted AlertMethod with id: ${deletedAlertMethod.id}`,
                 };
             } catch (error) {
-                console.log(error)
+                logger(`Error in deleteAlertMethod: ${error}`, "error");
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,

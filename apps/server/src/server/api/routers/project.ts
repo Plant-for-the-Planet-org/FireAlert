@@ -3,14 +3,13 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { getUserIdFromCtx } from '../../../utils/routers/trpc'
 
 export const projectRouter = createTRPCRouter({
 
     getProjects: protectedProcedure
         .query(async ({ ctx }) => {
             try {
-                const userId = getUserIdFromCtx(ctx)
+                const userId = ctx.user!.id;
                 if (ctx.user?.isPlanetRO === false) {
                     throw new TRPCError({
                         code: "METHOD_NOT_SUPPORTED",

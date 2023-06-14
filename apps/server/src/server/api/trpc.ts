@@ -14,8 +14,8 @@ import { User } from "@prisma/client";
 type CreateContextOptions = {
   req: NextApiRequest;
   user: User | null;
-  impersonatedUser: User | null;
   isAdmin: boolean;
+  isImpersonatedUser: boolean;
 };
 
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
@@ -23,19 +23,19 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
     req: opts.req,
     prisma,
     user: opts.user,
-    impersonatedUser: opts.impersonatedUser,
     isAdmin: opts.isAdmin,
+    isImpersonatedUser: opts.isImpersonatedUser,
   };
 };
 
-export const createTRPCContext = async (opts: CreateNextContextOptions, user: User | null, isAdmin: boolean, impersonatedUser: User | null) => {
+export const createTRPCContext = async (opts: CreateNextContextOptions, user: User | null, isAdmin: boolean, isImpersonatedUser: boolean) => {
   const { req, res } = opts;
 
   return createInnerTRPCContext({
     req,
     user,
     isAdmin,
-    impersonatedUser,
+    isImpersonatedUser,
   });
 };
 
@@ -64,10 +64,10 @@ const passCtxToNext = t.middleware(async ({ ctx, next }) => {
 
 // There are four kinds of returns in ensureUserIsAuthed middleware. 
 // TRPC procedures are built with these returns in consideration:
-// 1) user: null, isAdmin: false, impersonatedUser: null -> this hits to profile route, were we create a new user
-// 2) user: adminUserData, isAdmin: true, impersonatedUser: null -> this means admin is trying to access their own data, not to impersonate any other user
-// 3) user: adminUserData, isAdmin: true, impersonatedUser: impersonateUser -> admin is trying to access imperonated User's data
-// 4) user: user, isAdmin: false, impersonatedUser: null -> All other normal api calls
+// 1) user: null, isAdmin: false, isImpersonatedUser: false -> this hits to profile route, were we create a new user
+// 2) user: adminUserData, isAdmin: true, isImpersonatedUser: false -> this means admin is trying to access their own data, not to impersonate any other user
+// 3) user: impersonatedUserData, isAdmin: true, isImpersonatedUser: true -> admin is trying to access impersonated User's data
+// 4) user: user, isAdmin: false, isImpersonatedUser: false -> All other normal api calls
 
 const ensureUserIsAuthed = t.middleware(async ({ ctx, next }) => {
   // Add Sentry Handlera to middleware
@@ -98,7 +98,7 @@ const ensureUserIsAuthed = t.middleware(async ({ ctx, next }) => {
           },
           user: null  as User | null,
           isAdmin: false,
-          impersonatedUser: null  as User | null,
+          isImpersonatedUser: false,
         },
       });
     }
@@ -124,7 +124,7 @@ const ensureUserIsAuthed = t.middleware(async ({ ctx, next }) => {
           },
           user: adminUserData  as User | null,
           isAdmin: true,
-          impersonatedUser: null  as User | null,
+          isImpersonatedUser: false,
         },
       });
     }
@@ -150,9 +150,9 @@ const ensureUserIsAuthed = t.middleware(async ({ ctx, next }) => {
           ...decodedToken,
           access_token,
         },
-        user: adminUserData as User | null,
+        user: impersonateUser as User | null,
         isAdmin: true,
-        impersonatedUser: impersonateUser  as User | null,
+        isImpersonatedUser: true,
       },
     });
   }
@@ -175,7 +175,7 @@ const ensureUserIsAuthed = t.middleware(async ({ ctx, next }) => {
       },
       user: user  as User | null,
       isAdmin: false,
-      impersonatedUser: null  as User | null,
+      isImpersonatedUser: false,
     },
   });
 })

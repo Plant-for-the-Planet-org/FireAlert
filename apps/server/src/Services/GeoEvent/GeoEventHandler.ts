@@ -1,12 +1,10 @@
-import { AlertType, type GeoEventSource, PrismaClient } from "@prisma/client";
-import { SITE_ALERTS_CREATED } from "../../Events/messageConstants";
-// import GeoEvent from "../Interfaces/GeoEvent";
+import { AlertType, type GeoEventSource } from "@prisma/client";
 import { type GeoEvent } from "@prisma/client";
-import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
 import md5 from "md5";
-import { prisma } from '../../server/db'
+import { prisma } from '../../server/db';
+import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, slice: string, geoEvents: Array<GeoEvent>) => {
+const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventSource, identityGroup: string | null, geoEventProviderId: string, slice: string, geoEvents: Array<Partial<GeoEvent>>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -74,9 +72,9 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
   };
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
-
-  console.log(`Found ${filteredDuplicateNewGeoEvents.length} non-duplicate geoEvents for geoEventProvider No.${geoEventProviderId}`)
-  let geoEventsCreatedCount: number = 0;
+  logger(`${breadcrumbPrefix} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`, "info");
+  
+  let geoEventsCreatedCount = 0;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
@@ -99,7 +97,9 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       data: geoEventsToBeCreated,
     });
     geoEventsCreatedCount = geoEventsCreated.count
-    console.log(`Created ${geoEventsCreatedCount} geoEvents for geoEventProvider No.${geoEventProviderId}`)
+
+    logger(`${breadcrumbPrefix} Created ${geoEventsCreatedCount} Geo Events`, "info");
+
   }
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
   if (deletedIds.length > 0) {
@@ -112,12 +112,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       },
     });
   }
-  if(geoEventsCreatedCount > 0){
-    siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId, slice);
-  } else {
-    console.log(`No geoEvents created. Terminate cron for geoEventProvider No.${geoEventProviderId}`)
-    return;
-  }
+  return geoEventsCreatedCount;
 };
 
 export default processGeoEvents;

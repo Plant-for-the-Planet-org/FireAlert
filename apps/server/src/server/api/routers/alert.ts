@@ -5,7 +5,6 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-import { getUserIdFromCtx } from "../../../utils/routers/trpc";
 import { subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
@@ -13,7 +12,7 @@ export const alertRouter = createTRPCRouter({
     getAlerts: protectedProcedure
         .query(async ({ ctx }) => {
             try {
-                const userId = getUserIdFromCtx(ctx)
+                const userId = ctx.user!.id;
                 const thirtyDaysAgo = subtractDays(new Date(), 30);
                 const sitesWithAlerts = await ctx.prisma.site.findMany({
                     where: {
@@ -111,6 +110,11 @@ export const alertRouter = createTRPCRouter({
                         data: true,
                     }
                 })
+                
+                // TODO: convert eventDate to localtime and add localEventDate and localTimeZone to the alert object
+                // const localTime = getLocalTime(alert.eventDate, alert.site.geometry.coordinates[1], alert.site.geometry.coordinates[0]);
+                // alert.localEventDate = currentDate(localTime.localDate);
+                // alert.localTimeZone = localTime.timeZone;
                 if (!alert) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
