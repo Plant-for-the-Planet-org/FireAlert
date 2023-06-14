@@ -1,3 +1,4 @@
+import { logger } from "../../../../src/server/logger";
 import { type NotificationParameters } from "../../../Interfaces/NotificationParameters";
 import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
@@ -10,8 +11,7 @@ class WebhookNotifier implements Notifier {
 
     async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const {subject, message, url, alert } = parameters;
-
-        console.log(`Sending message ${message} to ${destination}`)
+        logger(`Sending message ${message} to ${destination}`, "info");
 
         // construct the payload for Webhook
         const payload = {
@@ -32,7 +32,7 @@ class WebhookNotifier implements Notifier {
             });
 
         if (!response.ok) {
-            console.error(`Failed to send notification. Error: ${response.statusText}`);
+            logger(`Failed to send notification. Error: ${response.statusText}`, "error");
             return false;
         }
 

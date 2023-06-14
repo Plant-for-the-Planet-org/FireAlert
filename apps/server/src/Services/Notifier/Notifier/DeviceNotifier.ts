@@ -2,6 +2,7 @@ import { type NotificationParameters } from "../../../Interfaces/NotificationPar
 import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 import { env } from '../../../env.mjs';
+import { logger } from "../../../../src/server/logger";
 
 class DeviceNotifier implements Notifier {
 
@@ -16,7 +17,7 @@ class DeviceNotifier implements Notifier {
     async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const { message, subject, url, alert } = parameters;
 
-        console.log(`Sending message ${message} to ${destination}`)
+        logger(`Sending message ${message} to ${destination}`, "info");
 
         // construct the payload for the OneSignal API
         const payload = {
@@ -39,7 +40,7 @@ class DeviceNotifier implements Notifier {
         });
         console.log(response);
         if (!response.ok) {
-            console.error(`Failed to send notification. Error: ${response.statusText}`);
+            logger(`Failed to send notification. Error: ${response.statusText}`, "error");
             return false;
         }
 

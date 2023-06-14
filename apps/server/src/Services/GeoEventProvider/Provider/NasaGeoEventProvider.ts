@@ -1,9 +1,9 @@
-import GeoEventProvider from '../GeoEventProvider';
-import GeoEventProviderConfig from '../../../Interfaces/GeoEventProviderConfig';
-import GeoEvent from "../../../Interfaces/GeoEvent"
+import type GeoEventProvider from '../GeoEventProvider';
+import type GeoEventProviderConfig from '../../../Interfaces/GeoEventProviderConfig';
+import type GeoEvent from "../../../Interfaces/GeoEvent"
 import { parse } from 'csv-parse'
 import { AlertType } from '@prisma/client';
-import DataRecord from '../../../Interfaces/DataRecord';
+import type DataRecord from '../../../Interfaces/DataRecord';
 
 interface NasaGeoEventProviderConfig extends GeoEventProviderConfig{
     mapKey: string,

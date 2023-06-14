@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from '../../server/db'
+import { logger } from "../../../src/server/logger";
 
 const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
     let siteAlertsCreatedCount = 0;
@@ -46,7 +47,7 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
         // Set all GeoEvents as processed
         await prisma.$executeRaw(updateGeoEventIsProcessedToTrue);
     } catch (error) {
-        console.log(error)
+        logger(`Failed to create SiteAlerts. Error: ${error}`, "error");
     }
     return siteAlertsCreatedCount;
 }

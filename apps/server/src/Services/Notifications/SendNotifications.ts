@@ -1,7 +1,7 @@
-import { AlertMethodMethod, Prisma, PrismaClient } from "@prisma/client";
+import { type AlertMethodMethod } from "@prisma/client";
 import NotifierRegistry from "../Notifier/NotifierRegistry";
-import { NotificationParameters } from "../../Interfaces/NotificationParameters";
-import DataRecord from "../../Interfaces/DataRecord";
+import { type NotificationParameters } from "../../Interfaces/NotificationParameters";
+import type DataRecord from "../../Interfaces/DataRecord";
 import { prisma } from '../../server/db'
 import { logger } from "../../server/logger";
 

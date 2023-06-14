@@ -3,6 +3,7 @@ import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 import twilio from 'twilio';
 import { env } from '../../../env.mjs';
+import { logger } from "../../../../src/server/logger";
 
 class SMSNotifier implements Notifier {
 
@@ -18,8 +19,8 @@ class SMSNotifier implements Notifier {
       console.error(`Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`);
       return Promise.resolve(false);
     }
-
-    console.log(`Sending message ${message} to ${destination}`)
+    logger(`Sending message ${message} to ${destination}`, "info");
+  
 
     // Twilio Credentials
     const accountSid = env.TWILIO_ACCOUNT_SID;
@@ -37,11 +38,10 @@ class SMSNotifier implements Notifier {
         to: destination,
       })
       .then(() => {
-        console.log("Message sent successfully");
         return true;
       })
       .catch((error) => {
-        console.log(error);
+        logger(`Failed to send SMS. Error: ${error}`, "error");
         return false;
       });
   }
