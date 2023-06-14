@@ -5,7 +5,7 @@ import { env } from "../env.mjs";
 // depending on whether or not the BETTERSTACK_LOGTAIL_SOURCE_TOKEN 
 // environment variable is set
 
-const sourceToken = env.BETTERSTACK_LOGTAIL_SOURCE_TOKEN as string;
+const sourceToken = env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN as string;
 let loggerInstance: Logtail | undefined;
 
 if (sourceToken) {
