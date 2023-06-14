@@ -1,6 +1,7 @@
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { env } from "../../../env.mjs";
 import sendNotifications from "../../../Services/Notifications/SendNotifications";
+import { logger } from "../../../../src/server/logger";
 
 export default async function notificationSender(req: NextApiRequest, res: NextApiResponse) {
     // Verify the 'cron_key' in the request headers before proceeding
@@ -15,7 +16,7 @@ export default async function notificationSender(req: NextApiRequest, res: NextA
 
     await sendNotifications()
 
-    console.log(`All done.`)
+    logger(`Running Notification Sender.`, "info");
 
     res.status(200).json({ message: "Cron job executed successfully" });
 }
