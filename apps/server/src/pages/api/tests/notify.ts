@@ -1,8 +1,9 @@
 // to execute, point your browser to: http://localhost:3000/api/tests/notify
 
-import { NextApiRequest, NextApiResponse } from "next";
+import { type NextApiRequest, type NextApiResponse } from "next";
 import { PrismaClient } from '@prisma/client'
 import NotifierRegistry from "../../../Services/Notifier/NotifierRegistry"
+import { logger } from "../../../../src/server/logger";
 
 export default async function notify(req: NextApiRequest, res: NextApiResponse) {
   const prisma = new PrismaClient({
@@ -41,7 +42,7 @@ export default async function notify(req: NextApiRequest, res: NextApiResponse) 
       }
     }));
   } catch (error) {
-    console.log(error)
+   logger("Error while fetching notifications", error)
   }
   res.status(200).json({ message: "Notification sent successfully" });
 }
