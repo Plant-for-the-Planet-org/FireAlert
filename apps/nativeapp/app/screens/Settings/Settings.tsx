@@ -685,14 +685,18 @@ const Settings = ({navigation}) => {
                         styles.emailSubContainer,
                         {justifyContent: 'space-between'},
                       ]}>
-                      <Text style={styles.myEmailName}>
-                        {item?.deviceName}
+                      <View style={styles.deviceItem}>
+                        <Text style={styles.myEmailName}>
+                          {item?.deviceName}
+                        </Text>
                         {i === 0 && (
-                          <Text style={styles.projectSyncInfo}>
-                            {''} ( this device )
-                          </Text>
+                          <View style={styles.deviceTagCon}>
+                            <Text style={styles.deviceTag}>
+                              {''} this device
+                            </Text>
+                          </View>
                         )}
-                      </Text>
+                      </View>
                       <View style={styles.emailSubContainer}>
                         {alertMethodLoaderArr.includes(item?.id) ? (
                           <ActivityIndicator
@@ -1891,5 +1895,21 @@ const styles = StyleSheet.create({
     color: Colors.GRAY_LIGHTEST,
     fontSize: Typography.FONT_SIZE_12,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
+  deviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deviceTagCon: {
+    backgroundColor: Colors.ORANGE,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  deviceTag: {
+    textTransform: 'uppercase',
+    fontSize: Typography.FONT_SIZE_10,
+    fontWeight: Typography.FONT_WEIGHT_BOLD,
+    color: Colors.WHITE,
   },
 });

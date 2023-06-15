@@ -8,6 +8,7 @@ export const TEXT_COLOR = '#4D5153';
 export const LIGHT_BORDER_COLOR = '#D5D5D5';
 export const DISABLE = '#CCCCCC';
 export const BACKGROUND = '#FAFAFF';
+export const ORANGE = '#F2994A';
 
 // ACTIONS
 export const SUCCESS = '#2ecc71';
