@@ -17,7 +17,7 @@ CREATE TYPE "AlertMethodMethod" AS ENUM ('email', 'sms', 'device', 'whatsapp', '
 CREATE TYPE "SiteType" AS ENUM ('Point', 'Polygon', 'MultiPolygon');
 
 -- CreateEnum
-CREATE TYPE "GeoEventDetectionInstrument" AS ENUM ('MODIS', 'VIIRS', 'LANDSAT', 'GEOSTATIONARY');
+CREATE TYPE "GeoEventDetectionInstrument" AS ENUM ('MODIS', 'VIIRS', 'LANDSAT', 'GEOSTATIONARY','LANDSAT_NRT','MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP');
 
 -- CreateEnum
 CREATE TYPE "AlertConfidence" AS ENUM ('high', 'medium', 'low');
