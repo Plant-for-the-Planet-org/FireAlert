@@ -9,9 +9,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import * as shape from 'd3-shape';
-import React, {useEffect, useState} from 'react';
 import Svg, {Path, SvgXml} from 'react-native-svg';
 import {useNavigation} from '@react-navigation/native';
+import React, {useContext, useEffect, useState} from 'react';
 
 import {
   MapIcon,
@@ -22,6 +22,7 @@ import {
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {plusIcon} from '../../assets/svgs/plusIcon';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 
 let {width, height} = Dimensions.get('window');
 const IS_ANDROID = Platform.OS === 'android';
@@ -139,9 +140,24 @@ const BottomBar = ({...props}) => {
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [spinValue] = useState(new Animated.Value(0));
 
+  const {modalVisible} = useContext(BottomBarContext);
+
   useEffect(() => {
     return () => setShowAddOptions(false);
   }, []);
+
+  useEffect(() => {
+    if (modalVisible) {
+      setShowAddOptions(!showAddOptions);
+      Animated.spring(
+        spinValue, // The animated value to drive
+        {
+          toValue: showAddOptions ? 0 : 1,
+          useNativeDriver: true,
+        },
+      ).start();
+    }
+  }, [modalVisible]);
 
   // Next, interpolate beginning and end values (in this case 0 and 1)
   // if Clockwise icon will rotate clockwise, else anti-clockwise
@@ -187,7 +203,7 @@ const BottomBar = ({...props}) => {
         {/* add button */}
         <TouchableOpacity
           style={[styles.addButton, styles.boxShadow]}
-          onPress={() => onAddPress()}>
+          onPress={onAddPress}>
           <Animated.View style={animatedScaleStyle}>
             <SvgXml xml={plusIcon} />
           </Animated.View>

@@ -8,6 +8,7 @@ import CopyIcon from './copyIcon.jsx';
 import ListIcon from './listIcon.jsx';
 import BellIcon from './bellIcon.jsx';
 import NasaLogo from './nasaLogo.jsx';
+import NatureBg from './natureBg.jsx';
 import RadarIcon from './radarIcon.jsx';
 import LoginIcon from './loginIcon.jsx';
 import CrossIcon from './crossIcon.jsx';
@@ -31,6 +32,7 @@ import {active_marker} from './active_marker';
 import WhatsAppIcon from './whatsAppIcon.jsx';
 import BlueFireIcon from './blueFireIcon.jsx';
 import GlobeWebIcon from './globeWebIcon.jsx';
+import LocationWave from './locationWave.jsx';
 import PointSiteIcon from './pointSiteIcon.jsx';
 import SatelliteDish from './satelliteDish.jsx';
 import SatelliteIcon from './satelliteIcon.jsx';
@@ -54,6 +56,7 @@ export {
   MapIcon,
   CopyIcon,
   SiteIcon,
+  NatureBg,
   BellIcon,
   NasaLogo,
   ListIcon,
@@ -74,6 +77,7 @@ export {
   UploadCloud,
   polygonIcon,
   WarningIcon,
+  LocationWave,
   locationIcon,
   GlobeWebIcon,
   BlueFireIcon,

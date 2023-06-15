@@ -1,3 +1,10 @@
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+} from 'react';
 import {
   Text,
   View,
@@ -18,9 +25,9 @@ import rewind from '@mapbox/geojson-rewind';
 import OneSignal from 'react-native-onesignal';
 import DeviceInfo from 'react-native-device-info';
 import {useQueryClient} from '@tanstack/react-query';
+import LinearGradient from 'react-native-linear-gradient';
 import {useToast} from 'react-native-toast-notifications';
 import {point, polygon, multiPolygon} from '@turf/helpers';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {
   Switch,
@@ -33,6 +40,7 @@ import {
 import {
   AddIcon,
   SmsIcon,
+  NatureBg,
   NasaLogo,
   BellIcon,
   PhoneIcon,
@@ -43,6 +51,7 @@ import {
   PencilIcon,
   LayerCheck,
   WarningIcon,
+  LocationWave,
   GlobeWebIcon,
   DistanceIcon,
   DropdownArrow,
@@ -65,6 +74,7 @@ import {getDeviceInfo} from '../../utils/deviceInfo';
 import {RADIUS_ARR, WEB_URLS} from '../../constants';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -100,6 +110,7 @@ const Settings = ({navigation}) => {
   const toast = useToast();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const {openModal} = useContext(BottomBarContext);
   const {userDetails} = useAppSelector(state => state.loginSlice);
 
   async function deviceNotification() {
@@ -527,15 +538,10 @@ const Settings = ({navigation}) => {
           />
         }>
         {/* my projects */}
-        {Object.keys(groupOfSites[0] || {})?.length > 0 ? (
-          <View style={[styles.myProjects, styles.commonPadding]}>
-            <Text style={styles.mainHeading}>
-              My Projects via{' '}
-              <Text style={styles.ppLink}>
-                <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
-              </Text>
-            </Text>
-            {groupOfSites?.map((item, index) => (
+        <View style={[styles.myProjects, styles.commonPadding]}>
+          <Text style={styles.mainHeading}>My Projects</Text>
+          {Object.keys(groupOfSites[0] || {})?.length > 0 ? (
+            groupOfSites?.map((item, index) => (
               <View key={`projects_${index}`} style={styles.projectsInfo}>
                 <View style={styles.projectsNameInfo}>
                   <Text style={styles.projectsName}>{item.name}</Text>
@@ -599,17 +605,57 @@ const Settings = ({navigation}) => {
                     ))
                   : null}
               </View>
-            ))}
-          </View>
-        ) : null}
-        {/* my sites */}
-        {sites?.json?.data?.filter(site => site?.project === null).length >
-        0 ? (
-          <View style={[styles.mySites, styles.commonPadding]}>
-            <View style={styles.mySitesHead}>
-              <Text style={styles.mainHeading}>My Sites</Text>
+            ))
+          ) : (
+            <View style={[styles.boxShadowPH]}>
+              <View
+                style={[
+                  styles.mySiteNameContainer,
+                  {paddingVertical: 20, overflow: 'hidden'},
+                ]}>
+                <View style={styles.emptyPpInfoCon}>
+                  <View style={styles.emptyPpInfo}>
+                    <Text style={styles.emptySiteText}>
+                      Project sites registered{'\n'}on pp.eco will appear here
+                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>
+                      <LinearGradient
+                        useAngle
+                        angle={135}
+                        angleCenter={{x: 0.5, y: 0.5}}
+                        colors={Colors.GREEN_GRADIENT_ARR}
+                        style={[styles.addSiteBtn, {justifyContent: 'center'}]}>
+                        <Text
+                          style={[
+                            styles.emptySiteText,
+                            {paddingHorizontal: 0, color: Colors.WHITE},
+                          ]}>
+                          Visit pp.eco
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.planetLogo}>
+                    <PlanetLogo />
+                  </View>
+                </View>
+                <View style={styles.natureBgCon}>
+                  <NatureBg />
+                </View>
+              </View>
             </View>
-            {sites?.json?.data
+          )}
+        </View>
+        {/* my sites */}
+        <View style={[styles.mySites, styles.commonPadding]}>
+          <View style={styles.mySitesHead}>
+            <Text style={styles.mainHeading}>My Sites</Text>
+          </View>
+          {sites?.json?.data?.filter(site => site?.project === null).length >
+          0 ? (
+            sites?.json?.data
               ?.filter(site => site?.project === null)
               .map((item, index) => (
                 <TouchableOpacity
@@ -663,9 +709,32 @@ const Settings = ({navigation}) => {
                     )}
                   </View>
                 </TouchableOpacity>
-              ))}
-          </View>
-        ) : null}
+              ))
+          ) : (
+            <View style={[styles.mySiteNameContainer, {paddingVertical: 20}]}>
+              <View style={styles.emptySiteInfoCon}>
+                <Text style={styles.emptySiteText}>
+                  Create Your Own{'\n'}Fire Alert Site{'\n'}
+                  <Text style={{fontFamily: Typography.FONT_FAMILY_REGULAR}}>
+                    and Receive Notifications
+                  </Text>
+                </Text>
+                <TouchableOpacity
+                  onPress={openModal}
+                  activeOpacity={0.7}
+                  style={styles.addSiteBtn}>
+                  <AddIcon width={11} height={11} color={Colors.WHITE} />
+                  <Text style={[styles.emptySiteText, {color: Colors.WHITE}]}>
+                    Add Site
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.locWaveCon}>
+                <LocationWave />
+              </View>
+            </View>
+          )}
+        </View>
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
@@ -1448,9 +1517,6 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
   },
-  ppLink: {
-    color: Colors.PRIMARY,
-  },
   underLine: {
     textDecorationLine: 'underline',
   },
@@ -1911,5 +1977,75 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_10,
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     color: Colors.WHITE,
+  },
+  emptySiteText: {
+    fontSize: 12,
+    color: Colors.PLANET_DARK_GRAY,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    paddingHorizontal: 10,
+  },
+  emptySiteCon: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addSiteBtn: {
+    backgroundColor: Colors.GRADIENT_PRIMARY,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    width: 93,
+    borderRadius: 8,
+    marginTop: 12,
+    marginLeft: 10,
+  },
+  locWaveCon: {
+    position: 'absolute',
+    right: 5,
+  },
+  emptyPpInfoCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  emptyPpInfo: {
+    width: SCREEN_WIDTH / 1.8,
+  },
+  natureBgCon: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+  },
+  planetLogo: {
+    width: 70,
+    height: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 20,
+    backgroundColor: Colors.WHITE,
+    shadowColor: '#D9EAE0',
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    elevation: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.WHITE,
+  },
+  boxShadowPH: {
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
   },
 });

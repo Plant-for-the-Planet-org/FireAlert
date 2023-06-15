@@ -47,6 +47,7 @@
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-fs": "^2.20.0",
     "react-native-geolocation-service": "^5.3.1",
+    "react-native-linear-gradient": "^2.6.2",
     "react-native-modal": "^13.0.1",
     "react-native-onesignal": "^4.5.1",
     "react-native-phone-number-input": "^2.1.0",
