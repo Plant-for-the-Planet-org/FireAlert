@@ -46,6 +46,19 @@ const sendNotifications = async () => {
                 // if distance > 0 then the fire is outside the site's original geometry
                 // message should change depending on the distance
 
+                // // if eventDate is over 24 hours ago, then the fire is old therefore do not send the message
+                // const eventDate24HoursAgo = new Date();
+                // if (eventDate > eventDate24HoursAgo) {
+                //     logger(`Event date is over 24 hours ago. Not sending notification.`, "info");
+                //     await prisma.notification.update({
+                //         where: { id: id },
+                //         data: {
+                //             isDelivered: true,
+                //         }
+                //     })
+                //     return;
+                // }
+
                 const distanceKm = Math.round(distance / 1000);
                 const siteName = site.name ? site.name : "";
                 const subject = `Heat anomaly near ${siteName} 🔥`;
