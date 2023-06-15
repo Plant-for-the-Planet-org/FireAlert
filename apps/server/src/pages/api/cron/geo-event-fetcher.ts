@@ -74,7 +74,6 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     return await geoEventProvider.getLatestGeoEvents(geoEventProviderId, slice)
       .then(async (geoEvents) => {
         const identityGroup = geoEventProvider.getIdentityGroup()
-
         // If there are geoEvents, emit an event to find duplicates and persist them
         logger(`${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`, "info");
 
@@ -105,13 +104,12 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   })
 
   await Promise.all(promises).catch(error => logger(`Something went wrong before creating notifications. ${error}`, "error"));
-  
-  logger(`Now Creating notifications for ${newSiteAlertCount} alerts`, "info");
-  
+
   if (newSiteAlertCount > 0) {
+    logger(`Now Creating notifications for ${newSiteAlertCount} alerts`, "info");
     await createNotifications();
   }
-  logger(`All done. Cron has completed`, "info");
+  logger(`All done. ${newSiteAlertCount} Alerts. Cron has completed`, "info");
 
   res.status(200).json({ message: "Cron job executed successfully" });
 }
