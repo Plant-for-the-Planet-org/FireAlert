@@ -36,7 +36,6 @@ const sendNotifications = async () => {
             break;
         }
         logger(`Notifications to be sent: ${notifications.length}`, "info");
-        console.log(`Notifications to be sent: ${notifications.length}`);
 
         await Promise.all(notifications.map(async (notification) => {
             try {
@@ -50,14 +49,35 @@ const sendNotifications = async () => {
                 const distanceKm = Math.round(distance / 1000);
                 const siteName = site.name ? site.name : "";
                 const subject = `Heat anomaly near ${siteName} 🔥`;
-
-                let message = `Detected ${distanceKm} km outside ${siteName} with ${confidence} confidence. Check ${latitude}, ${longitude} for fires.`;
-
+                const checkLatLong= `Check ${latitude}, ${longitude} for fires.`;
+                
+                let inout = `${distanceKm} km outside`;
                 if (distance == 0) {
-                    message = `Detected inside ${siteName} with ${confidence} confidence. Check ${latitude}, ${longitude} for fires.`;
+                    inout = `inside`;
                 }
 
+                let message = `Detected ${inout} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
+
+                if (distance == 0) {
+                    message = `Detected ${inout} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
+                }
                 const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
+
+                // If the alertMethod is email, Construct the message for email
+                if (alertMethod === "email") {
+                    message = `<p>A heat anomaly was detected ${inout} ${siteName} </p>
+                
+                    <p>${checkLatLong}</p>
+              
+                    <p>${confidence}} alert confidence</p>
+                
+                    <p>Detected by ${detectedBy}</p>
+                    <p><a href="https://maps.google.com/?q=${latitude},${longitude}">Open in Google Maps</a>
+                    </p>
+                    <p><a href="https:/firealert.plant-for-the-planet.org/alert/${id}> Open in FireAlert</a></p>
+              
+                    <p>Best,<br>The FireAlert Team</p>`;
+                }
 
                 const notificationParameters: NotificationParameters = {
                     message: message,
@@ -104,7 +124,6 @@ const sendNotifications = async () => {
                     })
                 }
             } catch (error) {
-                console.error(`Error processing notification ${notification.id}:`, error);
                 logger(`Error processing notification ${notification.id}:`, "error");
             }
         }));
