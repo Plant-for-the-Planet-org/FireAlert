@@ -17,7 +17,7 @@ class DeviceNotifier implements Notifier {
     async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const { message, subject, url, alert } = parameters;
 
-        logger(`Sending message ${message} to ${destination}`, "info");
+        // logger(`Sending message ${message} to ${destination}`, "info");
 
         // construct the payload for the OneSignal API
         const payload = {

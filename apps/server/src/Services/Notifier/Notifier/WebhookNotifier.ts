@@ -11,7 +11,7 @@ class WebhookNotifier implements Notifier {
 
     async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
         const {subject, message, url, alert } = parameters;
-        logger(`Sending message ${message} to ${destination}`, "info");
+        // logger(`Sending message ${message} to ${destination}`, "info");
 
         // construct the payload for Webhook
         const payload = {

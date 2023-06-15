@@ -16,10 +16,10 @@ class SMSNotifier implements Notifier {
 
     // if env.TWILIO_ACCOUNT_SID or env.TWILIO_AUTH_TOKEN or env.TWILIO_PHONE_NUMBER is not set return promise with false
     if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_PHONE_NUMBER) {
-      console.error(`Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`);
+      logger(`Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`, "error");
       return Promise.resolve(false);
     }
-    logger(`Sending message ${message} to ${destination}`, "info");
+    // logger(`Sending message ${message} to ${destination}`, "info");
   
 
     // Twilio Credentials
