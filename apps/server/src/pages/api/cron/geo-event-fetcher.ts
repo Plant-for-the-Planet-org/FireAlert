@@ -82,7 +82,6 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
         if (geoEvents.length > 0) {
           eventCount = await processGeoEvents(breadcrumbPrefix, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
         }
-        logger(`${breadcrumbPrefix} Created ${eventCount} Geo Events.`, "info");
 
         // and then create site Alerts
         if (eventCount > 0) {
