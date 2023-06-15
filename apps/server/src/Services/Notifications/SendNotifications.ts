@@ -9,7 +9,7 @@ import { logger } from "../../server/logger";
 // for each notification, send the notification to the destination
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
-const sendNotifications = async () => {
+const sendNotifications = async (): Promise<boolean> => {
     let skip = 0;
     const take = 20;
 
@@ -143,7 +143,12 @@ const sendNotifications = async () => {
 
         // Increase the number of notifications to skip in the next round
         skip += take;
+        // wait .7 seconds before starting the next round to ensure we aren't hitting any rate limits. 
+        // Todo: make this configurable and adjust as needed.
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        
     }
+    return true;
 }
 
 export default sendNotifications;

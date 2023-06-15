@@ -9,14 +9,29 @@ export default async function notificationSender(req: NextApiRequest, res: NextA
         // Verify the 'cron_key' in the request headers
         const cronKey = req.query['cron_key'];
         if (!cronKey || cronKey !== env.CRON_KEY) {
-            res.status(403).json({ message: "Unauthorized Invalid Cron Key" });
+            res.status(403).json({ message: "Unauthorized: Invalid Cron Key" });
             return;
         }
     }
 
-    await sendNotifications()
+    const notificationsSent = await sendNotifications()
 
     logger(`Running Notification Sender.`, "info");
 
-    res.status(200).json({ message: "Cron job executed successfully" });
+    if (!notificationsSent) {
+        res.setHeader('Location', req.url);
+        res.status(307).json({
+            message: "Cron job failed to execute",
+            status: "307",
+        });
+        return;
+    }
+    
+
+    res.status(200).json(
+        {
+            message: "Cron job executed successfully",
+            status: "200",
+        });
+
 }

@@ -29,9 +29,16 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
       isActive: true,
+      fetchFrequency: {
+        not: null
+      },
+      // lastrun is not within last 10 minutes 
+      lastRun: {
+        lte: new Date(new Date().getTime() - 10 * 60000)
+      }
     },
   });
-  logger(`Running Geo Event Fetcher. Found ${allActiveProviders.length} providers.`, "info");
+  logger(`Running Geo Event Fetcher. Found ${allActiveProviders.length} eligible providers.`, "info");
   function filterAllActiveProviders(date: Date, minutes: number): boolean {
     // Create a new date by adding minutes to the input date
     const scheduledRunDate = new Date(date.getTime() + minutes * 60000); // Convert minutes to milliseconds
@@ -111,5 +118,10 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   }
   logger(`All done. ${newSiteAlertCount} Alerts. Cron has completed`, "info");
 
-  res.status(200).json({ message: "Cron job executed successfully" });
+  res.status(200).json({ 
+    message: "Cron job executed successfully",
+    alertsCreated: newSiteAlertCount,
+    processedProviders: activeProviders.length,
+    status: 200
+  });
 }
