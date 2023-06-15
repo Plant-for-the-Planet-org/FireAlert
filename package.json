@@ -5,10 +5,16 @@
   "repository": "https://github.com/Plant-for-the-Planet-org/FireAlert.git",
   "author": "Plant-for-the-Planet <info@plant-for-the-planet.org>",
   "license": "MIT",
+  "engines": {
+    "node": "18.x",
+    "yarn": "1.22.x"
+  },
   "scripts": {
     "nativeapp": "yarn workspace @firealert/nativeapp",
     "server": "yarn workspace @firealert/server",
-    "dev": "yarn server dev"
+    "dev": "yarn server dev",
+    "start": "yarn workspace @firealert/server heroku-start",
+    "heroku-postbuild": "yarn workspace @firealert/server build"
   },
   "workspaces": [
     "apps/*",

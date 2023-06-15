@@ -1,14 +1,11 @@
-import GeoEventProvider from '../GeoEventProvider';
-import GeoEventProviderConfig from '../GeoEventProviderConfig';
-import GeoEvent from "../../../Interfaces/GeoEvent"
+import type GeoEventProvider from '../GeoEventProvider';
+import type GeoEventProviderConfig from '../../../Interfaces/GeoEventProviderConfig';
+import type GeoEvent from "../../../Interfaces/GeoEvent"
 import { parse } from 'csv-parse'
 import { AlertType } from '@prisma/client';
-import DataRecord from '../../../Interfaces/DataRecord';
+import type DataRecord from '../../../Interfaces/DataRecord';
 
-interface NasaGeoEventProviderConfig {
-    bbox: string,
-    slice: string,
-    apiUrl: string,
+interface NasaGeoEventProviderConfig extends GeoEventProviderConfig{
     mapKey: string,
     sourceKey: string
 }
@@ -16,6 +13,10 @@ interface NasaGeoEventProviderConfig {
 class NasaGeoEventProvider implements GeoEventProvider {
 
     private config: GeoEventProviderConfig | undefined;
+
+    constructor() {
+        this.getLatestGeoEvents = this.getLatestGeoEvents.bind(this);
+    }
 
     getKey(): string {
         return 'FIRMS';
@@ -35,16 +36,12 @@ class NasaGeoEventProvider implements GeoEventProvider {
         return identityMap.get(this.config?.sourceKey) ?? null;
     }
 
-    getSlice(): string | null {
-        return this.config?.slice ?? null;
-    }
 
     initialize(config?: GeoEventProviderConfig): void {
         this.config = config;
     }
     
-    async getLatestGeoEvents(): Promise<GeoEvent[]> {
-        const slice = this.config?.slice as string;
+    async getLatestGeoEvents(geoEventProviderId: string, slice: string): Promise<GeoEvent[]> {
         const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);
@@ -104,7 +101,6 @@ class NasaGeoEventProvider implements GeoEventProvider {
                 eventDate: date,
                 confidence: confidenceLevels?.[source]?.[record.confidence] ?? Confidence.Medium,
                 detectedBy: source,
-                slice: slice,
                 data: record
             };
         }
@@ -113,22 +109,30 @@ class NasaGeoEventProvider implements GeoEventProvider {
             try {
                 const url = this.getUrl();
                 const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const csv = await response.text();
                 const parser = parse(csv, { columns: true });
 
                 const records: GeoEvent[] = [];
+                let recordCount = 0; 
+
                 parser
                     .on("readable", () => {
                         let record: DataRecord;
                         while (record = parser.read()) {
                             records.push(normalize(record, record.instrument));
+                            recordCount++;
                         }
                     })
                     .on("end", () => {
+                        // console.log(`GeoEventProvider No.${geoEventProviderId} -> Slice No.${slice}`)
+                        // console.log(`Found ${recordCount} records.`)
                         resolve(records)
                     })
                     .on("error", error => {
-                        throw new Error("Error parsing CSV file: " + error.message)
+                        reject(new Error("Error parsing CSV file: " + error.message))
                     });
             } catch (error) {
                 reject(error);
@@ -138,8 +142,9 @@ class NasaGeoEventProvider implements GeoEventProvider {
 
     getUrl(): string {
         const { apiUrl, mapKey, sourceKey, bbox} = this.getConfig()
-        const currentDate = new Date().toISOString().split("T")[0];
-        return `${apiUrl}/api/area/csv/${mapKey}/${sourceKey}/${bbox}/1/${currentDate}`;
+        // const currentDate = new Date().toISOString().split("T")[0];
+        // If Date isn't passed API returns most recent data
+        return `${apiUrl}/api/area/csv/${mapKey}/${sourceKey}/${bbox}/1/`;
     }
 
     getConfig(): NasaGeoEventProviderConfig {
@@ -147,19 +152,19 @@ class NasaGeoEventProvider implements GeoEventProvider {
             throw new Error(`Invalid or incomplete alert provider configuration`);
         }
         const config = this.config
-        if (typeof config.apiUrl === undefined) {
+        if (typeof config.apiUrl === "undefined") {
             throw new Error(`Missing property 'apiUrl' in alert provider configuration`);
         }
-        if (typeof config.mapKey === undefined) {
+        if (typeof config.mapKey === "undefined") {
             throw new Error(`Missing property 'mapKey' in alert provider configuration`);
         }
-        if (typeof config.sourceKey === undefined) {
+        if (typeof config.sourceKey === "undefined") {
             throw new Error(`Missing property 'sourceKey' in alert provider configuration`);
         }
-        if (typeof config.bbox === undefined){
+        if (typeof config.bbox === "undefined"){
             throw new Error(`Missing property 'bbox' in alert provider configuration`);
         }
-        if (typeof config.slice === undefined){
+        if (typeof config.slice === "undefined"){
             throw new Error(`Missing property 'slice' in alert provider configuration`);
         }
 

@@ -1,11 +1,10 @@
-import { AlertType, type GeoEventSource, PrismaClient } from "@prisma/client";
-import { SITE_ALERTS_CREATED } from "../../Events/messageConstants";
-// import GeoEvent from "../Interfaces/GeoEvent";
+import { AlertType, type GeoEventSource } from "@prisma/client";
 import { type GeoEvent } from "@prisma/client";
-import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
 import md5 from "md5";
+import { prisma } from '../../server/db';
+import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, slice: string, geoEvents: Array<GeoEvent>) => {
+const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventSource, identityGroup: string | null, geoEventProviderId: string, slice: string, geoEvents: Array<Partial<GeoEvent>>) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -44,7 +43,6 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
     return { newGeoEvents, deletedIds };
   };
 
-  const prisma = new PrismaClient();
 
   const fetchDbEventIds = async (
     geoEventProviderId: string
@@ -55,46 +53,53 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       select: { id: true },
       where: { geoEventProviderId: geoEventProviderId }
     });
-
     return geoEvents.map(geoEvent => geoEvent.id);
   };
 
   const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
+
   const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
     const filteredNewGeoEvents: GeoEvent[] = [];
     const idsSet: Set<string> = new Set();
-  
+
     for (const geoEvent of newGeoEvents) {
       if (!idsSet.has(geoEvent.id)) {
         filteredNewGeoEvents.push(geoEvent);
         idsSet.add(geoEvent.id);
       }
     }
-  
     return filteredNewGeoEvents;
   };
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
+  logger(`${breadcrumbPrefix} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`, "info");
+  
+  let geoEventsCreatedCount = 0;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
-    await prisma.geoEvent.createMany({
-      data: filteredDuplicateNewGeoEvents.map(geoEvent => ({
-        id: geoEvent.id,
-        type: AlertType.fire,
-        latitude: geoEvent.latitude,
-        longitude: geoEvent.longitude,
-        eventDate: geoEvent.eventDate,
-        confidence: geoEvent.confidence,
-        isProcessed: false,
-        providerKey: providerKey,
-        identityGroup: identityGroup,
-        geoEventProviderId: geoEventProviderId,
-        radius: 0,
-        slice: slice,
-        data: geoEvent.data,
-      })),
+    const geoEventsToBeCreated = filteredDuplicateNewGeoEvents.map(geoEvent => ({
+      id: geoEvent.id,
+      type: AlertType.fire,
+      latitude: geoEvent.latitude,
+      longitude: geoEvent.longitude,
+      eventDate: geoEvent.eventDate,
+      confidence: geoEvent.confidence,
+      isProcessed: false,
+      providerKey: providerKey,
+      identityGroup: identityGroup,
+      geoEventProviderId: geoEventProviderId,
+      radius: 0,
+      slice: slice,
+      data: geoEvent.data,
+    }))
+    const geoEventsCreated = await prisma.geoEvent.createMany({
+      data: geoEventsToBeCreated,
     });
+    geoEventsCreatedCount = geoEventsCreated.count
+
+    logger(`${breadcrumbPrefix} Created ${geoEventsCreatedCount} Geo Events`, "info");
+
   }
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
   if (deletedIds.length > 0) {
@@ -107,7 +112,7 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
       },
     });
   }
-  siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId, slice);
+  return geoEventsCreatedCount;
 };
 
 export default processGeoEvents;
