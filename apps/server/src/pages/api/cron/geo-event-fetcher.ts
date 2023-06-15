@@ -38,7 +38,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
       }
     },
   });
-  logger(`Running Geo Event Fetcher. Found ${allActiveProviders.length} eligible providers.`, "info");
+
   function filterAllActiveProviders(date: Date, minutes: number): boolean {
     // Create a new date by adding minutes to the input date
     const scheduledRunDate = new Date(date.getTime() + minutes * 60000); // Convert minutes to milliseconds
@@ -65,6 +65,8 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     }
     return filterAllActiveProviders(provider.lastRun, provider.fetchFrequency)
   });
+
+  logger(`Running Geo Event Fetcher. Of ${allActiveProviders.length}, found ${activeProviders.length} eligible providers.`, "info");
 
   let newSiteAlertCount = 0;
   // Loop for each active provider and fetch geoEvents
@@ -112,15 +114,19 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   await Promise.all(promises).catch(error => logger(`Something went wrong before creating notifications. ${error}`, "error"));
 
+  let notificationCount;
   if (newSiteAlertCount > 0) {
-    logger(`Now Creating notifications for ${newSiteAlertCount} alerts`, "info");
-    await createNotifications();
+    notificationCount = await createNotifications();
+    logger(`Added ${notificationCount} notifications for ${newSiteAlertCount} alerts`, "info");
   }
-  logger(`All done. ${newSiteAlertCount} Alerts. Cron has completed`, "info");
+  else {
+    logger(`All done. ${newSiteAlertCount} Alerts. No new notifications. Waving Goodbye!`, "info");
+  }
 
-  res.status(200).json({ 
+  res.status(200).json({
     message: "Cron job executed successfully",
     alertsCreated: newSiteAlertCount,
+    notificationCount: notificationCount,
     processedProviders: activeProviders.length,
     status: 200
   });
