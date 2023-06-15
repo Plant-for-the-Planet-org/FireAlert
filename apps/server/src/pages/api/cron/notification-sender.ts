@@ -13,10 +13,10 @@ export default async function notificationSender(req: NextApiRequest, res: NextA
             return;
         }
     }
+    logger(`Running Notification Sender.`, "info");
 
     const notificationsSent = await sendNotifications()
 
-    logger(`Running Notification Sender.`, "info");
 
     if (!notificationsSent) {
         res.setHeader('Location', req.url);

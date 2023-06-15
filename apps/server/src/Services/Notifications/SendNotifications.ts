@@ -32,7 +32,7 @@ const sendNotifications = async (): Promise<boolean> => {
 
         // If no notifications are found, exit the loop
         if (notifications.length === 0) {
-            logger(`No notifications found. Terminating Cron.`, "info");
+            logger(`Nothing to process anymore notification.length = 0`, "info");
             break;
         }
         logger(`Notifications to be sent: ${notifications.length}`, "info");
