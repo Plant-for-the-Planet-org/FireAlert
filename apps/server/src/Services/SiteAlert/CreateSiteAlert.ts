@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from '../../server/db'
 import { logger } from "../../../src/server/logger";
 
-const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
+const createSiteAlerts = async (geoEventProviderId: string, detectedBy: string, slice: string) => {
     let siteAlertsCreatedCount = 0;
     try {
         const siteAlertCreationQuery = Prisma.sql`
@@ -12,7 +12,7 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
                 e.type,
                 FALSE,
                 e. "eventDate",
-                e. "identityGroup"::"GeoEventDetectionInstrument",
+                ${detectedBy},
                 e.confidence,
                 e.latitude,
                 e.longitude,

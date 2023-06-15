@@ -84,7 +84,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
         // and then create site Alerts
         if (eventCount > 0) {
-          const alertCount = await createSiteAlerts(geoEventProviderId, slice)
+          const alertCount = await createSiteAlerts(geoEventProviderId, parsedConfig.sourceKey, slice)
           logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
 
           newSiteAlertCount += alertCount
