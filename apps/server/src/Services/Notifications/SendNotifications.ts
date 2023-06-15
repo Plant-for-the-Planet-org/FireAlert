@@ -82,12 +82,12 @@ const sendNotifications = async (): Promise<boolean> => {
                 
                     <p>${checkLatLong}</p>
               
-                    <p>${confidence}} alert confidence</p>
+                    <p>${confidence} alert confidence</p>
                 
                     <p>Detected by ${detectedBy}</p>
-                    <p><a href="https://maps.google.com/?q=${latitude},${longitude}">Open in Google Maps</a>
-                    </p>
-                    <p><a href="https:/firealert.plant-for-the-planet.org/alert/${id}> Open in FireAlert</a></p>
+                    <p><a href="https://maps.google.com/?q=${latitude},${longitude}">Open in Google Maps</a></p>
+
+                    <p><a href="https://firealert.plant-for-the-planet.org/alert/${id}>Open in FireAlert</a></p>
               
                     <p>Best,<br>The FireAlert Team</p>`;
                 }
