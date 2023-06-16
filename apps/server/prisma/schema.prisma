@@ -43,7 +43,7 @@ model VerificationRequest {
 
 model AlertMethod {
     id                  String               @id @default(cuid())
-    method              AlertMethodMethod
+    method              String
     destination         String
     isVerified          Boolean              @default(false)
     isEnabled           Boolean              @default(false)
@@ -94,12 +94,12 @@ model Project {
 }
 
 model GeoEventProvider {
-    id             String         @id @default(cuid())
+    id             String    @id @default(cuid())
     name           String?
     description    String?
-    type           AlertType
+    type           String // Fire
     isActive       Boolean
-    providerKey    GeoEventSource
+    providerKey    String // FIRMS
     lastRun        DateTime?
     fetchFrequency Int?
     config         Json
@@ -107,14 +107,14 @@ model GeoEventProvider {
 
 model GeoEvent {
     id                 String                   @id @default(cuid())
-    type               AlertType
+    type               String // Fire
     latitude           Float
     longitude          Float
     eventDate          DateTime
     geometry           Unsupported("geometry")?
     confidence         AlertConfidence
     isProcessed        Boolean                  @default(false)
-    providerKey        GeoEventSource
+    providerKey        String // FIRMS
     identityGroup      String
     geoEventProviderId String
     radius             Int?
@@ -123,17 +123,17 @@ model GeoEvent {
 }
 
 model SiteAlert {
-    id            String                      @id @default(cuid())
+    id            String          @id @default(cuid())
     siteId        String
-    site          Site                        @relation(fields: [siteId], references: [id])
+    site          Site            @relation(fields: [siteId], references: [id])
     notifications Notification[]
-    type          AlertType
+    type          String //Fire
     latitude      Float
     longitude     Float
     eventDate     DateTime
-    detectedBy    GeoEventDetectionInstrument
+    detectedBy    String //SourceKey
     confidence    AlertConfidence
-    isProcessed   Boolean                     @default(false)
+    isProcessed   Boolean         @default(false)
     deletedAt     DateTime?
     distance      Int
     data          Json?
@@ -154,31 +154,10 @@ enum SiteOrigin {
     ttc
 }
 
-enum GeoEventSource {
-    FIRMS
-}
-
-enum GeoEventProviderSourceKey {
-    LANDSAT_NRT
-    MODIS_NRT
-    MODIS_SP
-    VIIRS_NOAA20_NRT
-    VIIRS_SNPP_NRT
-    VIIRS_SNPP_SP
-}
-
 enum Role {
     ROLE_CLIENT
     ROLE_ADMIN
     ROLE_SUPPORT
-}
-
-enum AlertMethodMethod {
-    email
-    sms
-    device
-    whatsapp
-    webhook
 }
 
 enum SiteType {
@@ -187,25 +166,8 @@ enum SiteType {
     MultiPolygon
 }
 
-enum GeoEventDetectionInstrument {
-    LANDSAT_NRT
-    MODIS_NRT
-    MODIS_SP
-    VIIRS_NOAA20_NRT
-    VIIRS_SNPP_NRT
-    VIIRS_SNPP_SP
-    MODIS
-    VIIRS
-    LANDSAT
-    GEOSTATIONARY
-}
-
 enum AlertConfidence {
     high
     medium
     low
-}
-
-enum AlertType {
-    fire
 }

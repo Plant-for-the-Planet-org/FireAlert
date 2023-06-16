@@ -1,4 +1,4 @@
-import type GeoEventProvider from "./GeoEventProvider";
+import { type GeoEventProvider } from "../../Interfaces/GeoEventProvider";
 import NasaGeoEventProvider from "./Provider/NasaGeoEventProvider";
 // import additional GeoEvent provider implementations below
 

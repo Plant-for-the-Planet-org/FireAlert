@@ -1,8 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from '../../server/db'
 import { logger } from "../../../src/server/logger";
+import { type SiteAlertDetectedBy } from "../../Interfaces/SiteAlert"
 
-const createSiteAlerts = async (geoEventProviderId: string, detectedBy: string, slice: string) => {
+const createSiteAlerts = async (geoEventProviderId: string, detectedBy: SiteAlertDetectedBy, slice: string) => {
     let siteAlertsCreatedCount = 0;
     try {
         const siteAlertCreationQuery = Prisma.sql`

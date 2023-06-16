@@ -4,12 +4,15 @@
 import { type NextApiRequest, type NextApiResponse } from "next";
 import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
 import { PrismaClient, type GeoEventProvider } from '@prisma/client'
+// import { type GeoEventProvider } from "../../../Interfaces/GeoEventProvider";
 import { type GeoEventProviderConfig } from '../../../Interfaces/GeoEventProvider'
 import { env } from "../../../env.mjs";
 import processGeoEvents from "../../../../src/Services/GeoEvent/GeoEventHandler";
 import createNotifications from "../../../../src/Services/Notifications/CreateNotifications";
 import createSiteAlerts from "../../../../src/Services/SiteAlert/CreateSiteAlert";
 import { logger } from "../../../../src/server/logger";
+import { GeoEventSource } from "../../../Interfaces/GeoEvent";
+import { SiteAlertDetectedBy } from "../../../Interfaces/SiteAlert";
 
 
 // TODO: Run this cron every 5 minutes
@@ -71,7 +74,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     const breadcrumbPrefix = `${parsedConfig.sourceKey} Slice ${slice}:`
 
     // First fetch all geoEvents from the provider
-    return await geoEventProvider.getLatestGeoEvents(geoEventProviderId, slice)
+    return await geoEventProvider.getLatestGeoEvents(providerKey, geoEventProviderId, slice)
       .then(async (geoEvents) => {
         const identityGroup = geoEventProvider.getIdentityGroup()
         // If there are geoEvents, emit an event to find duplicates and persist them
@@ -79,12 +82,12 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
         let eventCount = 0;
         if (geoEvents.length > 0) {
-          eventCount = await processGeoEvents(breadcrumbPrefix, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
+          eventCount = await processGeoEvents(breadcrumbPrefix, providerKey as GeoEventSource, identityGroup, geoEventProviderId, slice, geoEvents)
         }
 
         // and then create site Alerts
         if (eventCount > 0) {
-          const alertCount = await createSiteAlerts(geoEventProviderId, parsedConfig.sourceKey, slice)
+          const alertCount = await createSiteAlerts(geoEventProviderId, parsedConfig.sourceKey as SiteAlertDetectedBy, slice)
           logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
 
           newSiteAlertCount += alertCount

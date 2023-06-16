@@ -1,21 +1,20 @@
-import type GeoEventProvider from '../GeoEventProvider';
-import type GeoEventProviderConfig from '../../../Interfaces/GeoEventProviderConfig';
+import {type GeoEventProvider, type GeoEventProviderConfigGeneral} from '../../../Interfaces/GeoEventProvider';
 
 class SampleGeoEventProvider implements GeoEventProvider {
 
-    private config?: GeoEventProviderConfig;
+    private config?: GeoEventProviderConfigGeneral;
 
     getKey(): string {
         // Logic to retrieve available sources goes here
         return 'some-provider-key';
     }
 
-    initialize(config?: GeoEventProviderConfig): void {
+    initialize(config?: GeoEventProviderConfigGeneral): void {
         // Logic to initialize the alert provider with the specified configuration goes here
         this.config = config;
     }
 
-    getIdentityGroup(): string | null {
+    getIdentityGroup(): string {
         return 'some-group-key';
     }
 

@@ -1,10 +1,11 @@
-import { AlertType, type GeoEventSource } from "@prisma/client";
-import { type GeoEvent } from "@prisma/client";
+import { GeoEventSource } from "../../Interfaces/GeoEvent";
+import { AlertType } from "../../Interfaces/SiteAlert";
+import { type GeoEventData as GeoEvent } from "../../Interfaces/GeoEvent";
 import md5 from "md5";
 import { prisma } from '../../server/db';
 import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventSource, identityGroup: string | null, geoEventProviderId: string, slice: string, geoEvents: Array<Partial<GeoEvent>>) => {
+const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -63,9 +64,9 @@ const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventS
     const idsSet: Set<string> = new Set();
 
     for (const geoEvent of newGeoEvents) {
-      if (!idsSet.has(geoEvent.id)) {
+      if (!idsSet.has(geoEvent.id!)) {
         filteredNewGeoEvents.push(geoEvent);
-        idsSet.add(geoEvent.id);
+        idsSet.add(geoEvent.id!);
       }
     }
     return filteredNewGeoEvents;
