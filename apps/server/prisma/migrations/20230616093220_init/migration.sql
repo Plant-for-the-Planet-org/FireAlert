@@ -1,7 +1,4 @@
 -- CreateEnum
-CREATE TYPE "SiteOrigin" AS ENUM ('firealert', 'ttc');
-
--- CreateEnum
 CREATE TYPE "Role" AS ENUM ('ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT');
 
 -- CreateEnum
@@ -65,7 +62,7 @@ CREATE TABLE "Site" (
     "id" TEXT NOT NULL,
     "remoteId" TEXT,
     "name" TEXT,
-    "origin" "SiteOrigin" NOT NULL DEFAULT 'firealert',
+    "origin" TEXT NOT NULL DEFAULT 'firealert',
     "type" "SiteType" NOT NULL,
     "geometry" JSONB NOT NULL,
     "radius" INTEGER NOT NULL DEFAULT 0,
@@ -98,10 +95,11 @@ CREATE TABLE "GeoEventProvider" (
     "name" TEXT,
     "description" TEXT,
     "type" TEXT NOT NULL,
-    "isActive" BOOLEAN NOT NULL,
-    "providerKey" TEXT NOT NULL,
-    "lastRun" TIMESTAMP(3),
+    "clientApiKey" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
     "fetchFrequency" INTEGER,
+    "isActive" BOOLEAN NOT NULL,
+    "lastRun" TIMESTAMP(3),
     "config" JSONB NOT NULL,
 
     CONSTRAINT "GeoEventProvider_pkey" PRIMARY KEY ("id")
@@ -117,8 +115,7 @@ CREATE TABLE "GeoEvent" (
     "geometry" geometry,
     "confidence" "AlertConfidence" NOT NULL,
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
-    "providerKey" TEXT NOT NULL,
-    "identityGroup" TEXT NOT NULL,
+    "geoEventProviderClientId" TEXT NOT NULL,
     "geoEventProviderId" TEXT NOT NULL,
     "radius" INTEGER,
     "slice" TEXT NOT NULL,
@@ -174,6 +171,9 @@ CREATE UNIQUE INDEX "VerificationRequest_id_token_key" ON "VerificationRequest"(
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AlertMethod_destination_userId_method_key" ON "AlertMethod"("destination", "userId", "method");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GeoEventProvider_clientApiKey_key" ON "GeoEventProvider"("clientApiKey");
 
 -- AddForeignKey
 ALTER TABLE "VerificationRequest" ADD CONSTRAINT "VerificationRequest_alertMethodId_fkey" FOREIGN KEY ("alertMethodId") REFERENCES "AlertMethod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -176,7 +176,7 @@ export async function handleNewUser(bearer_token: string) {
                     e.type,
                     TRUE,
                     e."eventDate",
-                    e."identityGroup"::"GeoEventDetectionInstrument",
+                    e."geoEventProviderClientId",
                     e.confidence,
                     e.latitude,
                     e.longitude,

@@ -48,7 +48,8 @@ CREATE TRIGGER site_update_trigger
 BEFORE INSERT OR UPDATE OF "geometry", "radius", "slices" ON "Site"
 FOR EACH ROW EXECUTE FUNCTION app_site_detectionGeometry_update();
 
-
+-- Enable PostGIS extension
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Add trigger to GeoEvent table
 CREATE OR REPLACE FUNCTION handle_geoevent() 

@@ -64,7 +64,7 @@ model Site {
     id                String                   @id @default(cuid())
     remoteId          String?
     name              String?
-    origin            SiteOrigin               @default(firealert)
+    origin            String                   @default("firealert")
     type              SiteType
     geometry          Json
     radius            Int                      @default(0)
@@ -98,28 +98,28 @@ model GeoEventProvider {
     name           String?
     description    String?
     type           String // Fire
-    isActive       Boolean
-    providerKey    String // FIRMS
-    lastRun        DateTime?
+    clientApiKey   String    @unique
+    clientId       String // LANDSAT_NRT
     fetchFrequency Int?
+    isActive       Boolean
+    lastRun        DateTime?
     config         Json
 }
 
 model GeoEvent {
-    id                 String                   @id @default(cuid())
-    type               String // Fire
-    latitude           Float
-    longitude          Float
-    eventDate          DateTime
-    geometry           Unsupported("geometry")?
-    confidence         AlertConfidence
-    isProcessed        Boolean                  @default(false)
-    providerKey        String // FIRMS
-    identityGroup      String
-    geoEventProviderId String
-    radius             Int?
-    slice              String // Will be something like "1" or "2" or "8"
-    data               Json?
+    id                       String                   @id @default(cuid())
+    type                     String // Fire
+    latitude                 Float
+    longitude                Float
+    eventDate                DateTime
+    geometry                 Unsupported("geometry")?
+    confidence               AlertConfidence
+    isProcessed              Boolean                  @default(false)
+    geoEventProviderClientId String // LANDSAT_NRT
+    geoEventProviderId       String
+    radius                   Int?
+    slice                    String // "1" or "2" or "8"
+    data                     Json?
 }
 
 model SiteAlert {
@@ -131,7 +131,7 @@ model SiteAlert {
     latitude      Float
     longitude     Float
     eventDate     DateTime
-    detectedBy    String //SourceKey
+    detectedBy    String //GeoEventProviderClientId
     confidence    AlertConfidence
     isProcessed   Boolean         @default(false)
     deletedAt     DateTime?
@@ -149,10 +149,7 @@ model Notification {
     isDelivered Boolean   @default(false)
 }
 
-enum SiteOrigin {
-    firealert
-    ttc
-}
+// TODO: Change siteOrigin to text
 
 enum Role {
     ROLE_CLIENT

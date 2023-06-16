@@ -1,11 +1,11 @@
-import { GeoEventSource } from "../../Interfaces/GeoEvent";
+import { GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
 import { AlertType } from "../../Interfaces/SiteAlert";
-import { type GeoEventData as GeoEvent } from "../../Interfaces/GeoEvent";
+import { type geoEventInterface as GeoEvent } from "../../Interfaces/GeoEvent";
 import md5 from "md5";
 import { prisma } from '../../server/db';
 import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
+const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -87,10 +87,9 @@ const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventS
       eventDate: geoEvent.eventDate,
       confidence: geoEvent.confidence,
       isProcessed: false,
-      providerKey: providerKey,
-      identityGroup: identityGroup,
+      geoEventProviderClientId: geoEventProviderClientId,
       geoEventProviderId: geoEventProviderId,
-      radius: 0,
+      radius: geoEvent.radius ? geoEvent.radius : 0,
       slice: slice,
       data: geoEvent.data,
     }))

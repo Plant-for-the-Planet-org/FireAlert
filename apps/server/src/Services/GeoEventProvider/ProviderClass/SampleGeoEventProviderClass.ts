@@ -1,6 +1,6 @@
-import {type GeoEventProvider, type GeoEventProviderConfigGeneral} from '../../../Interfaces/GeoEventProvider';
+import {type GeoEventProviderClass, type GeoEventProviderConfigGeneral} from '../../../Interfaces/GeoEventProvider';
 
-class SampleGeoEventProvider implements GeoEventProvider {
+class SampleGeoEventProviderClass implements GeoEventProviderClass {
 
     private config?: GeoEventProviderConfigGeneral;
 
@@ -12,10 +12,6 @@ class SampleGeoEventProvider implements GeoEventProvider {
     initialize(config?: GeoEventProviderConfigGeneral): void {
         // Logic to initialize the alert provider with the specified configuration goes here
         this.config = config;
-    }
-
-    getIdentityGroup(): string {
-        return 'some-group-key';
     }
 
     async getLatestGeoEvents(): Promise<any[]> {
@@ -30,4 +26,4 @@ class SampleGeoEventProvider implements GeoEventProvider {
     }
 }
 
-export default SampleGeoEventProvider;
+export default SampleGeoEventProviderClass;
