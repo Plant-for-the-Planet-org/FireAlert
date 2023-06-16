@@ -16,11 +16,14 @@ const createNotifications = async () => {
 
         const updateSiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false AND "deletedAt" IS NULL`;
 
-        // Create Notifications for all unprocessed SiteAlerts
-        notificationsCreated = await prisma.$executeRaw(notificationCreationQuery);
+        // Create Notifications for all unprocessed SiteAlerts and Set all SiteAlert as processed
+        const results = await prisma.$transaction([
+            prisma.$executeRaw(notificationCreationQuery),
+            prisma.$executeRaw(updateSiteAlertIsProcessedToTrue)
+        ]);
+        // Since $executeRaw() returns the number of rows affected, the first result of the transaction would be notificationsCreated
+        notificationsCreated = results[0];
 
-        // Set all SiteAlert as processed
-        await prisma.$executeRaw(updateSiteAlertIsProcessedToTrue);
     } catch (error) {
         console.log(error)
     }

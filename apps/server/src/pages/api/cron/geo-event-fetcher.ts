@@ -1,14 +1,16 @@
 // to execute this handler, access the endpoint:  http://localhost:3000/api/cron/geo-event-fetcher
 
 import { type NextApiRequest, type NextApiResponse } from "next";
-import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
-import { PrismaClient, type GeoEventProvider } from '@prisma/client'
+import GeoEventProviderClassRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
+import { type GeoEventProvider } from '@prisma/client'
 import { type GeoEventProviderConfig } from '../../../Interfaces/GeoEventProvider'
 import { env } from "../../../env.mjs";
 import processGeoEvents from "../../../../src/Services/GeoEvent/GeoEventHandler";
 import createNotifications from "../../../../src/Services/Notifications/CreateNotifications";
 import createSiteAlerts from "../../../../src/Services/SiteAlert/CreateSiteAlert";
 import { logger } from "../../../../src/server/logger";
+import { GeoEventProviderClientId } from "../../../Interfaces/GeoEventProvider";
+import { prisma } from "../../../../src/server/db";
 
 
 // TODO: Run this cron every 5 minutes
@@ -23,7 +25,6 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     }
   }
 
-  const prisma = new PrismaClient()
   // get all active providers
   const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
@@ -70,29 +71,29 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   let newSiteAlertCount = 0;
   // Loop for each active provider and fetch geoEvents
   const promises = activeProviders.map(async (provider) => {
-    const { providerKey, config, id: geoEventProviderId } = provider
+    const { config, id: geoEventProviderId, clientId: geoEventProviderClientId, clientApiKey } = provider
     const parsedConfig: GeoEventProviderConfig = JSON.parse(JSON.stringify(config))
-    const geoEventProvider = GeoEventProviderRegistry.get(providerKey);
+    const client = parsedConfig.client
+    const geoEventProvider = GeoEventProviderClassRegistry.get(client);
     geoEventProvider.initialize(parsedConfig);
 
     const slice = parsedConfig.slice;
-    const breadcrumbPrefix = `${parsedConfig.sourceKey} Slice ${slice}:`
+    const breadcrumbPrefix = `${geoEventProviderClientId} Slice ${slice}:`
 
     // First fetch all geoEvents from the provider
-    return await geoEventProvider.getLatestGeoEvents(geoEventProviderId, slice)
+    return await geoEventProvider.getLatestGeoEvents(geoEventProviderClientId, geoEventProviderId, slice, clientApiKey)
       .then(async (geoEvents) => {
-        const identityGroup = geoEventProvider.getIdentityGroup()
         // If there are geoEvents, emit an event to find duplicates and persist them
         logger(`${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`, "info");
 
         let eventCount = 0;
         if (geoEvents.length > 0) {
-          eventCount = await processGeoEvents(breadcrumbPrefix, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
+          eventCount = await processGeoEvents(breadcrumbPrefix, geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEvents)
         }
 
         // and then create site Alerts
         if (eventCount > 0) {
-          const alertCount = await createSiteAlerts(geoEventProviderId, slice)
+          const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
           logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
 
           newSiteAlertCount += alertCount

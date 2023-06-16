@@ -56,7 +56,7 @@ export const siteRouter = createTRPCRouter({
                     e.type,
                     TRUE,
                     e."eventDate",
-                    e."identityGroup"::"GeoEventDetectionInstrument",
+                    e."geoEventProviderClientId",
                     e.confidence,
                     e.latitude,
                     e.longitude,
