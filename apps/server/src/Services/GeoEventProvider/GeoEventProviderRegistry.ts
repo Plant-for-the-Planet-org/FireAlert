@@ -1,33 +1,34 @@
-import type GeoEventProvider from "./GeoEventProvider";
-import NasaGeoEventProvider from "./Provider/NasaGeoEventProvider";
+import { type GeoEventProviderClass } from "../../Interfaces/GeoEventProvider";
+import NasaGeoEventProvider from "./ProviderClass/NasaGeoEventProviderClass";
 // import additional GeoEvent provider implementations below
 
-const createGeoEventProviderRegistry = function (geoEventProviders: Array<GeoEventProvider>) {
+const createGeoEventProviderClassRegistry = function (geoEventProviders: Array<GeoEventProviderClass>) {
 
-    const registry: { [providerKey: string]: GeoEventProvider } = {};
+    const registry: { [client: string]: GeoEventProviderClass } = {};
 
-    geoEventProviders.forEach((geoEventProvider: GeoEventProvider) => {
-        const providerKey = geoEventProvider.getKey()
-        if (registry[providerKey]) {
-            throw new Error(`Provider for providerKey '${providerKey}' has already been registered`);
+    geoEventProviders.forEach((geoEventProvider: GeoEventProviderClass) => {
+        const client = geoEventProvider.getKey()
+        if (registry[client]) {
+            // Better logic?: break out of that geoEventProvider and move to the next one instead of throwing an error!
+            throw new Error(`Provider for client '${client}' has already been registered`);
         }
-        registry[providerKey] = geoEventProvider;
+        registry[client] = geoEventProvider;
     });
 
     return {
-        get: (providerKey: string): GeoEventProvider => {
-            const provider = registry[providerKey];
+        get: (client: string): GeoEventProviderClass => {
+            const provider = registry[client];
             if (!provider) {
-                throw new Error(`Provider with key '${providerKey}' not found`);
+                throw new Error(`Provider with key '${client}' not found`);
             }
             return provider;
         }
     };
 }
 
-const GeoEventProviderRegistry = createGeoEventProviderRegistry([
+const GeoEventProviderClassRegistry = createGeoEventProviderClassRegistry([
     new NasaGeoEventProvider()
     // add new alert providers here
 ]);
 
-export default GeoEventProviderRegistry;
+export default GeoEventProviderClassRegistry;

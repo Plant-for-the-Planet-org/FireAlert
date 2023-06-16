@@ -1,17 +1,3 @@
--- -- Add trigger to Site to generate detection geometry
--- CREATE OR REPLACE FUNCTION app_site_detectionGeometry_update() 
--- RETURNS TRIGGER AS $$
--- BEGIN
---     NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
---     NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
---     RETURN NEW;
--- END;
--- $$ LANGUAGE plpgsql;
-
--- CREATE TRIGGER site_update_trigger
--- BEFORE INSERT OR UPDATE OF "geometry", "radius" ON "Site"
--- FOR EACH ROW EXECUTE FUNCTION app_site_detectionGeometry_update();
-
 -- Add trigger to Site to generate detection geometry and determine slices
 CREATE OR REPLACE FUNCTION app_site_detectionGeometry_update() 
 RETURNS TRIGGER AS $$
@@ -62,7 +48,8 @@ CREATE TRIGGER site_update_trigger
 BEFORE INSERT OR UPDATE OF "geometry", "radius", "slices" ON "Site"
 FOR EACH ROW EXECUTE FUNCTION app_site_detectionGeometry_update();
 
-
+-- Enable PostGIS extension
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Add trigger to GeoEvent table
 CREATE OR REPLACE FUNCTION handle_geoevent() 

@@ -1,8 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from '../../server/db'
 import { logger } from "../../../src/server/logger";
+import { GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
 
-const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
+const createSiteAlerts = async (geoEventProviderId: string, geoEventProviderClientId: GeoEventProviderClientId, slice: string) => {
     let siteAlertsCreatedCount = 0;
     try {
         const siteAlertCreationQuery = Prisma.sql`
@@ -12,7 +13,7 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
                 e.type,
                 FALSE,
                 e. "eventDate",
-                e. "identityGroup"::"GeoEventDetectionInstrument",
+                ${geoEventProviderClientId},
                 e.confidence,
                 e.latitude,
                 e.longitude,
@@ -42,10 +43,13 @@ const createSiteAlerts = async (geoEventProviderId: string, slice: string) => {
         const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId} AND "slice" = ${slice}`;
 
         // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
-        siteAlertsCreatedCount = await prisma.$executeRaw(siteAlertCreationQuery);
-
-        // Set all GeoEvents as processed
-        await prisma.$executeRaw(updateGeoEventIsProcessedToTrue);
+        // And, Set all GeoEvents as processed
+        const results = await prisma.$transaction([
+            prisma.$executeRaw(siteAlertCreationQuery),
+            prisma.$executeRaw(updateGeoEventIsProcessedToTrue)
+        ])
+        siteAlertsCreatedCount = results[0]
+        
     } catch (error) {
         logger(`Failed to create SiteAlerts. Error: ${error}`, "error");
     }
