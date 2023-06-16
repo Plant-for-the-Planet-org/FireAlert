@@ -1,14 +1,8 @@
-import {
-  Text,
-  View,
-  Platform,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
 import React from 'react';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
+import {View, Platform, StyleSheet, ImageSourcePropType} from 'react-native';
 
 import Markers from '../markers';
 import {
@@ -23,9 +17,17 @@ let attributionPosition: any = {
   bottom: IS_ANDROID ? 72 : 76,
   left: 18,
 };
-let compassViewMargins: {
-  x: 30;
-  y: 230;
+
+let compassViewMargins = {
+  x: IS_ANDROID ? 12 : 16,
+  y: IS_ANDROID ? 160 : 125,
+};
+
+const compassViewPosition = 3;
+
+type CompassImage = 'compass1';
+const images: Record<CompassImage, ImageSourcePropType> = {
+  compass1: require('../../../assets/images/compassImage.png'),
 };
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
@@ -81,23 +83,26 @@ export default function Map({
     <View style={styles.container}>
       <MapboxGL.MapView
         ref={map}
+        compassEnabled
         logoEnabled={false}
         onPress={onPressMap}
-        compassViewPosition={3}
         showUserLocation={true}
         scaleBarEnabled={false}
         style={styles.container}
+        compassImage={'compass1'}
+        onMapIdle={onChangeRegionComplete}
         styleURL={MapboxGL.StyleURL[state]}
-        compassViewMargins={compassViewMargins}
         onCameraChanged={onChangeRegionStart}
-        attributionPosition={attributionPosition}
-        onMapIdle={onChangeRegionComplete}>
+        compassViewMargins={compassViewMargins}
+        compassViewPosition={compassViewPosition}
+        attributionPosition={attributionPosition}>
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;
             setIsCameraRefVisible(!!el);
           }}
         />
+        <MapboxGL.Images images={images} />
         <Markers geoJSON={geoJSON} type={'LineString'} />
         {shouldRenderShape && (
           <MapboxGL.ShapeSource id={'polygon'} shape={geoJSON}>

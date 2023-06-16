@@ -1,11 +1,9 @@
 import React, {useState} from 'react';
 import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
-import RadialGradient from 'react-native-radial-gradient';
-import {Dimensions, StatusBar, StyleSheet, View} from 'react-native';
+import {View, StatusBar, StyleSheet, ImageBackground} from 'react-native';
 
 import {Colors} from '../../styles';
-import {Logo} from '../../assets/svgs';
 import {useAppDispatch} from '../../hooks';
 import {
   getUserDetails,
@@ -15,11 +13,7 @@ import {
 import {CustomButton} from '../../components';
 import {storeData} from '../../utils/localStorage';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-
-const RADIUS = 200;
-const CENTER_ARR = [SCREEN_WIDTH / 2, 270.6];
-const GRADIENT_ARR = [Colors.PRIMARY_DARK, Colors.GRADIENT_PRIMARY];
+const launch_screen = require('../../assets/images/launch_screen.png');
 
 const Login = ({navigation}) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -64,25 +58,18 @@ const Login = ({navigation}) => {
   return (
     <>
       <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
-      <RadialGradient
-        radius={RADIUS}
-        center={CENTER_ARR}
-        style={styles.container}
-        colors={GRADIENT_ARR}>
-        <View style={styles.logoContainer}>
-          <Logo />
-        </View>
+      <ImageBackground source={launch_screen} style={styles.image}>
         <View style={styles.btnContainer}>
           <CustomButton
-            title="Log In"
             style={styles.btn}
             isLoading={isLoading}
             onPress={handleLogin}
-            loaderColor={Colors.PRIMARY}
+            title={'Sign in/Sign up'}
+            loaderColor={Colors.WHITE}
             titleStyle={styles.titleStyle}
           />
         </View>
-      </RadialGradient>
+      </ImageBackground>
     </>
   );
 };
@@ -93,11 +80,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  logoContainer: {
-    position: 'absolute',
-    top: 198,
-    width: SCREEN_WIDTH,
-    alignItems: 'center',
+  image: {
+    flex: 1,
+    justifyContent: 'center',
   },
   btnContainer: {
     bottom: 50,
@@ -105,10 +90,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   btn: {
-    backgroundColor: Colors.WHITE,
+    width: 311,
     marginVertical: 10,
+    backgroundColor: Colors.GRADIENT_PRIMARY,
   },
   titleStyle: {
-    color: Colors.DEEP_PRIMARY,
+    color: Colors.WHITE,
   },
 });

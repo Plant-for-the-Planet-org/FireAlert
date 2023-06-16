@@ -30,6 +30,7 @@ export const GRADIENT_PRIMARY = '#E86F56';
 
 // PLANET COLORS
 export const PLANET_DARK_GRAY = '#4F4F4F';
+export const PLANET_DARK_GREEN = '#68B030';
 
 // GRADIENT COLORS ARRAY
 export const GREEN_GRADIENT_ARR = ['#68B030', '#34953D', '#007A49'];

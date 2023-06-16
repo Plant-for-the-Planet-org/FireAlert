@@ -3,6 +3,7 @@ import EyeIcon from './eyeIcon.jsx';
 import MapIcon from './mapIcon.jsx';
 import AddIcon from './addIcon.jsx';
 import SmsIcon from './smsIcon.jsx';
+import InfoIcon from './infoIcon.jsx';
 import SiteIcon from './siteIcon.jsx';
 import CopyIcon from './copyIcon.jsx';
 import ListIcon from './listIcon.jsx';
@@ -17,6 +18,7 @@ import MyLocIcon from './myLocIcon.jsx';
 import PhoneIcon from './phoneIcon.jsx';
 import EmailIcon from './emailIcon.jsx';
 import GlobeIcon from './globeIcon.jsx';
+import PasteIcon from './pasteIcon.jsx';
 import EyeOffIcon from './eyeOffIcon.jsx';
 import LayerCheck from './layerCheck.jsx';
 import LogoutIcon from './logoutIcon.jsx';
@@ -24,6 +26,7 @@ import PlanetLogo from './planetLogo.jsx';
 import {polygonIcon} from './polygonIcon';
 import PencilIcon from './pencilIcon.jsx';
 import {uploadIcon} from './uploadIcon.js';
+import CompassIcon from './compassIcon.jsx';
 import {locationIcon} from './locationIcon';
 import UploadCloud from './uploadCloud.jsx';
 import WarningIcon from './warningIcon.jsx';
@@ -44,6 +47,8 @@ import OrangeFireIcon from './orangeFireIcon.jsx';
 import PurpleFireIcon from './purpleFireIcon.jsx';
 import TrashSolidIcon from './trashSolidIcon.jsx';
 import UserPlaceholder from './userPlaceholder.jsx';
+import PencilRoundIcon from './pencilRoundIcon.jsx';
+import GreenMapOutline from './greenMapOutline.jsx';
 import TrashOutlineIcon from './trashOutlineIcon.jsx';
 import VerificationWarning from './verificationWarning.jsx';
 import DisabledTrashOutlineIcon from './disabledTrashOutlineIcon.jsx';
@@ -55,12 +60,14 @@ export {
   AddIcon,
   MapIcon,
   CopyIcon,
+  InfoIcon,
   SiteIcon,
   NatureBg,
   BellIcon,
   NasaLogo,
   ListIcon,
   PhoneIcon,
+  PasteIcon,
   RadarIcon,
   CrossIcon,
   EmailIcon,
@@ -75,6 +82,7 @@ export {
   LogoutIcon,
   uploadIcon,
   UploadCloud,
+  CompassIcon,
   polygonIcon,
   WarningIcon,
   LocationWave,
@@ -93,8 +101,10 @@ export {
   OrangeFireIcon,
   PurpleFireIcon,
   TrashSolidIcon,
+  PencilRoundIcon,
   LocationPinIcon,
   UserPlaceholder,
+  GreenMapOutline,
   TrashOutlineIcon,
   VerificationWarning,
   DisabledTrashOutlineIcon,

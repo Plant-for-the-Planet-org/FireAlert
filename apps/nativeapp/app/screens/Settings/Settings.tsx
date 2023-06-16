@@ -91,7 +91,6 @@ const Settings = ({navigation}) => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [dropDownModal, setDropDownModal] = useState<boolean>(false);
   const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
-  const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
   const [radiusLoaderArr, setRadiusLoaderArr] = useState<Array<string>>([]);
   const [alertMethodLoaderArr, setAlertMethodLoaderArr] = useState<
@@ -112,29 +111,6 @@ const Settings = ({navigation}) => {
   const queryClient = useQueryClient();
   const {openModal} = useContext(BottomBarContext);
   const {userDetails} = useAppSelector(state => state.loginSlice);
-
-  async function deviceNotification() {
-    try {
-      const {deviceId} = await getDeviceInfo();
-      const {userId} = await OneSignal.getDeviceState();
-      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
-        el => userId === el?.destination && el.deviceId === deviceId,
-      );
-      if (filterDeviceAlertMethod.length > 0) {
-        const filteredData = filterDeviceAlertMethod[0];
-        const nonFilteredData = formattedAlertPreferences.device.filter(
-          el => userId !== el?.destination || el.deviceId !== deviceId,
-        );
-        formattedAlertPreferences.device = [
-          filteredData,
-          ...nonFilteredData,
-        ].filter(el => el.deviceName !== '');
-      }
-      setDeviceAlertPreferences(formattedAlertPreferences?.device);
-    } catch {
-      setDeviceAlertPreferences([]);
-    }
-  }
 
   useEffect(() => {
     deviceNotification();
@@ -222,19 +198,6 @@ const Settings = ({navigation}) => {
     },
   });
 
-  const softDeleteUser = trpc.user.softDeleteUser.useMutation({
-    retryDelay: 3000,
-    onSuccess: async () => {
-      setShowDelAccount(false);
-      queryClient.clear();
-      await clearAll();
-      dispatch(updateIsLoggedIn(false));
-    },
-    onError: () => {
-      toast.show('something went wrong', {type: 'danger'});
-    },
-  });
-
   const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
     retryDelay: 3000,
     onSuccess: (data, req) => {
@@ -257,6 +220,7 @@ const Settings = ({navigation}) => {
         el => el !== req?.json?.alertMethodId,
       );
       setDelAlertMethodArr(loadingArr);
+      setReRender(!reRender);
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -353,6 +317,29 @@ const Settings = ({navigation}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  async function deviceNotification() {
+    try {
+      const {deviceId} = await getDeviceInfo();
+      const {userId} = await OneSignal.getDeviceState();
+      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
+        el => userId === el?.destination && el.deviceId === deviceId,
+      );
+      if (filterDeviceAlertMethod.length > 0) {
+        const filteredData = filterDeviceAlertMethod[0];
+        const nonFilteredData = formattedAlertPreferences.device.filter(
+          el => userId !== el?.destination || el.deviceId !== deviceId,
+        );
+        formattedAlertPreferences.device = [
+          filteredData,
+          ...nonFilteredData,
+        ].filter(el => el.deviceName !== '');
+      }
+      setDeviceAlertPreferences(formattedAlertPreferences?.device);
+    } catch {
+      setDeviceAlertPreferences([]);
+    }
+  }
 
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
@@ -504,15 +491,6 @@ const Settings = ({navigation}) => {
   };
 
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
-
-  const onDeleteAccount = () => {
-    softDeleteUser.mutate({json: {id: userDetails?.data?.id}});
-  };
-  const onGoBack = () => setShowDelAccount(false);
-
-  const handleDelAccount = () => {
-    setShowDelAccount(true);
-  };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -1127,19 +1105,10 @@ const Settings = ({navigation}) => {
         </View>
         {/* geoStationary */}
         <View style={[styles.geostationaryMainContainer, styles.commonPadding]}>
-          <View style={styles.geostationaryContainer}>
-            <Text style={styles.subHeading}>Geostationary</Text>
-            {updateUser?.isLoading ? (
-              <ActivityIndicator color={Colors.PRIMARY} />
-            ) : (
-              <Switch
-                value={userDetails?.data?.detectionMethods?.includes(
-                  'GEOSTATIONARY',
-                )}
-                onValueChange={handleGeostationary}
-              />
-            )}
+          <View style={[styles.deviceTagCon, styles.comingSoon]}>
+            <Text style={styles.deviceTag}>Coming Soon</Text>
           </View>
+          <Text style={styles.subHeading}>Geostationary</Text>
           <Text style={styles.desc}>Quick but many false alarms [BETA]</Text>
           <View style={styles.geostationaryInfoContainer}>
             <View style={styles.iconContainer}>
@@ -1204,7 +1173,7 @@ const Settings = ({navigation}) => {
             </View>
             <View style={styles.iconContainer}>
               <DistanceIcon />
-              <Text style={styles.geoDesc}>30m resolution</Text>
+              <Text style={styles.geoDesc}>30km resolution</Text>
             </View>
           </View>
         </View>
@@ -1282,9 +1251,6 @@ const Settings = ({navigation}) => {
             . 
           </Text>
         </View>
-        <TouchableOpacity onPress={handleDelAccount} style={styles.delTextCon}>
-          <Text style={styles.delText}>Delete Account</Text>
-        </TouchableOpacity>
         <View style={styles.appInfoContainer}>
           <Text style={styles.versionText}>
             Version {DeviceInfo.getVersion()} ({DeviceInfo.getBuildNumber()}) •{' '}
@@ -1294,19 +1260,6 @@ const Settings = ({navigation}) => {
             </Text>
           </Text>
         </View>
-        {/* Del Account Alert */}
-        <AlertModal
-          visible={showDelAccount}
-          heading={'Delete Account'}
-          message={
-            'If you proceed, your FireAlert data will be scheduled for deletion in 7 days. If you change your mind please login again to cancel the deletion.\n\nTo delete your Plant-for-the-Planet Account, and Platform data, please visit pp.eco'
-          }
-          primaryBtnText={'Delete'}
-          secondaryBtnText={'Go Back'}
-          onPressPrimaryBtn={onDeleteAccount}
-          onPressSecondaryBtn={onGoBack}
-          showSecondaryButton={true}
-        />
         {/* site information modal */}
         <BottomSheet
           isVisible={sitesInfoModal}
@@ -1775,16 +1728,6 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
   },
-  delTextCon: {
-    marginTop: 40,
-    alignSelf: 'center',
-  },
-  delText: {
-    fontSize: Typography.FONT_SIZE_20,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: '#EB5757',
-    padding: 10,
-  },
   geostationaryMainContainer: {
     marginTop: 32,
     marginHorizontal: 16,
@@ -1817,11 +1760,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4.62,
     elevation: 8,
   },
-  geostationaryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  geostationaryContainer: {},
   desc: {
     marginTop: 10,
     fontSize: Typography.FONT_SIZE_12,
@@ -1954,7 +1893,7 @@ const styles = StyleSheet.create({
   appInfoContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 5,
+    marginTop: 40,
   },
   versionText: {
     textAlign: 'center',
@@ -1977,6 +1916,10 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_10,
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     color: Colors.WHITE,
+  },
+  comingSoon: {
+    width: 93,
+    marginBottom: 10,
   },
   emptySiteText: {
     fontSize: 12,

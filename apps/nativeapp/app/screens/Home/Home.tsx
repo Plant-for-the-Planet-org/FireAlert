@@ -12,8 +12,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
+  ImageSourcePropType,
 } from 'react-native';
 import moment from 'moment';
+import bbox from '@turf/bbox';
 import MapboxGL from '@rnmapbox/maps';
 import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
@@ -45,11 +47,15 @@ import {
   LogoutIcon,
   EyeOffIcon,
   PencilIcon,
+  CompassIcon,
   PointSiteIcon,
   SatelliteIcon,
   MapOutlineIcon,
+  TrashSolidIcon,
   LocationPinIcon,
+  PencilRoundIcon,
   UserPlaceholder,
+  GreenMapOutline,
   TrashOutlineIcon,
   DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
@@ -75,7 +81,6 @@ import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import bbox from '@turf/bbox';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -88,13 +93,18 @@ let attributionPosition: any = {
 
 let compassViewMargins = {
   x: IS_ANDROID ? 12 : 16,
-  y: IS_ANDROID ? 160 : 120,
+  y: IS_ANDROID ? 160 : 150,
 };
 
 const compassViewPosition = 3;
 
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
+
+type CompassImage = 'compass1';
+const images: Record<CompassImage, ImageSourcePropType> = {
+  compass1: require('../../assets/images/compassImage.png'),
+};
 
 const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
@@ -131,6 +141,7 @@ const Home = ({navigation, route}) => {
   const [selectedArea, setSelectedArea] = useState<any>(null);
   const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
   const [isEditSite, setIsEditSite] = useState<boolean>(false);
+  const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
 
   const map = useRef(null);
   const toast = useToast();
@@ -296,6 +307,30 @@ const Home = ({navigation, route}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  const softDeleteUser = trpc.user.softDeleteUser.useMutation({
+    retryDelay: 3000,
+    onSuccess: async () => {
+      setShowDelAccount(false);
+      queryClient.clear();
+      await clearAll();
+      dispatch(updateIsLoggedIn(false));
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const onGoBack = () => setShowDelAccount(false);
+
+  const onDeleteAccount = () => {
+    softDeleteUser.mutate({json: {id: userDetails?.data?.id}});
+  };
+
+  const handleDelAccount = () => {
+    setProfileModalVisible(false);
+    setTimeout(() => setShowDelAccount(true), 500);
+  };
 
   const handleEditSite = site => {
     setSelectedSite({});
@@ -642,13 +677,16 @@ const Home = ({navigation, route}) => {
     <>
       <MapboxGL.MapView
         ref={map}
+        compassEnabled
         style={styles.map}
         logoEnabled={false}
         scaleBarEnabled={false}
+        compassImage={'compass1'}
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
         attributionPosition={attributionPosition}>
+        <MapboxGL.Images images={images} />
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;
@@ -700,19 +738,31 @@ const Home = ({navigation, route}) => {
         onPressPrimaryBtn={onPressPerDeniedAlertPrimaryBtn}
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
+      <AlertModal
+        visible={showDelAccount}
+        heading={'Delete Account'}
+        message={
+          'If you proceed, your FireAlert data will be scheduled for deletion in 7 days. If you change your mind please login again to cancel the deletion.\n\nTo delete your Plant-for-the-Planet Account, and Platform data, please visit pp.eco'
+        }
+        primaryBtnText={'Delete'}
+        secondaryBtnText={'Go Back'}
+        onPressPrimaryBtn={onDeleteAccount}
+        onPressSecondaryBtn={onGoBack}
+        showSecondaryButton={true}
+      />
       <TouchableOpacity
         onPress={handleUser}
         style={[styles.layerIcon, styles.avatarContainer]}
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        {userDetails?.data?.image || userDetails?.picture ? (
+        {userDetails?.data?.image ? (
           <Image
-            source={{uri: userDetails?.data?.image || userDetails?.picture}}
+            source={{uri: userDetails?.data?.image}}
             style={styles.userAvatar}
           />
         ) : (
-          <UserPlaceholder width={44} height={44} />
+          <UserPlaceholder width={31} height={31} />
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -721,7 +771,7 @@ const Home = ({navigation, route}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={45} height={45} />
+        <LayerIcon width={32} height={32} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -729,7 +779,7 @@ const Home = ({navigation, route}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon width={45} height={45} />
+        <MyLocIcon width={32} height={32} />
       </TouchableOpacity>
       {/* profile modal */}
       <BottomSheet
@@ -738,20 +788,43 @@ const Home = ({navigation, route}) => {
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
-            <Text style={styles.siteTitle}>
-              {userDetails?.data?.name || 'Anonymous Firefighter'}
-            </Text>
+            <View style={styles.profileHeader}>
+              {userDetails?.data?.image ? (
+                <Image
+                  source={{
+                    uri: userDetails?.data?.image,
+                  }}
+                  style={[styles.userAvatar, {width: 81, height: 81}]}
+                />
+              ) : (
+                <UserPlaceholder width={81} height={81} />
+              )}
+              <View style={styles.profileInfo}>
+                <Text style={styles.lightText}>Name</Text>
+                <Text style={styles.pfName}>
+                  {userDetails?.data?.name || 'Anonymous Firefighter'}
+                </Text>
+              </View>
+            </View>
             <TouchableOpacity onPress={handlePencil}>
-              <PencilIcon />
+              <PencilRoundIcon />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={handleOpenPlatform} style={styles.btn}>
-            <MapOutlineIcon />
-            <Text style={styles.siteActionText}>Open Platform</Text>
+          <TouchableOpacity
+            onPress={handleOpenPlatform}
+            style={styles.platFormBtn}>
+            <GreenMapOutline />
+            <Text style={styles.siteActionPfText}>Open Platform</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.btn}>
             <LogoutIcon />
-            <Text style={styles.siteActionText}>Logout</Text>
+            <Text style={styles.siteActionPfText}>Logout</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDelAccount}
+            style={[styles.btn, {marginBottom: 16}]}>
+            <TrashSolidIcon width={20} height={20} />
+            <Text style={styles.siteActionPfText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
       </BottomSheet>
@@ -1056,18 +1129,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: 138,
+    top: 106,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   avatarContainer: {
-    width: 45,
-    height: 45,
-    top: 80,
+    width: 32,
+    height: 32,
+    top: 66,
   },
   userAvatar: {
-    width: 44,
-    height: 44,
+    width: 31,
+    height: 31,
     borderRadius: 100,
   },
   modalContainer: {
@@ -1090,6 +1163,25 @@ const styles = StyleSheet.create({
   commonPadding: {
     paddingHorizontal: 16,
   },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  lightText: {
+    fontSize: Typography.FONT_SIZE_12,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    color: Colors.GRAY_DEEP,
+  },
+  pfName: {
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 2,
+  },
+  profileInfo: {
+    marginLeft: 16,
+  },
   siteTitleCon: {
     marginTop: 16,
     flexDirection: 'row',
@@ -1102,19 +1194,37 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     width: SCREEN_WIDTH / 1.3,
   },
-  btn: {
-    height: 56,
-    marginTop: 22,
+  platFormBtn: {
+    height: 61,
+    marginTop: 16,
     borderWidth: 1,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderColor: Colors.GRADIENT_PRIMARY,
+    paddingLeft: 20,
+    backgroundColor: Colors.PLANET_DARK_GREEN + '10',
+    borderColor: Colors.PLANET_DARK_GREEN + '20',
+  },
+  btn: {
+    height: 61,
+    marginTop: 16,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 20,
+    backgroundColor: Colors.GRADIENT_PRIMARY + '10',
+    borderColor: Colors.GRADIENT_PRIMARY + '20',
   },
   siteActionText: {
     marginLeft: 30,
     color: Colors.GRADIENT_PRIMARY,
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+  },
+  siteActionPfText: {
+    marginLeft: 15,
+    color: Colors.PLANET_DARK_GRAY,
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },

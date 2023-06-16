@@ -12,13 +12,13 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import area from '@turf/area';
-import centroid from '@turf/centroid';
+import bbox from '@turf/bbox';
 import MapboxGL from '@rnmapbox/maps';
+import {polygon, convertArea} from '@turf/helpers';
 import {useQueryClient} from '@tanstack/react-query';
 import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import {Point, polygon, Feature, Properties, convertArea} from '@turf/helpers';
 
 import {
   DropDown,
@@ -40,7 +40,6 @@ import {locationPermission} from '../../utils/permissions';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import distanceCalculator from '../../utils/distanceCalculator';
 import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
-import bbox from '@turf/bbox';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
@@ -454,7 +453,7 @@ const CreatePolygon = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={45} height={45} />
+        <LayerIcon width={32} height={32} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -462,7 +461,7 @@ const CreatePolygon = ({navigation}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon width={45} height={45} />
+        <MyLocIcon width={32} height={32} />
       </TouchableOpacity>
       <Modal visible={siteNameModalVisible} transparent>
         <KeyboardAvoidingView
@@ -570,7 +569,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 92 : 138,
+    top: IS_ANDROID ? 92 : 108,
     backgroundColor: Colors.WHITE,
   },
   myLocationIcon: {

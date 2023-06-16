@@ -10,11 +10,12 @@ import {
 import React, {useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 import {trpc} from '../../services/trpc';
 import {useAppSelector} from '../../hooks';
-import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
+import {CrossIcon, InfoIcon, PasteIcon} from '../../assets/svgs';
 import {validateEmail} from '../../utils/emailVerifier';
 import {CustomButton, FloatingInput, PhoneInput} from '../../components';
 
@@ -107,6 +108,11 @@ const Verification = ({navigation, route}) => {
     setNewEmail(emailText);
   };
 
+  const handlePaste: () => Promise<void> = async () => {
+    const content = await Clipboard.getString();
+    setWebhookUrl(content);
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle={'dark-content'} backgroundColor={Colors.WHITE} />
@@ -116,9 +122,14 @@ const Verification = ({navigation, route}) => {
         <TouchableOpacity onPress={handleClose} style={styles.crossContainer}>
           <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
         </TouchableOpacity>
-        <Text style={[styles.heading, styles.commonPadding]}>
-          Add New {verificationType}
-        </Text>
+        <View style={[styles.header, styles.commonPadding]}>
+          <Text style={styles.heading}>Add New {verificationType}</Text>
+          {verificationType === 'Webhook' && (
+            <TouchableOpacity onPress={handlePaste} activeOpacity={0.7}>
+              <PasteIcon />
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={styles.subContainer}>
           {verificationType === 'Whatsapp' || verificationType === 'Sms' ? (
             <PhoneInput
@@ -132,11 +143,12 @@ const Verification = ({navigation, route}) => {
               multiline={true}
               numberOfLines={4}
               inputMode={'url'}
+              value={webhookUrl}
               autoCapitalize={'none'}
-              label={`${verificationType} URL`}
-              inputStyle={styles.webhookInput}
-              containerStyle={styles.webhookInputCon}
               onChangeText={setWebhookUrl}
+              inputStyle={styles.webhookInput}
+              label={`Paste ${verificationType} URL`}
+              containerStyle={styles.webhookInputCon}
             />
           ) : (
             <FloatingInput
@@ -144,9 +156,18 @@ const Verification = ({navigation, route}) => {
               inputMode={'email'}
               autoCapitalize={'none'}
               verifier={verifyingLoader}
-              label={`${verificationType}`}
               onChangeText={handleEmail}
+              label={`${verificationType}`}
             />
+          )}
+          {verificationType === 'Webhook' && (
+            <View style={styles.info}>
+              <InfoIcon />
+              <Text style={styles.lightText}>
+                Create a webhook to receive FireAlert notifications in other
+                tools
+              </Text>
+            </View>
           )}
           <CustomButton
             title="Continue"
@@ -180,9 +201,14 @@ const styles = StyleSheet.create({
   title: {
     color: Colors.WHITE,
   },
-  heading: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 20,
     marginBottom: 10,
+  },
+  heading: {
     fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
@@ -204,5 +230,20 @@ const styles = StyleSheet.create({
   },
   webhookInputCon: {
     paddingVertical: 10,
+  },
+  info: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.GRAY_MEDIUM + '4D',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 16,
+  },
+  lightText: {
+    fontSize: Typography.FONT_SIZE_12,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    color: Colors.GRAY_DEEP,
+    marginLeft: 10,
   },
 });

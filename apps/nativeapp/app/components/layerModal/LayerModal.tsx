@@ -15,7 +15,7 @@ const layers = [
   {title: 'Street', value: 'Street'},
   {title: 'Outdoors', value: 'Outdoors'},
   {title: 'Satellite', value: 'Satellite'},
-  {title: 'Satellite-street', value: 'SatelliteStreet'},
+  {title: 'Satellite & Streets', value: 'SatelliteStreet'},
 ];
 
 const LayerModal = ({visible, onRequestClose = () => {}}: ILayerModalProps) => {
@@ -64,9 +64,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   subContainer: {
-    top: 140,
-    right: 82,
-    width: 169,
+    top: 150,
+    right: 16,
+    width: 175,
     borderRadius: 12,
     backgroundColor: Colors.WHITE,
     paddingVertical: 6,

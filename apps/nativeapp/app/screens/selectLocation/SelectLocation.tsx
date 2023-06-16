@@ -9,6 +9,7 @@ import {
   BackHandler,
   TouchableOpacity,
   KeyboardAvoidingView,
+  ImageSourcePropType,
 } from 'react-native';
 import bbox from '@turf/bbox';
 import MapboxGL from '@rnmapbox/maps';
@@ -53,13 +54,18 @@ let attributionPosition: any = {
 
 let compassViewMargins = {
   x: IS_ANDROID ? 12 : 16,
-  y: IS_ANDROID ? 160 : 120,
+  y: IS_ANDROID ? 160 : 125,
 };
 
 const compassViewPosition = 3;
 
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
+
+type CompassImage = 'compass1';
+const images: Record<CompassImage, ImageSourcePropType> = {
+  compass1: require('../../assets/images/compassImage.png'),
+};
 
 const SelectLocation = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
@@ -302,12 +308,15 @@ const SelectLocation = ({navigation}) => {
         style={styles.map}
         logoEnabled={false}
         scaleBarEnabled={false}
+        compassEnabled
+        compassImage={'compass1'}
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
         onCameraChanged={onChangeRegionStart}
         onMapIdle={onChangeRegionComplete}
         attributionPosition={attributionPosition}>
+        <MapboxGL.Images images={images} />
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;
@@ -339,7 +348,7 @@ const SelectLocation = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={45} height={45} fill={Colors.TEXT_COLOR} />
+        <LayerIcon width={32} height={32} fill={Colors.TEXT_COLOR} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -347,7 +356,7 @@ const SelectLocation = ({navigation}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon width={45} height={45} />
+        <MyLocIcon width={32} height={32} />
       </TouchableOpacity>
       <CustomButton
         title="Select Location"
@@ -443,8 +452,8 @@ const styles = StyleSheet.create({
   },
   myLocationIcon: {
     right: 16,
-    width: 45,
-    height: 45,
+    width: 32,
+    height: 32,
     borderWidth: 1,
     borderRadius: 100,
     alignItems: 'center',
@@ -456,14 +465,14 @@ const styles = StyleSheet.create({
   },
   layerIcon: {
     right: 16,
-    width: 45,
-    height: 45,
+    width: 32,
+    height: 32,
     borderWidth: 1,
     borderRadius: 100,
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 92 : 138,
+    top: IS_ANDROID ? 92 : 108,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
@@ -515,27 +524,6 @@ const styles = StyleSheet.create({
     paddingLeft: 25,
     paddingRight: 15,
     paddingVertical: 25,
-  },
-  accuracyModalText: {
-    color: '#000000',
-    lineHeight: Typography.LINE_HEIGHT_20,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    fontSize: Typography.FONT_SIZE_14,
-  },
-  gpsContainer: {
-    height: 44,
-    width: 122,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-evenly',
-    backgroundColor: '#FFC40080',
-  },
-  gpsText: {
-    color: '#6F7173',
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    fontWeight: Typography.FONT_WEIGHT_REGULAR,
-    fontSize: Typography.FONT_SIZE_12,
   },
   siteModalStyle: {
     flex: 1,
