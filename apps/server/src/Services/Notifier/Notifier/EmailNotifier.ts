@@ -71,7 +71,7 @@ class EmailNotifier implements Notifier {
                     logger(`Error sending email: ${err}`, "error");
                     reject(false);
                 } else {
-                    logger(`Message sent: ${info.response}`, "info");
+                    // logger(`Message sent: ${info.response}`, "info");
                     resolve(true);
                 }
             });

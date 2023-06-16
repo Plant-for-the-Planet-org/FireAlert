@@ -97,13 +97,15 @@ const sendAccountDeletionCancellationEmail = async (user: User): Promise<boolean
 };
 
 
-const sendEmailVerificationCode = async (user: User, verificationEmail: string, verificationCode: string): Promise<boolean> => {
+const sendEmailVerificationCode = async (user: User, verificationEmail: string, verificationCode: string, url:string): Promise<boolean> => {
   const params: NotificationParameters = {
     message: `<p>Dear ${getName(user)},</p>
       
       <p>Your FireAlert verification code for ${verificationEmail} is <b>${verificationCode}</b>.This code will expire in 30 minutes.</p>
   
       <p>This verification was initiated by ${user.email}.</p>
+
+      <p>You can also verify by clicking the link: <a href="${url}">${url}</a> </p>
   
       <p>If you have any issues or need any help, please don't hesitate to contact us at <a href="mailto:firealert@plant-for-the-planet.org">firealert@plant-for-the-planet.org</a>.</p>
 
@@ -113,5 +115,25 @@ const sendEmailVerificationCode = async (user: User, verificationEmail: string, 
   return await sendEmail(verificationEmail, params);
 };
 
+const sendFireAlertNotification = async (user: User, verificationEmail: string, verificationCode: string, url:string): Promise<boolean> => {
+  const params: NotificationParameters = {
+    message: `<p>Dear ${getName(user)},</p>
+      
+      <p>A heat anomaly was detected 2 km outside Las Americas 7a. </p>
+  
+      <p>Check 18.76544, -87.65547 for fires</p>
 
-export { sendWelcomeEmail, sendSoftDeletionEmail, sendAccountDeletionConfirmationEmail, sendEmailVerificationCode, sendAccountDeletionCancellationEmail };
+      <p>82% alert confidence</p>
+  
+      <p>Detected by VIIRS</p>
+      <p><a href="https://maps.google.com/?q=> Open in Google Maps</a></p>
+      <p><a href="https:/firealerrt/alert/> Open in FireAlert</a></p>
+
+      <p>Best,<br>The FireAlert Team</p>`,
+    subject: 'FireAlert Email Verification Code'
+  };
+  return await sendEmail(verificationEmail, params);
+};
+
+
+export { sendWelcomeEmail, sendSoftDeletionEmail, sendAccountDeletionConfirmationEmail, sendEmailVerificationCode, sendAccountDeletionCancellationEmail, sendFireAlertNotification };

@@ -9,7 +9,7 @@ import { logger } from "../../server/logger";
 // for each notification, send the notification to the destination
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
-const sendNotifications = async () => {
+const sendNotifications = async (): Promise<boolean> => {
     let skip = 0;
     const take = 20;
 
@@ -32,11 +32,10 @@ const sendNotifications = async () => {
 
         // If no notifications are found, exit the loop
         if (notifications.length === 0) {
-            logger(`No notifications found. Terminating Cron.`, "info");
+            logger(`Nothing to process anymore notification.length = 0`, "info");
             break;
         }
         logger(`Notifications to be sent: ${notifications.length}`, "info");
-        console.log(`Notifications to be sent: ${notifications.length}`);
 
         await Promise.all(notifications.map(async (notification) => {
             try {
@@ -47,17 +46,51 @@ const sendNotifications = async () => {
                 // if distance > 0 then the fire is outside the site's original geometry
                 // message should change depending on the distance
 
+                // // if eventDate is over 24 hours ago, then the fire is old therefore do not send the message
+                // const eventDate24HoursAgo = new Date();
+                // if (eventDate > eventDate24HoursAgo) {
+                //     logger(`Event date is over 24 hours ago. Not sending notification.`, "info");
+                //     await prisma.notification.update({
+                //         where: { id: id },
+                //         data: {
+                //             isDelivered: true,
+                //         }
+                //     })
+                //     return;
+                // }
+
                 const distanceKm = Math.round(distance / 1000);
                 const siteName = site.name ? site.name : "";
                 const subject = `Heat anomaly near ${siteName} 🔥`;
-
-                let message = `Detected ${distanceKm} km outside ${siteName} with ${confidence} confidence. Check ${latitude}, ${longitude} for fires.`;
-
+                const checkLatLong= `Check ${latitude}, ${longitude} for fires.`;
+                
+                let inout = `${distanceKm} km outside`;
                 if (distance == 0) {
-                    message = `Detected inside ${siteName} with ${confidence} confidence. Check ${latitude}, ${longitude} for fires.`;
+                    inout = `inside`;
                 }
 
+                let message = `Detected ${inout} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
+
+                if (distance == 0) {
+                    message = `Detected ${inout} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
+                }
                 const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
+
+                // If the alertMethod is email, Construct the message for email
+                if (alertMethod === "email") {
+                    message = `<p>A heat anomaly was detected ${inout} ${siteName} </p>
+                
+                    <p>${checkLatLong}</p>
+              
+                    <p>${confidence} alert confidence</p>
+                
+                    <p>Detected by ${detectedBy}</p>
+                    <p><a href="https://maps.google.com/?q=${latitude},${longitude}">Open in Google Maps</a></p>
+
+                    <p><a href="https://firealert.plant-for-the-planet.org/alert/${id}>Open in FireAlert</a></p>
+              
+                    <p>Best,<br>The FireAlert Team</p>`;
+                }
 
                 const notificationParameters: NotificationParameters = {
                     message: message,
@@ -104,14 +137,18 @@ const sendNotifications = async () => {
                     })
                 }
             } catch (error) {
-                console.error(`Error processing notification ${notification.id}:`, error);
                 logger(`Error processing notification ${notification.id}:`, "error");
             }
         }));
 
         // Increase the number of notifications to skip in the next round
         skip += take;
+        // wait .7 seconds before starting the next round to ensure we aren't hitting any rate limits. 
+        // Todo: make this configurable and adjust as needed.
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        
     }
+    return true;
 }
 
 export default sendNotifications;

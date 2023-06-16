@@ -1,5 +1,4 @@
-// to execute this handler, access the endpoint:  http://localhost:3000/api/cron/geoEventFetcher
-// once this has been tested, it should be moved/modified to comply with Vercel conron job standards
+// to execute this handler, access the endpoint:  http://localhost:3000/api/cron/geo-event-fetcher
 
 import { type NextApiRequest, type NextApiResponse } from "next";
 import GeoEventProviderRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
@@ -29,9 +28,16 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   const allActiveProviders: GeoEventProvider[] = await prisma.geoEventProvider.findMany({
     where: {
       isActive: true,
+      fetchFrequency: {
+        not: null
+      },
+      // lastrun is not within last 10 minutes 
+      lastRun: {
+        lte: new Date(new Date().getTime() - 10 * 60000)
+      }
     },
   });
-  logger(`Running Geo Event Fetcher. Found ${allActiveProviders.length} providers.`, "info");
+
   function filterAllActiveProviders(date: Date, minutes: number): boolean {
     // Create a new date by adding minutes to the input date
     const scheduledRunDate = new Date(date.getTime() + minutes * 60000); // Convert minutes to milliseconds
@@ -59,6 +65,8 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     return filterAllActiveProviders(provider.lastRun, provider.fetchFrequency)
   });
 
+  logger(`Running Geo Event Fetcher. Of ${allActiveProviders.length}, found ${activeProviders.length} eligible providers.`, "info");
+
   let newSiteAlertCount = 0;
   // Loop for each active provider and fetch geoEvents
   const promises = activeProviders.map(async (provider) => {
@@ -74,7 +82,6 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     return await geoEventProvider.getLatestGeoEvents(geoEventProviderId, slice)
       .then(async (geoEvents) => {
         const identityGroup = geoEventProvider.getIdentityGroup()
-
         // If there are geoEvents, emit an event to find duplicates and persist them
         logger(`${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`, "info");
 
@@ -82,7 +89,6 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
         if (geoEvents.length > 0) {
           eventCount = await processGeoEvents(breadcrumbPrefix, providerKey, identityGroup, geoEventProviderId, slice, geoEvents)
         }
-        logger(`${breadcrumbPrefix} Created ${eventCount} Geo Events.`, "info");
 
         // and then create site Alerts
         if (eventCount > 0) {
@@ -106,13 +112,21 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   })
 
   await Promise.all(promises).catch(error => logger(`Something went wrong before creating notifications. ${error}`, "error"));
-  
-  logger(`Now Creating notifications for ${newSiteAlertCount} alerts`, "info");
-  
-  if (newSiteAlertCount > 0) {
-    await createNotifications();
-  }
-  logger(`All done. Cron has completed`, "info");
 
-  res.status(200).json({ message: "Cron job executed successfully" });
+  let notificationCount;
+  if (newSiteAlertCount > 0) {
+    notificationCount = await createNotifications();
+    logger(`Added ${notificationCount} notifications for ${newSiteAlertCount} alerts`, "info");
+  }
+  else {
+    logger(`All done. ${newSiteAlertCount} Alerts. No new notifications. Waving Goodbye!`, "info");
+  }
+
+  res.status(200).json({
+    message: "Cron job executed successfully",
+    alertsCreated: newSiteAlertCount,
+    notificationCount: notificationCount,
+    processedProviders: activeProviders.length,
+    status: 200
+  });
 }
