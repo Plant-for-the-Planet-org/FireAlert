@@ -9,12 +9,6 @@ import { withSentryConfig } from "@sentry/nextjs";
 const config = {
   reactStrictMode: true,
 
-  env: {
-    NEXT_AUTH0_CLIENT_ID: process.env.NEXT_AUTH0_CLIENT_ID,
-    NEXT_AUTH0_CLIENT_SECRET: process.env.NEXT_AUTH0_CLIENT_SECRET,
-    AUTH0_DOMAIN: process.env.AUTH0_DOMAIN
-  },
-
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.

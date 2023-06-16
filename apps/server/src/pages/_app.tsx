@@ -9,6 +9,7 @@ import theme from "../../src/UI/theme";
 import { AuthProvider } from "src/UI/providers/AuthContext";
 import { NextPageWithAuth } from "src/UI/types";
 import AuthGuard from "src/UI/components/AuthGuard";
+import { env } from "src/env.mjs";
 
 type NextComponentWithAuth = NextComponentType<NextPageContext, any, object> &
   Partial<NextPageWithAuth>;
@@ -20,15 +21,15 @@ type ExtendedAppProps<P = object> = AppProps<P> & {
 const MyApp: AppType = ({ Component, pageProps }: ExtendedAppProps) => {
   const getRedirectURL = () => {
     if (typeof window !== "undefined") {
-      return window.location.origin + "/dash/login";
+      return env.NEXT_PUBLIC_WEBAPP_URL + "/dash/login";
     }
   };
 
   return (
     <ThemeProvider theme={theme}>
       <Auth0Provider
-        domain={process.env.AUTH0_DOMAIN!}
-        clientId={process.env.NEXT_AUTH0_CLIENT_ID!}
+        domain={env.NEXT_PUBLIC_AUTH0_DOMAIN}
+        clientId={env.NEXT_PUBLIC_AUTH0_CLIENT_ID}
         cacheLocation="localstorage"
         authorizationParams={{
           redirect_uri: getRedirectURL(),

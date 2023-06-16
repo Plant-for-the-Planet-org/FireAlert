@@ -9,13 +9,7 @@ const server = z.object({
   DATABASE_PRISMA_URL: z.string().url(),
   DATABASE_URL_NON_POOLING: z.string().url(),
   NODE_ENV: z.enum(["development", "test", "production"]),
-  NEXTAUTH_SECRET:
-    process.env.NODE_ENV === "production"
-      ? z.string().min(1)
-      : z.string().min(1).optional(),
-  NEXTAUTH_URL: z.preprocess(
-    // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
-    // Since NextAuth.js automatically uses the VERCEL_URL if present.
+  NEXT_PUBLIC_WEBAPP_URL: z.preprocess(
     (str) => process.env.VERCEL_URL ?? str,
     // VERCEL_URL doesn't include `https` so it cant be validated as a URL
     process.env.VERCEL ? z.string().min(1) : z.string().url(),
@@ -59,8 +53,7 @@ const processEnv = {
   DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING ? process.env.DATABASE_URL_NON_POOLING : process.env.DATABASE_URL, 
   // DATABASE_PRISMA_URL is set by VERCEL POSTGRES and had pooling built in.
   NODE_ENV: process.env.NODE_ENV,
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+  NEXT_PUBLIC_WEBAPP_URL: process.env.WEBAPP_URL,
   NEXT_PUBLIC_AUTH0_CLIENT_ID: process.env.NEXT_AUTH0_CLIENT_ID,
   NEXT_PUBLIC_AUTH0_ISSUER: process.env.AUTH0_ISSUER,
   NEXT_PUBLIC_AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
