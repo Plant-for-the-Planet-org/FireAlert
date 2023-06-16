@@ -141,8 +141,7 @@ const sendNotifications = async (): Promise<boolean> => {
             }
         }));
 
-        // Increase the number of notifications to skip in the next round
-        skip += take;
+        // skip += take; No need to skip take as we update the notifications to isDelivered = true
         // wait .7 seconds before starting the next round to ensure we aren't hitting any rate limits. 
         // Todo: make this configurable and adjust as needed.
         await new Promise((resolve) => setTimeout(resolve, 700));
