@@ -101,17 +101,20 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
     logger(`${breadcrumbPrefix} Created ${geoEventsCreatedCount} Geo Events`, "info");
 
   }
+  // GeoEvents are processed the moment they arrive. Further, they are deleted by the db-cleanup cron. So  I believe this is not needed.
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
-  if (deletedIds.length > 0) {
-    await prisma.geoEvent.updateMany({
-      where: {
-        id: { in: deletedIds },
-      },
-      data: {
-        isProcessed: true,
-      },
-    });
-  }
+  // if (deletedIds.length > 0) {
+  //   await prisma.geoEvent.updateMany({
+  //     where: {
+  //       id: { in: deletedIds },
+  //     },
+  //     data: {
+  //       isProcessed: true,
+  //     },
+  //   });
+  // }
+
+  
   return geoEventsCreatedCount;
 };
 
