@@ -1058,7 +1058,7 @@ const Settings = ({navigation}) => {
               onPress={_handleEcoWeb(WEB_URLS.FIRMS_DISCLAIMER)}>
               FIRMS Disclaimer
             </Text>
-            . 
+            .
           </Text>
         </View>
         <TouchableOpacity onPress={handleDelAccount} style={styles.delTextCon}>
