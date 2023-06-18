@@ -4,8 +4,8 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { checkUserHasSitePermission, checkIfPlanetROSite } from '../../../utils/routers/site'
-import { Prisma } from "@prisma/client";
+import { checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert } from '../../../utils/routers/site'
+import { Prisma, SiteAlert } from "@prisma/client";
 
 export const siteRouter = createTRPCRouter({
 
@@ -299,6 +299,31 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
+    triggerTestAlert: protectedProcedure
+        .input(params)
+        .query(async ({ ctx, input }) => {
+            const userId = ctx.user!.id;
+            const site = await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
+            if (!site) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Site with that id does not exist, cannot trigger alert",
+                });
+            }
+            try {
+                const alert:SiteAlert = await triggerTestAlert(input.siteId)
+                return {
+                    status: 'success',
+                    data: alert,
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: `${error.code}`,
+                    message: `${error}`,
+                });
+            }
+        }),
 
     deleteSite: protectedProcedure
         .input(params)

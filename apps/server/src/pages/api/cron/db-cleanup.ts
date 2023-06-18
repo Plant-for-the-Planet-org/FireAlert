@@ -81,20 +81,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     }));
 
     // item 4:
-    // Delete SoftDeleted SiteAlerts
-
-    // 4.1: Delete all Notifications for SiteAlerts that have been deletedAt date older than 7 days
-    promises.push(prisma.notification.deleteMany({
-        where: {
-            siteAlert: {
-                deletedAt: {
-                    lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
-                }
-            }
-        }
-    }));
-
-    // 4.2: Delete all SiteAlerts that have been soft-deleted and have deletedAt date older than 30 days
+    // Delete all SiteAlerts that have deletedAt date older than 30 days
     promises.push(prisma.siteAlert.deleteMany({
         where: {
             deletedAt: {
@@ -104,7 +91,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     }));
 
     // item 5:
-    // Delete all Site Sites that have been soft-deleted and have deletedAt date older than 30 days and doesn't have a remoteId
+    // Delete all Sites that have been soft-deleted and have deletedAt date older than 30 days and doesn't have a remoteId
     promises.push(prisma.site.deleteMany({
         where: {
             deletedAt: {
