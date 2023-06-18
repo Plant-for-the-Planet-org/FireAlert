@@ -71,13 +71,19 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
             eventCount = await processGeoEvents(breadcrumbPrefix, geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEvents)
           }
 
+          // TODO:
+          // ----------------
+          // Temporarily disabling the eventCount check for SiteAlerts
+          // This helps in creating SiteAlerts for unprocessed geoEvents from past runs, if fetch fails for some reason
+
           // and then create site Alerts
-          if (eventCount > 0) {
+          
+          //if (eventCount > 0) {
             const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
             logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
 
             newSiteAlertCount += alertCount
-          }
+          // }
 
           // Update lastRun value of the provider to the current Date()
           await prisma.geoEventProvider.update({
