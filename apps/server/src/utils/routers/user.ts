@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { type Project, Prisma, PrismaClient, type User } from '@prisma/client';
+import { type Project, Prisma, type PrismaClient, type User } from '@prisma/client';
 import { fetchProjectsWithSitesForUser, planetUser } from '../fetch';
 import { createAlertMethodInPrismaTransaction } from './alertMethod';
 import { env } from '../../env.mjs';
@@ -66,7 +66,7 @@ interface Auth0User {
 export async function handleNewUser(bearer_token: string) {
 
     // Fetch user data from Auth0
-    const response = await fetch(`${env.AUTH0_DOMAIN}/userinfo`, {
+    const response = await fetch(`${env.NEXT_PUBLIC_AUTH0_DOMAIN}/userinfo`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
