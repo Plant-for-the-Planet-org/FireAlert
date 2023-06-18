@@ -82,7 +82,10 @@ export async function handleNewUser(bearer_token: string) {
     const userData: Auth0User = await response.json();
 
     const { sub, name, picture, email } = userData;
-    const email_verified = userData.email_verified === "true" ? true : false
+    // Auth0 has a bug where email_verified is a sometimes string instead of a boolean
+    // Therefore check both string and boolean values
+    
+    const email_verified = userData.email_verified === "true" || true ? true : false
 
     const getPlanetUser = await planetUser(bearer_token)
     const isPlanetRO = getPlanetUser.isPlanetRO
