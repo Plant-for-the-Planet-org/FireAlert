@@ -32,7 +32,7 @@ export function getLocalTime(date: Date, latitude: string, longitude: string) {
 
   const localTime = {
     timeZone: timeZone,
-    localDate: localDate,
+    localDate: localDate.toISOString(),
   }
 
   return localTime;
