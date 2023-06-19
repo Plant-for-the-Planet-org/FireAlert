@@ -5,13 +5,8 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-import { currentDate, getLocalTime, subtractDays } from "../../../utils/date";
-import { type SiteAlert } from "@prisma/client";
+import { getLocalTime, subtractDays } from "../../../utils/date";
 
-interface AlertWithLocalTime extends SiteAlert {
-    localEventDate: string;
-    localTimeZone: string;
-}
 export const alertRouter = createTRPCRouter({
 
     getAlerts: protectedProcedure
@@ -68,12 +63,19 @@ export const alertRouter = createTRPCRouter({
                 });
                 // Flatten the array of site alerts
                 const alertsForUser = sitesWithAlerts.flatMap(site => site.alerts);
+                const returnAlertsForUser = alertsForUser.map((alert) => {
+                    const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
+                    return {
+                        ...alert,
+                        localEventDate: localTime.localDate,
+                        localTimeZone: localTime.timeZone,
+                    }
+                })
                 return {
                     status: 'success',
-                    data: alertsForUser,
+                    data: returnAlertsForUser,
                 };
             } catch (error) {
-                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -86,7 +88,7 @@ export const alertRouter = createTRPCRouter({
         .input(queryAlertSchema)
         .query(async ({ ctx, input }) => {
             try {
-                const alert: AlertWithLocalTime = await ctx.prisma.siteAlert.findFirst({
+                const alert = await ctx.prisma.siteAlert.findFirst({
                     where: { 
                         id: input.id 
                     },
@@ -115,20 +117,21 @@ export const alertRouter = createTRPCRouter({
                         data: true,
                     }
                 })
-            
-                // TODO: convert eventDate to localtime and add localEventDate and localTimeZone to the alert object
-                const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
-                alert.localEventDate = localTime.localDate;
-                alert.localTimeZone = localTime.timeZone;
                 if (!alert) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
                         message: `Alert not found`,
                     });
                 }
+                const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
+                const returnAlert = {
+                    ...alert,
+                    localEventDate: localTime.localDate,
+                    localTimeZone: localTime.timeZone,
+                }
                 return {
                     status: 'success',
-                    data: alert,
+                    data: returnAlert,
                 }
             } catch (error) {
                 console.log(error)
