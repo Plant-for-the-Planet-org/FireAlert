@@ -55,7 +55,7 @@ class EmailNotifier implements Notifier {
         }
         );
 
-        const mailBody = `${message} </br>${url ? url : ''}`;
+        const mailBody = `${message}`;
         // Define email options
         const mailOptions = {
             from: env.EMAIL_FROM,

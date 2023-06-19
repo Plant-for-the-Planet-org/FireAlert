@@ -11,6 +11,7 @@ export const userRouter = createTRPCRouter({
     // profile procedure signs in only clients, but cannot sign in an admin. // However, it logs both client and admin (admin with or without impersonatedUser headers )
     profile: protectedProcedure
         .query(async ({ ctx }) => {
+            debugger;
             try {
                 // If ctx.user is null, then sign in a new user.
                 if (ctx.user === null) {
@@ -58,7 +59,7 @@ export const userRouter = createTRPCRouter({
 
             } catch (error) {
                 throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
+                    code: `${error.code}`,
                     message: `${error}`,
                 });
             }

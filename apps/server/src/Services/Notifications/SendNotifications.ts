@@ -1,4 +1,4 @@
-import { type AlertMethodMethod } from "@prisma/client";
+import { type AlertMethodMethod } from "../../Interfaces/AlertMethod";
 import NotifierRegistry from "../Notifier/NotifierRegistry";
 import { type NotificationParameters } from "../../Interfaces/NotificationParameters";
 import type DataRecord from "../../Interfaces/DataRecord";
@@ -10,7 +10,6 @@ import { logger } from "../../server/logger";
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
 const sendNotifications = async (): Promise<boolean> => {
-    let skip = 0;
     const take = 20;
 
     while (true) {
@@ -26,7 +25,6 @@ const sendNotifications = async (): Promise<boolean> => {
                     }
                 }
             },
-            skip: skip,
             take: take,
         });
 
@@ -87,7 +85,7 @@ const sendNotifications = async (): Promise<boolean> => {
                     <p>Detected by ${detectedBy}</p>
                     <p><a href="https://maps.google.com/?q=${latitude},${longitude}">Open in Google Maps</a></p>
 
-                    <p><a href="https://firealert.plant-for-the-planet.org/alert/${id}>Open in FireAlert</a></p>
+                    <p><a href="https://firealert.plant-for-the-planet.org/alert/${id}">Open in FireAlert</a></p>
               
                     <p>Best,<br>The FireAlert Team</p>`;
                 }
@@ -141,8 +139,7 @@ const sendNotifications = async (): Promise<boolean> => {
             }
         }));
 
-        // Increase the number of notifications to skip in the next round
-        skip += take;
+        // skip += take; No need to skip take as we update the notifications to isDelivered = true
         // wait .7 seconds before starting the next round to ensure we aren't hitting any rate limits. 
         // Todo: make this configurable and adjust as needed.
         await new Promise((resolve) => setTimeout(resolve, 700));

@@ -9,7 +9,7 @@ export type CheckIfPlanetROSiteArgs = {
     ctx: TRPCContext; // the TRPC context object
     siteId: string; // the ID of the site to be updated
 }
-export type SiteOriginData = "firealert" | "ttc"
+export type SiteOriginType = "firealert" | "ttc"
 export type SiteTypeData = "Point" | "Polygon" | "Multipolygon"
 interface PointGeometry {
     type: "Point";
@@ -32,7 +32,7 @@ export type SiteData = {
     id?: string
     remoteId?: string | null
     name?: string | null
-    origin: SiteOriginData
+    origin: SiteOriginType
     type: SiteTypeData
     geometry: GeometryData
     radius: number

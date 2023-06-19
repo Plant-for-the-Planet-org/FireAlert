@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server';
-import { InnerTRPCContext } from '../../server/api/trpc';
+import { type InnerTRPCContext } from '../../server/api/trpc';
 import { checkTokenIsValid } from '../../utils/authorization/token'
-import { User } from '@prisma/client';
-import { TRPCContext } from '../../Interfaces/Context'
+import { type User } from '@prisma/client';
+import { type TRPCContext } from '../../Interfaces/Context'
 
 
 interface JwtPayload {

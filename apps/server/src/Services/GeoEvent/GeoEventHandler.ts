@@ -1,10 +1,11 @@
-import { AlertType, type GeoEventSource } from "@prisma/client";
-import { type GeoEvent } from "@prisma/client";
+import { GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
+import { AlertType } from "../../Interfaces/SiteAlert";
+import { type geoEventInterface as GeoEvent } from "../../Interfaces/GeoEvent";
 import md5 from "md5";
 import { prisma } from '../../server/db';
 import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventSource, identityGroup: string | null, geoEventProviderId: string, slice: string, geoEvents: Array<Partial<GeoEvent>>) => {
+const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -63,9 +64,9 @@ const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventS
     const idsSet: Set<string> = new Set();
 
     for (const geoEvent of newGeoEvents) {
-      if (!idsSet.has(geoEvent.id)) {
+      if (!idsSet.has(geoEvent.id!)) {
         filteredNewGeoEvents.push(geoEvent);
-        idsSet.add(geoEvent.id);
+        idsSet.add(geoEvent.id!);
       }
     }
     return filteredNewGeoEvents;
@@ -86,10 +87,9 @@ const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventS
       eventDate: geoEvent.eventDate,
       confidence: geoEvent.confidence,
       isProcessed: false,
-      providerKey: providerKey,
-      identityGroup: identityGroup,
+      geoEventProviderClientId: geoEventProviderClientId,
       geoEventProviderId: geoEventProviderId,
-      radius: 0,
+      radius: geoEvent.radius ? geoEvent.radius : 0,
       slice: slice,
       data: geoEvent.data,
     }))
@@ -101,17 +101,20 @@ const processGeoEvents = async (breadcrumbPrefix: string, providerKey: GeoEventS
     logger(`${breadcrumbPrefix} Created ${geoEventsCreatedCount} Geo Events`, "info");
 
   }
+  // GeoEvents are processed the moment they arrive. Further, they are deleted by the db-cleanup cron. So  I believe this is not needed.
   // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
-  if (deletedIds.length > 0) {
-    await prisma.geoEvent.updateMany({
-      where: {
-        id: { in: deletedIds },
-      },
-      data: {
-        isProcessed: true,
-      },
-    });
-  }
+  // if (deletedIds.length > 0) {
+  //   await prisma.geoEvent.updateMany({
+  //     where: {
+  //       id: { in: deletedIds },
+  //     },
+  //     data: {
+  //       isProcessed: true,
+  //     },
+  //   });
+  // }
+
+  
   return geoEventsCreatedCount;
 };
 
