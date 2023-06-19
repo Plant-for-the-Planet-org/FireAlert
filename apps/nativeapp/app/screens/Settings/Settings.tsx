@@ -1289,10 +1289,12 @@ const Settings = ({navigation}) => {
                   {selectedSiteInfo?.name || selectedSiteInfo?.id}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={() => handleEditSite(selectedSiteInfo)}>
-                <PencilIcon />
-              </TouchableOpacity>
+              {selectedSiteInfo?.project === null && (
+                <TouchableOpacity
+                  onPress={() => handleEditSite(selectedSiteInfo)}>
+                  <PencilIcon />
+                </TouchableOpacity>
+              )}
             </View>
             <TouchableOpacity
               onPress={_handleViewMap(selectedSiteInfo)}
@@ -1300,38 +1302,38 @@ const Settings = ({navigation}) => {
               <MapOutlineIcon />
               <Text style={styles.siteActionText}>View on Map</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              disabled={
-                deleteSite?.isLoading || selectedSiteInfo?.project !== null
-              }
-              onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
-              style={[
-                styles.btn,
-                selectedSiteInfo?.project !== null && {
-                  borderColor: Colors.GRAY_LIGHTEST,
-                },
-              ]}>
-              {deleteSite?.isLoading ? (
-                <ActivityIndicator color={Colors.PRIMARY} />
-              ) : (
-                <>
-                  {selectedSiteInfo?.project !== null ? (
-                    <DisabledTrashOutlineIcon />
-                  ) : (
-                    <TrashOutlineIcon />
-                  )}
-                  <Text
-                    style={[
-                      styles.siteActionText,
-                      selectedSiteInfo?.project !== null && {
-                        color: Colors.GRAY_LIGHTEST,
-                      },
-                    ]}>
-                    Delete Site
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {selectedSiteInfo?.project === null && (
+              <TouchableOpacity
+                disabled={deleteSite?.isLoading}
+                onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
+                style={[
+                  styles.btn,
+                  selectedSiteInfo?.project !== null && {
+                    borderColor: Colors.GRAY_LIGHTEST,
+                  },
+                ]}>
+                {deleteSite?.isLoading ? (
+                  <ActivityIndicator color={Colors.PRIMARY} />
+                ) : (
+                  <>
+                    {selectedSiteInfo?.project !== null ? (
+                      <DisabledTrashOutlineIcon />
+                    ) : (
+                      <TrashOutlineIcon />
+                    )}
+                    <Text
+                      style={[
+                        styles.siteActionText,
+                        selectedSiteInfo?.project !== null && {
+                          color: Colors.GRAY_LIGHTEST,
+                        },
+                      ]}>
+                      Delete Site
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
             {selectedSiteInfo?.project && (
               <Text style={styles.projectSyncInfo}>
                 This site is synced from pp.eco. To make changes, please visit
