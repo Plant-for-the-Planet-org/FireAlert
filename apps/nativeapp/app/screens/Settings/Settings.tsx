@@ -518,7 +518,14 @@ const Settings = ({navigation}) => {
         }>
         {/* my projects */}
         <View style={[styles.myProjects, styles.commonPadding]}>
-          <Text style={styles.mainHeading}>My Projects</Text>
+          <Text style={styles.mainHeading}>
+            My Projects{' '}
+            {Object.keys(groupOfSites[0] || {})?.length > 0 && (
+              <Text style={styles.ppLink}>
+                <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
+              </Text>
+            )}
+          </Text>
           {Object.keys(groupOfSites[0] || {})?.length > 0 ? (
             groupOfSites?.map((item, index) => (
               <View key={`projects_${index}`} style={styles.projectsInfo}>
@@ -1472,6 +1479,9 @@ const styles = StyleSheet.create({
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
+  },
+  ppLink: {
+    color: Colors.PRIMARY,
   },
   underLine: {
     textDecorationLine: 'underline',
