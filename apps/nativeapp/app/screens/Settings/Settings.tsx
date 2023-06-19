@@ -76,6 +76,7 @@ import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
+import {extractCountryCode} from '../../utils/countryCodeFilter';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -944,7 +945,9 @@ const Settings = ({navigation}) => {
                         {justifyContent: 'space-between'},
                       ]}>
                       <Text style={styles.myEmailName}>
-                        {item?.destination}
+                        {extractCountryCode(item?.destination).countryCode +
+                          ' ' +
+                          extractCountryCode(item?.destination).remainingNumber}
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (

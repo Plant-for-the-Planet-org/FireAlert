@@ -14,8 +14,8 @@ import {
   KeyboardAvoidingView,
   ImageSourcePropType,
 } from 'react-native';
-import moment from 'moment';
 import bbox from '@turf/bbox';
+import moment from 'moment-timezone';
 import MapboxGL from '@rnmapbox/maps';
 import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
@@ -845,13 +845,13 @@ const Home = ({navigation, route}) => {
               </Text>
               <Text style={styles.eventDate}>
                 <Text style={styles.eventFromNow}>
-                  {moment(selectedAlert?.eventDate).fromNow()}
-                </Text>{' '}
-                (
-                {moment(selectedAlert?.eventDate).format(
-                  'DD MMM YYYY [at] HH:mm',
-                )}
-                )
+                  {moment(selectedAlert?.localEventDate)
+                    ?.tz(selectedAlert?.localTimeZone)
+                    ?.fromNow()}
+                </Text>
+                {moment(selectedAlert?.localEventDate)
+                  ?.tz(selectedAlert?.localTimeZone)
+                  ?.format('DD MMM YYYY [at] HH:mm')}
               </Text>
               <Text style={styles.confidence}>
                 <Text style={styles.confidenceVal}>
@@ -928,7 +928,9 @@ const Home = ({navigation, route}) => {
               </Text>
             </View>
           </View>
-          <TouchableOpacity onPress={handleGoogleRedirect} style={styles.btn}>
+          <TouchableOpacity
+            onPress={handleGoogleRedirect}
+            style={styles.simpleBtn}>
             <Text style={[styles.siteActionText, {marginLeft: 0}]}>
               Open in Google Maps
             </Text>
@@ -972,7 +974,7 @@ const Home = ({navigation, route}) => {
                 },
               })
             }
-            style={[styles.btn]}>
+            style={[styles.simpleBtn]}>
             {updateSite?.isLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
@@ -992,7 +994,7 @@ const Home = ({navigation, route}) => {
             }
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
             style={[
-              styles.btn,
+              styles.simpleBtn,
               selectedSite?.site?.project?.id && {
                 borderColor: Colors.GRAY_LIGHTEST,
               },
@@ -1215,6 +1217,16 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     backgroundColor: Colors.GRADIENT_PRIMARY + '10',
     borderColor: Colors.GRADIENT_PRIMARY + '20',
+  },
+  simpleBtn: {
+    height: 56,
+    marginTop: 22,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: Colors.GRADIENT_PRIMARY,
   },
   siteActionText: {
     marginLeft: 30,
