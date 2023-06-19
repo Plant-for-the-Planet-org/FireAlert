@@ -37,7 +37,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
           WHERE "isActive" = true
           AND "fetchFrequency" IS NOT NULL
           AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < NOW()
-          LIMIT 5;
+          LIMIT 3;
     `;
     // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
     // Break the loop if there are no active providers
