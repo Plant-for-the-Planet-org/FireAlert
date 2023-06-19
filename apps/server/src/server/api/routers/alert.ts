@@ -5,8 +5,13 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-import { subtractDays } from "../../../utils/date";
+import { currentDate, getLocalTime, subtractDays } from "../../../utils/date";
+import { type SiteAlert } from "@prisma/client";
 
+interface AlertWithLocalTime extends SiteAlert {
+    localEventDate: string;
+    localTimeZone: string;
+}
 export const alertRouter = createTRPCRouter({
 
     getAlerts: protectedProcedure
@@ -81,7 +86,7 @@ export const alertRouter = createTRPCRouter({
         .input(queryAlertSchema)
         .query(async ({ ctx, input }) => {
             try {
-                const alert = await ctx.prisma.siteAlert.findFirst({
+                const alert: AlertWithLocalTime = await ctx.prisma.siteAlert.findFirst({
                     where: { 
                         id: input.id 
                     },
@@ -110,11 +115,11 @@ export const alertRouter = createTRPCRouter({
                         data: true,
                     }
                 })
-                
+            
                 // TODO: convert eventDate to localtime and add localEventDate and localTimeZone to the alert object
-                // const localTime = getLocalTime(alert.eventDate, alert.site.geometry.coordinates[1], alert.site.geometry.coordinates[0]);
-                // alert.localEventDate = currentDate(localTime.localDate);
-                // alert.localTimeZone = localTime.timeZone;
+                const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
+                alert.localEventDate = localTime.localDate;
+                alert.localTimeZone = localTime.timeZone;
                 if (!alert) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
