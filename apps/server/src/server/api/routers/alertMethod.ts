@@ -143,9 +143,31 @@ export const alertMethodRouter = createTRPCRouter({
             await limitAlertMethodPerUser({ ctx, userId: userId, count: 10 })
 
             // If the alertMethod method is device then try deviceVerification, if it fails, throw an error, if it succeds create alertMethod
+
+            // If a user Logs out and logs in with a new user on the same device, the destination does not change. This results in multiple alertMethods with the same destination. 
+            // To fix this, we should remove the AlertMethod from the previous user and add it to the new user.
             if (input.method === 'device') {
                 const isDeviceVerified = await deviceVerification(input.destination)
                 if (isDeviceVerified) {
+
+                    // Check if the destination (PlayerID) already exists in the table
+                    const existingAlertMethods = await ctx.prisma.alertMethod.findMany({
+                        where: {
+                            destination: input.destination
+                        }
+                    });
+
+                    // If it does exist and is associated with a different userId, delete it
+                    for (const existingAlertMethod of existingAlertMethods) {
+                        if (existingAlertMethod.userId !== userId) {
+                            await ctx.prisma.alertMethod.delete({
+                                where: {
+                                    id: existingAlertMethod.id
+                                }
+                            });
+                        }
+                    }
+                    // Now finally add the alertMethod to the user
                     const alertMethod = await ctx.prisma.alertMethod.create({
                         data: {
                             method: input.method,
