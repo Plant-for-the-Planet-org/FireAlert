@@ -12,12 +12,12 @@ import {
   ImageSourcePropType,
 } from 'react-native';
 import bbox from '@turf/bbox';
+import {point} from '@turf/helpers';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
-import React, {useEffect, useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
-import {Point, point, Feature, Properties} from '@turf/helpers';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 
 import {
   CrossIcon,
@@ -43,6 +43,7 @@ import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {useQueryClient} from '@tanstack/react-query';
 import {locationPermission} from '../../utils/permissions';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -53,7 +54,7 @@ let attributionPosition: any = {
 };
 
 let compassViewMargins = {
-  x: IS_ANDROID ? 12 : 16,
+  x: IS_ANDROID ? 16 : 16,
   y: IS_ANDROID ? 160 : 125,
 };
 
@@ -69,6 +70,7 @@ const images: Record<CompassImage, ImageSourcePropType> = {
 
 const SelectLocation = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
+  const {mapInfo} = useContext(BottomBarContext);
   const [loader, setLoader] = useState<boolean>(false);
   const [visible, setVisible] = useState<boolean>(false);
   const [isInitial, setIsInitial] = useState(true);
@@ -100,6 +102,18 @@ const SelectLocation = ({navigation}) => {
   const toast = useToast();
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
+
+  useEffect(() => {
+    if (isCameraRefVisible && camera?.current?.setCamera) {
+      setIsInitial(false);
+      console.log(mapInfo?.centerCoordinates, mapInfo?.currZoom, '---->>');
+      camera.current.setCamera({
+        centerCoordinate: mapInfo?.centerCoordinates,
+        zoomLevel: mapInfo?.currZoom,
+        animationDuration: 100,
+      });
+    }
+  }, [isCameraRefVisible, mapInfo?.centerCoordinate, mapInfo?.currZoom]);
 
   const _handleViewMap = (siteInfo: object) => {
     let highlightSiteInfo = siteInfo;
@@ -348,7 +362,7 @@ const SelectLocation = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={32} height={32} fill={Colors.TEXT_COLOR} />
+        <LayerIcon width={45} height={45} fill={Colors.TEXT_COLOR} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -356,7 +370,7 @@ const SelectLocation = ({navigation}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon width={32} height={32} />
+        <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
       <CustomButton
         title="Select Location"
@@ -451,7 +465,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   myLocationIcon: {
-    right: 16,
+    right: 23,
     width: 32,
     height: 32,
     borderWidth: 1,
@@ -459,20 +473,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 92 : 112,
+    bottom: IS_ANDROID ? 112 : 112,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   layerIcon: {
     right: 16,
-    width: 32,
-    height: 32,
+    width: 45,
+    height: 45,
     borderWidth: 1,
     borderRadius: 100,
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 92 : 108,
+    top: IS_ANDROID ? 122 : 138,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },

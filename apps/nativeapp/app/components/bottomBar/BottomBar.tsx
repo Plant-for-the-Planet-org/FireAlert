@@ -140,7 +140,8 @@ const BottomBar = ({...props}) => {
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [spinValue] = useState(new Animated.Value(0));
 
-  const {modalVisible} = useContext(BottomBarContext);
+  const {modalVisible, selectedSiteBar, setSelectedSiteBar} =
+    useContext(BottomBarContext);
 
   useEffect(() => {
     return () => setShowAddOptions(false);
@@ -171,6 +172,7 @@ const BottomBar = ({...props}) => {
   };
 
   const onAddPress = () => {
+    setSelectedSiteBar(!selectedSiteBar);
     setShowAddOptions(!showAddOptions);
     Animated.spring(
       spinValue, // The animated value to drive

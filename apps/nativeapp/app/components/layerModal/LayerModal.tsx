@@ -1,5 +1,12 @@
 import React, {memo} from 'react';
-import {Modal, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import {LayerCheck} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
@@ -64,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   subContainer: {
-    top: 150,
+    top: Platform.OS === 'ios' ? 200 : 150,
     right: 16,
     width: 175,
     borderRadius: 12,

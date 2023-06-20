@@ -26,7 +26,6 @@ import PlanetLogo from './planetLogo.jsx';
 import {polygonIcon} from './polygonIcon';
 import PencilIcon from './pencilIcon.jsx';
 import {uploadIcon} from './uploadIcon.js';
-import CompassIcon from './compassIcon.jsx';
 import {locationIcon} from './locationIcon';
 import UploadCloud from './uploadCloud.jsx';
 import WarningIcon from './warningIcon.jsx';
@@ -82,7 +81,6 @@ export {
   LogoutIcon,
   uploadIcon,
   UploadCloud,
-  CompassIcon,
   polygonIcon,
   WarningIcon,
   LocationWave,

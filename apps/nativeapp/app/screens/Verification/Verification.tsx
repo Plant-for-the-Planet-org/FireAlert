@@ -241,6 +241,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   lightText: {
+    width: '90%',
     fontSize: Typography.FONT_SIZE_12,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.GRAY_DEEP,

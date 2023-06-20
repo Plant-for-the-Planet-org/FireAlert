@@ -26,7 +26,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   DropDown,
@@ -47,7 +47,6 @@ import {
   LogoutIcon,
   EyeOffIcon,
   PencilIcon,
-  CompassIcon,
   PointSiteIcon,
   SatelliteIcon,
   MapOutlineIcon,
@@ -80,6 +79,7 @@ import {RADIUS_ARR, WEB_URLS} from '../../constants';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -92,8 +92,8 @@ let attributionPosition: any = {
 };
 
 let compassViewMargins = {
-  x: IS_ANDROID ? 12 : 16,
-  y: IS_ANDROID ? 160 : 150,
+  x: IS_ANDROID ? 16 : 17,
+  y: IS_ANDROID ? 160 : 160,
 };
 
 const compassViewPosition = 3;
@@ -109,6 +109,7 @@ const images: Record<CompassImage, ImageSourcePropType> = {
 const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
   const {state} = useMapLayers(MapLayerContext);
+  const {selectedSiteBar, passMapInfo} = useContext(BottomBarContext);
   const {userDetails, configData} = useAppSelector(state => state.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
@@ -149,6 +150,18 @@ const Home = ({navigation, route}) => {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const camera = useRef<MapboxGL.Camera | null>(null);
+
+  useEffect(() => {
+    async function passProp() {
+      setSelectedSite({});
+      setSelectedArea(null);
+      setSelectedAlert({});
+      const centerCoordinates = await map.current.getCenter();
+      const currZoom = await map.current.getZoom();
+      passMapInfo({centerCoordinates, currZoom});
+    }
+    passProp();
+  }, [selectedSiteBar]);
 
   useEffect(() => {
     if (
@@ -532,7 +545,11 @@ const Home = ({navigation, route}) => {
               alertsArr[counter]?.longitude,
               alertsArr[counter]?.latitude,
             ],
-            padding: {paddingBottom: SCREEN_HEIGHT / 4},
+            padding: {
+              paddingBottom: IS_ANDROID
+                ? SCREEN_HEIGHT / 2.8
+                : SCREEN_HEIGHT / 4,
+            },
             zoomLevel: ZOOM_LEVEL,
             animationDuration: ANIMATION_DURATION,
           });
@@ -762,7 +779,7 @@ const Home = ({navigation, route}) => {
             style={styles.userAvatar}
           />
         ) : (
-          <UserPlaceholder width={31} height={31} />
+          <UserPlaceholder width={44} height={44} />
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -771,7 +788,7 @@ const Home = ({navigation, route}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={32} height={32} />
+        <LayerIcon width={45} height={45} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -779,7 +796,7 @@ const Home = ({navigation, route}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon width={32} height={32} />
+        <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
       {/* profile modal */}
       <BottomSheet
@@ -848,10 +865,18 @@ const Home = ({navigation, route}) => {
                   {moment(selectedAlert?.localEventDate)
                     ?.tz(selectedAlert?.localTimeZone)
                     ?.fromNow()}
-                </Text>
+                </Text>{' '}
+                (
                 {moment(selectedAlert?.localEventDate)
                   ?.tz(selectedAlert?.localTimeZone)
                   ?.format('DD MMM YYYY [at] HH:mm')}
+                )
+              </Text>
+              <Text style={[styles.confidence, {marginBottom: 5}]}>
+                Timezone :{' '}
+                <Text style={styles.confidenceVal}>
+                  {selectedAlert?.localTimeZone}
+                </Text>
               </Text>
               <Text style={styles.confidence}>
                 <Text style={styles.confidenceVal}>
@@ -1120,7 +1145,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 72 : 101,
+    bottom: IS_ANDROID ? 102 : 101,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
@@ -1131,18 +1156,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: 106,
+    top: 138,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
   avatarContainer: {
-    width: 32,
-    height: 32,
-    top: 66,
+    width: 45,
+    height: 45,
+    top: 80,
   },
   userAvatar: {
-    width: 31,
-    height: 31,
+    width: 44,
+    height: 44,
     borderRadius: 100,
   },
   modalContainer: {
@@ -1245,7 +1270,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     height: 150,
     position: 'absolute',
-    bottom: IS_ANDROID ? SCREEN_HEIGHT / 3.56 : SCREEN_HEIGHT / 1.95,
+    bottom: IS_ANDROID ? SCREEN_HEIGHT / 1.64 : SCREEN_HEIGHT / 1.95,
     alignSelf: 'center',
   },
   satelliteInfoCon: {
@@ -1288,7 +1313,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
   eventDate: {
-    marginVertical: 5,
+    marginTop: 5,
     color: Colors.TEXT_COLOR,
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_REGULAR,

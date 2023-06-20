@@ -19,8 +19,8 @@ let attributionPosition: any = {
 };
 
 let compassViewMargins = {
-  x: IS_ANDROID ? 12 : 16,
-  y: IS_ANDROID ? 160 : 125,
+  x: IS_ANDROID ? 16 : 17,
+  y: IS_ANDROID ? 160 : 135,
 };
 
 const compassViewPosition = 3;

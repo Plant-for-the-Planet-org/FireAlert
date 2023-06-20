@@ -16,9 +16,9 @@ import bbox from '@turf/bbox';
 import MapboxGL from '@rnmapbox/maps';
 import {polygon, convertArea} from '@turf/helpers';
 import {useQueryClient} from '@tanstack/react-query';
-import React, {useEffect, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 
 import {
   DropDown,
@@ -39,6 +39,7 @@ import {
 import {locationPermission} from '../../utils/permissions';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import distanceCalculator from '../../utils/distanceCalculator';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -47,6 +48,7 @@ const ANIMATION_DURATION = 1000;
 
 const CreatePolygon = ({navigation}) => {
   const camera = useRef<MapboxGL.Camera | null>(null);
+  const {mapInfo} = useContext(BottomBarContext);
 
   const map = useRef(null);
   const [loader, setLoader] = useState<boolean>(false);
@@ -95,6 +97,17 @@ const CreatePolygon = ({navigation}) => {
   const modalToast = useRef();
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
+
+  useEffect(() => {
+    if (isCameraRefVisible && camera?.current?.setCamera) {
+      setIsInitial(false);
+      camera.current.setCamera({
+        centerCoordinate: mapInfo?.centerCoordinates,
+        zoomLevel: mapInfo?.currZoom,
+        animationDuration: 100,
+      });
+    }
+  }, [isCameraRefVisible, mapInfo?.centerCoordinate, mapInfo?.currZoom]);
 
   const _handleViewMap = (siteInfo: object) => {
     let highlightSiteInfo = siteInfo;
@@ -453,7 +466,7 @@ const CreatePolygon = ({navigation}) => {
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        <LayerIcon width={32} height={32} />
+        <LayerIcon width={45} height={45} />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={handleMyLocation}
@@ -461,7 +474,7 @@ const CreatePolygon = ({navigation}) => {
         accessibilityLabel="my_location"
         accessible={true}
         testID="my_location">
-        <MyLocIcon width={32} height={32} />
+        <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
       <Modal visible={siteNameModalVisible} transparent>
         <KeyboardAvoidingView
@@ -569,7 +582,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 92 : 108,
+    top: IS_ANDROID ? 122 : 138,
     backgroundColor: Colors.WHITE,
   },
   myLocationIcon: {
@@ -580,7 +593,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 92 : 112,
+    bottom: IS_ANDROID ? 102 : 112,
     backgroundColor: Colors.WHITE,
   },
   siteModalStyle: {
