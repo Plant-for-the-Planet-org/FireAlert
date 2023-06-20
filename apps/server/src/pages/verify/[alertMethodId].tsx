@@ -1,14 +1,13 @@
 import { api } from '../../utils/api';
 import { useEffect } from 'react';
-import { type GetServerSidePropsContext } from 'next';
+import { useRouter } from 'next/router'
 
-const VerifyPage = ({ alertMethodId, code, errorMessage }: { alertMethodId: string, code: string, errorMessage: string }) => {
-    debugger;
-    if (errorMessage) {
-        return <div>Error: {errorMessage}</div>;
-    }
-
+export default function Page() {
+    const router = useRouter()
     const mutation = api.alertMethod.verify.useMutation();
+    const alertMethodId = router.query.alertMethodId as string;
+    const code = router.query.code as string;
+
 
     useEffect(() => {
         const verify = async () => {
@@ -26,40 +25,11 @@ const VerifyPage = ({ alertMethodId, code, errorMessage }: { alertMethodId: stri
 
     if (mutation.isLoading) {
         return <div>Loading...</div>;
-    } else if (mutation.isError) {
-        return <div>Error: {mutation.error?.message}</div>;
-    } else if (mutation.isSuccess) {
+    } 
+    if (mutation.isError) {
+        return <div>Error: {JSON.stringify(mutation.error.message)}</div>;
+    } 
+    if (mutation.isSuccess) {
         return <div>Validation Successful</div>;
-    } else {
-        return <div>Enter your verification code</div>;
-    }
+    } 
 }
-
-export async function getServerSideProps(context: GetServerSidePropsContext) {
-    if (!context.params) {
-        return {
-            props: {
-                errorMessage: 'Context params is not present',
-            },
-        };
-    }
-    const alertMethodId = context.params.alertMethodId;
-    const code = context.query.code;
-
-    if (!alertMethodId || !code) {
-        return {
-            props: {
-                errorMessage: 'Invalid alert method ID or code.',
-            },
-        };
-    }
-
-    return {
-        props: {
-            initialAlertMethodId: alertMethodId,
-            initialCode: code,
-        },
-    };
-}
-
-export default VerifyPage;
