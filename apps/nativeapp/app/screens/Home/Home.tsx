@@ -655,7 +655,7 @@ const Home = ({navigation, route}) => {
       onPress={e => {
         let bboxGeo = null;
         setSelectedArea(e?.features);
-        if (e?.features[0]?.type === 'MultiPolygon') {
+        if (e?.features[0]?.geometry?.type === 'MultiPolygon') {
           bboxGeo = bbox(
             multiPolygon(rewind(e?.features[0]?.geometry.coordinates)),
           );

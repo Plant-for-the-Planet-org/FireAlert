@@ -106,7 +106,6 @@ const SelectLocation = ({navigation}) => {
   useEffect(() => {
     if (isCameraRefVisible && camera?.current?.setCamera) {
       setIsInitial(false);
-      console.log(mapInfo?.centerCoordinates, mapInfo?.currZoom, '---->>');
       camera.current.setCamera({
         centerCoordinate: mapInfo?.centerCoordinates,
         zoomLevel: mapInfo?.currZoom,
