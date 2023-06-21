@@ -22,6 +22,7 @@ model User {
     isVerified       Boolean?
     lastLogin        DateTime?
     signupDate       DateTime           @default(now())
+    plan             String            @default("basic")
     roles            Role               @default(ROLE_CLIENT)
     alertMethods     AlertMethod[]
     projects         Project[]
