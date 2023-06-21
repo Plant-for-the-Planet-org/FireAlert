@@ -12,7 +12,7 @@ const createNotifications = async () => {
             FROM "SiteAlert" a 
                 INNER JOIN "Site" s ON a."siteId" = s.id 
                 INNER JOIN "AlertMethod" m ON m."userId" = s."userId" 
-                    WHERE a."isProcessed" = false AND a."deletedAt" IS NULL AND m."isEnabled" = true AND m."isVerified" = true AND a."eventDate" > CURRENT_TIMESTAMP - INTERVAL '24 hours'`;
+                    WHERE a."isProcessed" = false AND a."deletedAt" IS NULL AND m."deletedAt" IS NULL AND m."isEnabled" = true AND m."isVerified" = true AND a."eventDate" > CURRENT_TIMESTAMP - INTERVAL '24 hours'`;
 
         const updateSiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false AND "deletedAt" IS NULL`;
 
