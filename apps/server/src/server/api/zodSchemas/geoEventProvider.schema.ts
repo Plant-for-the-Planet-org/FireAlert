@@ -1,25 +1,17 @@
 import { z } from "zod";
 
-const GeoEventProviderConfigSchema = z.object({
-    apiUrl: z.string(),
-    mapKey: z.string(),
-    sourceKey: z.string(),
-});
-
 // Zod Schema for createGeoEventProvider
 export const createGeoEventProviderSchema = z.object({
-    type: z.enum(["fire"]),
-    isActive: z.boolean(),
-    providerKey: z.enum(["FIRMS"]),
-    config: GeoEventProviderConfigSchema,
+    isActive: z.boolean().optional(),
+    name: z.string(),
+    description: z.string().optional(),
 });
 
 // Zod Schema for updateGeoEventProvider body
 const UpdateGeoEventProviderBodySchema = z.object({
-    type: z.enum(["fire"]),
-    isActive: z.boolean(),
-    providerKey: z.enum(["FIRMS"]),
-    config: GeoEventProviderConfigSchema,
+    isActive: z.boolean().optional(),
+    name: z.string().optional(),
+    description: z.string().optional(),
 }).partial();
 
 // Zod Schema for updateGeoEventProvider params
@@ -30,5 +22,5 @@ export const geoEventProviderParamsSchema = z.object({
 // Zod Schema for updateGeoEventProvider
 export const updateGeoEventProviderSchema = z.object({
     params: geoEventProviderParamsSchema,
-    body: UpdateGeoEventProviderBodySchema,
+    body: UpdateGeoEventProviderBodySchema.optional(),
 });

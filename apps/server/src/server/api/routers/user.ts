@@ -2,7 +2,6 @@ import { TRPCError } from '@trpc/server';
 import { updateUserSchema } from '../zodSchemas/user.schema';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 import { returnUser, handleNewUser } from '../../../utils/routers/user';
-import { User } from '@prisma/client';
 import { sendAccountDeletionCancellationEmail, sendSoftDeletionEmail } from '../../../utils/notification/userEmails';
 import { ensureAdmin } from '../../../utils/routers/trpc'
 
@@ -23,7 +22,7 @@ export const userRouter = createTRPCRouter({
                 if (ctx.isAdmin === true) {
                     // If impersonatedUser is null, login the admin themself
                     if (ctx.isImpersonatedUser === false) {
-                        const adminUser = ctx.user as User
+                        const adminUser = ctx.user
                         return {
                             status: 'success',
                             data: adminUser,
@@ -31,14 +30,14 @@ export const userRouter = createTRPCRouter({
                     }
                     // Here, impersonatedUser is true, so admin is trying to crud the user data. 
                     // Don't undo soft delete if user is softdeleted.
-                    const user = ctx.user as User
+                    const user = ctx.user
                     return {
                         status: 'success',
                         data: user,
                     }
                 }
                 // Since authorized client is not admin, do normal login concept
-                const user = ctx.user as User
+                const user = ctx.user
                 // If user is deleted, send account deletion cancellation email
                 if (user.deletedAt) {
                     await sendAccountDeletionCancellationEmail(user);
