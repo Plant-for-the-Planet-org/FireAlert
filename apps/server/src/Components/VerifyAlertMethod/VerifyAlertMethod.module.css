@@ -1,0 +1,197 @@
+.root {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    align-items: flex-start;
+    background-color: #3f3f3f;
+    overflow: hidden;
+}
+
+.mainCard {
+    position: absolute;
+    left: calc(50% - -0.5px);
+    top: calc(50% - -0.5px);
+    width: 56.375rem;
+    height: 26.8125rem;
+    align-items: flex-start;
+    border-radius: 14px;
+    background-color: #fff;
+    overflow: hidden;
+    transform: translate(-50%, -50%);
+    flex-direction: auto;
+}
+
+.mailImageWrapper {
+    position: relative;
+    width: 26.25rem;
+    height: 27.0625rem;
+    align-items: flex-start;
+    border-radius: 0.875rem 0 0 0.875rem;
+    background-color: #fdeeee;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .mailImageWrapper {
+        display: none;
+    }
+}
+
+.mailImage {
+    position: absolute;
+    left: 2.125rem;
+    top: 3.0625rem;
+    width: 21.9375rem;
+    height: 21.9375rem;
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+}
+
+@media (max-width: 768px) {
+    .mailImage {
+        display: none;
+    }
+
+    .image {
+        display: none;
+    }
+}
+
+.verifyAlertMethod {
+    color: #182035;
+    font-size: 24px;
+    font-weight: bold;
+    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    position: absolute;
+    left: 543px;
+    top: 68px;
+    width: min-content;
+    height: min-content;
+    text-align: center;
+    align-items: center;
+    white-space: nowrap;
+    flex-direction: column;
+}
+
+.enterTheCodeYouReceived {
+    color: #606268;
+    font-size: 16px;
+    line-height: 24px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    position: absolute;
+    left: 554px;
+    top: 113.4326px;
+    width: min-content;
+    height: min-content;
+    text-align: center;
+    align-items: center;
+    white-space: nowrap;
+    flex-direction: column;
+}
+
+.oTPTokenHasExpiredPleaseReques {
+    position: absolute;
+    left: 515px;
+    top: 230.332px;
+    width: min-content;
+    height: min-content;
+    text-align: center;
+    align-items: center;
+    white-space: nowrap;
+    flex-direction: column;
+}
+
+.textBlock {
+    color: #dc3f1f;
+    font-size: 14px;
+    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.textBlock2 {
+    margin-top: 0;
+    color: #dc3f1f;
+    font-size: 14px;
+    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.otpCard {
+    position: absolute;
+    left: 520px;
+    top: 150.332px;
+}
+
+.otpBox {
+    position: relative;
+    width: min-content;
+    height: min-content;
+    flex-direction: column;
+    padding: 16px;
+    margin: 5px;
+    outline: solid 1px #e86f56;
+    outline-offset: -1px;
+    border-radius: 8px;
+    background-color: #fff;
+    overflow: hidden;
+    box-shadow: 0px 4px 8px 0px #f5822929;
+}
+
+.otpValueContainer {
+    color: #252525;
+    font-size: 24px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    width: min-content;
+    height: min-content;
+    white-space: nowrap;
+    flex-direction: column;
+}
+
+.completeVerificationButton {
+    position: absolute;
+    left: calc(50% - -210.5px);
+    top: 328px;
+    width: min-content;
+    height: min-content;
+    padding: 16px 64px;
+    outline: solid 1px #e86f56;
+    outline-offset: -1px;
+    border-radius: 14px;
+    background-color: #e86f56;
+    transform: translateX(-50%);
+}
+
+.completeVerificationText {
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    z-index: 0;
+    width: min-content;
+    height: min-content;
+    white-space: nowrap;
+    flex-direction: column;
+}
+
+.successMessage {
+    color: green;
+    font-size: 16px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    position: absolute;
+    left: 516px;
+    top: 230.332px;
+    width: min-content;
+    height: min-content;
+    text-align: center;
+    align-items: center;
+    white-space: nowrap;
+    flex-direction: column;
+}

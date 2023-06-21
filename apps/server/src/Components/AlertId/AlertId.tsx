@@ -3,12 +3,12 @@ import type { FC } from 'react';
 
 import resets from '../_resets.module.css';
 import classes from './AlertId.module.css';
-import { EllipseIcon } from './SvgImages/EllipseIcon';
-import { CopyIcon } from './SvgImages/CopyIcon';
-import { AlertIcon } from './SvgImages/AlertIcon';
-import { LocationPinIcon } from './SvgImages/LocationPinIcon';
-import { MapViewMobile } from './SvgImages/MapViewMobile';
-import { RadarIcon } from './SvgImages/RadarIcon';
+import { EllipseIcon } from './AlertIdSvgComponents/EllipseIcon';
+import { CopyIcon } from './AlertIdSvgComponents/CopyIcon';
+import { AlertIcon } from './AlertIdSvgComponents/AlertIcon';
+import { LocationPinIcon } from './AlertIdSvgComponents/LocationPinIcon';
+import { MapViewMobile } from './AlertIdSvgComponents/MapViewMobile';
+import { RadarIcon } from './AlertIdSvgComponents/RadarIcon';
 
 
 interface AlertData {
