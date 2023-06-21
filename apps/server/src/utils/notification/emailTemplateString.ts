@@ -215,7 +215,7 @@ table, td { color: #4f4f4f; } #u_body a { color: #e86f56; text-decoration: none;
 <p style="line-height: 130%;">Uffing Am Staffelsee, 82449</p>
 <p style="line-height: 130%;">Germany</p>
 <p style="line-height: 130%;"> </p>
-<p style="line-height: 130%;"><a rel="noopener" href="https://firealert.plant-for-the-planet.org" target="_blank">About FireAlert</a> | Follow us at <a rel="noopener" href="https://twitter.com/trilliontrees" target="_blank">@trilliontrees</a></p>
+<p style="line-height: 130%;"><a rel="noopener" href="https://www.plant-for-the-planet.org/firealert" target="_blank">About FireAlert</a> | Follow us at <a rel="noopener" href="https://twitter.com/trilliontrees" target="_blank">@trilliontrees</a></p>
   </div>
 
       </td>

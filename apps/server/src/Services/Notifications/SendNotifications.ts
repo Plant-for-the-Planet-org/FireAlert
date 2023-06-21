@@ -59,13 +59,14 @@ const sendNotifications = async (): Promise<boolean> => {
 
                 const distanceKm = Math.round(distance / 1000);
                 const siteName = site.name ? site.name : "";
-                const subject = `Heat anomaly near ${siteName} 🔥`;
-                const checkLatLong= `Check ${latitude}, ${longitude} for fires.`;
+                const checkLatLong= `Check ${latitude}, ${longitude} for fires 🔥.`;
                 
                 let inout = `${distanceKm} km outside`;
                 if (distance == 0) {
                     inout = `inside`;
                 }
+
+                const subject = `Likely fire ${inout} ${siteName} 🔥`;
 
                 let message = `Detected ${inout} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
 
