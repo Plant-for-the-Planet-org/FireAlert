@@ -8,22 +8,22 @@
 }
 
 .mainCard {
-    position: absolute;
-    left: calc(50% - -0.5px);
-    top: calc(50% - -0.5px);
-    width: 56.375rem;
-    height: 26.8125rem;
+    position: relative;
+    left: 20%;
+    top: 10%;
+    width: 56%;
+    height: 27.0625rem;
     align-items: flex-start;
     border-radius: 14px;
     background-color: #fff;
     overflow: hidden;
-    transform: translate(-50%, -50%);
-    flex-direction: auto;
+    display: flex;
+    flex-direction: row;
 }
 
 .mailImageWrapper {
     position: relative;
-    width: 26.25rem;
+    width: 100%;
     height: 27.0625rem;
     align-items: flex-start;
     border-radius: 0.875rem 0 0 0.875rem;
@@ -31,16 +31,10 @@
     overflow: hidden;
 }
 
-@media (max-width: 768px) {
-    .mailImageWrapper {
-        display: none;
-    }
-}
-
 .mailImage {
-    position: absolute;
-    left: 2.125rem;
-    top: 3.0625rem;
+    position: relative;
+    left: 1.825rem;
+    top: 2.0625rem;
     width: 21.9375rem;
     height: 21.9375rem;
 }
@@ -50,25 +44,33 @@
     height: 100%;
 }
 
-@media (max-width: 768px) {
-    .mailImage {
-        display: none;
-    }
-
-    .image {
-        display: none;
-    }
+.mainContent {
+    position: relative;
+    width: 100%;
+    height: 27.0625rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-.verifyAlertMethod {
+.verifyHeader {
+    position: absolute;
+    width: auto;
+    height: auto;
+    top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.verifyAlertMethodText {
     color: #182035;
     font-size: 24px;
     font-weight: bold;
     font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
         "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-    position: absolute;
-    left: 543px;
-    top: 68px;
+    position: relative;
     width: min-content;
     height: min-content;
     text-align: center;
@@ -77,60 +79,33 @@
     flex-direction: column;
 }
 
-.enterTheCodeYouReceived {
+.code {
     color: #606268;
     font-size: 16px;
     line-height: 24px;
     font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
         "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-    position: absolute;
-    left: 554px;
-    top: 113.4326px;
+    position: relative;
     width: min-content;
     height: min-content;
     text-align: center;
     align-items: center;
     white-space: nowrap;
     flex-direction: column;
-}
-
-.oTPTokenHasExpiredPleaseReques {
-    position: absolute;
-    left: 515px;
-    top: 230.332px;
-    width: min-content;
-    height: min-content;
-    text-align: center;
-    align-items: center;
-    white-space: nowrap;
-    flex-direction: column;
-}
-
-.textBlock {
-    color: #dc3f1f;
-    font-size: 14px;
-    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-}
-
-.textBlock2 {
-    margin-top: 0;
-    color: #dc3f1f;
-    font-size: 14px;
-    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
 .otpCard {
-    position: absolute;
-    left: 520px;
-    top: 150.332px;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
 }
 
 .otpBox {
     position: relative;
     width: min-content;
     height: min-content;
+    display: block;
     flex-direction: column;
     padding: 16px;
     margin: 5px;
@@ -153,10 +128,51 @@
     flex-direction: column;
 }
 
+
+.verificationResult {
+    position: relative;
+    width: min-content;
+    height: min-content;
+    text-align: center;
+    align-items: center;
+    white-space: nowrap;
+    flex-direction: column;
+    margin-top: 1rem;
+}
+
+.textBlockError {
+    color: #dc3f1f;
+    font-size: 14px;
+    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.textBlock2Error {
+    margin-top: 0;
+    color: #dc3f1f;
+    font-size: 14px;
+    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.textBlockSuccess {
+    color: #006E51;
+    font-size: 14px;
+    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.textBlock2Success {
+    margin-top: 0;
+    color: #006E51;
+    font-size: 14px;
+    font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
 .completeVerificationButton {
     position: absolute;
-    left: calc(50% - -210.5px);
-    top: 328px;
+    bottom: 3rem;
     width: min-content;
     height: min-content;
     padding: 16px 64px;
@@ -164,7 +180,6 @@
     outline-offset: -1px;
     border-radius: 14px;
     background-color: #e86f56;
-    transform: translateX(-50%);
 }
 
 .completeVerificationText {
@@ -180,18 +195,75 @@
     flex-direction: column;
 }
 
-.successMessage {
-    color: green;
-    font-size: 16px;
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
-        "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-    position: absolute;
-    left: 516px;
-    top: 230.332px;
-    width: min-content;
-    height: min-content;
-    text-align: center;
-    align-items: center;
-    white-space: nowrap;
-    flex-direction: column;
+@media (max-width: 400px) {
+    .mainCard {
+        left: 15%;
+        top: 15%;
+        width: 70%;
+    }
+    .mailImageWrapper {
+        display: none;
+    }
+    .verifyAlertMethodText {
+        font-size: 20px;
+    }
+    .code {
+        font-size: 14px;
+    }
+    .otpValueContainer {
+        font-size: 20px;
+    }
+    .otpBox {
+        padding: 10px;
+        margin: 4px;
+        border-radius: 4px;
+    }
+    .completeVerificationButton {
+        padding: 15px 20px;
+    }
+    .completeVerificationText {
+        font-size: 15px;
+    }
 }
+
+@media (min-width: 400px) and (max-width: 767px) {
+    .mailImageWrapper {
+        display: none;
+    }
+    .verifyAlertMethodText {
+        font-size: 20px;
+    }
+    .code {
+        font-size: 14px;
+    }
+    .otpValueContainer {
+        font-size: 20px;
+    }
+    .otpBox {
+        padding: 12px;
+        margin: 4px;
+        border-radius: 4px;
+    }
+    .completeVerificationButton {
+        padding: 15px 20px;
+    }
+    .completeVerificationText {
+        font-size: 15px;
+    }
+}
+
+@media (min-width: 767px) and (max-width: 979px) {
+    .mailImageWrapper {
+        display: none;
+    }
+}
+
+@media (min-width: 979px) and (max-width: 1200px) {
+    .mailImageWrapper {
+        display: none;
+    }
+    .mainCard {
+        width: 70%;
+    }
+}
+

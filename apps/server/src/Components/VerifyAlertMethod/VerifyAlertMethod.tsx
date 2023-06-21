@@ -1,7 +1,6 @@
 import { memo } from 'react';
 import type { FC } from 'react';
 
-import resets from '../_resets.module.css';
 import classes from './VerifyAlertMethod.module.css';
 import { FrameIcon } from './VerifyAlertMethodSvgComponent/FrameIcon';
 
@@ -23,9 +22,9 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
 }: Props) {
 
     const frameValues = otp ? otp.split('') : [];
-    const messageArray = message? message.split('. ') : []
+    const messageArray = message ? message.split('. ') : []
     return (
-        <div className={`${resets.componentsResets} ${classes.root}`}>
+        <div className={classes.root}>
             <div className={classes.mainCard}>
                 <div className={classes.mailImageWrapper}>
                     <div className={classes.mailImage}>
@@ -34,12 +33,13 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
                 </div>
                 <div className={classes.mainContent}>
                     <div className={classes.verifyHeader}>
-                        <div className={classes.verifyAlertMethod}>Verify Alert Method</div>
-                        <div className={classes.enterTheCodeYouReceived}>Enter the code you received</div>
+                        <div className={classes.verifyAlertMethodText}>Verify Alert Method</div>
+                        <div className={classes.code}>Enter the code you received</div>
                     </div>
                     <div className={classes.otpCard}>
                         <OtpBox frames={frameValues} />
                     </div>
+
                     {isDone && (
                         <div className={classes.oTPTokenHasExpiredPleaseReques}>
                             {isSuccess !== undefined && !isSuccess && (
@@ -64,7 +64,6 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
         </div>
     );
 });
-
 
 interface OtpValueContainerProps {
     value: string;
