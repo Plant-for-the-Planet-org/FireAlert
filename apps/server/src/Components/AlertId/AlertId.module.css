@@ -1,0 +1,307 @@
+.root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  align-items: flex-start;
+  background-color: #3f3f3f;
+  overflow: hidden;
+}
+.AlertId {
+  position: absolute;
+  left: calc(50% - -0.5px);
+  top: calc(50% - -0.5px);
+  width: 750px;
+  height: 684px;
+  align-items: flex-start;
+  border-radius: 14px;
+  background-color: #fff;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+}
+.mapView {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 750px;
+  height: 367px;
+}
+.mapIcon {
+  width: 100%;
+  height: 100%;
+}
+.detectionInfo {
+  position: absolute;
+  left: 20px;
+  top: 387px;
+  width: min-content;
+  height: min-content;
+  flex-direction: column;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: #eb57571a;
+  overflow: hidden;
+}
+.detectionInfoInner {
+  position: relative;
+  width: 670px;
+  height: 49px;
+}
+.detectedByText {
+  color: #4f4f4f;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  position: absolute;
+  left: 85.0746%;
+  right: 0;
+  top: 0;
+  bottom: 71.4286%;
+  width: min-content;
+  height: min-content;
+  white-space: nowrap;
+  flex-direction: column;
+}
+.detectedDate {
+  position: absolute;
+  left: 9.8507%;
+  right: 54.0299%;
+  top: 0;
+  bottom: 48.9796%;
+  width: min-content;
+  height: min-content;
+  white-space: nowrap;
+  flex-direction: column;
+}
+.detectedDateWrapper {
+  font-size: 18px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  flex-shrink: 1;
+}
+.detectedDays {
+  color: #e86f56;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.detectedDateText {
+  color: #4f4f4f;
+  font-size: 18px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.alertConfidence {
+  position: absolute;
+  left: 9.8507%;
+  right: 69.7015%;
+  top: 61.2245%;
+  bottom: 0;
+  width: min-content;
+  height: min-content;
+  white-space: nowrap;
+  flex-direction: column;
+}
+.alertConfidenceInner {
+  font-size: 14px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  flex-shrink: 1;
+}
+.alertConfidenceValue {
+  color: #4f4f4f;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.alertConfidenceText {
+  color: #4f4f4f;
+  font-size: 14px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.alertIconWrapper {
+  position: absolute;
+  left: 0;
+  right: 93.2836%;
+  top: 4.0816%;
+  bottom: 4.0816%;
+  width: 45px;
+  height: 45px;
+  overflow: visible;
+}
+.alertIcon {
+  width: 100%;
+  height: 100%;
+}
+.alertLocationParent {
+  position: absolute;
+  left: 20px;
+  top: 488px;
+  width: 328px;
+  height: 75px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 20px;
+  outline: solid 1px #d9d9d9;
+  outline-offset: 0px;
+  border-radius: 12px;
+  background-color: #ffffff1a;
+  overflow: hidden;
+}
+.alertCoordinates {
+  color: #4f4f4f;
+  font-size: 16px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  position: absolute;
+  left: 49.25px;
+  top: 33px;
+  width: min-content;
+  height: min-content;
+  white-space: nowrap;
+  flex-direction: column;
+}
+.locationText {
+  color: #4f4f4f;
+  font-size: 8px;
+  font-weight: bold;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  position: absolute;
+  left: 49.25px;
+  top: 20px;
+  width: min-content;
+  height: min-content;
+  white-space: nowrap;
+  flex-direction: column;
+}
+.locationPinIcon {
+  position: absolute;
+  left: 20px;
+  top: 28px;
+  width: 17.2496px;
+  height: 20px;
+  overflow: visible;
+}
+.pinIcon {
+  width: 100%;
+  height: 100%;
+}
+.ellipseIconParent {
+  position: absolute;
+  left: 275px;
+  top: 22px;
+  width: 31px;
+  height: 31px;
+  overflow: visible;
+}
+.ellipseIcon {
+  width: 100%;
+  height: 100%;
+}
+.copyIconGrandParent {
+  position: absolute;
+  left: 282.5156px;
+  top: 27.6365px;
+  width: 15.9697px;
+  height: 19.7273px;
+  align-items: flex-start;
+}
+.copyIconParent {
+  position: absolute;
+  left: -21.0787%;
+  right: -21.0781%;
+  top: -7.5393%;
+  bottom: -7.54%;
+}
+.copyIcon {
+  width: 100%;
+  height: 100%;
+}
+.actionParent {
+  position: absolute;
+  left: 364px;
+  top: 488px;
+  width: 366px;
+  height: 75px;
+  align-items: flex-start;
+  padding: 20px;
+  outline: solid 1px #d9d9d9;
+  outline-offset: 0px;
+  border-radius: 12px;
+  background-color: #ffffff1a;
+  overflow: hidden;
+}
+.radarIconParent {
+  position: absolute;
+  left: 20px;
+  top: 28px;
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+.radarIcon {
+  width: 100%;
+  height: 100%;
+}
+.actionInner {
+  position: absolute;
+  left: 52px;
+  top: 16px;
+  width: 240px;
+  height: min-content;
+  flex-direction: column;
+}
+.actionLabel {
+  font-size: 16px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  flex-shrink: 1;
+}
+.actionText1 {
+  color: #4f4f4f;
+  font-size: 16px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.actionText2 {
+  color: #4f4f4f;
+  font-size: 16px;
+  font-weight: bold;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.actionText3 {
+  color: #4f4f4f;
+  font-size: 16px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.googleMapsButton {
+  position: absolute;
+  left: 50%;
+  top: 595px;
+  width: min-content;
+  height: min-content;
+  padding: 16px 64px;
+  outline: solid 1px #e86f56;
+  outline-offset: -1px;
+  border-radius: 14px;
+  background-color: #fff;
+  transform: translateX(-50%);
+}
+.openInGoogleMapsText {
+  color: #e86f56;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  z-index: 0;
+  width: min-content;
+  height: min-content;
+  white-space: nowrap;
+  flex-direction: column;
+}
