@@ -5,7 +5,7 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-import { subtractDays } from "../../../utils/date";
+import { getLocalTime, subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
 
@@ -63,12 +63,19 @@ export const alertRouter = createTRPCRouter({
                 });
                 // Flatten the array of site alerts
                 const alertsForUser = sitesWithAlerts.flatMap(site => site.alerts);
+                const returnAlertsForUser = alertsForUser.map((alert) => {
+                    const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
+                    return {
+                        ...alert,
+                        localEventDate: localTime.localDate,
+                        localTimeZone: localTime.timeZone,
+                    }
+                })
                 return {
                     status: 'success',
-                    data: alertsForUser,
+                    data: returnAlertsForUser,
                 };
             } catch (error) {
-                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -110,20 +117,21 @@ export const alertRouter = createTRPCRouter({
                         data: true,
                     }
                 })
-                
-                // TODO: convert eventDate to localtime and add localEventDate and localTimeZone to the alert object
-                // const localTime = getLocalTime(alert.eventDate, alert.site.geometry.coordinates[1], alert.site.geometry.coordinates[0]);
-                // alert.localEventDate = currentDate(localTime.localDate);
-                // alert.localTimeZone = localTime.timeZone;
                 if (!alert) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
                         message: `Alert not found`,
                     });
                 }
+                const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
+                const returnAlert = {
+                    ...alert,
+                    localEventDate: localTime.localDate,
+                    localTimeZone: localTime.timeZone,
+                }
                 return {
                     status: 'success',
-                    data: alert,
+                    data: returnAlert,
                 }
             } catch (error) {
                 console.log(error)

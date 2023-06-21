@@ -16,14 +16,10 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
   };
   // events from multiple sources but same satellite with the same geoEventProviderId will be considered duplicates
 
-  const compareIds = (dbEventIds: string[], fetchedEvents: GeoEvent[]): {
-    newGeoEvents: GeoEvent[];
-    // DeletedIds are those ids in the database, that are not being reported anymore, so the fire has probably ceased.
-    deletedIds: string[];
-  } => {
+  // Check whether the fetchId already exists in the database and returns only the ones that are not in the database in the variable newGeoEvents
+  const compareIds = (dbEventIds: string[], fetchedEvents: GeoEvent[]): GeoEvent[] => {
     const newGeoEvents: GeoEvent[] = [];
     const fetchedIds: string[] = [];
-    const deletedIds: string[] = [];
 
     // Identify new hashes
     fetchedEvents.forEach((fetchedEvent: GeoEvent) => {
@@ -34,21 +30,13 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
         newGeoEvents.push(fetchedEvent);
       }
     });
-
-    // Identify existing hashes
-    dbEventIds.forEach((dbEventId) => {
-      if (!fetchedIds.includes(dbEventId)) {
-        deletedIds.push(dbEventId);
-      }
-    });
-    return { newGeoEvents, deletedIds };
+    return newGeoEvents;
   };
-
 
   const fetchDbEventIds = async (
     geoEventProviderId: string
   ): Promise<Array<string>> => {
-    // the the ids of all events from AreaEvent that are either 'pending' or 'notfied'
+    // the the ids of all events from AreaEvent that are either 'pending' or 'notified'
     // having the provided providerKey
     const geoEvents = await prisma.geoEvent.findMany({
       select: { id: true },
@@ -57,7 +45,7 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
     return geoEvents.map(geoEvent => geoEvent.id);
   };
 
-  const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
+  const newGeoEvents = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
 
   const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
     const filteredNewGeoEvents: GeoEvent[] = [];
@@ -74,8 +62,8 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
   logger(`${breadcrumbPrefix} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`, "info");
-  
-  let geoEventsCreatedCount = 0;
+
+  let geoEventsCreated = 0;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
@@ -93,29 +81,29 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
       slice: slice,
       data: geoEvent.data,
     }))
-    const geoEventsCreated = await prisma.geoEvent.createMany({
-      data: geoEventsToBeCreated,
-    });
-    geoEventsCreatedCount = geoEventsCreated.count
 
-    logger(`${breadcrumbPrefix} Created ${geoEventsCreatedCount} Geo Events`, "info");
+    // Take an array of GeoEvents to be created 
+    // Define a variable bulkSize with a value of 10,000
+    // Split the variable geoEventsToBeCreated into chunks of bulkSize
+    // Insert each chunk into the database using prism.geoEvent.createMany
+    // Repeat until all chunks have been inserted
+    // Return the number of GeoEvents created
+
+    const bulkSize = 10000;
+    for (let i = 0; i < geoEventsToBeCreated.length; i += bulkSize) {
+      const chunk = geoEventsToBeCreated.slice(i, i + bulkSize);
+      await prisma.geoEvent.createMany({
+        data: chunk,
+        skipDuplicates: true,
+      });
+      geoEventsCreated += chunk.length;
+    }
+
+    logger(`${breadcrumbPrefix} Created ${geoEventsCreated} Geo Events`, "info");
 
   }
-  // GeoEvents are processed the moment they arrive. Further, they are deleted by the db-cleanup cron. So  I believe this is not needed.
-  // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
-  // if (deletedIds.length > 0) {
-  //   await prisma.geoEvent.updateMany({
-  //     where: {
-  //       id: { in: deletedIds },
-  //     },
-  //     data: {
-  //       isProcessed: true,
-  //     },
-  //   });
-  // }
 
-  
-  return geoEventsCreatedCount;
+  return geoEventsCreated;
 };
 
 export default processGeoEvents;
