@@ -204,6 +204,7 @@ const BottomBar = ({...props}) => {
         </Svg>
         {/* add button */}
         <TouchableOpacity
+          activeOpacity={0.9}
           style={[styles.addButton, styles.boxShadow]}
           onPress={onAddPress}>
           <Animated.View style={animatedScaleStyle}>

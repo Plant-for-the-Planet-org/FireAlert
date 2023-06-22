@@ -1115,11 +1115,15 @@ const Settings = ({navigation}) => {
         </View>
         {/* geoStationary */}
         <View style={[styles.geostationaryMainContainer, styles.commonPadding]}>
-          <View style={[styles.deviceTagCon, styles.comingSoon]}>
-            <Text style={styles.deviceTag}>Coming Soon</Text>
+          <View style={styles.comingSoonCon}>
+            <Text style={styles.subHeading}>Geostationary</Text>
+            <View style={[styles.deviceTagCon, styles.comingSoon]}>
+              <Text style={styles.deviceTag}>Coming Soon</Text>
+            </View>
           </View>
-          <Text style={styles.subHeading}>Geostationary</Text>
-          <Text style={styles.desc}>Quick but many false alarms [BETA]</Text>
+          <Text style={styles.desc}>
+            Quick detection but many false alarms [BETA]
+          </Text>
           <View style={styles.geostationaryInfoContainer}>
             <View style={styles.iconContainer}>
               <BellIcon />
@@ -1377,7 +1381,7 @@ const Settings = ({navigation}) => {
                     value={siteRad?.value}
                     onSelectItem={setSiteRad}
                     defaultValue={siteRad?.value}
-                    label={'Monitoring Boundry'}
+                    label={'Notify me if fires occur...'}
                   />
                 </View>
               </View>
@@ -1932,9 +1936,13 @@ const styles = StyleSheet.create({
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     color: Colors.WHITE,
   },
+  comingSoonCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   comingSoon: {
     width: 93,
-    marginBottom: 10,
+    marginLeft: 10,
   },
   emptySiteText: {
     fontSize: 12,

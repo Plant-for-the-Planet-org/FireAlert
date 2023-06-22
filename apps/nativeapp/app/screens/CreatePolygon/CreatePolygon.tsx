@@ -510,7 +510,7 @@ const CreatePolygon = ({navigation}) => {
                   value={siteRad?.value}
                   onSelectItem={setSiteRad}
                   defaultValue={siteRad?.value}
-                  label={'Monitoring Boundry'}
+                  label={'Notify me if fires occur...'}
                 />
               </View>
             </View>

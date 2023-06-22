@@ -166,4 +166,4 @@ const styles = StyleSheet.create({
   },
 });
 
-const polyline = {lineWidth: 5, lineColor: Colors.BLACK};
+const polyline = {lineWidth: 5, lineColor: Colors.WHITE};

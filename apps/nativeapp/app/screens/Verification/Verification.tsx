@@ -123,7 +123,9 @@ const Verification = ({navigation, route}) => {
           <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
         </TouchableOpacity>
         <View style={[styles.header, styles.commonPadding]}>
-          <Text style={styles.heading}>Add New {verificationType}</Text>
+          <Text style={styles.heading}>
+            Add New {verificationType === 'Sms' ? 'SMS' : verificationType}
+          </Text>
           {verificationType === 'Webhook' && (
             <TouchableOpacity onPress={handlePaste} activeOpacity={0.7}>
               <PasteIcon />

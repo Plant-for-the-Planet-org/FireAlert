@@ -727,7 +727,11 @@ const Home = ({navigation, route}) => {
       {Object.keys(selectedAlert).length ? (
         <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
       ) : null}
-      <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
+      <StatusBar
+        translucent
+        barStyle={'light-content'}
+        backgroundColor={Colors.TRANSPARENT}
+      />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <AlertModal
         visible={isLocationAlertShow}
@@ -768,6 +772,7 @@ const Home = ({navigation, route}) => {
         showSecondaryButton={true}
       />
       <TouchableOpacity
+        activeOpacity={0.7}
         onPress={handleUser}
         style={[styles.layerIcon, styles.avatarContainer]}
         accessibilityLabel="layer"
@@ -783,6 +788,7 @@ const Home = ({navigation, route}) => {
         )}
       </TouchableOpacity>
       <TouchableOpacity
+        activeOpacity={0.7}
         onPress={handleLayer}
         style={styles.layerIcon}
         accessibilityLabel="layer"
@@ -791,6 +797,7 @@ const Home = ({navigation, route}) => {
         <LayerIcon width={45} height={45} />
       </TouchableOpacity>
       <TouchableOpacity
+        activeOpacity={0.7}
         onPress={handleMyLocation}
         style={styles.myLocationIcon}
         accessibilityLabel="my_location"
@@ -872,12 +879,6 @@ const Home = ({navigation, route}) => {
                   ?.format('DD MMM YYYY [at] HH:mm')}
                 )
               </Text>
-              <Text style={[styles.confidence, {marginBottom: 5}]}>
-                Timezone :{' '}
-                <Text style={styles.confidenceVal}>
-                  {selectedAlert?.localTimeZone}
-                </Text>
-              </Text>
               <Text style={styles.confidence}>
                 <Text style={styles.confidenceVal}>
                   {selectedAlert?.confidence}
@@ -946,8 +947,10 @@ const Home = ({navigation, route}) => {
             <View style={styles.satelliteInfo}>
               <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
                 Search for the fire within a{' '}
-                <Text style={styles.confidenceVal}>
-                  {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}km
+                <Text
+                  style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
+                  {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
+                  km
                 </Text>{' '}
                 radius around the location.
               </Text>
@@ -1114,7 +1117,7 @@ const Home = ({navigation, route}) => {
                   value={siteRad?.value}
                   onSelectItem={setSiteRad}
                   defaultValue={siteRad?.value}
-                  label={'Monitoring Boundry'}
+                  label={'Notify me if fires occur...'}
                 />
               </View>
             </View>
@@ -1313,7 +1316,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
   eventDate: {
-    marginTop: 5,
+    marginVertical: 5,
     color: Colors.TEXT_COLOR,
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_REGULAR,

@@ -1,12 +1,12 @@
-import React, {memo} from 'react';
 import {
+  View,
+  Text,
   Modal,
   Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
-  View,
 } from 'react-native';
+import React, {memo} from 'react';
 
 import {LayerCheck} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
@@ -35,7 +35,10 @@ const LayerModal = ({visible, onRequestClose = () => {}}: ILayerModalProps) => {
 
   return (
     <Modal onRequestClose={onRequestClose} visible={visible} transparent>
-      <TouchableOpacity onPress={onRequestClose} style={styles.container}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onRequestClose}
+        style={styles.container}>
         <View style={styles.subContainer}>
           {layers.map((item, index) => (
             <View key={item?.title}>

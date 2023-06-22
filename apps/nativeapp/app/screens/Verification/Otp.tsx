@@ -98,7 +98,7 @@ const Otp = ({navigation, route}) => {
           <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
         </TouchableOpacity>
         <Text style={[styles.heading, styles.commonPadding]}>
-          Verify {verificationType}
+          Verify {verificationType === 'Sms' ? 'SMS' : verificationType}
         </Text>
         {verificationType === 'Email' ||
           (verificationType === 'email' && (
