@@ -3,6 +3,7 @@ import type Notifier from "../Notifier";
 import { NOTIFICATION_METHOD } from "../methodConstants";
 import twilio from 'twilio';
 import { env } from '../../../env.mjs';
+import { logger } from "../../../../src/server/logger";
 
 class WhatsAppNotifier implements Notifier {
 
@@ -11,9 +12,9 @@ class WhatsAppNotifier implements Notifier {
   }
 
   notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-    const { message, subject, url } = parameters;
-
-    console.log(`Sending WhatsApp message ${message} to ${destination}`)
+    const { message, url } = parameters;
+    logger(`Sending WhatsApp message ${message} to ${destination}`, "info");
+    
 
     // Twilio Credentials
     const accountSid = env.TWILIO_ACCOUNT_SID;
@@ -22,7 +23,7 @@ class WhatsAppNotifier implements Notifier {
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message
-    const messageBody = `${subject} ${message} ${url ? url : ''}`;
+    const messageBody = `${message} ${url ? url : ''}`;
 
     return client.messages
       .create({
@@ -31,11 +32,10 @@ class WhatsAppNotifier implements Notifier {
         to: 'whatsapp:' + destination,
       })
       .then(() => {
-        console.log("WhatsApp message sent successfully");
         return true;
       })
       .catch((error) => {
-        console.log(error);
+        logger(`Failed to send WhatsApp message. Error: ${error}`, "error");
         return false;
       });
   }

@@ -1,29 +1,11 @@
 -- CreateEnum
-CREATE TYPE "SiteOrigin" AS ENUM ('firealert', 'ttc');
-
--- CreateEnum
-CREATE TYPE "GeoEventSource" AS ENUM ('FIRMS');
-
--- CreateEnum
-CREATE TYPE "GeoEventProviderSourceKey" AS ENUM ('LANDSAT_NRT', 'MODIS_NRT', 'MODIS_SP', 'VIIRS_NOAA20_NRT', 'VIIRS_SNPP_NRT', 'VIIRS_SNPP_SP');
-
--- CreateEnum
 CREATE TYPE "Role" AS ENUM ('ROLE_CLIENT', 'ROLE_ADMIN', 'ROLE_SUPPORT');
-
--- CreateEnum
-CREATE TYPE "AlertMethodMethod" AS ENUM ('email', 'sms', 'device', 'whatsapp', 'webhook');
 
 -- CreateEnum
 CREATE TYPE "SiteType" AS ENUM ('Point', 'Polygon', 'MultiPolygon');
 
 -- CreateEnum
-CREATE TYPE "GeoEventDetectionInstrument" AS ENUM ('MODIS', 'VIIRS', 'LANDSAT', 'GEOSTATIONARY');
-
--- CreateEnum
 CREATE TYPE "AlertConfidence" AS ENUM ('high', 'medium', 'low');
-
--- CreateEnum
-CREATE TYPE "AlertType" AS ENUM ('fire');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -34,13 +16,13 @@ CREATE TABLE "User" (
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "detectionMethods" JSONB NOT NULL,
     "isPlanetRO" BOOLEAN,
-    "remoteId" TEXT,
     "image" TEXT,
     "deletedAt" TIMESTAMP(3),
     "isVerified" BOOLEAN,
     "lastLogin" TIMESTAMP(3),
     "signupDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "roles" "Role" NOT NULL DEFAULT 'ROLE_CLIENT',
+    "remoteId" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -60,16 +42,16 @@ CREATE TABLE "VerificationRequest" (
 -- CreateTable
 CREATE TABLE "AlertMethod" (
     "id" TEXT NOT NULL,
-    "method" "AlertMethodMethod" NOT NULL,
+    "method" TEXT NOT NULL,
     "destination" TEXT NOT NULL,
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "isEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "deletedAt" TIMESTAMP(3),
     "deviceName" TEXT,
     "deviceId" TEXT,
     "tokenSentCount" INTEGER NOT NULL DEFAULT 0,
     "lastTokenSentDate" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
-    "deletedAt" TIMESTAMP(3),
     "failCount" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "AlertMethod_pkey" PRIMARY KEY ("id")
@@ -80,7 +62,7 @@ CREATE TABLE "Site" (
     "id" TEXT NOT NULL,
     "remoteId" TEXT,
     "name" TEXT,
-    "origin" "SiteOrigin" NOT NULL DEFAULT 'firealert',
+    "origin" TEXT NOT NULL DEFAULT 'firealert',
     "type" "SiteType" NOT NULL,
     "geometry" JSONB NOT NULL,
     "radius" INTEGER NOT NULL DEFAULT 0,
@@ -89,8 +71,9 @@ CREATE TABLE "Site" (
     "projectId" TEXT,
     "lastUpdated" TIMESTAMP(3),
     "userId" TEXT NOT NULL,
-    "originalGeometry" GEOMETRY,
-    "detectionGeometry" GEOMETRY,
+    "slices" JSONB,
+    "detectionGeometry" geometry,
+    "originalGeometry" geometry,
 
     CONSTRAINT "Site_pkey" PRIMARY KEY ("id")
 );
@@ -111,12 +94,13 @@ CREATE TABLE "GeoEventProvider" (
     "id" TEXT NOT NULL,
     "name" TEXT,
     "description" TEXT,
-    "type" "AlertType" NOT NULL,
-    "isActive" BOOLEAN NOT NULL,    
-    "providerKey" "GeoEventSource" NOT NULL,
-    "config" JSONB NOT NULL,
+    "type" TEXT NOT NULL,
+    "clientApiKey" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
     "fetchFrequency" INTEGER,
+    "isActive" BOOLEAN NOT NULL,
     "lastRun" TIMESTAMP(3),
+    "config" JSONB NOT NULL,
 
     CONSTRAINT "GeoEventProvider_pkey" PRIMARY KEY ("id")
 );
@@ -124,17 +108,17 @@ CREATE TABLE "GeoEventProvider" (
 -- CreateTable
 CREATE TABLE "GeoEvent" (
     "id" TEXT NOT NULL,
-    "type" "AlertType" NOT NULL,
+    "type" TEXT NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
     "eventDate" TIMESTAMP(3) NOT NULL,
+    "geometry" geometry,
     "confidence" "AlertConfidence" NOT NULL,
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
-    "identityGroup" TEXT NOT NULL,
+    "geoEventProviderClientId" TEXT NOT NULL,
     "geoEventProviderId" TEXT NOT NULL,
-    "providerKey" "GeoEventSource" NOT NULL,
-    "geometry" GEOMETRY,
     "radius" INTEGER,
+    "slice" TEXT NOT NULL,
     "data" JSONB,
 
     CONSTRAINT "GeoEvent_pkey" PRIMARY KEY ("id")
@@ -144,11 +128,11 @@ CREATE TABLE "GeoEvent" (
 CREATE TABLE "SiteAlert" (
     "id" TEXT NOT NULL,
     "siteId" TEXT NOT NULL,
-    "type" "AlertType" NOT NULL,
+    "type" TEXT NOT NULL,
     "latitude" DOUBLE PRECISION NOT NULL,
     "longitude" DOUBLE PRECISION NOT NULL,
     "eventDate" TIMESTAMP(3) NOT NULL,
-    "detectedBy" "GeoEventDetectionInstrument" NOT NULL,
+    "detectedBy" TEXT NOT NULL,
     "confidence" "AlertConfidence" NOT NULL,
     "isProcessed" BOOLEAN NOT NULL DEFAULT false,
     "deletedAt" TIMESTAMP(3),
@@ -164,17 +148,17 @@ CREATE TABLE "Notification" (
     "siteAlertId" TEXT NOT NULL,
     "alertMethod" TEXT NOT NULL,
     "destination" TEXT NOT NULL,
-    "sentAt" TIMESTAMP(3) DEFAULT NULL,
+    "sentAt" TIMESTAMP(3),
     "isDelivered" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
-
--- Create Index
 CREATE UNIQUE INDEX "User_sub_key" ON "User"("sub");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "VerificationRequest_token_key" ON "VerificationRequest"("token");
@@ -187,6 +171,9 @@ CREATE UNIQUE INDEX "VerificationRequest_id_token_key" ON "VerificationRequest"(
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AlertMethod_destination_userId_method_key" ON "AlertMethod"("destination", "userId", "method");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GeoEventProvider_clientApiKey_key" ON "GeoEventProvider"("clientApiKey");
 
 -- AddForeignKey
 ALTER TABLE "VerificationRequest" ADD CONSTRAINT "VerificationRequest_alertMethodId_fkey" FOREIGN KEY ("alertMethodId") REFERENCES "AlertMethod"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

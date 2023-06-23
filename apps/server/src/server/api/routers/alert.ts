@@ -5,15 +5,14 @@ import {
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
-import { getUserIdFromCtx } from "../../../utils/routers/trpc";
-import { subtractDays } from "../../../utils/date";
+import { getLocalTime, subtractDays } from "../../../utils/date";
 
 export const alertRouter = createTRPCRouter({
 
     getAlerts: protectedProcedure
         .query(async ({ ctx }) => {
             try {
-                const userId = getUserIdFromCtx(ctx)
+                const userId = ctx.user!.id;
                 const thirtyDaysAgo = subtractDays(new Date(), 30);
                 const sitesWithAlerts = await ctx.prisma.site.findMany({
                     where: {
@@ -64,12 +63,19 @@ export const alertRouter = createTRPCRouter({
                 });
                 // Flatten the array of site alerts
                 const alertsForUser = sitesWithAlerts.flatMap(site => site.alerts);
+                const returnAlertsForUser = alertsForUser.map((alert) => {
+                    const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
+                    return {
+                        ...alert,
+                        localEventDate: localTime.localDate,
+                        localTimeZone: localTime.timeZone,
+                    }
+                })
                 return {
                     status: 'success',
-                    data: alertsForUser,
+                    data: returnAlertsForUser,
                 };
             } catch (error) {
-                console.log(error)
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `${error}`,
@@ -117,9 +123,15 @@ export const alertRouter = createTRPCRouter({
                         message: `Alert not found`,
                     });
                 }
+                const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
+                const returnAlert = {
+                    ...alert,
+                    localEventDate: localTime.localDate,
+                    localTimeZone: localTime.timeZone,
+                }
                 return {
                     status: 'success',
-                    data: alert,
+                    data: returnAlert,
                 }
             } catch (error) {
                 console.log(error)

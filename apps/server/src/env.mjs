@@ -22,10 +22,9 @@ const server = z.object({
   ),
   // Add `.min(1) on ID and SECRET if you want to make sure they're not empty
 
-  NEXT_AUTH0_CLIENT_ID: z.string(),
-  NEXT_AUTH0_CLIENT_SECRET: z.string(),
-  AUTH0_ISSUER: z.string(),
-  AUTH0_DOMAIN: z.string(),
+  NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string(),
+  NEXT_PUBLIC_AUTH0_ISSUER: z.string(),
+  NEXT_PUBLIC_AUTH0_DOMAIN: z.string(),
   ONESIGNAL_APP_ID: z.string(),
   ONESIGNAL_REST_API_KEY: z.string(),
   TWILIO_ACCOUNT_SID: z.string(),
@@ -35,7 +34,9 @@ const server = z.object({
   SMTP_URL: z.string().url(),
   EMAIL_FROM: z.string(),
   PLANET_API_URL: z.string(),
-  NEXT_PUBLIC_SENTRY_DSN: z.string().optional()
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+  CRON_KEY: z.string().optional(),
+  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
 });
 
 /**
@@ -60,10 +61,9 @@ const processEnv = {
   NODE_ENV: process.env.NODE_ENV,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-  NEXT_AUTH0_CLIENT_ID: process.env.NEXT_AUTH0_CLIENT_ID,
-  NEXT_AUTH0_CLIENT_SECRET: process.env.NEXT_AUTH0_CLIENT_SECRET,
-  AUTH0_ISSUER: process.env.AUTH0_ISSUER,
-  AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
+  NEXT_PUBLIC_AUTH0_CLIENT_ID: process.env.NEXT_AUTH0_CLIENT_ID,
+  NEXT_PUBLIC_AUTH0_ISSUER: process.env.AUTH0_ISSUER,
+  NEXT_PUBLIC_AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
   ONESIGNAL_APP_ID: process.env.ONESIGNAL_APP_ID,
   ONESIGNAL_REST_API_KEY: process.env.ONESIGNAL_REST_API_KEY,
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
@@ -74,7 +74,10 @@ const processEnv = {
   EMAIL_FROM: process.env.EMAIL_FROM,
   PLANET_API_URL: process.env.PLANET_API_URL,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  CRON_KEY: process.env.CRON_KEY,
+  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
 };
+
 
 // Don't touch the part below
 // --------------------------

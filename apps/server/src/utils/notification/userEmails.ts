@@ -97,13 +97,15 @@ const sendAccountDeletionCancellationEmail = async (user: User): Promise<boolean
 };
 
 
-const sendEmailVerificationCode = async (user: User, verificationEmail: string, verificationCode: string): Promise<boolean> => {
+const sendEmailVerificationCode = async (user: User, verificationEmail: string, verificationCode: string, url:string): Promise<boolean> => {
   const params: NotificationParameters = {
     message: `<p>Dear ${getName(user)},</p>
       
       <p>Your FireAlert verification code for ${verificationEmail} is <b>${verificationCode}</b>.This code will expire in 30 minutes.</p>
   
       <p>This verification was initiated by ${user.email}.</p>
+
+      <p>You can also verify by clicking the link: <a href="${url}">${url}</a> </p>
   
       <p>If you have any issues or need any help, please don't hesitate to contact us at <a href="mailto:firealert@plant-for-the-planet.org">firealert@plant-for-the-planet.org</a>.</p>
 

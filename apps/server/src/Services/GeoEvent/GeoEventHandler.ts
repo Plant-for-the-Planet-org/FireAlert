@@ -1,11 +1,11 @@
-import { AlertType, type GeoEventSource, PrismaClient } from "@prisma/client";
-import { SITE_ALERTS_CREATED } from "../../Events/messageConstants";
-// import GeoEvent from "../Interfaces/GeoEvent";
-import { type GeoEvent } from "@prisma/client";
-import siteAlertEmitter from "../../Events/EventEmitter/SiteAlertEmitter";
+import { GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
+import { AlertType } from "../../Interfaces/SiteAlert";
+import { type geoEventInterface as GeoEvent } from "../../Interfaces/GeoEvent";
 import md5 from "md5";
+import { prisma } from '../../server/db';
+import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: string, geoEventProviderId: string, geoEvents: Array<GeoEvent>) => {
+const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
   const buildChecksum = (geoEvent: GeoEvent): string => {
     return md5(
       geoEvent.type +
@@ -16,14 +16,10 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
   };
   // events from multiple sources but same satellite with the same geoEventProviderId will be considered duplicates
 
-  const compareIds = (dbEventIds: string[], fetchedEvents: GeoEvent[]): {
-    newGeoEvents: GeoEvent[];
-    // DeletedIds are those ids in the database, that are not being reported anymore, so the fire has probably ceased.
-    deletedIds: string[];
-  } => {
+  // Check whether the fetchId already exists in the database and returns only the ones that are not in the database in the variable newGeoEvents
+  const compareIds = (dbEventIds: string[], fetchedEvents: GeoEvent[]): GeoEvent[] => {
     const newGeoEvents: GeoEvent[] = [];
     const fetchedIds: string[] = [];
-    const deletedIds: string[] = [];
 
     // Identify new hashes
     fetchedEvents.forEach((fetchedEvent: GeoEvent) => {
@@ -34,79 +30,80 @@ const processGeoEvents = async (providerKey: GeoEventSource, identityGroup: stri
         newGeoEvents.push(fetchedEvent);
       }
     });
-
-    // Identify existing hashes
-    dbEventIds.forEach((dbEventId) => {
-      if (!fetchedIds.includes(dbEventId)) {
-        deletedIds.push(dbEventId);
-      }
-    });
-    return { newGeoEvents, deletedIds };
+    return newGeoEvents;
   };
-
-  const prisma = new PrismaClient();
 
   const fetchDbEventIds = async (
     geoEventProviderId: string
   ): Promise<Array<string>> => {
-    // the the ids of all events from AreaEvent that are either 'pending' or 'notfied'
+    // the the ids of all events from AreaEvent that are either 'pending' or 'notified'
     // having the provided providerKey
     const geoEvents = await prisma.geoEvent.findMany({
       select: { id: true },
       where: { geoEventProviderId: geoEventProviderId }
     });
-
     return geoEvents.map(geoEvent => geoEvent.id);
   };
 
-  const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
+  const newGeoEvents = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
+
   const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
     const filteredNewGeoEvents: GeoEvent[] = [];
     const idsSet: Set<string> = new Set();
-  
+
     for (const geoEvent of newGeoEvents) {
-      if (!idsSet.has(geoEvent.id)) {
+      if (!idsSet.has(geoEvent.id!)) {
         filteredNewGeoEvents.push(geoEvent);
-        idsSet.add(geoEvent.id);
+        idsSet.add(geoEvent.id!);
       }
     }
-  
     return filteredNewGeoEvents;
   };
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
+  logger(`${breadcrumbPrefix} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`, "info");
+
+  let geoEventsCreated = 0;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
-    await prisma.geoEvent.createMany({
-      data: filteredDuplicateNewGeoEvents.map(geoEvent => ({
-        id: geoEvent.id,
-        type: AlertType.fire,
-        latitude: geoEvent.latitude,
-        longitude: geoEvent.longitude,
-        eventDate: geoEvent.eventDate,
-        confidence: geoEvent.confidence,
-        isProcessed: false,
-        providerKey: providerKey,
-        identityGroup: identityGroup,
-        geoEventProviderId: geoEventProviderId,
-        radius: 0,
-        data: geoEvent.data,
-      })),
-    });
+    const geoEventsToBeCreated = filteredDuplicateNewGeoEvents.map(geoEvent => ({
+      id: geoEvent.id,
+      type: AlertType.fire,
+      latitude: geoEvent.latitude,
+      longitude: geoEvent.longitude,
+      eventDate: geoEvent.eventDate,
+      confidence: geoEvent.confidence,
+      isProcessed: false,
+      geoEventProviderClientId: geoEventProviderClientId,
+      geoEventProviderId: geoEventProviderId,
+      radius: geoEvent.radius ? geoEvent.radius : 0,
+      slice: slice,
+      data: geoEvent.data,
+    }))
+
+    // Take an array of GeoEvents to be created 
+    // Define a variable bulkSize with a value of 10,000
+    // Split the variable geoEventsToBeCreated into chunks of bulkSize
+    // Insert each chunk into the database using prism.geoEvent.createMany
+    // Repeat until all chunks have been inserted
+    // Return the number of GeoEvents created
+
+    const bulkSize = 10000;
+    for (let i = 0; i < geoEventsToBeCreated.length; i += bulkSize) {
+      const chunk = geoEventsToBeCreated.slice(i, i + bulkSize);
+      await prisma.geoEvent.createMany({
+        data: chunk,
+        skipDuplicates: true,
+      });
+      geoEventsCreated += chunk.length;
+    }
+
+    logger(`${breadcrumbPrefix} Created ${geoEventsCreated} Geo Events`, "info");
+
   }
-  // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
-  if (deletedIds.length > 0) {
-    await prisma.geoEvent.updateMany({
-      where: {
-        id: { in: deletedIds },
-      },
-      data: {
-        isProcessed: true,
-      },
-    });
-  }
-  siteAlertEmitter.emit(SITE_ALERTS_CREATED, geoEventProviderId);
+
+  return geoEventsCreated;
 };
 
 export default processGeoEvents;

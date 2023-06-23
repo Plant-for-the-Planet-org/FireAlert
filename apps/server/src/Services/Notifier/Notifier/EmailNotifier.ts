@@ -4,6 +4,7 @@ import { NOTIFICATION_METHOD } from "../methodConstants";
 import nodemailer from "nodemailer";
 import { emailTemplateString } from '../../../utils/notification/emailTemplateString';
 import { env } from '../../../env.mjs';
+import { logger } from "../../../../src/server/logger";
 
 // Define Email Template
 interface TemplateData {
@@ -33,7 +34,7 @@ class EmailNotifier implements Notifier {
         
         // if env.SMTP_URL is not set return promise with false
         if (!env.SMTP_URL) {
-            console.error(`Error sending email: SMTP_URL is not set`);
+            logger(`Error sending email: SMTP_URL is not set`, "error");
             return Promise.resolve(false);
         }
         // Establish a transporter using SMTP settings
@@ -54,7 +55,7 @@ class EmailNotifier implements Notifier {
         }
         );
 
-        const mailBody = `${message} </br>${url ? url : ''}`;
+        const mailBody = `${message}`;
         // Define email options
         const mailOptions = {
             from: env.EMAIL_FROM,
@@ -67,10 +68,10 @@ class EmailNotifier implements Notifier {
         return new Promise((resolve, reject) => {
             transporter.sendMail(mailOptions, (err, info) => {
                 if (err) {
-                    console.error(`Error sending email: ${err}`);
+                    logger(`Error sending email: ${err}`, "error");
                     reject(false);
                 } else {
-                    console.log(`Message sent: ${info.response}`);
+                    // logger(`Message sent: ${info.response}`, "info");
                     resolve(true);
                 }
             });

@@ -4,16 +4,15 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { checkUserHasSitePermission, checkIfPlanetROSite } from '../../../utils/routers/site'
-import { getUserIdFromCtx } from '../../../utils/routers/trpc'
-import { Prisma } from "@prisma/client";
+import { checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert } from '../../../utils/routers/site'
+import { Prisma, SiteAlert } from "@prisma/client";
 
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
         .input(createSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             try {
                 const radius = input.radius ?? 0;
                 const origin = 'firealert';
@@ -57,7 +56,7 @@ export const siteRouter = createTRPCRouter({
                     e.type,
                     TRUE,
                     e."eventDate",
-                    e."identityGroup"::"GeoEventDetectionInstrument",
+                    e."geoEventProviderClientId",
                     e.confidence,
                     e.latitude,
                     e.longitude,
@@ -72,6 +71,10 @@ export const siteRouter = createTRPCRouter({
                         AND s."isMonitored" IS TRUE
                 WHERE
                     e."isProcessed" = TRUE
+                    AND (
+                        e.slice = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                        OR '0' = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                    )
                     AND NOT EXISTS (
                         SELECT
                             1
@@ -101,7 +104,7 @@ export const siteRouter = createTRPCRouter({
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
         .query(async ({ ctx, input }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             try {
                 // Only returns a list of sites if the user has sites with the inputted projectId, else returns not found.
                 // TODO: test when this returns an empty array, and when it throws an error. 
@@ -144,7 +147,7 @@ export const siteRouter = createTRPCRouter({
 
     getSites: protectedProcedure
         .query(async ({ ctx }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             try {
                 const sites = await ctx.prisma.site.findMany({
                     where: {
@@ -185,7 +188,7 @@ export const siteRouter = createTRPCRouter({
     getSite: protectedProcedure
         .input(params)
         .query(async ({ ctx, input }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
                 const site = await ctx.prisma.site.findFirst({
@@ -234,7 +237,7 @@ export const siteRouter = createTRPCRouter({
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
             if (!site) {
                 throw new TRPCError({
@@ -296,12 +299,37 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
+    triggerTestAlert: protectedProcedure
+        .input(params)
+        .query(async ({ ctx, input }) => {
+            const userId = ctx.user!.id;
+            const site = await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
+            if (!site) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Site with that id does not exist, cannot trigger alert",
+                });
+            }
+            try {
+                const alert:SiteAlert = await triggerTestAlert(input.siteId)
+                return {
+                    status: 'success',
+                    data: alert,
+                };
+            } catch (error) {
+                console.log(error);
+                throw new TRPCError({
+                    code: `${error.code}`,
+                    message: `${error}`,
+                });
+            }
+        }),
 
     deleteSite: protectedProcedure
         .input(params)
         .mutation(async ({ ctx, input }) => {
             // Check if user is authenticated and not soft deleted
-            const userId = getUserIdFromCtx(ctx)
+            const userId = ctx.user!.id;
             await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
             const isPlanetROSite = await checkIfPlanetROSite({ ctx, siteId: input.siteId })
 

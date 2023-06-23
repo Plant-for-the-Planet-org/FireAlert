@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { type Project, Prisma, PrismaClient, type User } from '@prisma/client';
+import { type Project, Prisma, type PrismaClient, type User } from '@prisma/client';
 import { fetchProjectsWithSitesForUser, planetUser } from '../fetch';
 import { createAlertMethodInPrismaTransaction } from './alertMethod';
 import { env } from '../../env.mjs';
@@ -44,6 +44,7 @@ export function returnUser(user: User) {
         name: user.name,
         image: user.image,
         isPlanetRO: user.isPlanetRO,
+        roles: user.roles,
         lastLogin: user.lastLogin,
         detectionMethods: user.detectionMethods
     };
@@ -65,7 +66,7 @@ interface Auth0User {
 export async function handleNewUser(bearer_token: string) {
 
     // Fetch user data from Auth0
-    const response = await fetch(`${env.AUTH0_DOMAIN}/userinfo`, {
+    const response = await fetch(`${env.NEXT_PUBLIC_AUTH0_DOMAIN}/userinfo`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -81,7 +82,10 @@ export async function handleNewUser(bearer_token: string) {
     const userData: Auth0User = await response.json();
 
     const { sub, name, picture, email } = userData;
-    const email_verified = userData.email_verified === "true" ? true : false
+    // Auth0 has a bug where email_verified is a sometimes string instead of a boolean
+    // Therefore check both string and boolean values
+    
+    const email_verified = userData.email_verified === "true" || true ? true : false
 
     const getPlanetUser = await planetUser(bearer_token)
     const isPlanetRO = getPlanetUser.isPlanetRO
@@ -175,7 +179,7 @@ export async function handleNewUser(bearer_token: string) {
                     e.type,
                     TRUE,
                     e."eventDate",
-                    e."identityGroup"::"GeoEventDetectionInstrument",
+                    e."geoEventProviderClientId",
                     e.confidence,
                     e.latitude,
                     e.longitude,
@@ -190,6 +194,10 @@ export async function handleNewUser(bearer_token: string) {
                     AND s."isMonitored" IS TRUE
                 WHERE
                     e."isProcessed" = TRUE
+                    AND (
+                        e.slice = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                        OR '0' = ANY(array(SELECT jsonb_array_elements_text(slices)))
+                    )
                     AND NOT EXISTS (
                     SELECT
                         1

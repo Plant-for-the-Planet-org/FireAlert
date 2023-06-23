@@ -128,10 +128,12 @@ export const storeOTPInVerificationRequest = async ({ ctx, alertMethod }: CtxWit
     return otp;
 }
 
-export const findAlertMethod = async (alertMethodId: string) => {
+export const findAlertMethod = async (alertMethodId: string, userId?: string) => {
+    const uId = userId ? userId : undefined;
     const alertMethod = await prisma.alertMethod.findFirst({
         where: {
             id: alertMethodId,
+            userId: uId,
             deletedAt: null
         }
     })
@@ -226,17 +228,17 @@ export const deviceVerification = async (destination: string): Promise<boolean> 
 export const handlePendingVerification = async (ctx: TRPCContext, alertMethod: AlertMethod): Promise<VerificationResponse> => {
     await handleOTPSendLimitation({ ctx, alertMethod })
     const otp = await storeOTPInVerificationRequest({ ctx, alertMethod })
+    const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethod.id}/?code=${otp}`
 
     let sendVerificationCode;
     if (alertMethod.method === "email") {
-        sendVerificationCode = await sendEmailVerificationCode(ctx.user!, alertMethod.destination, otp)
+        sendVerificationCode = await sendEmailVerificationCode(ctx.user!, alertMethod.destination, otp, url)
     }
     else {
         // Use NotifierRegistry to send the verification code
         const notifier = NotifierRegistry.get(alertMethod.method)
         const message = `${otp} is your FireAlert one time code.`
         const subject = "Fire Alert Verification"
-        const url = `https://firealert.plant-for-the-planet.org/verify/${alertMethod.id}/${otp}`
         const destination = alertMethod.destination
         const params = {
             message: message,

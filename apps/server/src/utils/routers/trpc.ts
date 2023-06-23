@@ -1,8 +1,8 @@
 import { TRPCError } from '@trpc/server';
-import { InnerTRPCContext } from '../../server/api/trpc';
+import { type InnerTRPCContext } from '../../server/api/trpc';
 import { checkTokenIsValid } from '../../utils/authorization/token'
-import { User } from '@prisma/client';
-import { TRPCContext } from '../../Interfaces/Context'
+import { type User } from '@prisma/client';
+import { type TRPCContext } from '../../Interfaces/Context'
 
 
 interface JwtPayload {
@@ -52,16 +52,6 @@ export async function handleSoftDelete(user: User) {
     }
 }
 
-export function getUserIdFromCtx(ctx: TRPCContext): string {
-    let userId: string;
-    // If admin and impersonatedUser then userId is impersonatedUser.id
-    if (ctx.isAdmin === true && ctx.impersonatedUser !== null) {
-        userId = ctx.impersonatedUser.id
-    }
-    // else userId is user.id (This can be the id of admin themself, or of client themself)
-    userId = ctx.user!.id;
-    return userId
-}
 
 export function ensureAdmin(ctx: TRPCContext) {
     if (ctx.isAdmin === false) {
