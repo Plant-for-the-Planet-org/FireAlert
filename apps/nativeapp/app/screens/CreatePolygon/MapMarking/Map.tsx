@@ -10,7 +10,7 @@ import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
 
-import Markers from '../markers';
+import Markers from '../Markers';
 import {
   useMapLayers,
   MapLayerContext,

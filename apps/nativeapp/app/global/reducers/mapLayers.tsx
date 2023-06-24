@@ -1,6 +1,6 @@
 import React, {createContext, useContext, useReducer} from 'react';
 
-import {SELECT_MAP_LAYER} from '../actions/types';
+import {SELECT_MAP_LAYER} from '../actions/Types';
 
 const initialState = 'Satellite';
 

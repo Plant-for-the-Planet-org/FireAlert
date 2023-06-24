@@ -56,7 +56,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from './permissionAlert/locationPermissionAlerts';
+} from './PermissionAlert/LocationPermissionAlerts';
 
 import {WEB_URLS} from '../../constants';
 import {trpc} from '../../services/trpc';
