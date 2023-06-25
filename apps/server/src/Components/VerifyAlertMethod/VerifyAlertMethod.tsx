@@ -41,17 +41,17 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
                     </div>
 
                     {isDone && (
-                        <div className={classes.oTPTokenHasExpiredPleaseReques}>
+                        <div className={classes.verificationResult}>
                             {isSuccess !== undefined && !isSuccess && (
                                 <>
-                                    <div className={classes.textBlock}>{messageArray[0]}</div>
-                                    <div className={classes.textBlock2}>{messageArray[1]}</div>
+                                    <div className={classes.textBlockError}>{messageArray[0]}</div>
+                                    <div className={classes.textBlock2Error}>{messageArray[1]}</div>
                                 </>
                             )}
                             {isSuccess !== undefined && isSuccess && (
                                 <>
-                                    <div className={classes.textBlock}>{messageArray[0]}</div>
-                                    <div className={classes.successMessage}>{messageArray[1]}</div>
+                                    <div className={classes.textBlockSuccess}>{messageArray[0]}</div>
+                                    <div className={classes.tetBlock2Success}>{messageArray[1]}</div>
                                 </>
                             )}
                         </div>

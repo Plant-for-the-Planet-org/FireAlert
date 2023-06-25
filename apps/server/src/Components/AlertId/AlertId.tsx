@@ -1,15 +1,13 @@
 import { memo } from 'react';
 import type { FC } from 'react';
-
+import dynamic from 'next/dynamic';
 import resets from '../_resets.module.css';
 import classes from './AlertId.module.css';
 import { EllipseIcon } from './AlertIdSvgComponents/EllipseIcon';
 import { CopyIcon } from './AlertIdSvgComponents/CopyIcon';
 import { AlertIcon } from './AlertIdSvgComponents/AlertIcon';
 import { LocationPinIcon } from './AlertIdSvgComponents/LocationPinIcon';
-import { MapViewMobile } from './AlertIdSvgComponents/MapViewMobile';
 import { RadarIcon } from './AlertIdSvgComponents/RadarIcon';
-
 
 interface AlertData {
     daysAgo: string;
@@ -25,12 +23,10 @@ interface Props {
     alertData: AlertData;
 }
 
-
+const Map = dynamic(() => import('./Map'), { ssr: false });
 
 export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, className }: Props) {
-    const googleMapUrl = `https://www.google.com/maps/place/${encodeURIComponent(
-        `${alertData.latitude},${alertData.longitude}`
-    )}/@${alertData.latitude},${alertData.longitude},17z/data=!3m1!4b1!4m4!3m3!8m2!3d${alertData.latitude}!4d${alertData.longitude}?entry=ttu`;
+    const googleMapUrl = `https://maps.google.com/?q=${alertData.latitude},${alertData.longitude}`;
 
     const handleCopyCoordinates = () => {
         navigator.clipboard.writeText(`${alertData.latitude}, ${alertData.longitude}`);
@@ -40,7 +36,9 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
         <div className={`${resets.componentsResets} ${classes.root}`}>
             <div className={classes.AlertId}>
                 <div className={classes.mapView}>
-                    <MapViewMobile className={classes.mapIcon} />
+                    <div id="map" className={classes.mapIcon}>
+                        <Map alertData={alertData} />
+                    </div>
                 </div>
                 <div className={classes.detectionInfo}>
                     <div className={classes.detectionInfoInner}>
@@ -63,7 +61,9 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
                     </div>
                 </div>
                 <div className={classes.alertLocationParent}>
-                    <div className={classes.alertCoordinates}>{alertData.latitude}, {alertData.longitude}</div>
+                    <div className={classes.alertCoordinates}>
+                        {alertData.latitude}, {alertData.longitude}
+                    </div>
                     <div className={classes.locationText}>LOCATION</div>
                     <div className={classes.locationPinIcon}>
                         <LocationPinIcon className={classes.pinIcon} />
@@ -96,5 +96,3 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
         </div>
     );
 });
-
-
