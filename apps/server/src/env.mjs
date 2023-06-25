@@ -37,6 +37,7 @@ const server = z.object({
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   CRON_KEY: z.string().optional(),
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
+  MAP_BOX_ACCESS_TOKEN: z.string().optional(),
 });
 
 /**
@@ -76,6 +77,7 @@ const processEnv = {
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   CRON_KEY: process.env.CRON_KEY,
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
+  MAP_BOX_ACCESS_TOKEN: process.env.MAP_BOX_ACCESS_TOKEN,
 };
 
 

@@ -8,10 +8,6 @@ const Home: NextPage = () => {
       <Head>
         <title>Fire Alert </title>
         <meta name="description" content="FireAlert by Plant-for-the-Planet" />
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
-        />
       </Head>
       <main className={styles.main}>
         <div className={styles.container}>
