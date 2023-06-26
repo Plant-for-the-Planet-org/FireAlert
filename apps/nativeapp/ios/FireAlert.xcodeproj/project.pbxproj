@@ -12,19 +12,19 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		1701D0E67E2A45DB93710162 /* OpenSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 79019359690D4046B888F9F6 /* OpenSans-Bold.ttf */; };
-		2EAE3B078C61802909A0081B /* libPods-FireAlert-FireAlertTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AFB297ED664438AFB90BCB8F /* libPods-FireAlert-FireAlertTests.a */; };
 		521598822A16C59F00A13DF8 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521598812A16C59F00A13DF8 /* NotificationService.swift */; };
 		521598862A16C59F00A13DF8 /* OneSignalNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5215987F2A16C59F00A13DF8 /* OneSignalNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		54B01960090448D3ADC64333 /* OpenSans-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 482DF861E688444092F9B1C5 /* OpenSans-LightItalic.ttf */; };
-		55DB2FAA7613F9AC0658BE21 /* libPods-OneSignalNotificationServiceExtension.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 280D4DFFEF59C12D9A12FDF4 /* libPods-OneSignalNotificationServiceExtension.a */; };
+		60E83307B875E56052D9DB0A /* libPods-OneSignalNotificationServiceExtension.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6858D1EB5521F3526CF49157 /* libPods-OneSignalNotificationServiceExtension.a */; };
 		621368F795B745B9B23CE35D /* Oswald-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4CCF31C4F49748A8A7A7D826 /* Oswald-Bold.ttf */; };
+		75F677C2241CAF3D21FFC3C6 /* libPods-FireAlert.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D8E2817DAC75861511FEA7E /* libPods-FireAlert.a */; };
 		78E92AD48E1C44E1B7E21776 /* OpenSans-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1EFA0C498F4B4D8D9733C852 /* OpenSans-SemiBoldItalic.ttf */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8449CB5D5E054655A4E3FF9F /* OpenSans-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B0177619C0A5497299108BA2 /* OpenSans-BoldItalic.ttf */; };
 		9AC2006E6E5D4EB9BCED0475 /* OpenSans-ExtraBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7FE6AEB8E02A4320B51AC0F2 /* OpenSans-ExtraBoldItalic.ttf */; };
 		AB8E68430FEC45BAA259EF83 /* OpenSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B3B6EE211D3346D3B4AC96DE /* OpenSans-Regular.ttf */; };
+		BEB3596AE1973594B68CF8D6 /* libPods-FireAlert-FireAlertTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C54678FBCB867050DC2E187A /* libPods-FireAlert-FireAlertTests.a */; };
 		C9EAC9AA13724009957C56E3 /* OpenSans-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 168738FC2918490892101EFA /* OpenSans-Light.ttf */; };
-		CF1C6EF2784E0345D228EB1F /* libPods-FireAlert.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 115892C55D46B9D87C8B4CE9 /* libPods-FireAlert.a */; };
 		D2FE74F6234B4F78AEC8B52B /* OpenSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3AB1C84D4BB348ABA09345FF /* OpenSans-SemiBold.ttf */; };
 		E5D202A90F004AEA8B55CBAE /* OpenSans-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E08DC274CBEC4F56B654397D /* OpenSans-ExtraBold.ttf */; };
 		EC42E560C1204636A994820D /* OpenSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5F3756BF3E1B42959CB58DC3 /* OpenSans-Italic.ttf */; };
@@ -65,39 +65,39 @@
 		00E356EE1AD99517003FC87E /* FireAlertTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FireAlertTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* FireAlertTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FireAlertTests.m; sourceTree = "<group>"; };
-		115892C55D46B9D87C8B4CE9 /* libPods-FireAlert.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FireAlert.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0286F577A661A7886410B5AD /* Pods-FireAlert-FireAlertTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert-FireAlertTests.debug.xcconfig"; path = "Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests.debug.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* FireAlert.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FireAlert.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = FireAlert/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = FireAlert/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = FireAlert/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = FireAlert/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = FireAlert/main.m; sourceTree = "<group>"; };
-		160D0E1EEE4E1244D8B8EAA4 /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneSignalNotificationServiceExtension.release.xcconfig"; path = "Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.release.xcconfig"; sourceTree = "<group>"; };
 		168738FC2918490892101EFA /* OpenSans-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Light.ttf"; path = "../app/assets/fonts/OpenSans-Light.ttf"; sourceTree = "<group>"; };
 		1EFA0C498F4B4D8D9733C852 /* OpenSans-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-SemiBoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
-		211009C48584097FEFD33E66 /* Pods-FireAlert-FireAlertTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert-FireAlertTests.debug.xcconfig"; path = "Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests.debug.xcconfig"; sourceTree = "<group>"; };
-		280D4DFFEF59C12D9A12FDF4 /* libPods-OneSignalNotificationServiceExtension.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-OneSignalNotificationServiceExtension.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3AB1C84D4BB348ABA09345FF /* OpenSans-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-SemiBold.ttf"; path = "../app/assets/fonts/OpenSans-SemiBold.ttf"; sourceTree = "<group>"; };
 		482DF861E688444092F9B1C5 /* OpenSans-LightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-LightItalic.ttf"; path = "../app/assets/fonts/OpenSans-LightItalic.ttf"; sourceTree = "<group>"; };
 		4CCF31C4F49748A8A7A7D826 /* Oswald-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Oswald-Bold.ttf"; path = "../app/assets/fonts/Oswald-Bold.ttf"; sourceTree = "<group>"; };
+		51F6A556AB762A631518C8BE /* Pods-FireAlert.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert.debug.xcconfig"; path = "Target Support Files/Pods-FireAlert/Pods-FireAlert.debug.xcconfig"; sourceTree = "<group>"; };
 		5215987A2A16C51000A13DF8 /* FireAlert.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = FireAlert.entitlements; path = FireAlert/FireAlert.entitlements; sourceTree = "<group>"; };
 		5215987F2A16C59F00A13DF8 /* OneSignalNotificationServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OneSignalNotificationServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		521598812A16C59F00A13DF8 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		521598832A16C59F00A13DF8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		5215988B2A16C6AF00A13DF8 /* OneSignalNotificationServiceExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OneSignalNotificationServiceExtension.entitlements; sourceTree = "<group>"; };
-		5C544FB421D523B90308DE35 /* Pods-FireAlert.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert.release.xcconfig"; path = "Target Support Files/Pods-FireAlert/Pods-FireAlert.release.xcconfig"; sourceTree = "<group>"; };
+		5BED06AEB5A0AEFFAD7287CF /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneSignalNotificationServiceExtension.release.xcconfig"; path = "Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.release.xcconfig"; sourceTree = "<group>"; };
+		5DBAF12EA4C1A6AA9C617CE6 /* Pods-FireAlert-FireAlertTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert-FireAlertTests.release.xcconfig"; path = "Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests.release.xcconfig"; sourceTree = "<group>"; };
 		5F3756BF3E1B42959CB58DC3 /* OpenSans-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Italic.ttf"; path = "../app/assets/fonts/OpenSans-Italic.ttf"; sourceTree = "<group>"; };
-		6E2390D7C2142ACBAE87C679 /* Pods-FireAlert-FireAlertTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert-FireAlertTests.release.xcconfig"; path = "Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests.release.xcconfig"; sourceTree = "<group>"; };
+		6858D1EB5521F3526CF49157 /* libPods-OneSignalNotificationServiceExtension.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-OneSignalNotificationServiceExtension.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		79019359690D4046B888F9F6 /* OpenSans-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Bold.ttf"; path = "../app/assets/fonts/OpenSans-Bold.ttf"; sourceTree = "<group>"; };
+		7D8E2817DAC75861511FEA7E /* libPods-FireAlert.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FireAlert.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		7FE6AEB8E02A4320B51AC0F2 /* OpenSans-ExtraBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-ExtraBoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-ExtraBoldItalic.ttf"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = FireAlert/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		9A6A97E821EAD8C316001009 /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneSignalNotificationServiceExtension.debug.xcconfig"; path = "Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.debug.xcconfig"; sourceTree = "<group>"; };
-		AFB297ED664438AFB90BCB8F /* libPods-FireAlert-FireAlertTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FireAlert-FireAlertTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0177619C0A5497299108BA2 /* OpenSans-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-BoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-BoldItalic.ttf"; sourceTree = "<group>"; };
 		B3B6EE211D3346D3B4AC96DE /* OpenSans-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Regular.ttf"; path = "../app/assets/fonts/OpenSans-Regular.ttf"; sourceTree = "<group>"; };
+		C54678FBCB867050DC2E187A /* libPods-FireAlert-FireAlertTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FireAlert-FireAlertTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB106FC7CBA9056CE0F07C0E /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneSignalNotificationServiceExtension.debug.xcconfig"; path = "Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.debug.xcconfig"; sourceTree = "<group>"; };
+		DA672F1488E031BAA89E6C44 /* Pods-FireAlert.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert.release.xcconfig"; path = "Target Support Files/Pods-FireAlert/Pods-FireAlert.release.xcconfig"; sourceTree = "<group>"; };
 		E08DC274CBEC4F56B654397D /* OpenSans-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-ExtraBold.ttf"; path = "../app/assets/fonts/OpenSans-ExtraBold.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F4638578ED557EA3EF9785D6 /* Pods-FireAlert.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert.debug.xcconfig"; path = "Target Support Files/Pods-FireAlert/Pods-FireAlert.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,7 +105,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2EAE3B078C61802909A0081B /* libPods-FireAlert-FireAlertTests.a in Frameworks */,
+				BEB3596AE1973594B68CF8D6 /* libPods-FireAlert-FireAlertTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -113,7 +113,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CF1C6EF2784E0345D228EB1F /* libPods-FireAlert.a in Frameworks */,
+				75F677C2241CAF3D21FFC3C6 /* libPods-FireAlert.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -121,7 +121,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				55DB2FAA7613F9AC0658BE21 /* libPods-OneSignalNotificationServiceExtension.a in Frameworks */,
+				60E83307B875E56052D9DB0A /* libPods-OneSignalNotificationServiceExtension.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -163,9 +163,9 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				115892C55D46B9D87C8B4CE9 /* libPods-FireAlert.a */,
-				AFB297ED664438AFB90BCB8F /* libPods-FireAlert-FireAlertTests.a */,
-				280D4DFFEF59C12D9A12FDF4 /* libPods-OneSignalNotificationServiceExtension.a */,
+				7D8E2817DAC75861511FEA7E /* libPods-FireAlert.a */,
+				C54678FBCB867050DC2E187A /* libPods-FireAlert-FireAlertTests.a */,
+				6858D1EB5521F3526CF49157 /* libPods-OneSignalNotificationServiceExtension.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -235,12 +235,12 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				F4638578ED557EA3EF9785D6 /* Pods-FireAlert.debug.xcconfig */,
-				5C544FB421D523B90308DE35 /* Pods-FireAlert.release.xcconfig */,
-				211009C48584097FEFD33E66 /* Pods-FireAlert-FireAlertTests.debug.xcconfig */,
-				6E2390D7C2142ACBAE87C679 /* Pods-FireAlert-FireAlertTests.release.xcconfig */,
-				9A6A97E821EAD8C316001009 /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */,
-				160D0E1EEE4E1244D8B8EAA4 /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */,
+				51F6A556AB762A631518C8BE /* Pods-FireAlert.debug.xcconfig */,
+				DA672F1488E031BAA89E6C44 /* Pods-FireAlert.release.xcconfig */,
+				0286F577A661A7886410B5AD /* Pods-FireAlert-FireAlertTests.debug.xcconfig */,
+				5DBAF12EA4C1A6AA9C617CE6 /* Pods-FireAlert-FireAlertTests.release.xcconfig */,
+				CB106FC7CBA9056CE0F07C0E /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */,
+				5BED06AEB5A0AEFFAD7287CF /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -252,12 +252,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "FireAlertTests" */;
 			buildPhases = (
-				AAC93228BF41893E6487E9AB /* [CP] Check Pods Manifest.lock */,
+				D59138999FA588A482BE1D34 /* [CP] Check Pods Manifest.lock */,
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				01376992B3F1DC10C8718A2F /* [CP] Embed Pods Frameworks */,
-				44EBD9A87D5800A5E25E123F /* [CP] Copy Pods Resources */,
+				62243EA4319331441CAB75C3 /* [CP] Embed Pods Frameworks */,
+				8E4A256DF735AC460D94F4B5 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -273,15 +273,15 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "FireAlert" */;
 			buildPhases = (
-				C0F5223D49225DE2681E70AA /* [CP] Check Pods Manifest.lock */,
+				93DDD287C4CBE3B7CF848E44 /* [CP] Check Pods Manifest.lock */,
 				FD10A7F022414F080027D42C /* Start Packager */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				8B6BFBC86B4806EEE2CA239F /* [CP] Embed Pods Frameworks */,
-				0BA19008DA2927753FDC8692 /* [CP] Copy Pods Resources */,
 				5215988A2A16C59F00A13DF8 /* Embed Foundation Extensions */,
+				AAC56A9E89A0B1CF33FDC88B /* [CP] Embed Pods Frameworks */,
+				6F5F53CD651DBC67E8CBECED /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -297,7 +297,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 521598872A16C59F00A13DF8 /* Build configuration list for PBXNativeTarget "OneSignalNotificationServiceExtension" */;
 			buildPhases = (
-				5192474FA9673183648C385A /* [CP] Check Pods Manifest.lock */,
+				B7CF1DDCCEFA06D744714C75 /* [CP] Check Pods Manifest.lock */,
 				5215987B2A16C59F00A13DF8 /* Sources */,
 				5215987C2A16C59F00A13DF8 /* Frameworks */,
 				5215987D2A16C59F00A13DF8 /* Resources */,
@@ -392,7 +392,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
+			buildActionMask = 12;
 			files = (
 			);
 			inputPaths = (
@@ -404,9 +404,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../../../node_modules/react-native/scripts/xcode/with-environment.sh\" \nREACT_NATIVE_XCODE=\"../../../node_modules/react-native/scripts/react-native-xcode.sh apps/nativeapp/index.js\"\n\nexport NODE_BINARY=node\nexport PROJECT_ROOT=$PWD/..\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
+			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../../../node_modules/react-native/scripts/xcode/with-environment.sh\" \nREACT_NATIVE_XCODE=\"../../../node_modules/react-native/scripts/react-native-xcode.sh apps/nativeapp/index.js\"\n\nexport NODE_BINARY=/usr/local/opt/node@18/bin/node\nexport PROJECT_ROOT=$PWD/..\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		01376992B3F1DC10C8718A2F /* [CP] Embed Pods Frameworks */ = {
+		62243EA4319331441CAB75C3 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -423,7 +423,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		0BA19008DA2927753FDC8692 /* [CP] Copy Pods Resources */ = {
+		6F5F53CD651DBC67E8CBECED /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -440,7 +440,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		44EBD9A87D5800A5E25E123F /* [CP] Copy Pods Resources */ = {
+		8E4A256DF735AC460D94F4B5 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -457,7 +457,46 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		5192474FA9673183648C385A /* [CP] Check Pods Manifest.lock */ = {
+		93DDD287C4CBE3B7CF848E44 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-FireAlert-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		AAC56A9E89A0B1CF33FDC88B /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B7CF1DDCCEFA06D744714C75 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -479,24 +518,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		8B6BFBC86B4806EEE2CA239F /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		AAC93228BF41893E6487E9AB /* [CP] Check Pods Manifest.lock */ = {
+		D59138999FA588A482BE1D34 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -512,28 +534,6 @@
 			);
 			outputPaths = (
 				"$(DERIVED_FILE_DIR)/Pods-FireAlert-FireAlertTests-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		C0F5223D49225DE2681E70AA /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-FireAlert-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -605,7 +605,7 @@
 /* Begin XCBuildConfiguration section */
 		00E356F61AD99517003FC87E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 211009C48584097FEFD33E66 /* Pods-FireAlert-FireAlertTests.debug.xcconfig */;
+			baseConfigurationReference = 0286F577A661A7886410B5AD /* Pods-FireAlert-FireAlertTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -632,7 +632,7 @@
 		};
 		00E356F71AD99517003FC87E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6E2390D7C2142ACBAE87C679 /* Pods-FireAlert-FireAlertTests.release.xcconfig */;
+			baseConfigurationReference = 5DBAF12EA4C1A6AA9C617CE6 /* Pods-FireAlert-FireAlertTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
@@ -656,7 +656,7 @@
 		};
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F4638578ED557EA3EF9785D6 /* Pods-FireAlert.debug.xcconfig */;
+			baseConfigurationReference = 51F6A556AB762A631518C8BE /* Pods-FireAlert.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -691,7 +691,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5C544FB421D523B90308DE35 /* Pods-FireAlert.release.xcconfig */;
+			baseConfigurationReference = DA672F1488E031BAA89E6C44 /* Pods-FireAlert.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -724,7 +724,7 @@
 		};
 		521598882A16C59F00A13DF8 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9A6A97E821EAD8C316001009 /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */;
+			baseConfigurationReference = CB106FC7CBA9056CE0F07C0E /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */;
 			buildSettings = {
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -765,7 +765,7 @@
 		};
 		521598892A16C59F00A13DF8 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 160D0E1EEE4E1244D8B8EAA4 /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */;
+			baseConfigurationReference = 5BED06AEB5A0AEFFAD7287CF /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */;
 			buildSettings = {
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;

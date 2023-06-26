@@ -1,12 +1,14 @@
 PODS:
-  - A0Auth0 (2.17.2):
-    - Auth0 (~> 2.3)
+  - A0Auth0 (2.17.4):
+    - Auth0 (= 2.3.2)
+    - JWTDecode (= 3.0.1)
     - React-Core
+    - SimpleKeychain (= 1.0.1)
   - Auth0 (2.3.2):
     - JWTDecode (~> 3.0)
     - SimpleKeychain (~> 1.0)
   - boost (1.76.0)
-  - BVLinearGradient (2.6.2):
+  - BVLinearGradient (2.7.3):
     - React-Core
   - CocoaAsyncSocket (7.6.5)
   - DoubleConversion (1.1.6)
@@ -82,9 +84,9 @@ PODS:
   - glog (0.3.5)
   - JWTDecode (3.0.1)
   - libevent (2.1.12)
-  - lottie-ios (3.5.0)
-  - lottie-react-native (6.0.0-rc.6):
-    - lottie-ios (~> 3.5.0)
+  - lottie-ios (4.2.0)
+  - lottie-react-native (6.0.0-rc.7):
+    - lottie-ios (~> 4.2.0)
     - React-Core
   - MapboxCommon (23.5.0)
   - MapboxCoreMaps (10.13.1):
@@ -326,7 +328,7 @@ PODS:
   - react-native-onesignal (4.5.1):
     - OneSignalXCFramework (= 3.12.4)
     - React (< 1.0.0, >= 0.13.0)
-  - react-native-safe-area-context (4.5.3):
+  - react-native-safe-area-context (4.6.3):
     - RCT-Folly
     - RCTRequired
     - RCTTypeSafety
@@ -423,18 +425,18 @@ PODS:
     - React-Core
   - RNFS (2.20.0):
     - React-Core
-  - rnmapbox-maps (10.0.7):
+  - rnmapbox-maps (10.0.8):
     - MapboxMaps (~> 10.13.1)
     - React
     - React-Core
-    - rnmapbox-maps/DynamicLibrary (= 10.0.7)
+    - rnmapbox-maps/DynamicLibrary (= 10.0.8)
     - Turf
-  - rnmapbox-maps/DynamicLibrary (10.0.7):
+  - rnmapbox-maps/DynamicLibrary (10.0.8):
     - MapboxMaps (~> 10.13.1)
     - React
     - React-Core
     - Turf
-  - RNScreens (3.20.0):
+  - RNScreens (3.22.0):
     - React-Core
     - React-RCTImage
   - RNSVG (13.9.0):
@@ -659,10 +661,10 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  A0Auth0: a8e9688791cd7429250ff2402fbd6ecfa71993f4
+  A0Auth0: 5ae918d2f043395f83ac26d6eb85b249bcb54634
   Auth0: 64da28fdc5cd499aa516dc4bfd0ace8efae2c1da
   boost: 57d2868c099736d80fcd648bf211b4431e51a558
-  BVLinearGradient: 34a999fda29036898a09c6a6b728b0b4189e1a44
+  BVLinearGradient: fbe308a1d19a8133f69e033abc85d8008644f5e3
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   DoubleConversion: 5189b271737e1565bdce30deb4a08d647e3f5f54
   FBLazyVector: ad72713385db5289b19f1ead07e8e4aa26dcb01d
@@ -680,8 +682,8 @@ SPEC CHECKSUMS:
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
   JWTDecode: 2eed97c2fa46ccaf3049a787004eedf0be474a87
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
-  lottie-ios: c55158d67d0629a260625cc2ded2052b829e3c3e
-  lottie-react-native: 701060db35cf892b3baa26e8f0fccdc9101a2f80
+  lottie-ios: 809ecf2d460ed650a6aed7aa88b2ec45fab4779c
+  lottie-react-native: a7341509cbc0bf01dff9889d1f7e17e8e745cf9e
   MapboxCommon: fdf7fd31c90b7b607cd9c63e37797f023c01d860
   MapboxCoreMaps: 24270c7c6b8cb71819fc2f3c549db9620ee4d019
   MapboxMaps: cb76511b98d3b95c74b0771ed105bc69f30ace6b
@@ -707,7 +709,7 @@ SPEC CHECKSUMS:
   react-native-geolocation-service: 608e1da71a1ac31b4de64d9ef2815f697978c55b
   react-native-netinfo: ccbe1085dffd16592791d550189772e13bf479e2
   react-native-onesignal: 7bd44dbd031d8d57110c0203836ffc37ddead526
-  react-native-safe-area-context: b8979f5eda6ed5903d4dbc885be3846ea3daa753
+  react-native-safe-area-context: 36cc67648134e89465663b8172336a19eeda493d
   react-native-splash-screen: 4312f786b13a81b5169ef346d76d33bc0c6dc457
   React-perflogger: ec8eef2a8f03ecfa6361c2c5fb9197ef4a29cc85
   React-RCTActionSheet: a0c023b86cf4c862fa9c4eb0f6f91fbe878fb2de
@@ -726,8 +728,8 @@ SPEC CHECKSUMS:
   RNCClipboard: 3f0451a8100393908bea5c5c5b16f96d45f30bfc
   RNDeviceInfo: 475a4c447168d0ad4c807e48ef5e0963a0f4eb1b
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
-  rnmapbox-maps: 0b4fcc6855a8b159fecb94b00b82d7ea0558105d
-  RNScreens: 218801c16a2782546d30bd2026bb625c0302d70f
+  rnmapbox-maps: 3e48c433d2165dbb5cf277f277d58a4c50bbbd05
+  RNScreens: 68fd1060f57dd1023880bf4c05d74784b5392789
   RNSVG: 53c661b76829783cdaf9b7a57258f3d3b4c28315
   SimpleKeychain: 130211269f88f038d7dc5254cf0b1b9ce978c398
   SocketRocket: fccef3f9c5cedea1353a9ef6ada904fde10d6608
