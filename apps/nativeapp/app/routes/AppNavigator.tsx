@@ -16,6 +16,7 @@ import {
 import {CommonStack, SignInStack} from './stack';
 import {clearAll, getData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector, useOneSignal} from '../hooks';
+import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';
 
 const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
 const auth0 = new Auth0({
@@ -42,6 +43,12 @@ export default function AppNavigator() {
       console.log('Device info:', device);
     },
   });
+
+  const handleUrl = url => {
+    console.log(url, 'url');
+  };
+
+  useAppLinkHandler(handleUrl);
 
   React.useEffect(() => {
     onlineManager.setEventListener(setOnline => {

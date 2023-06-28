@@ -42,9 +42,7 @@ export const TRPCProvider: React.FC<{children: React.ReactNode}> = ({
       client={queryClient}
       persistOptions={{persister: asyncStoragePersister}}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
+        {children}
       </trpc.Provider>
     </PersistQueryClientProvider>
   );

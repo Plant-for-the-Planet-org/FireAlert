@@ -728,9 +728,10 @@ const Home = ({navigation, route}) => {
         <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
       ) : null}
       <StatusBar
+        animated
         translucent
-        barStyle={'light-content'}
-        backgroundColor={Colors.TRANSPARENT}
+        barStyle={profileEditModal ? 'dark-content' : 'light-content'}
+        backgroundColor={profileEditModal ? Colors.WHITE : Colors.TRANSPARENT}
       />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <AlertModal
