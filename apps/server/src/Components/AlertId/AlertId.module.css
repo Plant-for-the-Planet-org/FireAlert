@@ -7,21 +7,20 @@
   overflow: hidden;
 }
 .AlertId {
-  position: absolute;
-  left: calc(50% - -0.5px);
-  top: calc(50% - -0.5px);
-  width: 750px;
-  height: 684px;
+  position: relative;
+  left: 15%;
+  top: 10%;
+  width: 65%;
+  height: 26.75rem;
   align-items: flex-start;
   border-radius: 14px;
   background-color: #fff;
   overflow: hidden;
-  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: row;
 }
 .mapView {
-  position: absolute;
-  left: 0;
-  top: 0;
+  position: relative;
   width: 750px;
   height: 367px;
 }
@@ -29,10 +28,14 @@
   width: 100%;
   height: 100%;
 }
+.alertInfo{
+  width:100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 .detectionInfo {
-  position: absolute;
-  left: 20px;
-  top: 387px;
+  position: relative;
   width: min-content;
   height: min-content;
   flex-direction: column;
@@ -52,22 +55,14 @@
   font-weight: 600;
   font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  position: absolute;
-  left: 85.0746%;
-  right: 0;
-  top: 0;
-  bottom: 71.4286%;
+  position: relative;
   width: min-content;
   height: min-content;
   white-space: nowrap;
   flex-direction: column;
 }
 .detectedDate {
-  position: absolute;
-  left: 9.8507%;
-  right: 54.0299%;
-  top: 0;
-  bottom: 48.9796%;
+  position: relative;
   width: min-content;
   height: min-content;
   white-space: nowrap;
@@ -93,11 +88,7 @@
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 .alertConfidence {
-  position: absolute;
-  left: 9.8507%;
-  right: 69.7015%;
-  top: 61.2245%;
-  bottom: 0;
+  position: relative;
   width: min-content;
   height: min-content;
   white-space: nowrap;
@@ -123,11 +114,7 @@
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 .alertIconWrapper {
-  position: absolute;
-  left: 0;
-  right: 93.2836%;
-  top: 4.0816%;
-  bottom: 4.0816%;
+  position: relative;
   width: 45px;
   height: 45px;
   overflow: visible;
@@ -137,11 +124,7 @@
   height: 100%;
 }
 .alertLocationParent {
-  position: absolute;
-  left: 20px;
-  top: 488px;
-  width: 328px;
-  height: 75px;
+  position: relative;
   align-items: flex-start;
   gap: 10px;
   padding: 20px;
@@ -156,9 +139,7 @@
   font-size: 16px;
   font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  position: absolute;
-  left: 49.25px;
-  top: 33px;
+  position: relative;
   width: min-content;
   height: min-content;
   white-space: nowrap;
@@ -170,18 +151,14 @@
   font-weight: bold;
   font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  position: absolute;
-  left: 49.25px;
-  top: 20px;
+  position: relative;
   width: min-content;
   height: min-content;
   white-space: nowrap;
   flex-direction: column;
 }
 .locationPinIcon {
-  position: absolute;
-  left: 20px;
-  top: 28px;
+  position: relative;
   width: 17.2496px;
   height: 20px;
   overflow: visible;
@@ -191,9 +168,7 @@
   height: 100%;
 }
 .ellipseIconParent {
-  position: absolute;
-  left: 275px;
-  top: 22px;
+  position: relative;
   width: 31px;
   height: 31px;
   overflow: visible;
@@ -203,28 +178,20 @@
   height: 100%;
 }
 .copyIconGrandParent {
-  position: absolute;
-  left: 282.5156px;
-  top: 27.6365px;
+  position: relative;
   width: 15.9697px;
   height: 19.7273px;
   align-items: flex-start;
 }
 .copyIconParent {
-  position: absolute;
-  left: -21.0787%;
-  right: -21.0781%;
-  top: -7.5393%;
-  bottom: -7.54%;
+  position: relative;
 }
 .copyIcon {
   width: 100%;
   height: 100%;
 }
 .actionParent {
-  position: absolute;
-  left: 364px;
-  top: 488px;
+  position: relative;
   width: 366px;
   height: 75px;
   align-items: flex-start;
@@ -236,9 +203,7 @@
   overflow: hidden;
 }
 .radarIconParent {
-  position: absolute;
-  left: 20px;
-  top: 28px;
+  position: relative;
   width: 20px;
   height: 20px;
   overflow: visible;
@@ -248,9 +213,7 @@
   height: 100%;
 }
 .actionInner {
-  position: absolute;
-  left: 52px;
-  top: 16px;
+  position: relative;
   width: 240px;
   height: min-content;
   flex-direction: column;
@@ -281,9 +244,7 @@
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 .googleMapsButton {
-  position: absolute;
-  left: 50%;
-  top: 595px;
+  position: relative;
   width: min-content;
   height: min-content;
   padding: 16px 64px;
@@ -291,7 +252,6 @@
   outline-offset: -1px;
   border-radius: 14px;
   background-color: #fff;
-  transform: translateX(-50%);
 }
 .openInGoogleMapsText {
   color: #e86f56;
@@ -305,3 +265,5 @@
   white-space: nowrap;
   flex-direction: column;
 }
+
+
