@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import mapStyle from '../../data/mapStyleOutput.json'
 import Image from 'next/image';
 import mapFocusIcon from '../../../public/alertPage/mapFocus.svg'
+import classes from './MapComponent.module.css'
 
 interface AlertData {
     latitude: string;
@@ -42,8 +43,8 @@ const MapComponent: FC<Props> = ({ alertData }) => {
             mapStyle={mapStyle}
             scrollZoom={false}
         >
-            <Marker longitude={longitude} latitude={latitude} anchor="bottom" >
-                <Image src={mapFocusIcon} alt="Map Focus" />
+            <Marker longitude={longitude} latitude={latitude} anchor="bottom">
+                <Image src={mapFocusIcon} alt="Map Focus" className={classes.mapFocusMarker} />
             </Marker>
             <NavigationControl />
             <ScaleControl />
