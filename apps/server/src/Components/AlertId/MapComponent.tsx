@@ -4,7 +4,7 @@ import Map, { NavigationControl, ScaleControl, FullscreenControl, MapRef, Marker
 import 'maplibre-gl/dist/maplibre-gl.css';
 import mapStyle from '../../data/mapStyleOutput.json'
 import Image from 'next/image';
-import mapFocusPng from '../../../public/alertPage/mapFocus.png'
+import mapFocusIcon from '../../../public/alertPage/mapFocus.svg'
 
 interface AlertData {
     latitude: string;
@@ -43,7 +43,7 @@ const MapComponent: FC<Props> = ({ alertData }) => {
             scrollZoom={false}
         >
             <Marker longitude={longitude} latitude={latitude} anchor="bottom" >
-                <Image src={mapFocusPng} alt="Map Focus" />
+                <Image src={mapFocusIcon} alt="Map Focus" />
             </Marker>
             <NavigationControl />
             <ScaleControl />

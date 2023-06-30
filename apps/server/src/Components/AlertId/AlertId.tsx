@@ -2,10 +2,10 @@ import { memo } from 'react';
 import type { FC } from 'react';
 import dynamic from 'next/dynamic';
 import classes from './AlertId.module.css';
-import alertIcon from '../../../public/alertPage/alertIcon.png'
-import copyIcon from '../../../public/alertPage/copy.png'
-import locationPinIcon from '../../../public/alertPage/locationPin.png'
-import radarIcon from '../../../public/alertPage/radarIcon.png'
+import alertIcon from '../../../public/alertPage/alertIcon.svg'
+import copyIcon from '../../../public/alertPage/copy.svg'
+import locationPinIcon from '../../../public/alertPage/locationPin.svg'
+import radarIcon from '../../../public/alertPage/radarIcon.svg'
 import Image from 'next/image';
 
 interface AlertData {
