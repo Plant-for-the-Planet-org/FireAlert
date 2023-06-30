@@ -23,14 +23,14 @@ import {
   CustomButton,
   FloatingInput,
 } from '../../components';
-import Map from './mapMarking/map';
+import Map from './MapMarking/Map';
 import {trpc} from '../../services/trpc';
 import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
-} from '../home/permissionAlert/locationPermissionAlerts';
+} from '../Home/PermissionAlert/LocationPermissionAlerts';
 import {locationPermission} from '../../utils/permissions';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import distanceCalculator from '../../utils/distanceCalculator';
