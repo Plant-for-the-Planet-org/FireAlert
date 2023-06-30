@@ -2,10 +2,11 @@ import { memo } from 'react';
 import type { FC } from 'react';
 import dynamic from 'next/dynamic';
 import classes from './AlertId.module.css';
-import { Copy } from './AlertIdSvgComponents/Copy';
-import { AlertIcon } from './AlertIdSvgComponents/AlertIcon';
-import { LocationPinIcon } from './AlertIdSvgComponents/LocationPinIcon';
-import { RadarIcon } from './AlertIdSvgComponents/RadarIcon';
+import alertIcon from '../../../public/alertPage/alertIcon.png'
+import copyIcon from '../../../public/alertPage/copy.png'
+import locationPinIcon from '../../../public/alertPage/locationPin.png'
+import radarIcon from '../../../public/alertPage/radarIcon.png'
+import Image from 'next/image';
 
 interface AlertData {
     daysAgo: string;
@@ -35,57 +36,65 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
             <div className={classes.AlertId}>
                 <div className={classes.mapView}>
                     <div id="map" className={classes.mapIcon}>
-                        <MapComponent alertData={alertData}/>
+                        <MapComponent alertData={alertData} />
                     </div>
                 </div>
                 <div className={classes.alertInfo}>
-                    <div className={classes.detectionInfo}>
-                        <div className={classes.detectionInfoInner}>
-                            <div className={classes.detectedByText}>DETECTED BY {alertData.detectedBy}</div>
-                            <div className={classes.detectedDate}>
-                                <p className={classes.detectedDateWrapper}>
-                                    <span className={classes.detectedDays}>{alertData.daysAgo}d ago</span>
-                                    <span className={classes.detectedDateText}> ({alertData.formattedDateString})</span>
-                                </p>
-                            </div>
-                            <div className={classes.alertConfidence}>
-                                <p className={classes.alertConfidenceInner}>
-                                    <span className={classes.alertConfidenceValue}>{alertData.confidence}</span>
-                                    <span className={classes.alertConfidenceText}> confidence</span>
-                                </p>
-                            </div>
+                    <div className={classes.alertInfoSubContainer}>
+                        <div className={classes.detectionInfo}>
                             <div className={classes.alertIconWrapper}>
-                                <AlertIcon className={classes.alertIcon} />
+                                <Image src={alertIcon} alt="Alert Icon" className={classes.alertIcon} />
+                            </div>
+                            <div className={classes.detectionInfoWrapper}>
+                                <div className={classes.detectedByText}>DETECTED BY {alertData.detectedBy}</div>
+                                <div className={classes.detectedInfoInner}>
+                                    <p className={classes.detectedDateWrapper}>
+                                        <span className={classes.detectedDays}>{alertData.daysAgo}d ago</span>
+                                        <span className={classes.detectedDateText}> ({alertData.formattedDateString})</span>
+                                    </p>
+                                    <p className={classes.alertConfidence}>
+                                        <span className={classes.alertConfidenceValue}>{alertData.confidence}</span>
+                                        <span className={classes.alertConfidenceText}> alert confidence</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={classes.alertInfoSecondDiv}>
+                            <div className={classes.alertLocationParent}>
+                                <div className={classes.eightyPercentSectionLocation}>
+                                    <div className={classes.pinIconWrapper}>
+                                        <Image src={locationPinIcon} alt="Location Pin Icon" className={classes.pinIcon} />
+                                    </div>
+                                    <div className={classes.locationInfo}>
+                                        <div className={classes.locationText}>LOCATION</div>
+                                        <div className={classes.alertCoordinates}>
+                                            {alertData.latitude}, {alertData.longitude}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className={classes.copyIconParent} onClick={handleCopyCoordinates}>
+                                    <Image src={copyIcon} alt="Copy Icon" className={classes.copyIcon} />
+                                </div>
+                            </div>
+                            <div className={classes.actionParent}>
+                                <div className={classes.eightyPercentSectionAction}>
+                                    <div className={classes.radarIconWrapper}>
+                                        <Image src={radarIcon} alt="Map Focus" className={classes.radarIcon} />
+                                    </div>
+                                    <p className={classes.actionLabel}>
+                                        <span>Search for the fire within a </span>
+                                        <span className={classes.actionText2}>1km</span>
+                                        <span> radius around the location.</span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className={classes.alertLocationParent}>
-                        <div className={classes.alertCoordinates}>
-                            {alertData.latitude}, {alertData.longitude}
-                        </div>
-                        <div className={classes.locationText}>LOCATION</div>
-                        <div className={classes.locationPinIcon}>
-                            <LocationPinIcon className={classes.pinIcon} />
-                        </div>
-                        <div className={classes.ellipseIconParent}>
-                            <Copy className={classes.ellipseIcon} />
-                        </div>
+                    <div className={classes.buttonDiv}>
+                        <button className={classes.googleMapsButton} onClick={() => window.open(googleMapUrl, '_blank')}>
+                            <div className={classes.openInGoogleMapsText}>Open in Google Maps</div>
+                        </button>
                     </div>
-                    <div className={classes.actionParent}>
-                        <div className={classes.radarIconParent}>
-                            <RadarIcon className={classes.radarIcon} />
-                        </div>
-                        <div className={classes.actionInner}>
-                            <p className={classes.actionLabel}>
-                                <span className={classes.actionText1}>Search for the fire within a </span>
-                                <span className={classes.actionText2}>1km</span>
-                                <span className={classes.actionText3}> radius around the location.</span>
-                            </p>
-                        </div>
-                    </div>
-                    <button className={classes.googleMapsButton} onClick={() => window.open(googleMapUrl, '_blank')}>
-                        <div className={classes.openInGoogleMapsText}>Open in Google Maps</div>
-                    </button>
                 </div>
             </div>
         </div>

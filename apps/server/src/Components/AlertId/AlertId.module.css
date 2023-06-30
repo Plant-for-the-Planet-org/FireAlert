@@ -5,49 +5,76 @@
   align-items: flex-start;
   background-color: #3f3f3f;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .AlertId {
   position: relative;
-  left: 15%;
-  top: 10%;
-  width: 65%;
-  height: 26.75rem;
+  width: 80%;
+  height: 433px;
   align-items: flex-start;
   border-radius: 14px;
   background-color: #fff;
   overflow: hidden;
   display: flex;
   flex-direction: row;
+  max-width: 1000px;
+  align-items: center;
 }
 .mapView {
   position: relative;
-  width: 750px;
-  height: 367px;
+  width: 50%;
+  height: 100%;
+  align-items: center;
 }
+
 .mapIcon {
   width: 100%;
   height: 100%;
+  align-items: center;
 }
-.alertInfo{
-  width:100%;
+
+.alertInfo {
+  width: 50%;
   height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 17px;
+}
+.alertInfoSubContainer {
+  height: 75%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding: 18px;
+  margin-top: 20px;
 }
 .detectionInfo {
-  position: relative;
-  width: min-content;
-  height: min-content;
-  flex-direction: column;
+  width: 100%;
   padding: 20px;
   border-radius: 12px;
   background-color: #eb57571a;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
-.detectionInfoInner {
-  position: relative;
-  width: 670px;
-  height: 49px;
+.alertIconWrapper {
+  object-fit: contain;
+}
+.alertIcon {
+  width: 45px;
+  height: 45px;
+}
+.detectionInfoWrapper {
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .detectedByText {
   color: #4f4f4f;
@@ -55,50 +82,29 @@
   font-weight: 600;
   font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  position: relative;
-  width: min-content;
-  height: min-content;
-  white-space: nowrap;
-  flex-direction: column;
 }
-.detectedDate {
-  position: relative;
-  width: min-content;
-  height: min-content;
-  white-space: nowrap;
+.detectedInfoInner{
+  display: flex;
   flex-direction: column;
 }
 .detectedDateWrapper {
   font-size: 18px;
   font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  flex-shrink: 1;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 .detectedDays {
   color: #e86f56;
-  font-size: 18px;
   font-weight: 600;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 .detectedDateText {
   color: #4f4f4f;
-  font-size: 18px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 .alertConfidence {
-  position: relative;
-  width: min-content;
-  height: min-content;
-  white-space: nowrap;
-  flex-direction: column;
-}
-.alertConfidenceInner {
-  font-size: 14px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  flex-shrink: 1;
+  display: block;
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 .alertConfidenceValue {
   color: #4f4f4f;
@@ -113,37 +119,45 @@
   font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
-.alertIconWrapper {
-  position: relative;
-  width: 45px;
-  height: 45px;
-  overflow: visible;
-}
-.alertIcon {
+.alertInfoSecondDiv{
   width: 100%;
-  height: 100%;
+  align-items: center;
 }
 .alertLocationParent {
-  position: relative;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 20px;
+  width: 100%;
   outline: solid 1px #d9d9d9;
   outline-offset: 0px;
   border-radius: 12px;
   background-color: #ffffff1a;
   overflow: hidden;
+  margin-top: 18px;
+  margin-bottom: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
-.alertCoordinates {
-  color: #4f4f4f;
-  font-size: 16px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  position: relative;
-  width: min-content;
-  height: min-content;
-  white-space: nowrap;
+.eightyPercentSectionLocation{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width:80%;
+  align-items: center;
+}
+.pinIconWrapper {
+  object-fit: contain;
+}
+.pinIcon {
+  width: 17.25px;
+  height: 20px;
+}
+.locationInfo {
+  display: flex;
+  height: 100%;
   flex-direction: column;
+  margin-left: 10px;
+  flex-grow: 1;
 }
 .locationText {
   color: #4f4f4f;
@@ -157,113 +171,238 @@
   white-space: nowrap;
   flex-direction: column;
 }
-.locationPinIcon {
-  position: relative;
-  width: 17.2496px;
-  height: 20px;
-  overflow: visible;
-}
-.pinIcon {
-  width: 100%;
-  height: 100%;
-}
-.ellipseIconParent {
-  position: relative;
-  width: 31px;
-  height: 31px;
-  overflow: visible;
-}
-.ellipseIcon {
-  width: 100%;
-  height: 100%;
-}
-.copyIconGrandParent {
-  position: relative;
-  width: 15.9697px;
-  height: 19.7273px;
-  align-items: flex-start;
-}
-.copyIconParent {
-  position: relative;
-}
-.copyIcon {
-  width: 100%;
-  height: 100%;
-}
-.actionParent {
-  position: relative;
-  width: 366px;
-  height: 75px;
-  align-items: flex-start;
-  padding: 20px;
-  outline: solid 1px #d9d9d9;
-  outline-offset: 0px;
-  border-radius: 12px;
-  background-color: #ffffff1a;
-  overflow: hidden;
-}
-.radarIconParent {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  overflow: visible;
-}
-.radarIcon {
-  width: 100%;
-  height: 100%;
-}
-.actionInner {
-  position: relative;
-  width: 240px;
-  height: min-content;
-  flex-direction: column;
-}
-.actionLabel {
-  font-size: 16px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  flex-shrink: 1;
-}
-.actionText1 {
+.alertCoordinates {
   color: #4f4f4f;
   font-size: 16px;
   font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-}
-.actionText2 {
-  color: #4f4f4f;
-  font-size: 16px;
-  font-weight: bold;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-}
-.actionText3 {
-  color: #4f4f4f;
-  font-size: 16px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-}
-.googleMapsButton {
   position: relative;
-  width: min-content;
-  height: min-content;
-  padding: 16px 64px;
-  outline: solid 1px #e86f56;
-  outline-offset: -1px;
-  border-radius: 14px;
-  background-color: #fff;
-}
-.openInGoogleMapsText {
-  color: #e86f56;
-  font-size: 18px;
-  font-weight: 600;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  z-index: 0;
   width: min-content;
   height: min-content;
   white-space: nowrap;
   flex-direction: column;
 }
+.copyIconParent {
+  position: relative;
+  overflow: visible;
+}
+.copyIcon {
+  width: 31px;
+  height: 31px;
+}
+.actionParent {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 15px;
+  outline: solid 1px #d9d9d9;
+  outline-offset: 0px;
+  border-radius: 12px;
+  background-color: #ffffff1a;
+  overflow: hidden;
+  justify-content: space-between;
+  align-items: center;
+}
+.eightyPercentSectionAction{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width:80%;
+  align-items: center;
+}
+.radarIconWrapper {
+  object-fit: contain;
+}
+.radarIcon {
+  width: 20px;
+  height: 20px;
+}
+.actionLabel {
+  font-size: 16px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  flex-grow: 1;
+  margin-top:0;
+  margin-bottom: 0;
+  color: #4f4f4f;
+  position: relative;
+  width: 240px;
+  height: min-content;
+  flex-direction: column;
+  margin-left: 10px;
+}
+.actionText2 {
+  font-weight: bold;
+}
+.buttonDiv{
+  height:25%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.googleMapsButton {
+  width: 70.5%;
+  padding: 3% 5%;
+  border-radius: 14px;
+  background-color: #e86f56;
+  border-width: 0;
+}
+.openInGoogleMapsText {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  z-index: 0;
+  white-space: nowrap;
+  flex-direction: column;
+  line-height: 24.41px;
+}
 
+/* Tablet View */
+@media (max-width: 1024px) { 
+  .AlertId {
+    position: relative;
+    width: 75%;
+    height: 684px;
+    flex-direction: column;
+    max-width: 720px;
+  }
+  .mapView {
+    position: relative;
+    width: 100%;
+    height: 53%;
+    align-items: center;
+    justify-content: center;
+  }
+  .alertInfo {
+    width: 100%;
+    height: 47%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 5px;
+  }
+  .alertInfoSubContainer{
+    padding:5px 10px;
+    margin-top: 10px;
+  }
+  .detectionInfo{
+    padding: 15px;
+  }
+  .detectionInfoWrapper{
+    display: flex;
+    flex-direction: row-reverse;
+    flex-grow: 1;
+  }
+  .detectedByText{
+    padding-top: 7px;
+  }
+  .alertInfoSecondDiv{
+    display: flex;
+  }
+  .alertLocationParent{
+    margin-right: 10px;
+  }
+  .eightyPercentSectionAction{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width:100%;
+    align-items: center;
+  }
+  .googleMapsButton {
+    width: 41.5%;
+    background-color: #fff;
+    outline: solid 2px #e86f56;
+    outline-offset: -1px;
+  }
+  .openInGoogleMapsText {
+    color: #e86f56;
+  }
+}
+
+/* Smaller tablet view */
+@media (max-width: 813px) {
+  .AlertId {
+    height: 650px;
+  }
+  .mapView {
+    width: 100%;
+    height: 45%;
+  }
+  .alertInfo {
+    width: 100%;
+    height: 55%;
+  }
+  .alertInfoSubContainer{
+    margin-bottom: 10px;
+  }
+  .alertInfoSecondDiv{
+    flex-direction: column;
+    margin-left: 10px;
+  }
+  .actionParent{
+    margin-right: 10px;
+  }
+  .googleMapsButton {
+    width: min-content;
+  }
+}
+
+@media (max-width:681px) {
+  .AlertId{
+    width: 90%;
+  }
+}
+
+@media (max-width:441px) {
+  .AlertId{
+    min-height: 90vh;
+  }
+  .alertIcon {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width:350px) {
+  .AlertId{
+    min-height: 90vh;
+    height: 90vh;
+  }
+  .mapView {
+    height: 45%;
+  }
+  .alertInfo {
+    height: 55%;
+    padding:0;
+  }
+  .alertIcon {
+    width: 30px;
+    height: 30px;
+  }
+  .alertLocationParent{
+    padding:5px;
+  }
+  .actionParent{
+    padding:5px;
+  }
+  .detectionInfo{
+    padding:0;
+  }
+  .alertIconWrapper{
+    display: none;
+  }
+  .pinIconWrapper{
+    display: none;
+  }
+  .radarIconWrapper{
+    display: none;
+  }
+}
 

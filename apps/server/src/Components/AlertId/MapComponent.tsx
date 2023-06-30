@@ -1,11 +1,10 @@
 import React from 'react'
 import { FC, useEffect } from 'react';
-import Map, { NavigationControl, ScaleControl, FullscreenControl, MapRef, MapLayerMouseEvent } from 'react-map-gl/maplibre';
-// import maplibregl from 'maplibre-gl';
-// Import the CSS for maplibre-gl styles
+import Map, { NavigationControl, ScaleControl, FullscreenControl, MapRef, Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import mapStyle from '../../data/mapStyleOutput.json'
-
+import Image from 'next/image';
+import mapFocusPng from '../../../public/alertPage/mapFocus.png'
 
 interface AlertData {
     latitude: string;
@@ -43,6 +42,9 @@ const MapComponent: FC<Props> = ({ alertData }) => {
             mapStyle={mapStyle}
             scrollZoom={false}
         >
+            <Marker longitude={longitude} latitude={latitude} anchor="bottom" >
+                <Image src={mapFocusPng} alt="Map Focus" />
+            </Marker>
             <NavigationControl />
             <ScaleControl />
             <FullscreenControl />
