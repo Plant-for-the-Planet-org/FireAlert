@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import type { FC } from 'react';
-
+import Image from 'next/image';
 import classes from './VerifyAlertMethod.module.css';
-import { FrameIcon } from './VerifyAlertMethodSvgComponent/FrameIcon';
+import letterImage from '../../../public/verify/letterImage.png'
+import OtpBox from './OtpBox';
 
 interface Props {
     className?: string;
@@ -28,7 +29,7 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
             <div className={classes.mainCard}>
                 <div className={classes.mailImageWrapper}>
                     <div className={classes.mailImage}>
-                        <FrameIcon className={classes.image} />
+                        <Image src={letterImage} alt="Letter Image" className={classes.image} />
                     </div>
                 </div>
                 <div className={classes.mainContent}>
@@ -36,26 +37,27 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
                         <div className={classes.verifyAlertMethodText}>Verify Alert Method</div>
                         <div className={classes.code}>Enter the code you received</div>
                     </div>
-                    <div className={classes.otpCard}>
-                        <OtpBox frames={frameValues} />
-                    </div>
-
-                    {isDone && (
-                        <div className={classes.verificationResult}>
-                            {isSuccess !== undefined && !isSuccess && (
-                                <>
-                                    <div className={classes.textBlockError}>{messageArray[0]}</div>
-                                    <div className={classes.textBlock2Error}>{messageArray[1]}</div>
-                                </>
-                            )}
-                            {isSuccess !== undefined && isSuccess && (
-                                <>
-                                    <div className={classes.textBlockSuccess}>{messageArray[0]}</div>
-                                    <div className={classes.tetBlock2Success}>{messageArray[1]}</div>
-                                </>
-                            )}
+                    <div className={classes.midContent}>
+                        <div className={classes.otpCard}>
+                            <OtpBox frames={frameValues} />
                         </div>
-                    )}
+                        {isDone && (
+                            <div className={classes.verificationResult}>
+                                {isSuccess !== undefined && !isSuccess && (
+                                    <>
+                                        <div className={classes.textBlockError}>{messageArray[0]}</div>
+                                        <div className={classes.textBlock2Error}>{messageArray[1]}</div>
+                                    </>
+                                )}
+                                {isSuccess !== undefined && isSuccess && (
+                                    <>
+                                        <div className={classes.textBlockSuccess}>{messageArray[0]}</div>
+                                        <div className={classes.tetBlock2Success}>{messageArray[1]}</div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
                     <button className={classes.completeVerificationButton} onClick={onVerificationComplete}>
                         <div className={classes.completeVerificationText}>Complete Verification</div>
                     </button>
@@ -65,26 +67,9 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
     );
 });
 
-interface OtpValueContainerProps {
-    value: string;
-}
 
-const OtpValueContainer: FC<OtpValueContainerProps> = memo(function OtpValueContainer({ value }) {
-    return <div className={classes.otpValueContainer}>{value}</div>;
-});
 
-interface OtpBoxProps {
-    frames: string[];
-}
 
-const OtpBox: FC<OtpBoxProps> = memo(function OtpBox({ frames }) {
-    return (
-        <>
-            {frames.map((value, index) => (
-                <div key={index} className={classes.otpBox}>
-                    <OtpValueContainer value={value} />
-                </div>
-            ))}
-        </>
-    );
-});
+
+
+

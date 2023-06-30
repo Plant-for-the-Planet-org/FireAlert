@@ -2,7 +2,6 @@
   position: relative;
   width: 100vw;
   height: 100vh;
-  align-items: flex-start;
   background-color: #3f3f3f;
   overflow: hidden;
   display: flex;
@@ -330,6 +329,7 @@
 @media (max-width: 813px) {
   .AlertId {
     height: 650px;
+
   }
   .mapView {
     width: 100%;
@@ -362,7 +362,7 @@
 
 @media (max-width:441px) {
   .AlertId{
-    min-height: 90vh;
+    min-height: 647px;
   }
   .alertIcon {
     width: 30px;
@@ -372,8 +372,8 @@
 
 @media (max-width:350px) {
   .AlertId{
-    min-height: 90vh;
-    height: 90vh;
+    max-height: 90vh;
+    min-height: 604px;
   }
   .mapView {
     height: 45%;
