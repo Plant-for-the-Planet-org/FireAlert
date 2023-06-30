@@ -102,14 +102,14 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     await Promise.all(promises).catch(error => logger(`Something went wrong before creating notifications. ${error}`, "error"));
   }
 
-  let notificationCount;
-  if (newSiteAlertCount > 0) {
-    notificationCount = await createNotifications();
+  // let notificationCount;
+  //if (newSiteAlertCount > 0) {
+    const notificationCount = await createNotifications();
     logger(`Added ${notificationCount} notifications for ${newSiteAlertCount} alerts`, "info");
-  }
-  else {
-    logger(`All done. ${newSiteAlertCount} Alerts. No new notifications. Waving Goodbye!`, "info");
-  }
+  // }
+  // else {
+  //   logger(`All done. ${newSiteAlertCount} Alerts. No new notifications. Waving Goodbye!`, "info");
+  // }
 
   res.status(200).json({
     message: "Cron job executed successfully",
