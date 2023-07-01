@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import type { FC } from 'react';
 import dynamic from 'next/dynamic';
 import classes from './AlertId.module.css';
@@ -27,9 +27,14 @@ const MapComponent = dynamic(() => import('./MapComponent'), { ssr: false });
 export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, className }: Props) {
     const googleMapUrl = `https://maps.google.com/?q=${alertData.latitude},${alertData.longitude}`;
 
+    const [isCoordinatesCopied, setIsCoordinatesCopied] = useState(false);
+
     const handleCopyCoordinates = () => {
+        setIsCoordinatesCopied(true);
         navigator.clipboard.writeText(`${alertData.latitude}, ${alertData.longitude}`);
+        setTimeout(() => setIsCoordinatesCopied(false), 200); // reset after 200ms
     };
+    
 
     return (
         <div className={classes.root}>
@@ -75,7 +80,7 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
                                     </div>
                                 </div>
                                 <div className={classes.copyIconParent} onClick={handleCopyCoordinates}>
-                                    <Image src={copyIcon} alt="Copy Icon" className={classes.copyIcon} />
+                                    <Image src={copyIcon} alt="Copy Icon" className={`${classes.copyIcon} ${isCoordinatesCopied ? classes.copyIconClicked : ''}`} />
                                 </div>
                             </div>
                             <div className={classes.actionParent}>

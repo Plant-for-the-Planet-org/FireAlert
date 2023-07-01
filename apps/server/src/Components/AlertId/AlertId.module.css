@@ -189,10 +189,23 @@
 .copyIconParent {
   position: relative;
   overflow: visible;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s, outline 0.3s;
 }
 .copyIcon {
   width: 31px;
   height: 31px;
+  opacity: 0.95;
+}
+.copyIconParent:hover .copyIcon{
+  opacity: 1;
+}
+.copyIconClicked {
+  transform: scale(0.9);
+  transition: transform 0.1s;
+}
+.copyIconParent:hover .copyIconClicked{
+  opacity: 1;
 }
 .actionParent {
   width: 100%;
