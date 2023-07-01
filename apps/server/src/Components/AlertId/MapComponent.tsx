@@ -4,7 +4,9 @@ import Map, { NavigationControl, ScaleControl, FullscreenControl, MapRef, Marker
 import 'maplibre-gl/dist/maplibre-gl.css';
 import mapStyle from '../../data/mapStyleOutput.json'
 import Image from 'next/image';
-import mapFocusIcon from '../../../public/alertPage/mapFocus.svg'
+import vector from '../../../public/alertPage/mapFocus/Vector.svg'
+import ellipse1 from '../../../public/alertPage/mapFocus/Ellipse1.svg'
+import ellipse2 from '../../../public/alertPage/mapFocus/Ellipse2.svg'
 import classes from './MapComponent.module.css'
 
 interface AlertData {
@@ -44,7 +46,11 @@ const MapComponent: FC<Props> = ({ alertData }) => {
             scrollZoom={false}
         >
             <Marker longitude={longitude} latitude={latitude} anchor="bottom">
-                <Image src={mapFocusIcon} alt="Map Focus" className={classes.mapFocusMarker} />
+                <div className={classes.vectorAnimationContainer}>
+                    <Image src={ellipse1} alt="Ellipse 1" className={classes.pulseAnimation1} />
+                    <Image src={vector} alt="Map Focus" className={classes.vector} />
+                    <Image src={ellipse2} alt="Ellipse 2" className={classes.pulseAnimation2} style={{ animationDelay: '0.5s' }} />
+                </div>
             </Marker>
             <NavigationControl />
             <ScaleControl />
