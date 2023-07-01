@@ -37,9 +37,6 @@ const config = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production"
   },
-  publicRuntimeConfig: {
-    MAP_BOX_ACCESS_TOKEN: process.env.MAP_BOX_ACCESS_TOKEN,
-  },
 };
 export default withSentryConfig(config, {
 // For all available options, see:
