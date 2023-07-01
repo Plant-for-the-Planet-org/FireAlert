@@ -1,9 +1,9 @@
 .root {
   position: relative;
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   background-color: #3f3f3f;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -20,6 +20,8 @@
   flex-direction: row;
   max-width: 1000px;
   align-items: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
 .mapView {
   position: relative;
@@ -48,10 +50,13 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
   padding: 18px;
   margin-top: 20px;
+}
+.alertInfoFirstDiv{
+  width:100%;
 }
 .detectionInfo {
   width: 100%;
@@ -248,8 +253,17 @@
   border-radius: 14px;
   background-color: #e86f56;
   border-width: 0;
+  transition: background-color 0.3s, color 0.3s, outline 0.3s;
 }
-.openInGoogleMapsText {
+
+.googleMapsButton:hover {
+  background-color: #fff;
+  outline: solid 2px #e86f56;
+  outline-offset: -1px;
+  cursor: pointer;
+}
+
+.googleMapsButton .openInGoogleMapsText {
   color: #fff;
   font-size: 18px;
   font-weight: 700;
@@ -259,6 +273,10 @@
   white-space: nowrap;
   flex-direction: column;
   line-height: 24.41px;
+}
+
+.googleMapsButton:hover .openInGoogleMapsText {
+  color: #e86f56;
 }
 
 /* Tablet View */
@@ -319,9 +337,16 @@
     background-color: #fff;
     outline: solid 2px #e86f56;
     outline-offset: -1px;
+    transition: background-color 0.3s, color 0.3s, outline 0.3s; /* Add transition for smooth hover effect */
   }
-  .openInGoogleMapsText {
+  .googleMapsButton:hover {
+    background-color:#e86f56;
+  }
+  .googleMapsButton .openInGoogleMapsText {
     color: #e86f56;
+  }
+  .googleMapsButton:hover .openInGoogleMapsText {
+    color: #fff;
   }
 }
 
@@ -360,9 +385,37 @@
   }
 }
 
+@media (max-width:590px) {
+  .AlertId{
+    min-height: 690px;
+  }
+}
+
+@media (max-width:567px) {
+  .detectionInfo{
+    padding: 15px;
+    flex-grow: 1;
+  }
+}
+
+@media (max-width:513px) {
+  .AlertId{
+    min-height: 725px;
+  }
+  .detectionInfo{
+    flex-grow: 1;
+  }
+}
+
+@media (max-width:487px){
+  .AlertId{
+    min-height: 750px;
+  }
+}
+
 @media (max-width:441px) {
   .AlertId{
-    min-height: 647px;
+    min-height: 750px;
   }
   .alertIcon {
     width: 30px;
@@ -372,6 +425,7 @@
 
 @media (max-width:350px) {
   .AlertId{
+    width:95%;
     max-height: 90vh;
     min-height: 604px;
   }
@@ -403,6 +457,15 @@
   }
   .radarIconWrapper{
     display: none;
+  }
+  .detectedByText {
+    font-size: 9px;
+  }
+  .detectedDateWrapper {
+    font-size: 14px;
+  }
+  .detectionInfoWrapper{
+    padding:5px;
   }
 }
 

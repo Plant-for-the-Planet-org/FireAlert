@@ -1,15 +1,16 @@
 .root {
     position: relative;
     width: 100vw;
-    height: 100vh;
+    min-height: 100vh;
     background-color: #3f3f3f;
-    overflow: hidden;
+    overflow: visible;
     display: flex;
     justify-content: center;
     align-items: center;
     font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
         "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
+
 .mainCard {
     position: relative;
     width: 80%;
@@ -21,7 +22,10 @@
     overflow: hidden;
     display: flex;
     flex-direction: row;
+    margin-top: 20px;
+    margin-bottom: 20px;
 }
+
 .mailImageWrapper {
     position: relative;
     width: 100%;
@@ -34,6 +38,7 @@
     justify-content: center;
     align-items: center;
 }
+
 .mailImage {
     width: 100%;
     height: 100%;
@@ -41,6 +46,7 @@
     justify-content: center;
     align-items: center;
 }
+
 .image {
     width: 351px;
     height: 351px;
@@ -60,11 +66,13 @@
     flex-direction: column;
     align-items: center;
 }
+
 .verifyAlertMethodText {
     color: #182035;
     font-size: 24px;
     font-weight: bold;
 }
+
 .code {
     color: #606268;
     font-size: 16px;
@@ -103,26 +111,33 @@
 }
 
 .textBlockSuccess {
-    color: #006E51;
+    color: #006e51;
     font-size: 14px;
 }
 
 .textBlock2Success {
     margin-top: 0;
-    color: #006E51;
+    color: #006e51;
     font-size: 14px;
 }
 
 .completeVerificationButton {
     width: 71%;
     padding: 16px 64px;
-    outline: solid 1px #e86f56;
-    outline-offset: -1px;
     border-radius: 14px;
+    border-width: 0;
     background-color: #e86f56;
+    transition: background-color 0.3s, color 0.3s, outline 0.3s;
 }
 
-.completeVerificationText {
+.completeVerificationButton:hover {
+    background-color: #fff;
+    outline: solid 2px #e86f56;
+    outline-offset: -1px;
+    cursor: pointer;
+}
+
+.completeVerificationButton .completeVerificationText {
     color: #fff;
     font-size: 18px;
     font-weight: bold;
@@ -131,69 +146,72 @@
     white-space: nowrap;
 }
 
-@media (max-width: 1136px) { 
+.completeVerificationButton:hover .completeVerificationText {
+    color: #e86f56;
+}
+
+@media (max-width: 1136px) {
     .completeVerificationButton {
-        width:min-content;
+        width: min-content;
         height: min-content;
         padding: 10px 40px;
     }
 }
 
-@media (max-width: 769px) { 
-    .mainCard{
+@media (max-width: 769px) {
+    .mainCard {
         width: 50%;
     }
+
     .mailImageWrapper {
         display: none;
     }
 }
 
-@media (max-width: 667px) { 
-    .mainCard{
+@media (max-width: 667px) {
+    .mainCard {
         width: 55%;
     }
 }
 
-@media (max-width: 567px) { 
-    .mainCard{
+@media (max-width: 567px) {
+    .mainCard {
         width: 60%;
     }
 }
 
-@media (max-width: 497px) { 
-    .mainCard{
+@media (max-width: 497px) {
+    .mainCard {
         width: 65%;
     }
+
     .completeVerificationButton {
         padding: 6px 24px;
     }
 }
 
-
-@media (max-width: 497px) { 
-    .mainCard{
+@media (max-width: 497px) {
+    .mainCard {
         width: 70%;
     }
+
     .completeVerificationButton {
         padding: 6px 18px;
     }
 }
 
-@media (max-width: 350px) { 
-    .mainCard{
+@media (max-width: 350px) {
+    .mainCard {
         width: 80%;
     }
+
     .completeVerificationButton {
         padding: 6px 12px;
     }
 }
 
-@media (max-width: 290px) { 
-    .mainCard{
+@media (max-width: 290px) {
+    .mainCard {
         width: 90%;
     }
 }
-
-
-
-

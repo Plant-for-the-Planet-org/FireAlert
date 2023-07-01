@@ -41,6 +41,7 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
                 </div>
                 <div className={classes.alertInfo}>
                     <div className={classes.alertInfoSubContainer}>
+                        <div className={classes.alertInfoFirstDiv}>
                         <div className={classes.detectionInfo}>
                             <div className={classes.alertIconWrapper}>
                                 <Image src={alertIcon} alt="Alert Icon" className={classes.alertIcon} />
@@ -58,6 +59,7 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
                                     </p>
                                 </div>
                             </div>
+                        </div>
                         </div>
                         <div className={classes.alertInfoSecondDiv}>
                             <div className={classes.alertLocationParent}>
