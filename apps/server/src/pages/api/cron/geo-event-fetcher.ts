@@ -30,7 +30,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   let newSiteAlertCount = 0;
   let processedProviders = 0;
 
-  while (true) {
+  while (processedProviders <= 7) {
     const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
         SELECT *
         FROM "GeoEventProvider"
