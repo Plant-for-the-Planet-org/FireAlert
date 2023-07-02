@@ -36,8 +36,7 @@ const server = z.object({
   PLANET_API_URL: z.string(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   CRON_KEY: z.string().optional(),
-  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
-  MAP_BOX_ACCESS_TOKEN: z.string().optional(),
+  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional()
 });
 
 /**
@@ -76,8 +75,7 @@ const processEnv = {
   PLANET_API_URL: process.env.PLANET_API_URL,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   CRON_KEY: process.env.CRON_KEY,
-  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
-  MAP_BOX_ACCESS_TOKEN: process.env.MAP_BOX_ACCESS_TOKEN,
+  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN
 };
 
 
