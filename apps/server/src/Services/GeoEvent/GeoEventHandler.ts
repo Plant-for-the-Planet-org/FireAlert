@@ -1,35 +1,38 @@
-import { GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
+import { type GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
 import { AlertType } from "../../Interfaces/SiteAlert";
 import { type geoEventInterface as GeoEvent } from "../../Interfaces/GeoEvent";
-import md5 from "md5";
+import { createXXHash3 } from "hash-wasm";
 import { prisma } from '../../server/db';
 import { logger } from "../../../src/server/logger";
 
 const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
-  const buildChecksum = (geoEvent: GeoEvent): string => {
-    return md5(
+  const buildChecksum = async (geoEvent: GeoEvent): Promise<string> => {
+    const hasher = await createXXHash3();
+    return hasher.update(
       geoEvent.type +
       geoEvent.latitude.toString() +
       geoEvent.longitude.toString() +
       geoEvent.eventDate.toISOString()
-    );
+    ).digest('hex');
   };
   // events from multiple sources but same satellite with the same geoEventProviderId will be considered duplicates
 
   // Check whether the fetchId already exists in the database and returns only the ones that are not in the database in the variable newGeoEvents
-  const compareIds = (dbEventIds: string[], fetchedEvents: GeoEvent[]): GeoEvent[] => {
+  const compareIds = async (dbEventIds: string[], fetchedEvents: GeoEvent[]): Promise<GeoEvent[]> => {
     const newGeoEvents: GeoEvent[] = [];
     const fetchedIds: string[] = [];
 
     // Identify new hashes
-    fetchedEvents.forEach((fetchedEvent: GeoEvent) => {
-      const id = buildChecksum(fetchedEvent);
+    for (const fetchedEvent of fetchedEvents) {
+      // await keyword added before buildChecksum
+      const id = await buildChecksum(fetchedEvent);
       fetchedIds.push(id);
       if (!dbEventIds.includes(id)) {
         fetchedEvent.id = id;
         newGeoEvents.push(fetchedEvent);
       }
-    });
+    }
+  
     return newGeoEvents;
   };
 
@@ -45,7 +48,7 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
     return geoEvents.map(geoEvent => geoEvent.id);
   };
 
-  const newGeoEvents = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
+  const newGeoEvents = await compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
 
   const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
     const filteredNewGeoEvents: GeoEvent[] = [];
