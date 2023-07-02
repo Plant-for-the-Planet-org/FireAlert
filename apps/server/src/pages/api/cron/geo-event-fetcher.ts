@@ -32,12 +32,13 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   while (true) {
     const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
-          SELECT *
-          FROM "GeoEventProvider"
-          WHERE "isActive" = true
+        SELECT *
+        FROM "GeoEventProvider"
+        WHERE "isActive" = true
           AND "fetchFrequency" IS NOT NULL
-          AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < NOW()
-          LIMIT 4;
+          AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < (current_timestamp AT TIME ZONE 'UTC')
+        LIMIT 4;
+
     `;
     // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
     // Break the loop if there are no active providers
@@ -91,7 +92,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
               id: provider.id
             },
             data: {
-              lastRun: new Date()
+              lastRun: new Date().toISOString()
             },
           });
         });
