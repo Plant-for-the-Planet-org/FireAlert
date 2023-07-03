@@ -32,7 +32,6 @@ import {point, polygon, multiPolygon} from '@turf/helpers';
 import {
   Switch,
   DropDown,
-  AlertModal,
   BottomSheet,
   CustomButton,
   FloatingInput,
@@ -61,22 +60,17 @@ import {
   VerificationWarning,
   DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
-import {
-  updateIsLoggedIn,
-  updateUserDetails,
-} from '../../redux/slices/login/loginSlice';
-
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
-import {clearAll} from '../../utils/localStorage';
 import handleLink from '../../utils/browserLinking';
 import {getDeviceInfo} from '../../utils/deviceInfo';
-import {RADIUS_ARR, WEB_URLS} from '../../constants';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
-import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 import {extractCountryCode} from '../../utils/countryCodeFilter';
+import {updateUserDetails} from '../../redux/slices/login/loginSlice';
+import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
+import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -87,6 +81,7 @@ const Settings = ({navigation}) => {
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
+  const [siteGeometry, setSiteGeometry] = useState<string | null>('');
   const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
   const [isEditSite, setIsEditSite] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -355,23 +350,25 @@ const Settings = ({navigation}) => {
     setDropDownModal(false);
   };
 
-  const handleRadius = (evt, projectId, siteId, siteRadius) => {
+  const handleRadius = (evt, projectId, siteId, siteRadius, siteGeometry) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       projectId,
       siteId,
       siteRadius,
+      siteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
 
-  const handleSiteRadius = (evt, siteId, siteRadius) => {
+  const handleSiteRadius = (evt, siteId, siteRadius, siteGeometry) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       siteId,
       siteRadius,
+      siteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
@@ -405,6 +402,7 @@ const Settings = ({navigation}) => {
     setSiteName(site.name);
     setSiteId(site.id);
     setIsEditSite(!!site.remoteId);
+    setSiteGeometry(site.geometry.type);
     setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 1000);
   };
@@ -549,6 +547,7 @@ const Settings = ({navigation}) => {
                                   item?.id,
                                   sites?.id,
                                   sites?.radius,
+                                  sites?.geometry?.type,
                                 )
                               }
                               disabled={radiusLoaderArr.includes(sites?.id)}
@@ -656,7 +655,12 @@ const Settings = ({navigation}) => {
                     <TouchableOpacity
                       disabled={radiusLoaderArr.includes(item?.id)}
                       onPress={evt =>
-                        handleSiteRadius(evt, item?.id, item?.radius)
+                        handleSiteRadius(
+                          evt,
+                          item?.id,
+                          item?.radius,
+                          item.geometry.type,
+                        )
                       }
                       style={[
                         styles.dropDownRadius,
@@ -1377,7 +1381,9 @@ const Settings = ({navigation}) => {
                 <View style={[styles.commonPadding]}>
                   <DropDown
                     expandHeight={10}
-                    items={RADIUS_ARR}
+                    items={
+                      siteGeometry === 'Point' ? POINT_RADIUS_ARR : RADIUS_ARR
+                    }
                     value={siteRad?.value}
                     onSelectItem={setSiteRad}
                     defaultValue={siteRad?.value}
@@ -1413,7 +1419,10 @@ const Settings = ({navigation}) => {
               <View key={`RADIUS_ARR_${index}`} style={styles.subDropDownCon}>
                 <TouchableOpacity
                   style={styles.siteRadiusCon}
-                  disabled={item?.value === pageXY?.siteRadius}
+                  disabled={
+                    item?.value === pageXY?.siteRadius ||
+                    (pageXY?.siteGeometry === 'Point' && item.value === 0)
+                  }
                   onPress={() => handleSelectRadius(item.value)}>
                   <Text
                     style={[
@@ -1422,6 +1431,10 @@ const Settings = ({navigation}) => {
                         fontFamily: Typography.FONT_FAMILY_BOLD,
                         color: Colors.GRADIENT_PRIMARY,
                       },
+                      pageXY?.siteGeometry === 'Point' &&
+                        item.value === 0 && {
+                          color: Colors.DISABLE,
+                        },
                     ]}>
                     {item.name}
                   </Text>

@@ -51,7 +51,6 @@ const CreatePolygon = ({navigation}) => {
   const {mapInfo} = useContext(BottomBarContext);
 
   const map = useRef(null);
-  const [loader, setLoader] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [visible, setVisible] = useState<boolean>(false);
   const [siteName, setSiteName] = useState<string>('');
@@ -386,17 +385,18 @@ const CreatePolygon = ({navigation}) => {
   return (
     <View style={styles.container}>
       <StatusBar
+        animated
         translucent
-        barStyle={'light-content'}
-        backgroundColor={'transparent'}
+        barStyle={siteNameModalVisible ? 'dark-content' : 'light-content'}
+        backgroundColor={
+          siteNameModalVisible ? Colors.WHITE : Colors.TRANSPARENT
+        }
       />
       <Map
         map={map}
         camera={camera}
-        loader={loader}
         geoJSON={geoJSON}
         location={location}
-        setLoader={setLoader}
         setLocation={setLocation}
         activePolygonIndex={activePolygonIndex}
         markerText={alphabets[activeMarkerIndex]}

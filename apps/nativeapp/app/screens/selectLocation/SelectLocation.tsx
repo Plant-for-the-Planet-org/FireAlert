@@ -38,7 +38,6 @@ import {
   FloatingInput,
 } from '../../components';
 import {trpc} from '../../services/trpc';
-import {RADIUS_ARR} from '../../constants';
 import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {useQueryClient} from '@tanstack/react-query';
@@ -63,6 +62,12 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
+const RADIUS_ARR = [
+  {name: 'Within 100 km', value: 100000},
+  {name: 'Within 10 km', value: 10000},
+  {name: 'Within 5 km', value: 5000},
+];
+
 type CompassImage = 'compass1';
 const images: Record<CompassImage, ImageSourcePropType> = {
   compass1: require('../../assets/images/compassImage.png'),
@@ -71,7 +76,6 @@ const images: Record<CompassImage, ImageSourcePropType> = {
 const SelectLocation = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
   const {mapInfo} = useContext(BottomBarContext);
-  const [loader, setLoader] = useState<boolean>(false);
   const [visible, setVisible] = useState<boolean>(false);
   const [isInitial, setIsInitial] = useState(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -87,7 +91,7 @@ const SelectLocation = ({navigation}) => {
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
 
-  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[2]);
 
   const [enableGetFireAlerts, setEnableGetFireAlerts] =
     useState<boolean>(false);
@@ -259,11 +263,6 @@ const SelectLocation = ({navigation}) => {
     }
   };
 
-  const onChangeRegionStart = () => setLoader(true);
-  const onChangeRegionComplete = () => {
-    setLoader(false);
-  };
-
   const handleSiteModalContinue = () => {
     if (siteName !== '') {
       onSelectLocation();
@@ -312,9 +311,12 @@ const SelectLocation = ({navigation}) => {
   return (
     <>
       <StatusBar
+        animated
         translucent
-        barStyle={'light-content'}
-        backgroundColor={'transparent'}
+        barStyle={siteNameModalVisible ? 'dark-content' : 'light-content'}
+        backgroundColor={
+          siteNameModalVisible ? Colors.WHITE : Colors.TRANSPARENT
+        }
       />
       <MapboxGL.MapView
         ref={map}
@@ -326,8 +328,6 @@ const SelectLocation = ({navigation}) => {
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
-        onCameraChanged={onChangeRegionStart}
-        onMapIdle={onChangeRegionComplete}
         attributionPosition={attributionPosition}>
         <MapboxGL.Images images={images} />
         <MapboxGL.Camera
@@ -501,10 +501,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     bottom: 0,
   },
-  loader: {
-    position: 'absolute',
-    bottom: 67,
-  },
+
   header: {
     top: 50,
     width: 336,

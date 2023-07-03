@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
@@ -59,12 +59,10 @@ interface IMapProps {
 
 export default function Map({
   geoJSON,
-  setLoader,
   map,
   camera,
   setIsCameraRefVisible,
   location,
-  loader,
   markerText,
   activePolygonIndex,
   setLocation,
@@ -73,11 +71,6 @@ export default function Map({
   let shouldRenderShape =
     geoJSON.features[activePolygonIndex].geometry.coordinates.length > 1;
   const {state} = useMapLayers(MapLayerContext);
-  const onChangeRegionStart = () => setLoader(true);
-
-  const onChangeRegionComplete = () => {
-    setLoader(false);
-  };
 
   return (
     <View style={styles.container}>
@@ -90,9 +83,7 @@ export default function Map({
         scaleBarEnabled={false}
         style={styles.container}
         compassImage={'compass1'}
-        onMapIdle={onChangeRegionComplete}
         styleURL={MapboxGL.StyleURL[state]}
-        onCameraChanged={onChangeRegionStart}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
         attributionPosition={attributionPosition}>

@@ -75,11 +75,11 @@ import {clearAll} from '../../utils/localStorage';
 import {categorizedRes} from '../../utils/filters';
 import handleLink from '../../utils/browserLinking';
 import {getFireIcon} from '../../utils/getFireIcon';
-import {RADIUS_ARR, WEB_URLS} from '../../constants';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
+import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -138,6 +138,7 @@ const Home = ({navigation, route}) => {
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
   const [siteName, setSiteName] = useState<string | null>('');
+  const [siteGeometry, setSiteGeometry] = useState<string | null>('');
   const [siteId, setSiteId] = useState<string | null>('');
   const [selectedArea, setSelectedArea] = useState<any>(null);
   const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
@@ -350,6 +351,7 @@ const Home = ({navigation, route}) => {
     setSiteName(site.name);
     setSiteId(site.id);
     setIsEditSite(!!site.remoteId);
+    setSiteGeometry(site.geometry.type);
     setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 500);
   };
@@ -730,8 +732,16 @@ const Home = ({navigation, route}) => {
       <StatusBar
         animated
         translucent
-        barStyle={profileEditModal ? 'dark-content' : 'light-content'}
-        backgroundColor={profileEditModal ? Colors.WHITE : Colors.TRANSPARENT}
+        barStyle={
+          profileEditModal || siteNameModalVisible
+            ? 'dark-content'
+            : 'light-content'
+        }
+        backgroundColor={
+          profileEditModal || siteNameModalVisible
+            ? Colors.WHITE
+            : Colors.TRANSPARENT
+        }
       />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <AlertModal
@@ -1114,7 +1124,9 @@ const Home = ({navigation, route}) => {
               <View style={[styles.commonPadding]}>
                 <DropDown
                   expandHeight={10}
-                  items={RADIUS_ARR}
+                  items={
+                    siteGeometry === 'Point' ? POINT_RADIUS_ARR : RADIUS_ARR
+                  }
                   value={siteRad?.value}
                   onSelectItem={setSiteRad}
                   defaultValue={siteRad?.value}
