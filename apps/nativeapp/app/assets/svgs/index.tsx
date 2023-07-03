@@ -43,6 +43,7 @@ import BackArrowIcon from './backArrowIcon.jsx';
 import LocationPinIcon from './locationPin.jsx';
 import MapOutlineIcon from './mapOutlineIcon.jsx';
 import OrangeFireIcon from './orangeFireIcon.jsx';
+import VerifyAccAlert from './verifyAccAlert.jsx';
 import PurpleFireIcon from './purpleFireIcon.jsx';
 import TrashSolidIcon from './trashSolidIcon.jsx';
 import UserPlaceholder from './userPlaceholder.jsx';
@@ -96,6 +97,7 @@ export {
   SatelliteDish,
   DropdownArrow,
   MapOutlineIcon,
+  VerifyAccAlert,
   OrangeFireIcon,
   PurpleFireIcon,
   TrashSolidIcon,
