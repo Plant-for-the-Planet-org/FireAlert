@@ -86,13 +86,13 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
     }))
 
     // Take an array of GeoEvents to be created 
-    // Define a variable bulkSize with a value of 10,000
+    // Define a variable bulkSize with a value of 20,000
     // Split the variable geoEventsToBeCreated into chunks of bulkSize
     // Insert each chunk into the database using prism.geoEvent.createMany
     // Repeat until all chunks have been inserted
     // Return the number of GeoEvents created
 
-    const bulkSize = 10000;
+    const bulkSize = 20000;
     for (let i = 0; i < geoEventsToBeCreated.length; i += bulkSize) {
       const chunk = geoEventsToBeCreated.slice(i, i + bulkSize);
       await prisma.geoEvent.createMany({
