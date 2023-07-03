@@ -20,21 +20,22 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
   // Check whether the fetchId already exists in the database and returns only the ones that are not in the database in the variable newGeoEvents
   const compareIds = async (dbEventIds: string[], fetchedEvents: GeoEvent[]): Promise<GeoEvent[]> => {
     const newGeoEvents: GeoEvent[] = [];
-    const fetchedIds: string[] = [];
-
+    const dbEventIdsSet = new Set(dbEventIds); // convert array to Set for efficient lookup
+  
     // Identify new hashes
-    for (const fetchedEvent of fetchedEvents) {
-      // await keyword added before buildChecksum
-      const id = await buildChecksum(fetchedEvent);
-      fetchedIds.push(id);
-      if (!dbEventIds.includes(id)) {
-        fetchedEvent.id = id;
-        newGeoEvents.push(fetchedEvent);
+    const fetchedIds = await Promise.all(fetchedEvents.map(buildChecksum)); // compute all checksums concurrently
+  
+    for (let i = 0; i < fetchedEvents.length; i++) {
+      const id = fetchedIds[i];
+      if (!dbEventIdsSet.has(id)) {
+        fetchedEvents[i].id = id;
+        newGeoEvents.push(fetchedEvents[i]);
       }
     }
   
     return newGeoEvents;
   };
+  
 
   const fetchDbEventIds = async (
     geoEventProviderId: string
