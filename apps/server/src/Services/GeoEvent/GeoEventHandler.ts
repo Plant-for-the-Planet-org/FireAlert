@@ -43,8 +43,9 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
     // having the provided providerKey
     const geoEvents = await prisma.geoEvent.findMany({
       select: { id: true },
-      where: { geoEventProviderId: geoEventProviderId }
+      where: { geoEventProviderId: geoEventProviderId, eventDate: { gt: new Date(Date.now() - 30 * 60 * 60 * 1000) }  },
     });
+    // Only compare with data from last 26 hrs
     return geoEvents.map(geoEvent => geoEvent.id);
   };
 
