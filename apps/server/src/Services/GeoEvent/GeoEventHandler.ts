@@ -6,8 +6,9 @@ import { prisma } from '../../server/db';
 import { logger } from "../../../src/server/logger";
 
 const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
-  const buildChecksum = async (geoEvent: GeoEvent): Promise<string> => {
-    const hasher = await createXXHash3();
+  const hasher = await createXXHash3();  // Create the hasher outside the function
+  const buildChecksum = (geoEvent: GeoEvent): string => {
+    hasher.init();  // Reset the hasher
     return hasher.update(
       geoEvent.type +
       geoEvent.latitude.toString() +
@@ -15,6 +16,7 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
       geoEvent.eventDate.toISOString()
     ).digest('hex');
   };
+  
   // events from multiple sources but same satellite with the same geoEventProviderId will be considered duplicates
 
   // Check whether the fetchId already exists in the database and returns only the ones that are not in the database in the variable newGeoEvents
