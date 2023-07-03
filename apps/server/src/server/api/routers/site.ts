@@ -20,7 +20,7 @@ export const siteRouter = createTRPCRouter({
                 // radius 0 on Point would generally not return any results
                 // So monitor 1km around the point by default
 
-                if (input.type === 'Point' && radius === 0) {
+                if (input.type === 'Point' && input.radius === 0) {
                     radius = 1000;
                 }
                 else {
