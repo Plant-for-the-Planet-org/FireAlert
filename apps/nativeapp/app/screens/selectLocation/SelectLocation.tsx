@@ -91,7 +91,7 @@ const SelectLocation = ({navigation}) => {
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
 
-  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[2]);
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
 
   const [enableGetFireAlerts, setEnableGetFireAlerts] =
     useState<boolean>(false);

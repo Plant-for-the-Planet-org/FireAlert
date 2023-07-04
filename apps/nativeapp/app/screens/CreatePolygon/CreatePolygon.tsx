@@ -54,7 +54,7 @@ const CreatePolygon = ({navigation}) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [visible, setVisible] = useState<boolean>(false);
   const [siteName, setSiteName] = useState<string>('');
-  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
   const [alphabets, setAlphabets] = useState<string[]>([]);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
   const [activePolygonIndex, setActivePolygonIndex] = useState<number>(0);

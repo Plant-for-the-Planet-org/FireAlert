@@ -141,7 +141,7 @@ const Home = ({navigation, route}) => {
   const [siteGeometry, setSiteGeometry] = useState<string | null>('');
   const [siteId, setSiteId] = useState<string | null>('');
   const [selectedArea, setSelectedArea] = useState<any>(null);
-  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
   const [isEditSite, setIsEditSite] = useState<boolean>(false);
   const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
 

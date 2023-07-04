@@ -82,7 +82,7 @@ const Settings = ({navigation}) => {
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
   const [siteGeometry, setSiteGeometry] = useState<string | null>('');
-  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
   const [isEditSite, setIsEditSite] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [dropDownModal, setDropDownModal] = useState<boolean>(false);
