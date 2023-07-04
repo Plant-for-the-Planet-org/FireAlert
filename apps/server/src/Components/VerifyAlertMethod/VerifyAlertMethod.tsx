@@ -1,13 +1,13 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import type { FC } from 'react';
 import Image from 'next/image';
 import classes from './VerifyAlertMethod.module.css';
 import letterImage from '../../../public/verify/letterImage.png'
-import OtpBox from './OtpBox';
 
 interface Props {
     className?: string;
-    otp: string;
+    otpValues: string[];
+    setOtpValues: (values: string[]) => void;
     onVerificationComplete: () => void;
     isSuccess: boolean;
     message: string;
@@ -15,15 +15,21 @@ interface Props {
 }
 
 export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
-    otp,
+    otpValues,
+    setOtpValues,
     onVerificationComplete,
     isSuccess,
     message,
-    isDone
+    isDone,
 }: Props) {
-
-    const frameValues = otp ? otp.split('') : [];
     const messageArray = message ? message.split('. ') : []
+
+    const handleInputChange = (index: number, newValue: string) => {
+        const newFrames = [...otpValues];
+        newFrames[index] = newValue;
+        setOtpValues(newFrames);
+    };
+
     return (
         <div className={classes.root}>
             <div className={classes.mainCard}>
@@ -38,9 +44,19 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
                         <div className={classes.code}>Enter the code you received</div>
                     </div>
                     <div className={classes.midContent}>
-                        <div className={classes.otpCard}>
-                            <OtpBox frames={frameValues} />
-                        </div>
+                        {!isDone && (
+                            <div className={classes.otpCard}>
+                                {otpValues.map((value, index) => (
+                                    <div className={classes.otpBoxWrapper} key={index}>
+                                        <input
+                                            className={classes.otpValueContainer}
+                                            defaultValue={value}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(index, e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         {isDone && (
                             <div className={classes.verificationResult}>
                                 {isSuccess !== undefined && !isSuccess && (
@@ -52,24 +68,19 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
                                 {isSuccess !== undefined && isSuccess && (
                                     <>
                                         <div className={classes.textBlockSuccess}>{messageArray[0]}</div>
-                                        <div className={classes.tetBlock2Success}>{messageArray[1]}</div>
+                                        <div className={classes.textBlock2Success}>{messageArray[1]}</div>
                                     </>
                                 )}
                             </div>
                         )}
                     </div>
-                    <button className={classes.completeVerificationButton} onClick={onVerificationComplete}>
-                        <div className={classes.completeVerificationText}>Complete Verification</div>
-                    </button>
+                    {!isDone && (
+                        <button className={classes.completeVerificationButton} onClick={onVerificationComplete}>
+                            <div className={classes.completeVerificationText}>Complete Verification</div>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
     );
 });
-
-
-
-
-
-
-
