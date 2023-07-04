@@ -4,6 +4,7 @@ import {
   Platform,
   TextInput,
   StyleSheet,
+  Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import React, {useState} from 'react';
@@ -11,6 +12,7 @@ import React, {useState} from 'react';
 import {Colors} from '../../styles';
 
 const TOP = Platform.OS === 'ios' ? -8.2 : -8.6;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const FloatingInput = props => {
   const {
@@ -81,7 +83,7 @@ export default FloatingInput;
 
 const styles = StyleSheet.create({
   container: {
-    width: 311,
+    width: SCREEN_WIDTH - 32,
     borderWidth: 2,
     borderRadius: 12,
     paddingHorizontal: 18,

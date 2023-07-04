@@ -12,21 +12,24 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
+  ImageSourcePropType,
 } from 'react-native';
-import moment from 'moment';
+import bbox from '@turf/bbox';
+import moment from 'moment-timezone';
 import MapboxGL from '@rnmapbox/maps';
-import centroid from '@turf/centroid';
-import {polygon} from '@turf/helpers';
+import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
 import Lottie from 'lottie-react-native';
-import Auth0, {useAuth0} from 'react-native-auth0';
+import rewind from '@mapbox/geojson-rewind';
+import {multiPolygon, polygon} from '@turf/helpers';
 import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
+  DropDown,
   LayerModal,
   AlertModal,
   BottomSheet,
@@ -34,18 +37,24 @@ import {
   FloatingInput,
 } from '../../components';
 import {
+  EyeIcon,
+  SiteIcon,
   CopyIcon,
   LayerIcon,
   MyLocIcon,
   RadarIcon,
   CrossIcon,
   LogoutIcon,
+  EyeOffIcon,
   PencilIcon,
   PointSiteIcon,
   SatelliteIcon,
   MapOutlineIcon,
+  TrashSolidIcon,
   LocationPinIcon,
+  PencilRoundIcon,
   UserPlaceholder,
+  GreenMapOutline,
   TrashOutlineIcon,
   DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
@@ -56,9 +65,8 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from './PermissionAlert/LocationPermissionAlerts';
+} from './permissionAlert/locationPermissionAlerts';
 
-import {WEB_URLS} from '../../constants';
 import {trpc} from '../../services/trpc';
 import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
@@ -70,6 +78,8 @@ import {getFireIcon} from '../../utils/getFireIcon';
 import {locationPermission} from '../../utils/permissions';
 import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
+import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -82,8 +92,8 @@ let attributionPosition: any = {
 };
 
 let compassViewMargins = {
-  x: IS_ANDROID ? 12 : 16,
-  y: IS_ANDROID ? 160 : 120,
+  x: IS_ANDROID ? 16 : 17,
+  y: IS_ANDROID ? 160 : 160,
 };
 
 const compassViewPosition = 3;
@@ -91,10 +101,15 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
+type CompassImage = 'compass1';
+const images: Record<CompassImage, ImageSourcePropType> = {
+  compass1: require('../../assets/images/compassImage.png'),
+};
+
 const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
-  const {clearCredentials} = useAuth0();
   const {state} = useMapLayers(MapLayerContext);
+  const {selectedSiteBar, passMapInfo} = useContext(BottomBarContext);
   const {userDetails, configData} = useAppSelector(state => state.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
@@ -123,8 +138,12 @@ const Home = ({navigation, route}) => {
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
   const [siteName, setSiteName] = useState<string | null>('');
+  const [siteGeometry, setSiteGeometry] = useState<string | null>('');
   const [siteId, setSiteId] = useState<string | null>('');
   const [selectedArea, setSelectedArea] = useState<any>(null);
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
+  const [isEditSite, setIsEditSite] = useState<boolean>(false);
+  const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
 
   const map = useRef(null);
   const toast = useToast();
@@ -134,29 +153,41 @@ const Home = ({navigation, route}) => {
   const camera = useRef<MapboxGL.Camera | null>(null);
 
   useEffect(() => {
+    async function passProp() {
+      setSelectedSite({});
+      setSelectedArea(null);
+      setSelectedAlert({});
+      const centerCoordinates = await map.current.getCenter();
+      const currZoom = await map.current.getZoom();
+      passMapInfo({centerCoordinates, currZoom});
+    }
+    passProp();
+  }, [selectedSiteBar]);
+
+  useEffect(() => {
     if (
-      siteInfo?.long !== undefined &&
-      siteInfo?.lat !== undefined &&
       isCameraRefVisible &&
-      camera?.current?.setCamera
+      siteInfo?.bboxGeo?.length > 0 &&
+      camera?.current?.fitBounds
     ) {
       setTimeout(() => {
-        camera.current.setCamera({
-          centerCoordinate: [siteInfo.lat, siteInfo.long],
-          animationDuration: 500,
-          zoomLevel: 10,
-        });
+        camera.current.fitBounds(
+          [siteInfo?.bboxGeo[0], siteInfo?.bboxGeo[1]],
+          [siteInfo?.bboxGeo[2], siteInfo?.bboxGeo[3]],
+          60,
+          500,
+        );
         setSelectedArea(siteInfo?.siteInfo);
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
-      }, 500);
+      }, 1000);
     }
-  }, [isCameraRefVisible, siteInfo?.long, siteInfo?.lat, siteInfo?.siteInfo]);
+  }, [isCameraRefVisible, siteInfo?.siteInfo]);
 
   useEffect(() => {
     if (
       isCameraRefVisible &&
       camera?.current?.setCamera &&
-      configData?.loc?.longitude !== ''
+      !!configData?.loc?.longitude
     ) {
       setIsInitial(false);
       camera.current.setCamera({
@@ -234,6 +265,24 @@ const Home = ({navigation, route}) => {
               }
             : null,
       );
+      queryClient.setQueryData(
+        [
+          ['alert', 'getAlerts'],
+          {input: ['alerts', 'getAlerts'], type: 'query'},
+        ],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item?.site?.id !== req.json.siteId,
+                  ),
+                },
+              }
+            : null,
+      );
       setSelectedSite({});
       setSelectedArea(null);
     },
@@ -260,6 +309,12 @@ const Home = ({navigation, route}) => {
               }
             : null,
       );
+      if (req?.json?.body.hasOwnProperty('isMonitored')) {
+        setSelectedSite({site: res?.json?.data});
+      } else {
+        setSelectedSite({});
+        setSelectedArea(null);
+      }
       setSiteNameModalVisible(false);
     },
     onError: () => {
@@ -267,15 +322,48 @@ const Home = ({navigation, route}) => {
     },
   });
 
+  const softDeleteUser = trpc.user.softDeleteUser.useMutation({
+    retryDelay: 3000,
+    onSuccess: async () => {
+      setShowDelAccount(false);
+      queryClient.clear();
+      await clearAll();
+      dispatch(updateIsLoggedIn(false));
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const onGoBack = () => setShowDelAccount(false);
+
+  const onDeleteAccount = () => {
+    softDeleteUser.mutate({json: {id: userDetails?.data?.id}});
+  };
+
+  const handleDelAccount = () => {
+    setProfileModalVisible(false);
+    setTimeout(() => setShowDelAccount(true), 500);
+  };
+
   const handleEditSite = site => {
     setSelectedSite({});
     setSiteName(site.name);
     setSiteId(site.id);
+    setIsEditSite(!!site.remoteId);
+    setSiteGeometry(site.geometry.type);
+    setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 500);
   };
 
   const handleEditSiteInfo = () => {
-    updateSite.mutate({json: {params: {siteId}, body: {name: siteName}}});
+    let payload = {
+      json: {params: {siteId}, body: {name: siteName, radius: siteRad?.value}},
+    };
+    if (isEditSite) {
+      delete payload.json.body.name;
+    }
+    updateSite.mutate(payload);
   };
 
   const handleDeleteSite = (id: string) => {
@@ -384,8 +472,8 @@ const Home = ({navigation, route}) => {
       });
       auth0.webAuth.clearSession().then(async () => {
         dispatch(updateIsLoggedIn(false));
+        queryClient.clear();
         await clearAll();
-        await clearCredentials();
       });
     } catch (e) {
       console.log('Log out cancelled');
@@ -395,7 +483,7 @@ const Home = ({navigation, route}) => {
   const handleEditProfileName = () => {
     setLoading(true);
     const payload = {
-      name: profileName.trim(),
+      name: profileName?.trim(),
     };
     updateUser.mutate({json: {body: payload}});
   };
@@ -411,14 +499,13 @@ const Home = ({navigation, route}) => {
   const handleGoogleRedirect = () => {
     const lat = Number.parseFloat(selectedAlert?.latitude);
     const lng = Number.parseFloat(selectedAlert?.longitude);
-    const scheme = Platform.select({ios: 'maps:0,0?q=', android: 'geo:0,0?q='});
+    const scheme = Platform.select({ios: 'maps:', android: 'geo:'});
     const latLng = `${lat},${lng}`;
-    const label = selectedAlert?.site;
     const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
+      ios: `${scheme}//?q=${lat},${lng}`,
+      android: `${scheme}${latLng}`,
     });
-    handleLink(url);
+    handleLink(url, lat, lng);
   };
 
   const _copyToClipboard = loc => () => {
@@ -460,7 +547,11 @@ const Home = ({navigation, route}) => {
               alertsArr[counter]?.longitude,
               alertsArr[counter]?.latitude,
             ],
-            padding: {paddingBottom: SCREEN_HEIGHT / 4},
+            padding: {
+              paddingBottom: IS_ANDROID
+                ? SCREEN_HEIGHT / 2.8
+                : SCREEN_HEIGHT / 4,
+            },
             zoomLevel: ZOOM_LEVEL,
             animationDuration: ANIMATION_DURATION,
           });
@@ -530,7 +621,6 @@ const Home = ({navigation, route}) => {
       }}>
       <MapboxGL.FillLayer
         id="fillLayer"
-        layerIndex={2}
         style={{
           fillColor: Colors.GRADIENT_PRIMARY,
           fillOpacity: 0.4,
@@ -554,25 +644,32 @@ const Home = ({navigation, route}) => {
       shape={{
         type: 'FeatureCollection',
         features:
-          formattedSites?.polygon?.map((singleSite, i) => {
-            return {
-              type: 'Feature',
-              properties: {site: singleSite},
-              geometry: singleSite?.geometry,
-            };
-          }) || [],
+          (formattedSites?.polygon ?? [])
+            .concat(formattedSites?.multipolygon ?? [])
+            ?.map((singleSite, i) => {
+              return {
+                type: 'Feature',
+                properties: {site: singleSite},
+                geometry: singleSite?.geometry,
+              };
+            }) || [],
       }}
       onPress={e => {
+        let bboxGeo = null;
         setSelectedArea(e?.features);
-        let centerOfPolygon = centroid(
-          polygon(e?.features[0]?.geometry?.coordinates),
+        if (e?.features[0]?.geometry?.type === 'MultiPolygon') {
+          bboxGeo = bbox(
+            multiPolygon(rewind(e?.features[0]?.geometry.coordinates)),
+          );
+        } else {
+          bboxGeo = bbox(polygon(e?.features[0]?.geometry.coordinates));
+        }
+        camera.current.fitBounds(
+          [bboxGeo[0], bboxGeo[1]],
+          [bboxGeo[2], bboxGeo[3]],
+          60,
+          500,
         );
-        const centerCoordinate = centerOfPolygon?.geometry?.coordinates;
-        camera.current.setCamera({
-          centerCoordinate,
-          zoomLevel: 10,
-          animationDuration: 500,
-        });
         setSelectedSite(e?.features[0]?.properties);
       }}>
       <MapboxGL.FillLayer
@@ -599,13 +696,16 @@ const Home = ({navigation, route}) => {
     <>
       <MapboxGL.MapView
         ref={map}
+        compassEnabled
         style={styles.map}
         logoEnabled={false}
         scaleBarEnabled={false}
+        compassImage={'compass1'}
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
         attributionPosition={attributionPosition}>
+        <MapboxGL.Images images={images} />
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;
@@ -629,7 +729,20 @@ const Home = ({navigation, route}) => {
       {Object.keys(selectedAlert).length ? (
         <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
       ) : null}
-      <StatusBar translucent backgroundColor={Colors.TRANSPARENT} />
+      <StatusBar
+        animated
+        translucent
+        barStyle={
+          profileEditModal || siteNameModalVisible
+            ? 'dark-content'
+            : 'light-content'
+        }
+        backgroundColor={
+          profileEditModal || siteNameModalVisible
+            ? Colors.WHITE
+            : Colors.TRANSPARENT
+        }
+      />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />
       <AlertModal
         visible={isLocationAlertShow}
@@ -657,15 +770,28 @@ const Home = ({navigation, route}) => {
         onPressPrimaryBtn={onPressPerDeniedAlertPrimaryBtn}
         onPressSecondaryBtn={onPressPerDeniedAlertSecondaryBtn}
       />
+      <AlertModal
+        visible={showDelAccount}
+        heading={'Delete Account'}
+        message={
+          'If you proceed, your FireAlert data will be scheduled for deletion in 7 days. If you change your mind please login again to cancel the deletion.\n\nTo delete your Plant-for-the-Planet Account, and Platform data, please visit pp.eco'
+        }
+        primaryBtnText={'Delete'}
+        secondaryBtnText={'Go Back'}
+        onPressPrimaryBtn={onDeleteAccount}
+        onPressSecondaryBtn={onGoBack}
+        showSecondaryButton={true}
+      />
       <TouchableOpacity
+        activeOpacity={0.7}
         onPress={handleUser}
         style={[styles.layerIcon, styles.avatarContainer]}
         accessibilityLabel="layer"
         accessible={true}
         testID="layer">
-        {userDetails?.data?.image || userDetails?.picture ? (
+        {userDetails?.data?.image ? (
           <Image
-            source={{uri: userDetails?.data?.image || userDetails?.picture}}
+            source={{uri: userDetails?.data?.image}}
             style={styles.userAvatar}
           />
         ) : (
@@ -673,6 +799,7 @@ const Home = ({navigation, route}) => {
         )}
       </TouchableOpacity>
       <TouchableOpacity
+        activeOpacity={0.7}
         onPress={handleLayer}
         style={styles.layerIcon}
         accessibilityLabel="layer"
@@ -681,6 +808,7 @@ const Home = ({navigation, route}) => {
         <LayerIcon width={45} height={45} />
       </TouchableOpacity>
       <TouchableOpacity
+        activeOpacity={0.7}
         onPress={handleMyLocation}
         style={styles.myLocationIcon}
         accessibilityLabel="my_location"
@@ -695,20 +823,43 @@ const Home = ({navigation, route}) => {
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.siteTitleCon}>
-            <Text style={styles.siteTitle}>
-              {userDetails?.data?.name || 'Anonymous Firefighter'}
-            </Text>
+            <View style={styles.profileHeader}>
+              {userDetails?.data?.image ? (
+                <Image
+                  source={{
+                    uri: userDetails?.data?.image,
+                  }}
+                  style={[styles.userAvatar, {width: 81, height: 81}]}
+                />
+              ) : (
+                <UserPlaceholder width={81} height={81} />
+              )}
+              <View style={styles.profileInfo}>
+                <Text style={styles.lightText}>Name</Text>
+                <Text style={styles.pfName}>
+                  {userDetails?.data?.name || 'Anonymous Firefighter'}
+                </Text>
+              </View>
+            </View>
             <TouchableOpacity onPress={handlePencil}>
-              <PencilIcon />
+              <PencilRoundIcon />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={handleOpenPlatform} style={styles.btn}>
-            <MapOutlineIcon />
-            <Text style={styles.siteActionText}>Open Platform</Text>
+          <TouchableOpacity
+            onPress={handleOpenPlatform}
+            style={styles.platFormBtn}>
+            <GreenMapOutline />
+            <Text style={styles.siteActionPfText}>Open Platform</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.btn}>
             <LogoutIcon />
-            <Text style={styles.siteActionText}>Logout</Text>
+            <Text style={styles.siteActionPfText}>Logout</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDelAccount}
+            style={[styles.btn, {marginBottom: 16}]}>
+            <TrashSolidIcon width={20} height={20} />
+            <Text style={styles.siteActionPfText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
       </BottomSheet>
@@ -729,32 +880,65 @@ const Home = ({navigation, route}) => {
               </Text>
               <Text style={styles.eventDate}>
                 <Text style={styles.eventFromNow}>
-                  {moment(selectedAlert?.eventDate).fromNow()}
+                  {moment(selectedAlert?.localEventDate)
+                    ?.tz(selectedAlert?.localTimeZone)
+                    ?.fromNow()}
                 </Text>{' '}
-                ({moment(selectedAlert?.eventDate).format('DD MMM YYYY')})
+                (
+                {moment(selectedAlert?.localEventDate)
+                  ?.tz(selectedAlert?.localTimeZone)
+                  ?.format('DD MMM YYYY [at] HH:mm')}
+                )
               </Text>
               <Text style={styles.confidence}>
-                {selectedAlert?.confidence} alert confidence
+                <Text style={styles.confidenceVal}>
+                  {selectedAlert?.confidence}
+                </Text>{' '}
+                alert confidence
               </Text>
             </View>
           </View>
           <View
             style={[
-              styles.satelliteInfoCon,
-              {justifyContent: 'space-between'},
+              styles.alertLocInfoCon,
+              {marginTop: 30, justifyContent: 'space-between'},
             ]}>
+            <View style={styles.satelliteInfoLeft}>
+              <View style={styles.satelliteIcon}>
+                <SiteIcon />
+              </View>
+              {selectedAlert?.site?.project ? (
+                <View style={styles.satelliteInfo}>
+                  <Text style={styles.satelliteLocText}>PROJECT</Text>
+                  <Text style={styles.alertLocText}>
+                    {selectedAlert?.site?.project?.name}{' '}
+                    <Text style={{fontSize: Typography.FONT_SIZE_12}}>
+                      {selectedAlert?.site?.name}
+                    </Text>
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.satelliteInfo}>
+                  <Text style={styles.satelliteLocText}>SITE</Text>
+                  <Text style={styles.alertLocText}>
+                    {selectedAlert?.site?.name}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={styles.separator} />
+          <View
+            style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
                 <LocationPinIcon />
               </View>
               <View style={styles.satelliteInfo}>
-                <Text style={styles.satelliteText}>LOCATION</Text>
-                <Text style={styles.eventDate}>
+                <Text style={styles.satelliteLocText}>LOCATION</Text>
+                <Text style={styles.alertLocText}>
                   {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
                   {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
-                </Text>
-                <Text style={styles.confidence}>
-                  {selectedAlert?.confidence} alert confidence
                 </Text>
               </View>
             </View>
@@ -766,17 +950,26 @@ const Home = ({navigation, route}) => {
               <CopyIcon />
             </TouchableOpacity>
           </View>
-          <View style={styles.satelliteInfoCon}>
+          <View style={styles.separator} />
+          <View style={styles.alertRadiusInfoCon}>
             <View style={styles.satelliteIcon}>
               <RadarIcon />
             </View>
             <View style={styles.satelliteInfo}>
-              <Text style={styles.eventDate}>
-                Search for the fire within a 1km radius around the location.
+              <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
+                Search for the fire within a{' '}
+                <Text
+                  style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
+                  {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
+                  km
+                </Text>{' '}
+                radius around the location.
               </Text>
             </View>
           </View>
-          <TouchableOpacity onPress={handleGoogleRedirect} style={styles.btn}>
+          <TouchableOpacity
+            onPress={handleGoogleRedirect}
+            style={styles.simpleBtn}>
             <Text style={[styles.siteActionText, {marginLeft: 0}]}>
               Open in Google Maps
             </Text>
@@ -785,7 +978,7 @@ const Home = ({navigation, route}) => {
       </BottomSheet>
       {/* site Info modal */}
       <BottomSheet
-        isVisible={Object.keys(selectedSite)?.length > 0}
+        isVisible={!!Object.keys(selectedSite)?.length}
         backdropColor={'transparent'}
         onBackdropPress={() => {
           setSelectedArea(null);
@@ -806,16 +999,41 @@ const Home = ({navigation, route}) => {
               </Text>
             </View>
             <TouchableOpacity
-              disabled={selectedSite?.site?.project?.id}
               onPress={() => handleEditSite(selectedSite?.site)}>
               <PencilIcon />
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            disabled={deleteSite?.isLoading || selectedSite?.site?.project?.id}
+            disabled={updateSite?.isLoading}
+            onPress={() =>
+              updateSite.mutate({
+                json: {
+                  params: {siteId: selectedSite?.site?.id},
+                  body: {isMonitored: !selectedSite?.site?.isMonitored},
+                },
+              })
+            }
+            style={[styles.simpleBtn]}>
+            {updateSite?.isLoading ? (
+              <ActivityIndicator color={Colors.PRIMARY} />
+            ) : (
+              <>
+                {selectedSite?.site?.isMonitored ? <EyeOffIcon /> : <EyeIcon />}
+                <Text style={[styles.siteActionText]}>
+                  {selectedSite?.site?.isMonitored
+                    ? 'Disable Monitoring'
+                    : 'Enable Monitoring'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            disabled={
+              deleteSite?.isLoading || !!selectedSite?.site?.project?.id
+            }
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
             style={[
-              styles.btn,
+              styles.simpleBtn,
               selectedSite?.site?.project?.id && {
                 borderColor: Colors.GRAY_LIGHTEST,
               },
@@ -859,7 +1077,7 @@ const Home = ({navigation, route}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Edit Your Name
           </Text>
           <View
@@ -890,17 +1108,32 @@ const Home = ({navigation, route}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Enter Site Name
           </Text>
           <View
             style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
-            <FloatingInput
-              autoFocus
-              isFloat={false}
-              value={siteName}
-              onChangeText={setSiteName}
-            />
+            <View>
+              <FloatingInput
+                autoFocus
+                isFloat={false}
+                value={siteName}
+                editable={!isEditSite}
+                onChangeText={setSiteName}
+              />
+              <View style={[styles.commonPadding]}>
+                <DropDown
+                  expandHeight={10}
+                  items={
+                    siteGeometry === 'Point' ? POINT_RADIUS_ARR : RADIUS_ARR
+                  }
+                  value={siteRad?.value}
+                  onSelectItem={setSiteRad}
+                  defaultValue={siteRad?.value}
+                  label={'Notify me if fires occur...'}
+                />
+              </View>
+            </View>
             <CustomButton
               title="Continue"
               titleStyle={styles.title}
@@ -928,7 +1161,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 72 : 101,
+    bottom: IS_ANDROID ? 102 : 101,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
@@ -973,6 +1206,25 @@ const styles = StyleSheet.create({
   commonPadding: {
     paddingHorizontal: 16,
   },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  lightText: {
+    fontSize: Typography.FONT_SIZE_12,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    color: Colors.GRAY_DEEP,
+  },
+  pfName: {
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.TEXT_COLOR,
+    width: SCREEN_WIDTH / 2,
+  },
+  profileInfo: {
+    marginLeft: 16,
+  },
   siteTitleCon: {
     marginTop: 16,
     flexDirection: 'row',
@@ -985,7 +1237,29 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     width: SCREEN_WIDTH / 1.3,
   },
+  platFormBtn: {
+    height: 61,
+    marginTop: 16,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 20,
+    backgroundColor: Colors.PLANET_DARK_GREEN + '10',
+    borderColor: Colors.PLANET_DARK_GREEN + '20',
+  },
   btn: {
+    height: 61,
+    marginTop: 16,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 20,
+    backgroundColor: Colors.GRADIENT_PRIMARY + '10',
+    borderColor: Colors.GRADIENT_PRIMARY + '20',
+  },
+  simpleBtn: {
     height: 56,
     marginTop: 22,
     borderWidth: 1,
@@ -1001,16 +1275,34 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
   },
+  siteActionPfText: {
+    marginLeft: 15,
+    color: Colors.PLANET_DARK_GRAY,
+    fontSize: Typography.FONT_SIZE_18,
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+  },
   alertSpot: {
     width: 150,
     zIndex: 20,
     height: 150,
     position: 'absolute',
-    bottom: IS_ANDROID ? SCREEN_HEIGHT / 3.56 : SCREEN_HEIGHT / 1.95,
+    bottom: IS_ANDROID ? SCREEN_HEIGHT / 1.64 : SCREEN_HEIGHT / 1.95,
     alignSelf: 'center',
   },
   satelliteInfoCon: {
     marginTop: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.GRADIENT_PRIMARY + '10',
+    paddingHorizontal: 22,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  alertLocInfoCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  alertRadiusInfoCon: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -1026,6 +1318,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_10,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
+  satelliteLocText: {
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_8,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+  },
   eventFromNow: {
     color: Colors.GRADIENT_PRIMARY,
     fontSize: Typography.FONT_SIZE_18,
@@ -1037,20 +1334,30 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_18,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
+  alertLocText: {
+    marginVertical: 2,
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
   confidence: {
     color: Colors.TEXT_COLOR,
     fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
+  confidenceVal: {
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    textTransform: 'capitalize',
+  },
   crossContainer: {
     width: 25,
     marginTop: 60,
-    marginHorizontal: 40,
+    marginHorizontal: 16,
   },
   heading: {
     marginTop: 20,
     marginBottom: 10,
-    fontSize: Typography.FONT_SIZE_24,
+    fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
   },
@@ -1078,5 +1385,10 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     fontFamily: Typography.FONT_FAMILY_ITALIC,
     paddingHorizontal: 10,
+  },
+  separator: {
+    height: 0.4,
+    marginVertical: 16,
+    backgroundColor: '#BDBDBD',
   },
 });

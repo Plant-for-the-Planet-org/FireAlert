@@ -1,9 +1,16 @@
+import {
+  View,
+  Text,
+  Modal,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import React, {memo} from 'react';
-import {Modal, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
 import {LayerCheck} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
-import {SELECT_MAP_LAYER} from '../../global/actions/Types';
+import {SELECT_MAP_LAYER} from '../../global/actions/types';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 interface ILayerModalProps {
@@ -15,7 +22,7 @@ const layers = [
   {title: 'Street', value: 'Street'},
   {title: 'Outdoors', value: 'Outdoors'},
   {title: 'Satellite', value: 'Satellite'},
-  {title: 'Satellite-street', value: 'SatelliteStreet'},
+  {title: 'Satellite & Streets', value: 'SatelliteStreet'},
 ];
 
 const LayerModal = ({visible, onRequestClose = () => {}}: ILayerModalProps) => {
@@ -28,7 +35,10 @@ const LayerModal = ({visible, onRequestClose = () => {}}: ILayerModalProps) => {
 
   return (
     <Modal onRequestClose={onRequestClose} visible={visible} transparent>
-      <TouchableOpacity onPress={onRequestClose} style={styles.container}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onRequestClose}
+        style={styles.container}>
         <View style={styles.subContainer}>
           {layers.map((item, index) => (
             <View key={item?.title}>
@@ -64,9 +74,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   subContainer: {
-    top: 140,
-    right: 82,
-    width: 169,
+    top: Platform.OS === 'ios' ? 200 : 150,
+    right: 16,
+    width: 175,
     borderRadius: 12,
     backgroundColor: Colors.WHITE,
     paddingVertical: 6,

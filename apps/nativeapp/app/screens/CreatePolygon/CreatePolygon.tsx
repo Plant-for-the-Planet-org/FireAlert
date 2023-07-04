@@ -11,29 +11,35 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
+import area from '@turf/area';
+import bbox from '@turf/bbox';
 import MapboxGL from '@rnmapbox/maps';
+import {polygon, convertArea} from '@turf/helpers';
 import {useQueryClient} from '@tanstack/react-query';
-import React, {useEffect, useRef, useState} from 'react';
-import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
+import Toast, {useToast} from 'react-native-toast-notifications';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 
 import {
+  DropDown,
   AlertModal,
   LayerModal,
   CustomButton,
   FloatingInput,
 } from '../../components';
-import Map from './MapMarking/Map';
+import Map from './mapMarking/map';
 import {trpc} from '../../services/trpc';
+import {RADIUS_ARR} from '../../constants';
 import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
-} from '../Home/PermissionAlert/LocationPermissionAlerts';
+} from '../home/permissionAlert/locationPermissionAlerts';
 import {locationPermission} from '../../utils/permissions';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import distanceCalculator from '../../utils/distanceCalculator';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -42,12 +48,13 @@ const ANIMATION_DURATION = 1000;
 
 const CreatePolygon = ({navigation}) => {
   const camera = useRef<MapboxGL.Camera | null>(null);
+  const {mapInfo} = useContext(BottomBarContext);
 
   const map = useRef(null);
-  const [loader, setLoader] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [visible, setVisible] = useState<boolean>(false);
   const [siteName, setSiteName] = useState<string>('');
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
   const [alphabets, setAlphabets] = useState<string[]>([]);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
   const [activePolygonIndex, setActivePolygonIndex] = useState<number>(0);
@@ -86,8 +93,37 @@ const CreatePolygon = ({navigation}) => {
   });
 
   const toast = useToast();
+  const modalToast = useRef();
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
+
+  useEffect(() => {
+    if (isCameraRefVisible && camera?.current?.setCamera) {
+      setIsInitial(false);
+      camera.current.setCamera({
+        centerCoordinate: mapInfo?.centerCoordinates,
+        zoomLevel: mapInfo?.currZoom,
+        animationDuration: 100,
+      });
+    }
+  }, [isCameraRefVisible, mapInfo?.centerCoordinate, mapInfo?.currZoom]);
+
+  const _handleViewMap = (siteInfo: object) => {
+    let highlightSiteInfo = siteInfo;
+    let bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
+    highlightSiteInfo = siteInfo?.geometry;
+
+    navigation.navigate('Home', {
+      bboxGeo,
+      siteInfo: [
+        {
+          type: 'Feature',
+          geometry: highlightSiteInfo,
+          properties: {site: siteInfo},
+        },
+      ],
+    });
+  };
 
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
@@ -108,7 +144,7 @@ const CreatePolygon = ({navigation}) => {
       setEnableGetFireAlerts(true);
       setLoading(false);
       setSiteNameModalVisible(false);
-      navigation.navigate('Home');
+      _handleViewMap(res.json.data);
     },
     onError: () => {
       setLoading(false);
@@ -139,7 +175,7 @@ const CreatePolygon = ({navigation}) => {
   const onPressLocationAlertPrimaryBtn = () => {
     setIsLocationAlertShow(false);
     if (IS_ANDROID) {
-      updateCurrentPosition();
+      checkPermission();
     } else {
       Linking.openURL('app-settings:');
     }
@@ -191,7 +227,7 @@ const CreatePolygon = ({navigation}) => {
       await locationPermission();
       // MapboxGL.setTelemetryEnabled(false);
 
-      updateCurrentPosition(showAlert);
+      await updateCurrentPosition(showAlert);
       return true;
     } catch (err: any) {
       if (err?.message == 'blocked') {
@@ -259,15 +295,28 @@ const CreatePolygon = ({navigation}) => {
 
   const postPolygon = () => {
     setLoading(true);
-    const payload = {
-      type: 'Polygon',
-      name: siteName,
-      geometry: {
-        coordinates: [geoJSON.features[0].geometry.coordinates],
+    const areaInHactares = convertArea(
+      area(polygon([geoJSON.features[0].geometry.coordinates])),
+      'meters',
+      'hectares',
+    );
+    if (areaInHactares <= 1000000) {
+      const payload = {
         type: 'Polygon',
-      },
-    };
-    postSite.mutate({json: payload});
+        name: siteName,
+        radius: siteRad?.value,
+        geometry: {
+          coordinates: [geoJSON.features[0].geometry.coordinates],
+          type: 'Polygon',
+        },
+      };
+      postSite.mutate({json: payload});
+    } else {
+      modalToast.current.show('The area is exceeds 1 million hectares', {
+        type: 'warning',
+      });
+      setLoading(false);
+    }
   };
 
   const addPolygon = () => {
@@ -289,7 +338,8 @@ const CreatePolygon = ({navigation}) => {
     }
   };
 
-  const onPressPerBlockedAlertPrimaryBtn = () => {};
+  const onPressPerBlockedAlertPrimaryBtn = () =>
+    onPressLocationAlertPrimaryBtn();
   const onPressPerBlockedAlertSecondaryBtn = () => {
     BackHandler.exitApp();
   };
@@ -302,11 +352,11 @@ const CreatePolygon = ({navigation}) => {
   useEffect(() => {
     const watchId = Geolocation.watchPosition(
       position => {
-        onUpdateUserLocation(position);
+        // onUpdateUserLocation(position);
         setLocation(position);
       },
       err => {
-        setIsLocationAlertShow(true);
+        console.log(err);
       },
       {
         enableHighAccuracy: true,
@@ -323,10 +373,6 @@ const CreatePolygon = ({navigation}) => {
   }, []);
 
   useEffect(() => {
-    onUpdateUserLocation(location);
-  }, [isCameraRefVisible, location]);
-
-  useEffect(() => {
     if (geoJSON.features[0].geometry.coordinates.length <= 2) {
       geoJSON.features[0].geometry.type = 'LineString';
     }
@@ -339,17 +385,18 @@ const CreatePolygon = ({navigation}) => {
   return (
     <View style={styles.container}>
       <StatusBar
+        animated
         translucent
-        barStyle={'light-content'}
-        backgroundColor={'transparent'}
+        barStyle={siteNameModalVisible ? 'dark-content' : 'light-content'}
+        backgroundColor={
+          siteNameModalVisible ? Colors.WHITE : Colors.TRANSPARENT
+        }
       />
       <Map
         map={map}
         camera={camera}
-        loader={loader}
         geoJSON={geoJSON}
         location={location}
-        setLoader={setLoader}
         setLocation={setLocation}
         activePolygonIndex={activePolygonIndex}
         markerText={alphabets[activeMarkerIndex]}
@@ -433,22 +480,40 @@ const CreatePolygon = ({navigation}) => {
         <KeyboardAvoidingView
           {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
+          <Toast ref={modalToast} offsetBottom={100} duration={1000} />
           <TouchableOpacity
             onPress={handleCloseSiteModal}
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, styles.commonPadding]}>
+          <Text
+            style={[
+              styles.heading,
+              styles.commonPadding,
+              {marginTop: 20, marginBottom: 10},
+            ]}>
             Enter Site Name
           </Text>
           <View
             style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
-            <FloatingInput
-              autoFocus
-              isFloat={false}
-              label={'Site Name'}
-              onChangeText={setSiteName}
-            />
+            <View>
+              <FloatingInput
+                autoFocus
+                isFloat={false}
+                label={'Site Name'}
+                onChangeText={setSiteName}
+              />
+              <View style={[styles.commonPadding]}>
+                <DropDown
+                  expandHeight={10}
+                  items={RADIUS_ARR}
+                  value={siteRad?.value}
+                  onSelectItem={setSiteRad}
+                  defaultValue={siteRad?.value}
+                  label={'Notify me if fires occur...'}
+                />
+              </View>
+            </View>
             <CustomButton
               title="Continue"
               isLoading={loading}
@@ -517,7 +582,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 92 : 138,
+    top: IS_ANDROID ? 122 : 138,
     backgroundColor: Colors.WHITE,
   },
   myLocationIcon: {
@@ -528,7 +593,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 92 : 112,
+    bottom: IS_ANDROID ? 102 : 112,
     backgroundColor: Colors.WHITE,
   },
   siteModalStyle: {
@@ -543,17 +608,15 @@ const styles = StyleSheet.create({
   crossContainer: {
     width: 25,
     marginTop: 60,
-    marginHorizontal: 40,
+    marginHorizontal: 16,
   },
   heading: {
-    marginTop: 20,
-    marginBottom: 10,
-    fontSize: Typography.FONT_SIZE_24,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
   },
   commonPadding: {
-    paddingHorizontal: 40,
+    paddingHorizontal: 16,
   },
   crossIcon: {
     width: 30,
