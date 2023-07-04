@@ -664,7 +664,7 @@
 				CODE_SIGN_ENTITLEMENTS = FireAlert/FireAlert.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = UYRJ8SA699;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = FireAlert/Info.plist;
@@ -699,7 +699,7 @@
 				CODE_SIGN_ENTITLEMENTS = FireAlert/FireAlert.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 0;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = UYRJ8SA699;
 				INFOPLIST_FILE = FireAlert/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FireAlert;
