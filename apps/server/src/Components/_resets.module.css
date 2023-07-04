@@ -1,0 +1,36 @@
+:where(.componentsResets),
+:where(.componentsResets) * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  flex-shrink: 0;
+  text-decoration: none;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+:where(.componentsResets),
+:where(.componentsResets) :not(span, a, ul, ol, li, p) {
+  display: flex;
+}
+
+:where(.componentsResets) ul,
+:where(.componentsResets) ol {
+  text-indent: 0;
+  padding-inline-start: 1.5em;
+}
+
+:where(.componentsResets) p:empty::before {
+  content: '';
+  display: inline-block;
+}
+
+:where(.componentsResets) img {
+  object-fit: contain;
+}
+
+:where(.componentsResets) svg {
+  overflow: visible;
+}

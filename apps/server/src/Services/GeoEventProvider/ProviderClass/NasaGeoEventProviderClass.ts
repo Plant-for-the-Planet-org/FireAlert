@@ -39,7 +39,7 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
             const time = record.acq_time;
             const hours = Math.floor(time / 100); // Extract hours from the time
             const minutes = time % 100; // Extract minutes from the time
-            const date = new Date(year, month - 1, day, hours, minutes) ?? new Date();
+            const date = new Date(Date.UTC(year, month - 1, day, hours, minutes)); // Create a Date object in UTC
 
             interface ConfidenceLevels {
                 [key: string]: {

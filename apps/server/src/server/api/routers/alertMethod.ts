@@ -66,7 +66,7 @@ export const alertMethodRouter = createTRPCRouter({
             if (verificatonRequest.expires < currentTime) {
                 throw new TRPCError({
                     code: 'UNAUTHORIZED',
-                    message: `Token Expired. Request a new token.`,
+                    message: `OTP Token Expired. Request a new OTP.`,
                 });
             }
             if (verificatonRequest.token === input.body.token) {

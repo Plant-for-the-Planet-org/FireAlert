@@ -14,9 +14,18 @@ export const siteRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.user!.id;
             try {
-                const radius = input.radius ?? 0;
                 const origin = 'firealert';
                 const lastUpdated = new Date();
+                let radius = 0;
+                // radius 0 on Point would generally not return any results
+                // So monitor 1km around the point by default
+
+                if (input.type === 'Point' && input.radius === 0) {
+                    radius = 1000;
+                }
+                else {
+                    radius = input.radius;
+                }
 
                 const site = await ctx.prisma.site.create({
                     data: {
@@ -311,7 +320,7 @@ export const siteRouter = createTRPCRouter({
                 });
             }
             try {
-                const alert:SiteAlert = await triggerTestAlert(input.siteId)
+                const alert: SiteAlert = await triggerTestAlert(input.siteId)
                 return {
                     status: 'success',
                     data: alert,
