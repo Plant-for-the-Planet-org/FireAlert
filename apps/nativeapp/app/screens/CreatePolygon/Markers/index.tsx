@@ -4,34 +4,27 @@ import {StyleSheet} from 'react-native';
 import Config from 'react-native-config';
 import {useEffect, useRef, useState} from 'react';
 
-import {Colors} from '../../../styles';
 import MarkerSVG from '../markerSVG';
+import {Colors} from '../../../styles';
 import {toLetters} from '../../../utils/mapMarkingCoordinate';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
 interface MarkersProps {
   geoJSON: geoJSONType;
-  onPressMarker?: any;
-  locateTree?: string;
+  onPressMarker?: () => void;
   draggable?: boolean;
-  onDeselected?: () => void;
+  onDeselected?: (e: any, index: number) => void;
   onDragStart?: (e: any, index: number) => void;
   onDrag?: (e: any, index: number) => void;
   onDragEnd?: (e: any, index: number) => void;
   ignoreLastMarker?: boolean;
   type?: 'LineString' | 'Polygon';
   nonDragablePoint?: boolean;
-  setCoordinateModalShow: React.Dispatch<React.SetStateAction<boolean>>;
-  setCoordinateIndex: React.Dispatch<
-    React.SetStateAction<number | null | undefined>
-  >;
-  setIsSampleTree: React.Dispatch<React.SetStateAction<boolean | null>>;
 }
 const Markers = ({
   geoJSON,
-  onPressMarker,
-  locateTree,
+  onPressMarker = () => {},
   draggable,
   onDeselected,
   onDragStart,
@@ -60,7 +53,6 @@ const Markers = ({
         i={i}
         alphabets={alphabets}
         onPressMarker={onPressMarker}
-        locateTree={locateTree}
         draggable={draggable}
         onDeselected={onDeselected}
         onDragStart={onDragStart}
@@ -83,7 +75,7 @@ interface PointAnnotationMarkerProps {
   onPressMarker: any;
   locateTree: string | undefined;
   draggable?: boolean;
-  onDeselected?: () => void;
+  onDeselected?: () => (e: any, index: number) => void;
   onDragStart?: (e: any, index: number) => void;
   onDrag?: (e: any, index: number) => void;
   onDragEnd?: (e: any, index: number) => void;
@@ -116,9 +108,10 @@ const PointAnnotationMarker = ({
   const calloutRefList = useRef<MapboxGL.Callout[] | null>([]);
 
   let onePolygon = geoJSON.features[i];
+
   let coordinates =
     type === 'Polygon'
-      ? onePolygon.geometry.coordinates[0]
+      ? onePolygon?.geometry?.coordinates[0]
       : onePolygon.geometry.coordinates;
 
   useEffect(() => {
@@ -132,57 +125,34 @@ const PointAnnotationMarker = ({
     );
   }, [onePolygon.geometry.coordinates]);
 
-  if (onePolygon.geometry.type === 'Point') {
+  const iterationCount = ignoreLastMarker
+    ? coordinates?.length - 1
+    : coordinates?.length;
+  for (let j = 0; j < iterationCount; j++) {
+    let oneMarker = coordinates[j];
+
     markers.push(
       <MapboxGL.PointAnnotation
-        key={`${i}-point-${nonDragablePoint ? 'nonDragablePoint' : ''}`}
-        id={`${i}-point-${nonDragablePoint ? 'nonDragablePoint' : ''}`}
-        coordinate={onePolygon.geometry.coordinates}
+        key={`${i}${j}`}
+        id={`${i}${j}`}
+        coordinate={oneMarker}
         ref={el => {
-          annotationRefList.current[i] = el;
+          annotationRefList.current[j] = el;
+        }}
+        onSelected={feature => {
+          onPressMarker({
+            coordinate: feature.geometry.coordinates,
+            coordinateIndex: j,
+          });
         }}
         draggable={draggable}
-        onDeselected={onDeselected}
-        onDragStart={e => onDragStart(e, i)}
-        onDrag={e => onDrag(e, i)}
-        onDragEnd={e => onDragEnd(e, i)}>
-        <MarkerSVG
-          point={alphabets[i]}
-          color={nonDragablePoint ? Colors.GRAY_LIGHTEST : Colors.PRIMARY}
-        />
-        {/* <View style={styles.annotationContainer} /> */}
+        onDeselected={e => onDeselected(e, j)}
+        onDragStart={e => onDragStart(e, j)}
+        onDrag={e => onDrag(e, j)}
+        onDragEnd={e => onDragEnd(e, j)}>
+        <MarkerSVG point={alphabets[j]} color={Colors.PRIMARY} />
       </MapboxGL.PointAnnotation>,
     );
-  } else {
-    const iterationCount = ignoreLastMarker
-      ? coordinates.length - 1
-      : coordinates.length;
-    for (let j = 0; j < iterationCount; j++) {
-      let oneMarker = coordinates[j];
-
-      markers.push(
-        <MapboxGL.PointAnnotation
-          key={`${i}${j}`}
-          id={`${i}${j}`}
-          coordinate={oneMarker}
-          ref={el => {
-            annotationRefList.current[j] = el;
-          }}
-          onSelected={feature => {
-            onPressMarker({
-              coordinate: feature.geometry.coordinates,
-              coordinateIndex: j,
-            });
-          }}
-          draggable={draggable}
-          onDeselected={onDeselected}
-          onDragStart={e => onDragStart(e, j)}
-          onDrag={e => onDrag(e, j)}
-          onDragEnd={e => onDragEnd(e, j)}>
-          <MarkerSVG point={alphabets[j]} color={Colors.PRIMARY} />
-        </MapboxGL.PointAnnotation>,
-      );
-    }
   }
 
   return <>{markers}</>;

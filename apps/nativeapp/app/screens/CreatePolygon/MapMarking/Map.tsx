@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
@@ -55,6 +55,8 @@ interface IMapProps {
   markerText?: any;
   activePolygonIndex?: any;
   setLocation?: any;
+  setGeoJSON?: any;
+  setActiveMarkerIndex?: any;
 }
 
 export default function Map({
@@ -67,7 +69,10 @@ export default function Map({
   activePolygonIndex,
   setLocation,
   onPressMap,
+  setGeoJSON,
+  setActiveMarkerIndex,
 }: IMapProps) {
+  const [render, setRender] = React.useState<boolean>(false);
   let shouldRenderShape =
     geoJSON.features[activePolygonIndex].geometry.coordinates.length > 1;
   const {state} = useMapLayers(MapLayerContext);
@@ -94,7 +99,22 @@ export default function Map({
           }}
         />
         <MapboxGL.Images images={images} />
-        <Markers geoJSON={geoJSON} type={'LineString'} />
+        <Markers
+          draggable
+          onDeselected={({geometry}, i) => {
+            geoJSON.features[0].geometry.coordinates.splice(i, 1);
+            setActiveMarkerIndex(prevState => prevState - 1);
+            setGeoJSON(geoJSON);
+          }}
+          onDragEnd={({geometry}, i) => {
+            geoJSON.features[activePolygonIndex].geometry.coordinates[i] =
+              geometry.coordinates;
+            setGeoJSON(geoJSON);
+            setRender(!render);
+          }}
+          geoJSON={geoJSON}
+          type={'LineString'}
+        />
         {shouldRenderShape && (
           <MapboxGL.ShapeSource id={'polygon'} shape={geoJSON}>
             <MapboxGL.LineLayer id={'polyline'} style={polyline} />

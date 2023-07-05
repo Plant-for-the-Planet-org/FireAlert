@@ -71,6 +71,7 @@ const CreatePolygon = ({navigation}) => {
     useState<boolean>(false);
   const [isLocationAlertShow, setIsLocationAlertShow] =
     useState<boolean>(false);
+  const [render, setRender] = React.useState<boolean>(false);
 
   const [location, setLocation] = useState<
     MapboxGL.Location | Geolocation.GeoPosition
@@ -329,7 +330,12 @@ const CreatePolygon = ({navigation}) => {
     setSiteNameModalVisible(true);
   };
 
-  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
+  const handleCloseSiteModal = () => {
+    geoJSON.features[activePolygonIndex].geometry.coordinates.length =
+      geoJSON.features[activePolygonIndex].geometry.coordinates.length - 1;
+    setGeoJSON(geoJSON);
+    setSiteNameModalVisible(false);
+  };
   const handleClose = () => navigation.goBack();
   const closeMapLayer = () => setVisible(false);
   const handleSiteModalContinue = () => {
@@ -376,11 +382,16 @@ const CreatePolygon = ({navigation}) => {
     if (geoJSON.features[0].geometry.coordinates.length <= 2) {
       geoJSON.features[0].geometry.type = 'LineString';
     }
-  }, [geoJSON]);
+  }, [geoJSON.features[0].geometry.coordinates.length]);
 
   useEffect(() => {
     generateAlphabets();
   }, []);
+
+  console.log(
+    geoJSON.features[0].geometry.coordinates,
+    geoJSON.features[activePolygonIndex].geometry.coordinates,
+  );
 
   return (
     <View style={styles.container}>
@@ -398,6 +409,10 @@ const CreatePolygon = ({navigation}) => {
         geoJSON={geoJSON}
         location={location}
         setLocation={setLocation}
+        setGeoJSON={setGeoJSON}
+        render={render}
+        setRender={setRender}
+        setActiveMarkerIndex={setActiveMarkerIndex}
         activePolygonIndex={activePolygonIndex}
         markerText={alphabets[activeMarkerIndex]}
         setIsCameraRefVisible={setIsCameraRefVisible}
