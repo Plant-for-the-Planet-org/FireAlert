@@ -3,11 +3,7 @@ import { FC, useEffect } from 'react';
 import Map, { NavigationControl, ScaleControl, FullscreenControl, MapRef, Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import mapStyle from '../../data/mapStyleOutput.json'
-import Image from 'next/image';
-import vector from '../../../public/alertPage/mapFocus/Vector.svg'
-import ellipse1 from '../../../public/alertPage/mapFocus/Ellipse1.svg'
-import ellipse2 from '../../../public/alertPage/mapFocus/Ellipse2.svg'
-import classes from './MapComponent.module.css'
+import vector from '../../../public/alertPage/mapFocus/Vector.png'
 
 interface AlertData {
     latitude: string;
@@ -29,86 +25,26 @@ const MapComponent: FC<Props> = ({ alertData }) => {
         zoom: 13
     });
 
-    const onMapLoad = React.useCallback(() => {
+    const onMapLoad = React.useCallback(async () => {
         const map = mapRef?.current?.getMap();
         map?.setStyle(mapStyle);
 
-        const size = 200;
+        const vectorImg = new Image();
+        vectorImg.src = vector.src;
 
-        // This implements `StyleImageInterface`
-        // to draw a pulsing dot icon on the map.
-        const pulsingDot = {
-            width: size,
-            height: size,
-            data: new Uint8Array(size * size * 4),
-
-            // When the layer is added to the map,
-            // get the rendering context for the map canvas.
-            onAdd: function () {
-                const canvas = document.createElement('canvas');
-                canvas.width = this.width;
-                canvas.height = this.height;
-                this.context = canvas.getContext('2d');
-            },
-
-            // Call once before every frame where the icon will be used.
-            render: function () {
-                const duration = 1000;
-                const t = (performance.now() % duration) / duration;
-
-                const radius = (size / 2) * 0.3;
-                const outerRadius = (size / 2) * 0.7 * t + radius;
-                const context = this.context;
-
-                // Draw the outer circle.
-                context.clearRect(0, 0, this.width, this.height);
-                context.beginPath();
-                context.arc(
-                    this.width / 2,
-                    this.height / 2,
-                    outerRadius,
-                    0,
-                    Math.PI * 2
-                );
-                context.fillStyle = `rgba(255, 200, 200, ${1 - t})`;
-                context.fill();
-
-                // Draw the inner circle.
-                context.beginPath();
-                context.arc(
-                    this.width / 2,
-                    this.height / 2,
-                    radius,
-                    0,
-                    Math.PI * 2
-                );
-                context.fillStyle = 'rgba(255, 100, 100, 1)';
-                context.strokeStyle = 'white';
-                context.lineWidth = 2 + 4 * (1 - t);
-                context.fill();
-                context.stroke();
-
-                // Update this image's data with data from the canvas.
-                this.data = context.getImageData(
-                    0,
-                    0,
-                    this.width,
-                    this.height
-                ).data;
-
-                // Continuously repaint the map, resulting
-                // in the smooth animation of the dot.
-                map.triggerRepaint();
-
-                // Return `true` to let the map know that the image was updated.
-                return true;
-            }
-        };
-        map?.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
+        await new Promise((resolve, reject) => {
+            vectorImg.onload = resolve;
+            vectorImg.onerror = reject;
+        });
 
         // Ensure map and map style is loaded
         if (map) {
             map.on('styledata', () => {
+                // Check if the image has completed loading and if the image is not already added
+                if (vectorImg.complete && !map.hasImage('vector-img')) {
+                    map.addImage('vector-img', vectorImg, { pixelRatio: 6 });
+                }
+
                 // Check if the source and layer already exists, only add if they don't.
                 if (!map.getSource('dot-point')) {
                     map.addSource('dot-point', {
@@ -132,7 +68,7 @@ const MapComponent: FC<Props> = ({ alertData }) => {
                         'type': 'symbol',
                         'source': 'dot-point',
                         'layout': {
-                            'icon-image': 'pulsing-dot'
+                            'icon-image': 'vector-img'
                         }
                     });
                 }
