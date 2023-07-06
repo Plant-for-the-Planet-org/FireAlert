@@ -73,10 +73,20 @@ export default function Map({
   setActiveMarkerIndex,
 }: IMapProps) {
   const [render, setRender] = React.useState<boolean>(false);
+  const {state} = useMapLayers(MapLayerContext);
   let shouldRenderShape =
     geoJSON.features[activePolygonIndex].geometry.coordinates.length > 1;
-  const {state} = useMapLayers(MapLayerContext);
-
+  const onDeselected = ({geometry}, i) => {
+    geoJSON.features[0].geometry.coordinates.splice(i, 1);
+    setActiveMarkerIndex(prevState => prevState - 1);
+    setGeoJSON(geoJSON);
+  };
+  const onDragEnd = ({geometry}, i) => {
+    geoJSON.features[activePolygonIndex].geometry.coordinates[i] =
+      geometry.coordinates;
+    setGeoJSON(geoJSON);
+    setRender(!render);
+  };
   return (
     <View style={styles.container}>
       <MapboxGL.MapView
@@ -84,7 +94,6 @@ export default function Map({
         compassEnabled
         logoEnabled={false}
         onPress={onPressMap}
-        showUserLocation={true}
         scaleBarEnabled={false}
         style={styles.container}
         compassImage={'compass1'}
@@ -101,19 +110,10 @@ export default function Map({
         <MapboxGL.Images images={images} />
         <Markers
           draggable
-          onDeselected={({geometry}, i) => {
-            geoJSON.features[0].geometry.coordinates.splice(i, 1);
-            setActiveMarkerIndex(prevState => prevState - 1);
-            setGeoJSON(geoJSON);
-          }}
-          onDragEnd={({geometry}, i) => {
-            geoJSON.features[activePolygonIndex].geometry.coordinates[i] =
-              geometry.coordinates;
-            setGeoJSON(geoJSON);
-            setRender(!render);
-          }}
           geoJSON={geoJSON}
           type={'LineString'}
+          onDragEnd={onDragEnd}
+          onDeselected={onDeselected}
         />
         {shouldRenderShape && (
           <MapboxGL.ShapeSource id={'polygon'} shape={geoJSON}>

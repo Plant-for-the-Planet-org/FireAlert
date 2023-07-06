@@ -94,7 +94,6 @@ const CreatePolygon = ({navigation}) => {
   });
 
   const toast = useToast();
-  const modalToast = useRef();
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
 
@@ -274,7 +273,6 @@ const CreatePolygon = ({navigation}) => {
   const pushMarker = async () => {
     geoJSON.features[0].geometry.coordinates[activeMarkerIndex] =
       await map.current.getCenter();
-
     setGeoJSON(geoJSON);
     setActiveMarkerIndex(prevState => prevState + 1);
   };
@@ -296,28 +294,16 @@ const CreatePolygon = ({navigation}) => {
 
   const postPolygon = () => {
     setLoading(true);
-    const areaInHactares = convertArea(
-      area(polygon([geoJSON.features[0].geometry.coordinates])),
-      'meters',
-      'hectares',
-    );
-    if (areaInHactares <= 1000000) {
-      const payload = {
+    const payload = {
+      type: 'Polygon',
+      name: siteName,
+      radius: siteRad?.value,
+      geometry: {
+        coordinates: [geoJSON.features[0].geometry.coordinates],
         type: 'Polygon',
-        name: siteName,
-        radius: siteRad?.value,
-        geometry: {
-          coordinates: [geoJSON.features[0].geometry.coordinates],
-          type: 'Polygon',
-        },
-      };
-      postSite.mutate({json: payload});
-    } else {
-      modalToast.current.show('The area is exceeds 1 million hectares', {
-        type: 'warning',
-      });
-      setLoading(false);
-    }
+      },
+    };
+    postSite.mutate({json: payload});
   };
 
   const addPolygon = () => {
@@ -326,8 +312,22 @@ const CreatePolygon = ({navigation}) => {
     geo.features[0].geometry.coordinates.push(
       geoJSON.features[0].geometry.coordinates[0],
     );
-    setGeoJSON(geo);
-    setSiteNameModalVisible(true);
+    const areaInHactares = convertArea(
+      area(polygon([geo.features[0].geometry.coordinates])),
+      'meters',
+      'hectares',
+    );
+    if (areaInHactares <= 1000000) {
+      setGeoJSON(geo);
+      setSiteNameModalVisible(true);
+    } else {
+      toast.show('The area is exceeds 1 million hectares', {type: 'warning'});
+      geo.features[0].geometry.coordinates.splice(
+        geo.features[0].geometry.coordinates.length - 1,
+        1,
+      );
+      setLoading(false);
+    }
   };
 
   const handleCloseSiteModal = () => {
@@ -387,11 +387,6 @@ const CreatePolygon = ({navigation}) => {
   useEffect(() => {
     generateAlphabets();
   }, []);
-
-  console.log(
-    geoJSON.features[0].geometry.coordinates,
-    geoJSON.features[activePolygonIndex].geometry.coordinates,
-  );
 
   return (
     <View style={styles.container}>
@@ -495,7 +490,6 @@ const CreatePolygon = ({navigation}) => {
         <KeyboardAvoidingView
           {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
-          <Toast ref={modalToast} offsetBottom={100} duration={1000} />
           <TouchableOpacity
             onPress={handleCloseSiteModal}
             style={styles.crossContainer}>

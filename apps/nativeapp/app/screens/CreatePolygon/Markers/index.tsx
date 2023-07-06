@@ -1,6 +1,5 @@
 import * as React from 'react';
 import MapboxGL from '@rnmapbox/maps';
-import {StyleSheet} from 'react-native';
 import Config from 'react-native-config';
 import {useEffect, useRef, useState} from 'react';
 
@@ -73,20 +72,14 @@ interface PointAnnotationMarkerProps {
   i: number;
   alphabets: string[];
   onPressMarker: any;
-  locateTree: string | undefined;
   draggable?: boolean;
-  onDeselected?: () => (e: any, index: number) => void;
+  onDeselected?: (e: any, index: number) => void;
   onDragStart?: (e: any, index: number) => void;
   onDrag?: (e: any, index: number) => void;
   onDragEnd?: (e: any, index: number) => void;
   ignoreLastMarker?: boolean;
   type?: 'LineString' | 'Polygon';
   nonDragablePoint?: boolean;
-  setCoordinateModalShow: React.Dispatch<React.SetStateAction<boolean>>;
-  setCoordinateIndex: React.Dispatch<
-    React.SetStateAction<number | null | undefined>
-  >;
-  setIsSampleTree: React.Dispatch<React.SetStateAction<boolean | null>>;
 }
 
 const PointAnnotationMarker = ({
@@ -157,34 +150,5 @@ const PointAnnotationMarker = ({
 
   return <>{markers}</>;
 };
-const ANNOTATION_SIZE = 45;
-
-const styles = StyleSheet.create({
-  annotationContainer: {
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderColor: 'rgba(0, 0, 0, 0.45)',
-    borderRadius: ANNOTATION_SIZE / 2,
-    borderWidth: StyleSheet.hairlineWidth,
-    height: ANNOTATION_SIZE,
-    justifyContent: 'center',
-    overflow: 'hidden',
-    width: ANNOTATION_SIZE,
-  },
-  annotationFill: {
-    width: ANNOTATION_SIZE - 3,
-    height: ANNOTATION_SIZE - 3,
-    borderRadius: (ANNOTATION_SIZE - 3) / 2,
-    backgroundColor: 'orange',
-    transform: [{scale: 0.6}],
-  },
-  imageView: {
-    width: 150,
-    height: 100,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: 'green',
-  },
-});
 
 export default Markers;
