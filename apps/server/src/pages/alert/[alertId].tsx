@@ -6,6 +6,7 @@ import { GetStaticPropsContext, GetStaticPaths, InferGetStaticPropsType } from '
 import { AlertId } from '../../Components/AlertId/AlertId';
 import { appRouter } from '../../server/api/root';
 import superjson from 'superjson';
+import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
 
 function getDaysPassedSince(date: Date): number {
     const now = new Date();
@@ -54,7 +55,10 @@ const Alert = (
     const alertQuery = api.alert.getAlert.useQuery({ id }, {retry: 0});
 
     if(alertQuery.isError){
-        return <>Error...{JSON.stringify(alertQuery.error)}</>
+        const error = alertQuery.error;
+        const message = error?.shape?.message || 'Unknown error';
+        const httpStatus = error?.data?.httpStatus || 500;
+        return <ErrorDisplay message={message} httpStatus={httpStatus} />;
     }
 
     if(alertQuery.status !== 'success'){

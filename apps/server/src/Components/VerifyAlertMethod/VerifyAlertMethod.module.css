@@ -118,23 +118,15 @@
 }
 
 .textBlockError {
-    color: #dc3f1f;
-    font-size: 14px;
-}
-
-.textBlock2Error {
-    margin-top: 0;
+    padding-left: 20px;
+    padding-right: 20px;
     color: #dc3f1f;
     font-size: 14px;
 }
 
 .textBlockSuccess {
-    color: #006e51;
-    font-size: 14px;
-}
-
-.textBlock2Success {
-    margin-top: 0;
+    padding-left: 20px;
+    padding-right: 20px;
     color: #006e51;
     font-size: 14px;
 }

@@ -134,10 +134,14 @@ export const alertRouter = createTRPCRouter({
                     data: returnAlert,
                 }
             } catch (error) {
-                console.log(error)
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
+                    message: `Unexpected error: ${error}`,
                 });
             }
         }),

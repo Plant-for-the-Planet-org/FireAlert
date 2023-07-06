@@ -44,8 +44,8 @@ export default function Page({alertMethodId, code}: PageProps) {
                 setIsDone(true);
             } catch (error) {
                 setIsSuccess(false);
-                const errorMessage = `${error}`.split(': ')[1]
-                setMessage(`${errorMessage}` || 'OTP Token has expired. Please request a new code from the FireAlert App.');
+                const errorMessage = `${error!.shape!.message}. Please try again with correct parameters.`|| 'OTP Token has expired. Please request a new code from the FireAlert App.'
+                setMessage(errorMessage);
                 setIsDone(true);
             }
         }

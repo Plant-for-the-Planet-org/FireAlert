@@ -22,7 +22,6 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
     message,
     isDone,
 }: Props) {
-    const messageArray = message ? message.split('. ') : []
 
     const handleInputChange = (index: number, newValue: string) => {
         const newFrames = [...otpValues];
@@ -61,14 +60,12 @@ export const VerifyAlertMethod: FC<Props> = memo(function VerifyAlertMethod({
                             <div className={classes.verificationResult}>
                                 {isSuccess !== undefined && !isSuccess && (
                                     <>
-                                        <div className={classes.textBlockError}>{messageArray[0]}</div>
-                                        <div className={classes.textBlock2Error}>{messageArray[1]}</div>
+                                        <div className={classes.textBlockError}>{message}</div>
                                     </>
                                 )}
                                 {isSuccess !== undefined && isSuccess && (
                                     <>
-                                        <div className={classes.textBlockSuccess}>{messageArray[0]}</div>
-                                        <div className={classes.textBlock2Success}>{messageArray[1]}</div>
+                                        <div className={classes.textBlockSuccess}>{message}</div>
                                     </>
                                 )}
                             </div>
