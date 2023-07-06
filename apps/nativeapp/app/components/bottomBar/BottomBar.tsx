@@ -136,12 +136,16 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
 };
 
 const BottomBar = ({...props}) => {
-  const [selected, setSelected] = useState(0);
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [spinValue] = useState(new Animated.Value(0));
 
-  const {modalVisible, selectedSiteBar, setSelectedSiteBar} =
-    useContext(BottomBarContext);
+  const {
+    selected,
+    setSelected,
+    modalVisible,
+    selectedSiteBar,
+    setSelectedSiteBar,
+  } = useContext(BottomBarContext);
 
   useEffect(() => {
     return () => setShowAddOptions(false);

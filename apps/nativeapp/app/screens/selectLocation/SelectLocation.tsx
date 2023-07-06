@@ -40,6 +40,7 @@ import {
 import {trpc} from '../../services/trpc';
 import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
+import {POINT_RADIUS_ARR} from '../../constants';
 import {useQueryClient} from '@tanstack/react-query';
 import {locationPermission} from '../../utils/permissions';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
@@ -61,12 +62,6 @@ const compassViewPosition = 3;
 
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
-
-const RADIUS_ARR = [
-  {name: 'Within 100 km', value: 100000},
-  {name: 'Within 10 km', value: 10000},
-  {name: 'Within 5 km', value: 5000},
-];
 
 type CompassImage = 'compass1';
 const images: Record<CompassImage, ImageSourcePropType> = {
@@ -91,7 +86,7 @@ const SelectLocation = ({navigation}) => {
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
 
-  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
+  const [siteRad, setSiteRad] = useState<object | null>(POINT_RADIUS_ARR[3]);
 
   const [enableGetFireAlerts, setEnableGetFireAlerts] =
     useState<boolean>(false);
@@ -432,8 +427,8 @@ const SelectLocation = ({navigation}) => {
               <View style={[styles.commonPadding]}>
                 <DropDown
                   expandHeight={10}
-                  items={RADIUS_ARR}
                   value={siteRad?.value}
+                  items={POINT_RADIUS_ARR}
                   onSelectItem={setSiteRad}
                   defaultValue={siteRad?.value}
                   label={'Notify me if fires occur...'}

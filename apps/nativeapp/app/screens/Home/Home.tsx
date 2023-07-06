@@ -26,7 +26,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   DropDown,
@@ -49,6 +49,7 @@ import {
   PencilIcon,
   PointSiteIcon,
   SatelliteIcon,
+  MapOutlineIcon,
   TrashSolidIcon,
   LocationPinIcon,
   PencilRoundIcon,
@@ -105,11 +106,12 @@ const images: Record<CompassImage, ImageSourcePropType> = {
   compass1: require('../../assets/images/compassImage.png'),
 };
 
-const Home = ({route}) => {
+const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
   const {state} = useMapLayers(MapLayerContext);
-  const {selectedSiteBar, passMapInfo} = useContext(BottomBarContext);
-  const {userDetails, configData} = useAppSelector(appState => appState.loginSlice);
+  const {selected, setSelected, selectedSiteBar, passMapInfo} =
+    useContext(BottomBarContext);
+  const {userDetails, configData} = useAppSelector(state => state.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -169,6 +171,7 @@ const Home = ({route}) => {
       siteInfo?.bboxGeo?.length > 0 &&
       camera?.current?.fitBounds
     ) {
+      setSelected(0);
       setTimeout(() => {
         camera.current.fitBounds(
           [siteInfo?.bboxGeo[0], siteInfo?.bboxGeo[1]],
@@ -210,7 +213,7 @@ const Home = ({route}) => {
 
   const {data: alerts} = useFetchSites({enabled: true});
 
-  const {data: sites} = trpc.site.getSites.useQuery(
+  const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],
     {
       enabled: true,
@@ -230,7 +233,7 @@ const Home = ({route}) => {
     retryDelay: 3000,
     onSuccess: () => {
       const request = {
-        onSuccess: async () => {},
+        onSuccess: async message => {},
         onFail: () => {
           toast.show('something went wrong', {type: 'danger'});
         },
@@ -351,7 +354,7 @@ const Home = ({route}) => {
     setSiteId(site.id);
     setIsEditSite(!!site.remoteId);
     setSiteGeometry(site.geometry.type);
-    setSiteRad(RADIUS_ARR.filter(el => el.value === site?.radius)[0]);
+    setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 500);
   };
 
@@ -370,32 +373,28 @@ const Home = ({route}) => {
   };
 
   // recenter the mapmap to the current coordinates of user location
-  const onPressMyLocationIcon = useCallback(
-    (position: MapboxGL.Location | Geolocation.GeoPosition) => {
-      if (isCameraRefVisible && camera?.current?.setCamera) {
-        setIsInitial(false);
-        camera.current.setCamera({
-          centerCoordinate: [position.coords.longitude, position.coords.latitude],
-          // centerCoordinate: [-90.133284, 18.675638],
-          zoomLevel: ZOOM_LEVEL,
-          animationDuration: ANIMATION_DURATION,
-        });
-      }
-    }, 
-    [isCameraRefVisible, camera] 
-  );
-  
+  const onPressMyLocationIcon = (
+    position: MapboxGL.Location | Geolocation.GeoPosition,
+  ) => {
+    if (isCameraRefVisible && camera?.current?.setCamera) {
+      setIsInitial(false);
+      camera.current.setCamera({
+        centerCoordinate: [position.coords.longitude, position.coords.latitude],
+        // centerCoordinate: [-90.133284, 18.675638],
+        zoomLevel: ZOOM_LEVEL,
+        animationDuration: ANIMATION_DURATION,
+      });
+    }
+  };
 
   // only for the first time map will follow the user's current location by default
-  const onUpdateUserLocation = useCallback(
-    (userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined) => {
-      if (isInitial && userLocation) {
-        onPressMyLocationIcon(userLocation);
-      }
-    },
-    [isInitial, onPressMyLocationIcon]
-  );
-  
+  const onUpdateUserLocation = (
+    userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined,
+  ) => {
+    if (isInitial && userLocation) {
+      onPressMyLocationIcon(userLocation);
+    }
+  };
 
   const onPressLocationAlertPrimaryBtn = () => {
     setIsLocationAlertShow(false);
@@ -443,9 +442,9 @@ const Home = ({route}) => {
       updateCurrentPosition(showAlert);
       return true;
     } catch (err: any) {
-      if (err?.message === 'blocked') {
+      if (err?.message == 'blocked') {
         setIsPermissionBlocked(true);
-      } else if (err?.message === 'denied') {
+      } else if (err?.message == 'denied') {
         setIsPermissionDenied(true);
       } else {
         console.error(err);
@@ -544,7 +543,7 @@ const Home = ({route}) => {
         id={id}
         key={id}
         title={title}
-        onSelected={() => {
+        onSelected={e => {
           camera.current.setCamera({
             centerCoordinate: [
               alertsArr[counter]?.longitude,
@@ -599,9 +598,11 @@ const Home = ({route}) => {
     const items = [];
     const arr = isAlert ? alerts?.json?.data : formattedSites?.point;
     for (let i = 0; i < arr?.length; i++) {
+      {
         isAlert
           ? items.push(renderAnnotation(i))
           : items.push(renderSelectedPoint(i));
+      }
     }
     return items;
   };
@@ -620,8 +621,22 @@ const Home = ({route}) => {
             };
           }) || [],
       }}>
-      <MapboxGL.FillLayer id="fillLayer" style={mapBoxStyles.fillLayer} />
-      <MapboxGL.LineLayer id="fillOutline" style={mapBoxStyles.fillOutline} />
+      <MapboxGL.FillLayer
+        id="fillLayer"
+        style={{
+          fillColor: Colors.GRADIENT_PRIMARY,
+          fillOpacity: 0.4,
+        }}
+      />
+      <MapboxGL.LineLayer
+        id="fillOutline"
+        style={{
+          lineWidth: 2,
+          lineColor: Colors.GRADIENT_PRIMARY,
+          lineOpacity: 1,
+          lineJoin: 'bevel',
+        }}
+      />
     </MapboxGL.ShapeSource>
   );
 
@@ -633,7 +648,7 @@ const Home = ({route}) => {
         features:
           (formattedSites?.polygon ?? [])
             .concat(formattedSites?.multipolygon ?? [])
-            ?.map(singleSite => {
+            ?.map((singleSite, i) => {
               return {
                 type: 'Feature',
                 properties: {site: singleSite},
@@ -662,9 +677,20 @@ const Home = ({route}) => {
       <MapboxGL.FillLayer
         id={'polyFill'}
         layerIndex={2}
-        style={mapBoxStyles.polyFill}
+        style={{
+          fillColor: Colors.WHITE,
+          fillOpacity: 0.4,
+        }}
       />
-      <MapboxGL.LineLayer id={'polyline'} style={mapBoxStyles.polyline} />
+      <MapboxGL.LineLayer
+        id={'polyline'}
+        style={{
+          lineWidth: 2,
+          lineColor: Colors.WHITE,
+          lineOpacity: 1,
+          lineJoin: 'bevel',
+        }}
+      />
     </MapboxGL.ShapeSource>
   );
 
@@ -805,7 +831,7 @@ const Home = ({route}) => {
                   source={{
                     uri: userDetails?.data?.image,
                   }}
-                  style={[styles.userAvatar, styles.width81Height81]}
+                  style={[styles.userAvatar, {width: 81, height: 81}]}
                 />
               ) : (
                 <UserPlaceholder width={81} height={81} />
@@ -833,7 +859,7 @@ const Home = ({route}) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDelAccount}
-            style={[styles.btn, styles.marginBottom16]}>
+            style={[styles.btn, {marginBottom: 16}]}>
             <TrashSolidIcon width={20} height={20} />
             <Text style={styles.siteActionPfText}>Delete Account</Text>
           </TouchableOpacity>
@@ -847,7 +873,6 @@ const Home = ({route}) => {
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.satelliteInfoCon}>
-            {/* TODO: satelliteIcon style is not defined */}
             <View style={styles.satelliteIcon}>
               <SatelliteIcon />
             </View>
@@ -878,8 +903,7 @@ const Home = ({route}) => {
           <View
             style={[
               styles.alertLocInfoCon,
-              styles.marginTop30,
-              styles.justifyContentSpaceBetween,
+              {marginTop: 30, justifyContent: 'space-between'},
             ]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
@@ -890,7 +914,7 @@ const Home = ({route}) => {
                   <Text style={styles.satelliteLocText}>PROJECT</Text>
                   <Text style={styles.alertLocText}>
                     {selectedAlert?.site?.project?.name}{' '}
-                    <Text style={styles.fontSize12}>
+                    <Text style={{fontSize: Typography.FONT_SIZE_12}}>
                       {selectedAlert?.site?.name}
                     </Text>
                   </Text>
@@ -907,7 +931,7 @@ const Home = ({route}) => {
           </View>
           <View style={styles.separator} />
           <View
-            style={[styles.alertLocInfoCon, styles.justifyContentSpaceBetween]}>
+            style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
                 <LocationPinIcon />
@@ -934,15 +958,11 @@ const Home = ({route}) => {
               <RadarIcon />
             </View>
             <View style={styles.satelliteInfo}>
-              <Text
-                style={[
-                  styles.alertLocText,
-                  styles.alertLocTextScreenWidthOneThird,
-                ]}>
+              <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
                 Search for the fire within a{' '}
                 <Text
-                  style={[styles.confidenceVal, styles.textTransformLowercase]}>
-                  {selectedAlert?.distance === 0 ? 1 : selectedAlert?.distance}{' '}
+                  style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
+                  {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
                   km
                 </Text>{' '}
                 radius around the location.
@@ -952,7 +972,7 @@ const Home = ({route}) => {
           <TouchableOpacity
             onPress={handleGoogleRedirect}
             style={styles.simpleBtn}>
-            <Text style={[styles.siteActionText, styles.marginLeft0]}>
+            <Text style={[styles.siteActionText, {marginLeft: 0}]}>
               Open in Google Maps
             </Text>
           </TouchableOpacity>
@@ -1016,7 +1036,9 @@ const Home = ({route}) => {
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
             style={[
               styles.simpleBtn,
-              selectedSite?.site?.project?.id && styles.borderColorGrayLightest,
+              selectedSite?.site?.project?.id && {
+                borderColor: Colors.GRAY_LIGHTEST,
+              },
             ]}>
             {deleteSite?.isLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
@@ -1030,7 +1052,9 @@ const Home = ({route}) => {
                 <Text
                   style={[
                     styles.siteActionText,
-                    selectedSite?.site?.project?.id && styles.colorGrayLightest,
+                    selectedSite?.site?.project?.id && {
+                      color: Colors.GRAY_LIGHTEST,
+                    },
                   ]}>
                   Delete Site
                 </Text>
@@ -1055,11 +1079,11 @@ const Home = ({route}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, styles.paddingHorizontal16]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Edit Your Name
           </Text>
           <View
-            style={[styles.siteModalStyle, styles.justifyContentSpaceBetween]}>
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
             <FloatingInput
               autoFocus
               isFloat={false}
@@ -1086,11 +1110,11 @@ const Home = ({route}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, styles.paddingHorizontal16]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Enter Site Name
           </Text>
           <View
-            style={[styles.siteModalStyle, styles.justifyContentSpaceBetween]}>
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
             <View>
               <FloatingInput
                 autoFocus
@@ -1128,64 +1152,7 @@ const Home = ({route}) => {
 
 export default Home;
 
-const mapBoxStyles = {
-  fillLayer: {
-    fillColor: Colors.GRADIENT_PRIMARY,
-    fillOpacity: 0.4,
-  },
-  fillOutline: {
-    lineWidth: 2,
-    lineColor: Colors.GRADIENT_PRIMARY,
-    lineOpacity: 1,
-    lineJoin: 'bevel',
-  },
-  polyFill: {
-    fillColor: Colors.WHITE,
-    fillOpacity: 0.4,
-  },
-  polyline: {
-    lineWidth: 2,
-    lineColor: Colors.WHITE,
-    lineOpacity: 1,
-    lineJoin: 'bevel',
-  },
-};
-
 const styles = StyleSheet.create({
-  width81Height81: {
-    width: 81,
-    height: 81,
-  },
-  marginBottom16: {
-    marginBottom: 16,
-  },
-  marginTop30: {
-    marginTop: 30,
-  },
-  paddingHorizontal16: {
-    paddingHorizontal: 16,
-  },
-  justifyContentSpaceBetween: {
-    justifyContent: 'space-between',
-  },
-  fontSize12: {
-    fontSize: Typography.FONT_SIZE_12,
-  },
-  alertLocTextScreenWidthOneThird: {
-    width: SCREEN_WIDTH / 1.3,
-  },
-  textTransformLowercase: {
-    textTransform: 'lowercase',
-  },
-  marginLeft0: {
-    marginLeft: 0,
-  },
-  borderColorGrayLightest: {
-    borderColor: Colors.GRAY_LIGHTEST,
-  },
-  colorGrayLightest: {
-    color: Colors.GRAY_LIGHTEST,
-  },
   map: {
     flex: 1,
   },
