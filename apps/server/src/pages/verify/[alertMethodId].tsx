@@ -19,10 +19,10 @@ interface PageProps {
     code: string;
 }
 
-export default function Page({alertMethodId, code}: PageProps) {
+export default function Page({ alertMethodId, code }: PageProps) {
     const mutation = api.alertMethod.verify.useMutation();
     const [otpValues, setOtpValues] = useState<string[]>([]);
-    
+
     useEffect(() => {
         if (code) {
             setOtpValues(code.split(''));
@@ -37,14 +37,18 @@ export default function Page({alertMethodId, code}: PageProps) {
         if (alertMethodId && otpValues.length) {
             try {
                 const otpCode = otpValues.join('');
-                const verifyMutation = await mutation.mutateAsync({ params: { alertMethodId: alertMethodId }, body: { token: otpCode } });
-                console.log(`output: ${JSON.stringify(verifyMutation)}`)
+                await mutation.mutateAsync({ params: { alertMethodId: alertMethodId }, body: { token: otpCode } });
                 setIsSuccess(true);
                 setMessage('Verification Successful. Alert Method is now verified.');
                 setIsDone(true);
             } catch (error) {
                 setIsSuccess(false);
-                const errorMessage = `${error!.shape!.message}. Please try again with correct parameters.`|| 'OTP Token has expired. Please request a new code from the FireAlert App.'
+                let errorMessage = error!.shape!.message || 'Unknown error';
+                if (error!.shape!.data.httpStatus === 503) {
+                    errorMessage = "Server under Maintenance. Please check back in a few minutes."
+                } else {
+                    errorMessage += ". Please try again with correct parameters."
+                }
                 setMessage(errorMessage);
                 setIsDone(true);
             }

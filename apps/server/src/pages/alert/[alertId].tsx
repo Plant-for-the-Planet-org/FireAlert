@@ -7,6 +7,7 @@ import { AlertId } from '../../Components/AlertId/AlertId';
 import { appRouter } from '../../server/api/root';
 import superjson from 'superjson';
 import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
+import ErrorPage from 'next/error';
 
 function getDaysPassedSince(date: Date): number {
     const now = new Date();
@@ -56,8 +57,14 @@ const Alert = (
 
     if(alertQuery.isError){
         const error = alertQuery.error;
-        const message = error?.shape?.message || 'Unknown error';
-        const httpStatus = error?.data?.httpStatus || 500;
+        let message = error?.shape?.message || 'Unknown error';
+        let httpStatus = error?.data?.httpStatus || 500;
+        if(httpStatus === 503){
+            message = "Server under Maintenance. Please check back in a few minutes."
+        }
+        if(httpStatus === 404){
+            return <ErrorPage statusCode={httpStatus} />;  
+        }
         return <ErrorDisplay message={message} httpStatus={httpStatus} />;
     }
 
@@ -101,8 +108,14 @@ export async function getStaticProps(
     })
     const id = context.params?.alertId as string;
 
-    await helpers.alert.getAlert.prefetch({ id });
-
+    const alertData = await helpers.alert.getAlert.prefetch({ id });
+    
+    // Check if alertData is not null
+    // if (!alertData) {
+    //     return {
+    //         notFound: true,
+    //     }
+    // }
     return {
         props: {
             trpcState: helpers.dehydrate(),
