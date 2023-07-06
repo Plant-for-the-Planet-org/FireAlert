@@ -1,18 +1,28 @@
-// Can call this page with this url: http://localhost:3000/verify/clj1awq250001vtoccrxvy4km?code=12568
-
 import { api } from '../../utils/api';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router'
+import { GetServerSidePropsContext } from 'next';
 import { VerifyAlertMethod } from '../../Components/VerifyAlertMethod/VerifyAlertMethod'
 
-export default function Page() {
-    const router = useRouter();
+export const getServerSideProps = async (context: GetServerSidePropsContext) => {
+    const alertMethodId = context.query.alertMethodId as string;
+    const code = context.query.code as string;
+    return {
+        props: {
+            alertMethodId,
+            code
+        }
+    };
+}
+
+interface PageProps {
+    alertMethodId: string;
+    code: string;
+}
+
+export default function Page({alertMethodId, code}: PageProps) {
     const mutation = api.alertMethod.verify.useMutation();
-    const alertMethodId = router.query.alertMethodId as string;
-    const code = router.query.code as string;
-
     const [otpValues, setOtpValues] = useState<string[]>([]);
-
+    
     useEffect(() => {
         if (code) {
             setOtpValues(code.split(''));
@@ -27,27 +37,28 @@ export default function Page() {
         if (alertMethodId && otpValues.length) {
             try {
                 const otpCode = otpValues.join('');
-                await mutation.mutateAsync({ params: { alertMethodId: alertMethodId }, body: { token: otpCode } });
+                const verifyMutation = await mutation.mutateAsync({ params: { alertMethodId: alertMethodId }, body: { token: otpCode } });
+                console.log(`output: ${JSON.stringify(verifyMutation)}`)
                 setIsSuccess(true);
                 setMessage('Verification Successful. Alert Method is now verified.');
                 setIsDone(true);
             } catch (error) {
                 setIsSuccess(false);
-                setMessage('OTP Token has expired. Please request a new code from the FireAlert App.');
+                const errorMessage = `${error}`.split(': ')[1]
+                setMessage(`${errorMessage}` || 'OTP Token has expired. Please request a new code from the FireAlert App.');
                 setIsDone(true);
             }
         }
     };
-    if (router.isReady) {
-        return (
-            <VerifyAlertMethod
-                otpValues={otpValues}
-                setOtpValues={setOtpValues}
-                onVerificationComplete={handleCompleteVerification}
-                isSuccess={isSuccess}
-                message={message}
-                isDone={isDone}
-            />
-        );
-    }
+
+    return (
+        <VerifyAlertMethod
+            otpValues={otpValues}
+            setOtpValues={setOtpValues}
+            onVerificationComplete={handleCompleteVerification}
+            isSuccess={isSuccess}
+            message={message}
+            isDone={isDone}
+        />
+    );
 }
