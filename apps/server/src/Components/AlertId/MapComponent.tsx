@@ -1,12 +1,12 @@
 import React from 'react'
-import { FC, useEffect } from 'react';
+import { FC } from 'react';
 import Map, { NavigationControl, ScaleControl, FullscreenControl, MapRef, Marker } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import mapStyle from '../../data/mapStyleOutput.json'
 import Image from 'next/image';
-import vector from '../../../public/alertPage/mapFocus/Vector.svg'
-import ellipse1 from '../../../public/alertPage/mapFocus/Ellipse1.svg'
-import ellipse2 from '../../../public/alertPage/mapFocus/Ellipse2.svg'
+import vector from '../../../public/alertPage/Vector.png'
+import { highlightWave } from '../../../../nativeapp/app/assets/animation/lottie'
+import Lottie from 'react-lottie';
 import classes from './MapComponent.module.css'
 
 interface AlertData {
@@ -29,14 +29,19 @@ const MapComponent: FC<Props> = ({ alertData }) => {
         zoom: 13
     });
 
-    const onMapLoad = React.useCallback(() => {
+    const onMapLoad = React.useCallback(async () => {
         const map = mapRef?.current?.getMap();
         map?.setStyle(mapStyle);
     }, [mapStyle]);
 
+    const defaultLottieOptions = {
+        loop: true,
+        autoplay: true,
+        animationData: highlightWave,
+    };
+
     return (
         <Map
-            // mapLib={import('maplibre-gl')}
             initialViewState={viewState}
             onLoad={onMapLoad}
             onMove={evt => setViewState(evt.viewState)}
@@ -47,9 +52,12 @@ const MapComponent: FC<Props> = ({ alertData }) => {
         >
             <Marker longitude={longitude} latitude={latitude} anchor="bottom">
                 <div className={classes.vectorAnimationContainer}>
-                    <Image src={ellipse1} alt="Ellipse 1" className={classes.pulseAnimation1} />
                     <Image src={vector} alt="Map Focus" className={classes.vector} />
-                    <Image src={ellipse2} alt="Ellipse 2" className={classes.pulseAnimation2} style={{ animationDelay: '0.5s' }} />
+                    <div className={classes.lottieAnimation}>
+                        <Lottie
+                            options={defaultLottieOptions}
+                        />
+                    </div>
                 </div>
             </Marker>
             <NavigationControl />

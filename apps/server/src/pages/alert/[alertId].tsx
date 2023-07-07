@@ -1,9 +1,13 @@
 // To access this page visit: ${URL}/alert/${alertId}
 
+import { createServerSideHelpers } from '@trpc/react-query/server';
 import { api } from '../../utils/api';
-import { useEffect } from 'react';
-import { type GetServerSidePropsContext } from 'next';
+import { GetStaticPropsContext, GetStaticPaths, InferGetStaticPropsType } from 'next';
 import { AlertId } from '../../Components/AlertId/AlertId';
+import { appRouter } from '../../server/api/root';
+import superjson from 'superjson';
+import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
+import ErrorPage from 'next/error';
 
 function getDaysPassedSince(date: Date): number {
     const now = new Date();
@@ -45,26 +49,30 @@ function getIdentityGroup(identityKey: string): string | null {
 }
 
 
-const Alert = ({ alertId, errorMessage }: { alertId: string, errorMessage: string }) => {
-    const { data, isLoading, isError } = api.alert.getAlert.useQuery({ id: alertId });
+const Alert = (
+    props: InferGetStaticPropsType<typeof getStaticProps>,
+) => {
+    const { id } = props;
+    const alertQuery = api.alert.getAlert.useQuery({ id }, {retry: 0});
 
-    useEffect(() => {
-        if (alertId) {
-            console.log(`alertId: ${alertId}`);
+    if(alertQuery.isError){
+        const error = alertQuery.error;
+        let message = error?.shape?.message || 'Unknown error';
+        let httpStatus = error?.data?.httpStatus || 500;
+        if(httpStatus === 503){
+            message = "Server under Maintenance. Please check back in a few minutes."
         }
-    }, [alertId]);
-
-    if (errorMessage) {
-        return <div>Error: {errorMessage}</div>;
+        if(httpStatus === 404){
+            return <ErrorPage statusCode={httpStatus} />;  
+        }
+        return <ErrorDisplay message={message} httpStatus={httpStatus} />;
     }
 
-    if (isLoading) {
-        return <div>Loading...</div>;
+    if(alertQuery.status !== 'success'){
+        return <>Loading...</>
     }
 
-    if (isError) {
-        return <div>Error: Failed to load alert data</div>;
-    }
+    const {data} = alertQuery
 
     const alert = data.data
     const daysAgo = `${getDaysPassedSince(alert.eventDate)}`;
@@ -90,29 +98,38 @@ const Alert = ({ alertId, errorMessage }: { alertId: string, errorMessage: strin
     );
 };
 
-export async function getServerSideProps(context: GetServerSidePropsContext) {
-    if (!context.params) {
-        return {
-            props: {
-                errorMessage: 'Context params is not present',
-            },
-        };
-    }
-    const alertId = context.params.alertId;
+export async function getStaticProps(
+    context: GetStaticPropsContext<{ id: string }>,
+) {
+    const helpers = createServerSideHelpers({
+        router: appRouter,
+        ctx: {},
+        transformer: superjson,
+    })
+    const id = context.params?.alertId as string;
 
-    if (!alertId) {
-        return {
-            props: {
-                errorMessage: 'Invalid alertId',
-            },
-        };
-    }
-
+    const alertData = await helpers.alert.getAlert.prefetch({ id });
+    
+    // Check if alertData is not null
+    // if (!alertData) {
+    //     return {
+    //         notFound: true,
+    //     }
+    // }
     return {
         props: {
-            alertId: alertId,
+            trpcState: helpers.dehydrate(),
+            id,
         },
+        revalidate: 1,
     };
+}
+
+export const getStaticPaths: GetStaticPaths = async () => {
+    return {
+        paths: [],
+        fallback: 'blocking',
+    }
 }
 
 export default Alert;
