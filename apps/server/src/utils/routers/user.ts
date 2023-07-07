@@ -19,6 +19,15 @@ interface CreateUserArgs {
 
 export async function createUserInPrismaTransaction({ id, prisma, sub, name, email, emailVerified, image, isPlanetRO, remoteId }: CreateUserArgs) {
     const detectionMethods: ('MODIS' | 'VIIRS' | 'LANDSAT' | 'GEOSTATIONARY')[] = ["MODIS", "VIIRS", "LANDSAT"]
+    
+    // Normal user plan must be "basic" by default
+    let userPlan: string = "basic"
+
+    //PlanetRO user plan must be "pro" by default
+    if(isPlanetRO){
+        userPlan = "pro"
+    }
+
     const createdUser = await prisma.user.create({
         data: {
             id: id ? id : undefined,
@@ -30,7 +39,8 @@ export async function createUserInPrismaTransaction({ id, prisma, sub, name, ema
             emailVerified: emailVerified,
             lastLogin: new Date(),
             detectionMethods: detectionMethods,
-            remoteId: remoteId
+            remoteId: remoteId,
+            plan: userPlan,
         },
     });
     return createdUser;
@@ -92,7 +102,6 @@ export async function handleNewUser(bearer_token: string) {
     const planetId = getPlanetUser.id
 
     // Create FireAlert User
-
     const createdUser: User = await createUserInPrismaTransaction({ prisma, sub, name: name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, remoteId: planetId })
     const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, email, isVerified: email_verified, method: "email", isEnabled: true, userId: createdUser.id })
     if (isPlanetRO) {

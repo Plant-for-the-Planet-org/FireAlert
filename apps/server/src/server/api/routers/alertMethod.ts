@@ -106,6 +106,33 @@ export const alertMethodRouter = createTRPCRouter({
         .input(createAlertMethodSchema)
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.user!.id;
+            const userPlan = ctx.user!.plan
+            // Setup user plan constraint
+            if (userPlan === 'basic' || userPlan === 'pro') {
+                const alertMethodCount = await ctx.prisma.alertMethod.count({
+                    where: {
+                        userId: userId,
+                    },
+                });
+                // Basic Plan
+                if(userPlan === 'basic'){
+                    if (alertMethodCount >= 5) {
+                        throw new TRPCError({
+                            code: "UNAUTHORIZED",
+                            message: "Please upgrade your plan to continue adding more alert methods.",
+                        });
+                    }
+                }
+                // Pro plan
+                if(userPlan === 'pro'){
+                    if (alertMethodCount >= 20) {
+                        throw new TRPCError({
+                            code: "UNAUTHORIZED",
+                            message: "Please upgrade your plan to continue adding more alert methods.",
+                        });
+                    }
+                }
+            }
             //Check if that AlertMethod already exists
             const existingAlertMethod = await ctx.prisma.alertMethod.findFirst({
                 where: {

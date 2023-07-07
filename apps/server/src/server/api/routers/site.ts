@@ -13,6 +13,22 @@ export const siteRouter = createTRPCRouter({
         .input(createSiteSchema)
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.user!.id;
+            const userPlan = ctx.user!.plan
+            // Setup user plan constraint
+            if (userPlan === 'basic') {
+                const siteCount = await ctx.prisma.site.count({
+                    where: {
+                        userId: userId,
+                    },
+                });
+                // Basic plan
+                if (siteCount >= 5) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: "Please upgrade your plan to continue adding more alert methods.",
+                    });
+                }
+            }
             try {
                 const radius = input.radius ?? 0;
                 const origin = 'firealert';
