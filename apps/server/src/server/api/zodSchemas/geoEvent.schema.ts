@@ -6,13 +6,7 @@ export const createGeoEventSchema = z.object({
     latitude: z.number(),
     longitude: z.number(),
     eventDate: z.date(),
-    geometry: z.object({
-        type: z.string(),
-        coordinates: z.array(z.number()),
-    }),
-    confidence: z.number(),
-    radius: z.number(),
-    data: z.object({
-        [z.string()]: z.any(),
-    }),
+    confidence: z.enum(["high","medium","low"]),
+    radius: z.number().optional(),
+    data: z.record(z.unknown()).optional(),
 });
