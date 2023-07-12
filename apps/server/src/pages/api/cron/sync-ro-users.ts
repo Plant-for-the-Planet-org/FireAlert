@@ -9,6 +9,7 @@ import { logger } from "../../../../src/server/logger";
 import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
 import moment from 'moment';
 import { Prisma, Project } from "@prisma/client";
+import { type TreeProjectExtended } from '@planet-sdk/common'
 
 export default async function syncROUsers(req: NextApiRequest, res: NextApiResponse) {
     // Verify the 'cron_key' in the request headers before proceeding
@@ -21,7 +22,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     }
 
     // Fetch projects from PP API
-    const allProjectsPPWebApp = await fetchAllProjectsWithSites();
+    const allProjectsPPWebApp: TreeProjectExtended[] = await fetchAllProjectsWithSites();
 
     // Fetch RO Users from the database and their respective remoteIds
     const ROUsers = await prisma.user.findMany({
@@ -63,7 +64,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         (projectId) => !projectsPP.some((project) => project.id === projectId)
     );
 
-    // Soft delete sites associated with these projects and delete these projects
+    // Dissociate sites associated with these projects and delete the projects
     if (deleteFAProjectIds.length) {
         await prisma.$transaction(async (prisma) => {
             await prisma.site.updateMany({
@@ -73,11 +74,10 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                     },
                 },
                 data: {
-                    deletedAt: new Date(),
                     projectId: null,
                 },
             });
-            logger(`Soft deleted sites and deleted projects with ids: ${deleteFAProjectIds.join(", ")}`, 'info',);
+            logger(`Deleted projects with ids: ${deleteFAProjectIds.join(", ")}`, 'info',);
             await prisma.project.deleteMany({
                 where: {
                     id: {
@@ -113,25 +113,28 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 userId: userId,
             });
 
+            // If sitesFromPP is not undefined, and its length is greater than 0, 
             // Iterate through the sites of the new project
-            for (const siteFromPP of sitesFromPP) {
-                const { geometry, properties } = siteFromPP;
-                const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = properties;
+            if (sitesFromPP && sitesFromPP.length > 0) {
+                for (const siteFromPP of sitesFromPP) {
+                    const { geometry, properties } = siteFromPP;
+                    const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = properties;
 
-                if (geometry && geometry.type) {
-                    // Add the new site to the array for bulk creation
-                    newSiteData.push({
-                        id: siteIdFromPP,
-                        type: geometry.type,
-                        geometry: geometry,
-                        radius: 0,  // Use the actual radius value if available
-                        projectId: projectId,
-                        lastUpdated: new Date(),
-                        userId: userId,
-                    });
-                } else {
-                    // Handle the case where geometry or type is null
-                    console.log(`Skipping site with id ${siteIdFromPP} due to null geometry or type.`);
+                    if (geometry && geometry.type) {
+                        // Add the new site to the array for bulk creation
+                        newSiteData.push({
+                            id: siteIdFromPP,
+                            type: geometry.type,
+                            geometry: geometry,
+                            radius: 0,
+                            projectId: projectId,
+                            lastUpdated: new Date(),
+                            userId: userId,
+                        });
+                    } else {
+                        // Handle the case where geometry or type is null
+                        logger(`Skipping site with id ${siteIdFromPP} due to null geometry or type.`, 'info',);
+                    }
                 }
             }
         }
@@ -168,8 +171,10 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     // Create a list of site IDs from PP
     const ppSiteIdList: string[] = [];
     for (const projectPP of projectsPP) {
-        for (const siteFromPP of projectPP.sites) {
-            ppSiteIdList.push(siteFromPP.properties.id);
+        if (projectPP.sites && projectPP.sites.length > 0) {  // Checking if sites is not null before accessing it
+            for (const siteFromPP of projectPP.sites) {
+                ppSiteIdList.push(siteFromPP.properties.id);
+            }
         }
     }
 
@@ -227,52 +232,52 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 const tpoId = projectPP.tpo.id;
                 const userId = mapRemoteIdWithUserId.get(tpoId);
 
-                const siteIdsFromPP = sitesFromPPProject.map((site) => site.properties.id);
+                if (sitesFromPPProject && sitesFromPPProject.length > 0) {
+                    for (const siteFromPP of sitesFromPPProject) {
+                        const { geometry, properties } = siteFromPP;
+                        const { id: siteIdFromPP, lastUpdated: siteLastUpdated } = properties;
+                        const siteLastUpdatedFromPP = moment(siteLastUpdated.date, siteLastUpdated.timezone).utc().toDate();
 
-                for (const siteFromPP of sitesFromPPProject) {
-                    const { geometry, properties } = siteFromPP;
-                    const { id: siteIdFromPP, lastUpdated: siteLastUpdated } = properties;
-                    const siteLastUpdatedFromPP = moment(siteLastUpdated.date, siteLastUpdated.timezone).utc().toDate();
+                        if (geometry && geometry.type) {
+                            const siteFromDatabase = sitesFA.find((site) => site.id === siteIdFromPP);
 
-                    if (geometry && geometry.type) {
-                        const siteFromDatabase = sitesFA.find((site) => site.id === siteIdFromPP);
+                            const radius = 0;
 
-                        const radius = 0;
-
-                        // If the site does not exist in the database, create a new site
-                        if (!siteFromDatabase) {
-                            createPromises.push(
-                                prisma.site.create({
-                                    data: {
-                                        id: siteIdFromPP,
-                                        type: geometry.type,
-                                        geometry: geometry,
-                                        radius: radius,
-                                        userId: userId,
-                                        projectId: projectId,
-                                        lastUpdated: new Date(),
-                                    },
-                                })
-                            );
-                            // If the site exists in the database but has been updated in the PP API, update the site in the database
-                        } else if (siteFromDatabase.lastUpdated?.getTime() !== siteLastUpdatedFromPP.getTime()) {
-                            updatePromises.push(
-                                prisma.site.update({
-                                    where: {
-                                        id: siteIdFromPP,
-                                    },
-                                    data: {
-                                        type: geometry.type,
-                                        geometry: geometry,
-                                        radius: radius,
-                                        lastUpdated: siteLastUpdatedFromPP,
-                                    },
-                                })
-                            );
+                            // If the site does not exist in the database, create a new site
+                            if (!siteFromDatabase) {
+                                createPromises.push(
+                                    prisma.site.create({
+                                        data: {
+                                            id: siteIdFromPP,
+                                            type: geometry.type,
+                                            geometry: geometry,
+                                            radius: radius,
+                                            userId: userId,
+                                            projectId: projectId,
+                                            lastUpdated: new Date(),
+                                        },
+                                    })
+                                );
+                                // If the site exists in the database but has been updated in the PP API, update the site in the database
+                            } else if (siteFromDatabase.lastUpdated?.getTime() !== siteLastUpdatedFromPP.getTime()) {
+                                updatePromises.push(
+                                    prisma.site.update({
+                                        where: {
+                                            id: siteIdFromPP,
+                                        },
+                                        data: {
+                                            type: geometry.type,
+                                            geometry: geometry,
+                                            radius: radius,
+                                            lastUpdated: siteLastUpdatedFromPP,
+                                        },
+                                    })
+                                );
+                            }
+                        } else {
+                            // Handle the case where geometry or type is null
+                            logger(`Skipping site with id ${siteIdFromPP} due to null geometry or type.`, 'info',);
                         }
-                    } else {
-                        // Handle the case where geometry or type is null
-                        logger(`Skipping site with id ${siteIdFromPP} due to null geometry or type.`, 'info',);
                     }
                 }
             }
@@ -287,9 +292,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         const updateCount = updateResults.length; // Number of updated items
         const deleteCount = deleteResults.length; // Number of deleted items
 
-        logger(`Created ${createCount} items.`, 'info',);
-        logger(`Updated ${updateCount} items.`, 'info',);
-        logger(`Deleted ${deleteCount} items.`, 'info',);
+        logger(`Created ${createCount} items. Updated ${updateCount} items. Deleted ${deleteCount} items.`, 'info',);
 
         res.status(200).json({
             message: "Success! Data has been synced for RO Users!",
