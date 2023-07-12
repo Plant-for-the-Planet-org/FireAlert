@@ -66,7 +66,6 @@ export const geoEventProviderRouter = createTRPCRouter({
             try {
                 const id = input.params.id;
                 const body = input.body;
-                const userId = ctx.user!.id;
                 //check if user owns the geoEventProvider
                 const geoEventProvider = await checkUserOwnsProvider(ctx, id);
                 if (!geoEventProvider) {

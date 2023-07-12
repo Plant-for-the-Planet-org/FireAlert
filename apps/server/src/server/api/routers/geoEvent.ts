@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { createGeoEventSchema } from "../zodSchemas/geoEvent.schema";
-import { GeoEventProvider, Prisma } from "@prisma/client";
+import { GeoEventProvider } from "@prisma/client";
 import { createXXHash3 } from "hash-wasm";
 import { getSlice } from "../../../utils/routers/geoEvent";
 

@@ -95,7 +95,7 @@ export async function handleNewUser(bearer_token: string) {
     // Auth0 has a bug where email_verified is a sometimes string instead of a boolean
     // Therefore check both string and boolean values
     
-    const email_verified = userData.email_verified === "true" || true ? true : false
+    const email_verified = userData.email_verified === "true";
 
     const getPlanetUser = await planetUser(bearer_token)
     const isPlanetRO = getPlanetUser.isPlanetRO
@@ -103,7 +103,7 @@ export async function handleNewUser(bearer_token: string) {
 
     // Create FireAlert User
     const createdUser: User = await createUserInPrismaTransaction({ prisma, sub, name: name, image: picture, email, emailVerified: email_verified, isPlanetRO: isPlanetRO, remoteId: planetId })
-    const createdAlertMethod = await createAlertMethodInPrismaTransaction({ prisma, email, isVerified: email_verified, method: "email", isEnabled: true, userId: createdUser.id })
+    await createAlertMethodInPrismaTransaction({ prisma, email, isVerified: email_verified, method: "email", isEnabled: true, userId: createdUser.id })
     if (isPlanetRO) {
         const projects = await fetchProjectsWithSitesForUser(bearer_token)
         if (projects.length > 0) {
