@@ -2,6 +2,7 @@
 // Sync RO Users CRON job
 // This cron job runs every day and syncs sites, projects, and profile data for RO users.
 
+
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { prisma } from '../../../server/db'
 import { env } from "../../../env.mjs";
@@ -21,10 +22,14 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         }
     }
 
+    let createCount = 0;
+    let updateCount = 0;
+    let deleteCount = 0;
+
     // Fetch projects from PP API
     const allProjectsPPWebApp: TreeProjectExtended[] = await fetchAllProjectsWithSites();
 
-    // Fetch RO Users from the database and their respective remoteIds
+    // Fetch RO Users from the Firealert database and select their ids and remoteIds
     const ROUsers = await prisma.user.findMany({
         where: {
             isPlanetRO: true,
@@ -35,20 +40,19 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         },
     });
 
-    const userRemoteIdList = ROUsers.map(user => user.remoteId);
-
     // Create a map to associate remoteId with userId
-    const mapRemoteIdWithUserId = new Map();
+    const map_userRemoteId_to_userId = new Map();
     ROUsers.forEach(user => {
-        mapRemoteIdWithUserId.set(user.remoteId, user.id);
+        map_userRemoteId_to_userId.set(user.remoteId, user.id);
     });
 
     // Filter projects from PP API to include only those related to RO users
-    const projectsPP = allProjectsPPWebApp.filter(projectPP =>
+    const userRemoteIdList = ROUsers.map(user => user.remoteId);
+    const projectsPP1 = allProjectsPPWebApp.filter(projectPP =>
         userRemoteIdList.includes(projectPP.tpo.id)
     );
 
-    // Fetch corresponding projects for the RO users from the database
+    // Fetch all projects for the RO users from the Firealert database
     const userIdList = ROUsers.map(user => user.id);
     const projectsFA = await prisma.project.findMany({
         where: {
@@ -58,51 +62,47 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         }
     });
 
-    // Identify projects in the database that are not present in PP API
+    // Filter projects from the pp web api, depending on the project.id
     const projectsIdsFA = projectsFA.map((project) => project.id);
-    const deleteFAProjectIds = projectsIdsFA.filter(
-        (projectId) => !projectsPP.some((project) => project.id === projectId)
+    const projectsPP2 = allProjectsPPWebApp.filter(projectPP =>
+        projectsIdsFA.includes(projectPP.id)
     );
 
-    // Dissociate sites associated with these projects and delete the projects
-    if (deleteFAProjectIds.length) {
-        await prisma.$transaction(async (prisma) => {
-            await prisma.site.updateMany({
-                where: {
-                    projectId: {
-                        in: deleteFAProjectIds,
-                    },
-                },
-                data: {
-                    projectId: null,
-                },
-            });
-            logger(`Deleted projects with ids: ${deleteFAProjectIds.join(", ")}`, 'info',);
-            await prisma.project.deleteMany({
-                where: {
-                    id: {
-                        in: deleteFAProjectIds,
-                    },
-                },
-            });
-        });
-    }
-
-    // Identify new projects from PP API that are not present in the database
-    const newProjectsPP = projectsPP.filter(
+    // Combine projectsPP1 and projectsPP2 without duplicates
+    const projectsPP = projectsPP1.concat(projectsPP2.filter((projectPP2) =>
+        !projectsPP1.some((projectPP1) => projectPP1.id === projectPP2.id)
+    ));
+    // Identify projects that are in PP Webapp that are not present in the FA database
+    const projectsInPP_not_in_FA = projectsPP.filter(
         (projectPP) => !projectsFA.some((projectFA) => projectFA.id === projectPP.id)
     );
 
+    const sitesThatAreOrWereOnceRemote = await prisma.site.findMany({
+        where: {
+            userId: {
+                in: userIdList,
+            },
+        },
+    });
+
+    const ids_sitesThatAreOrWereOnceRemote = sitesThatAreOrWereOnceRemote.map(site => site.id)
+    const map_ids_sitesThatAreOrWereOnceRemote_to_remoteId = new Map();
+    sitesThatAreOrWereOnceRemote.forEach(site => {
+        map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.set(site.remoteId, site.id);
+    });
+
     // Add those projects to the database, and all the sites inside of it.
-    if (newProjectsPP.length > 0) {
+    if (projectsInPP_not_in_FA.length > 0) {
         // Prepare the projects and sites data for bulk creation
         const newProjectData: Project[] = [];
         const newSiteData: Prisma.SiteCreateManyInput[] = [];
+        // Prepare an array of promises for site updates
+        const updateSitePromises = [];
 
-        for (const projectPP of newProjectsPP) {
-            const { id: projectId, name: projectName, slug: projectSlug, lastUpdated: projectLastUpdated, sites: sitesFromPP } = projectPP;
+        for (const projectPP of projectsInPP_not_in_FA) {
+            const { id: projectId, name: projectName, slug: projectSlug, sites: sitesFromPP } = projectPP;
             const tpoId = projectPP.tpo.id;
-            const userId = mapRemoteIdWithUserId.get(tpoId);
+            const userId = map_userRemoteId_to_userId.get(tpoId);
 
             // Add the new project to the array for bulk creation
             newProjectData.push({
@@ -118,40 +118,62 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             if (sitesFromPP && sitesFromPP.length > 0) {
                 for (const siteFromPP of sitesFromPP) {
                     const { geometry, properties } = siteFromPP;
-                    const { id: siteIdFromPP, lastUpdated: siteLastUpdatedFromPP } = properties;
+                    const { id: remoteId_PP } = properties;
+                    const siteId_mapped_from_remoteId = map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.get(remoteId_PP)
 
+                    // Check if geometry and geometry.type exists
                     if (geometry && geometry.type) {
-                        // Add the new site to the array for bulk creation
-                        newSiteData.push({
-                            id: siteIdFromPP,
-                            type: geometry.type,
-                            geometry: geometry,
-                            radius: 0,
-                            projectId: projectId,
-                            lastUpdated: new Date(),
-                            userId: userId,
-                        });
+                        // If site already existed before and was soft deleted from webapp, link that site with its corresponding project
+                        if (ids_sitesThatAreOrWereOnceRemote.includes(siteId_mapped_from_remoteId)) {
+                            // Prepare the site for bulk update, during update make the projectId null, and deletedAt as null.
+                            updateSitePromises.push(
+                                prisma.site.update({
+                                    where: {
+                                        id: siteId_mapped_from_remoteId
+                                    },
+                                    data: {
+                                        projectId: projectId,
+                                        deletedAt: null
+                                    }
+                                })
+                            );
+                        } else {
+                            // Add the new site to the array for bulk creation
+                            newSiteData.push({
+                                remoteId: remoteId_PP,
+                                type: geometry.type,
+                                geometry: geometry,
+                                radius: 0,
+                                projectId: projectId,
+                                lastUpdated: new Date(),
+                                userId: userId,
+                            });
+                        }
                     } else {
                         // Handle the case where geometry or type is null
-                        logger(`Skipping site with id ${siteIdFromPP} due to null geometry or type.`, 'info',);
+                        logger(`Skipping site with id ${remoteId_PP} due to null geometry or type.`, 'info',);
                     }
                 }
             }
         }
 
         // Add the new projects and sites to the database in a transaction
-        await prisma.$transaction(async (prisma) => {
-            const createdProjects = await prisma.project.createMany({
-                data: newProjectData,
-            });
-            const createdSites = await prisma.site.createMany({
-                data: newSiteData,
-            });
-        })
+        const createdProjects = await prisma.project.createMany({
+            data: newProjectData,
+        });
+        const createdSites = await prisma.site.createMany({
+            data: newSiteData,
+        });
+        // Await all update promises
+        const updateResults = await Promise.all(updateSitePromises);
+
+        createCount = createCount + createdProjects.count + createdSites.count
+        updateCount = updateCount + updateResults.length
     }
 
 
     // Fetch all sites from the database for the projects in projectsPP
+    // Only sites of public projects should be fetched.
     const sitesFA = await prisma.site.findMany({
         where: {
             projectId: {
@@ -160,47 +182,60 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         },
     });
 
+    const mapSiteRemoteId_to_SiteId = new Map();
+    sitesFA.forEach(site => {
+        mapSiteRemoteId_to_SiteId.set(site.remoteId, site.id);
+    });
+
+
+    // Refetch projects from database to also include projects that were just created
+    // Only public projects should be fetched.
     const newProjectsFA = await prisma.project.findMany({
         where: {
-            userId: {
-                in: userIdList
+            id: {
+                in: projectsPP.map((project) => project.id),
             }
         }
     });
 
+    const remoteIdsList_SiteFA = sitesFA.map(siteFA => siteFA.remoteId) as string[]
+
     // Create a list of site IDs from PP
-    const ppSiteIdList: string[] = [];
+    const remoteIdsList_PP: string[] = [];
     for (const projectPP of projectsPP) {
         if (projectPP.sites && projectPP.sites.length > 0) {  // Checking if sites is not null before accessing it
             for (const siteFromPP of projectPP.sites) {
-                ppSiteIdList.push(siteFromPP.properties.id);
+                remoteIdsList_PP.push(siteFromPP.properties.id);
             }
         }
     }
 
+    // Find the remoteIds, which is present in remoteIdsList_PP but not in remoteIdsList_SiteFA
+    const remoteIdsInFA_NotInPP = remoteIdsList_SiteFA.filter(remoteId => !remoteIdsList_PP.includes(remoteId));
+
+    const siteIdsInFA_NotInPP = sitesFA.filter(site => remoteIdsInFA_NotInPP.includes(site.remoteId as string)).map(site => site.id);
+
     // Perform bulk creations, bulk updates, and bulk deletions for sites
-    await prisma.$transaction(async (prisma) => {
+    try {
         const createPromises = [];
         const updatePromises = [];
         const deletePromises = [];
 
-        // Identify sites in the database that are not present in PP API and soft delete them
-        for (const siteFA of sitesFA) {
-            if (!ppSiteIdList.includes(siteFA.id)) {
-                deletePromises.push(
-                    prisma.site.update({
-                        where: {
-                            id: siteFA.id,
+        // Identify sites in the database that are not present in PP API and dissociate those sites from the projects
+        if (siteIdsInFA_NotInPP.length > 0) {
+            deletePromises.push(
+                prisma.site.updateMany({
+                    where: {
+                        id: {
+                            in: siteIdsInFA_NotInPP,
                         },
-                        data: {
-                            projectId: null,
-                            deletedAt: new Date(),
-                        },
-                    })
-                );
-            }
+                    },
+                    data: {
+                        projectId: null,
+                    },
+                }))
+            logger(`Soft Deleting ${siteIdsInFA_NotInPP.length} sites not present in the Webapp`, 'info',);
         }
-        logger(`Deleting ${deletePromises.length} sites not present in the PP API`, 'info',);
 
         // For each project in PP API, identify sites in the database that need to be updated or created
         for (const projectPP of projectsPP) {
@@ -228,56 +263,63 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         },
                     })
                 );
+            }
 
-                const tpoId = projectPP.tpo.id;
-                const userId = mapRemoteIdWithUserId.get(tpoId);
+            const tpoId = projectPP.tpo.id;
+            const userId = map_userRemoteId_to_userId.get(tpoId);
 
-                if (sitesFromPPProject && sitesFromPPProject.length > 0) {
-                    for (const siteFromPP of sitesFromPPProject) {
-                        const { geometry, properties } = siteFromPP;
-                        const { id: siteIdFromPP, lastUpdated: siteLastUpdated } = properties;
-                        const siteLastUpdatedFromPP = moment(siteLastUpdated.date, siteLastUpdated.timezone).utc().toDate();
+            // If the project has sites
+            if (sitesFromPPProject && sitesFromPPProject.length > 0) {
+                for (const siteFromPP of sitesFromPPProject) {
+                    const { geometry, properties } = siteFromPP;
+                    const { id: remoteId_fromPP, lastUpdated: siteLastUpdated, name: siteName } = properties;
+                    const siteLastUpdatedFromPP = moment(siteLastUpdated.date.split('.')[0], 'YYYY-MM-DD HH:mm:ss').utc().toDate();
 
-                        if (geometry && geometry.type) {
-                            const siteFromDatabase = sitesFA.find((site) => site.id === siteIdFromPP);
-
-                            const radius = 0;
-
-                            // If the site does not exist in the database, create a new site
-                            if (!siteFromDatabase) {
-                                createPromises.push(
-                                    prisma.site.create({
-                                        data: {
-                                            id: siteIdFromPP,
-                                            type: geometry.type,
-                                            geometry: geometry,
-                                            radius: radius,
-                                            userId: userId,
-                                            projectId: projectId,
-                                            lastUpdated: new Date(),
-                                        },
-                                    })
-                                );
-                                // If the site exists in the database but has been updated in the PP API, update the site in the database
-                            } else if (siteFromDatabase.lastUpdated?.getTime() !== siteLastUpdatedFromPP.getTime()) {
-                                updatePromises.push(
-                                    prisma.site.update({
-                                        where: {
-                                            id: siteIdFromPP,
-                                        },
-                                        data: {
-                                            type: geometry.type,
-                                            geometry: geometry,
-                                            radius: radius,
-                                            lastUpdated: siteLastUpdatedFromPP,
-                                        },
-                                    })
-                                );
-                            }
-                        } else {
-                            // Handle the case where geometry or type is null
-                            logger(`Skipping site with id ${siteIdFromPP} due to null geometry or type.`, 'info',);
+                    // Check if the site is valid
+                    if (geometry && geometry.type) {
+                        const siteId_in_FADatabase = map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.get(remoteId_fromPP)
+                        const radius = 0;
+                        let siteFromDatabase;
+                        // Check if the site is already in database
+                        if (siteId_in_FADatabase) {
+                            siteFromDatabase = sitesFA.find((site) => site.id === siteId_in_FADatabase);
                         }
+                        // If the site does not exist in the database, create a new site
+                        if (!siteFromDatabase) {
+                            createPromises.push(
+                                prisma.site.create({
+                                    data: {
+                                        remoteId: remoteId_fromPP,
+                                        name: siteName,
+                                        type: geometry.type,
+                                        geometry: geometry,
+                                        radius: radius,
+                                        userId: userId,
+                                        projectId: projectId,
+                                        lastUpdated: new Date(),
+                                    },
+                                })
+                            );
+                        // else if the site exists in the FA database, and has been updated in the webapp, update the site in the database
+                        } else if (siteFromDatabase.lastUpdated?.getTime() !== siteLastUpdatedFromPP.getTime()) {
+                            updatePromises.push(
+                                prisma.site.update({
+                                    where: {
+                                        id: siteFromDatabase.id,
+                                    },
+                                    data: {
+                                        type: geometry.type,
+                                        geometry: geometry,
+                                        radius: radius,
+                                        name: siteName,
+                                        lastUpdated: siteLastUpdatedFromPP,
+                                    },
+                                })
+                            );
+                        }
+                    } else {
+                        // Handle the case where geometry or type is null
+                        logger(`Skipping site with id ${remoteId_fromPP} due to null geometry or type.`, 'info',);
                     }
                 }
             }
@@ -288,9 +330,9 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         const updateResults = await Promise.all(updatePromises);
         const deleteResults = await Promise.all(deletePromises);
 
-        const createCount = createResults.length; // Number of created items
-        const updateCount = updateResults.length; // Number of updated items
-        const deleteCount = deleteResults.length; // Number of deleted items
+        createCount = createCount + createResults.length; // Number of created items
+        updateCount = updateCount + updateResults.length; // Number of updated items
+        deleteCount = deleteCount + deleteResults.length; // Number of deleted items
 
         logger(`Created ${createCount} items. Updated ${updateCount} items. Deleted ${deleteCount} items.`, 'info',);
 
@@ -299,11 +341,11 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             status: 200,
             results: { created: createCount, updated: updateCount, deleted: deleteCount },
         });
-    }).catch(error => {
+    } catch (error) {
         logger(`Error in transaction: ${error}`, "error");
         res.status(500).json({
             message: "An error occurred while syncing data for RO Users.",
             status: 500
         });
-    });
+    }
 }
