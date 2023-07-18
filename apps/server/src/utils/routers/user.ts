@@ -24,7 +24,7 @@ export async function createUserInPrismaTransaction({ id, prisma, sub, name, ema
     let userPlan: string = "basic"
 
     //PlanetRO user plan must be "pro" by default
-    if(isPlanetRO){
+    if(isPlanetRO === true){
         userPlan = "pro"
     }
 
