@@ -9,15 +9,19 @@ import superjson from 'superjson';
 import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
 import ErrorPage from 'next/error';
 
-function getDaysPassedSince(date: Date): number {
+function getTimePassedSince(date: Date): { days: number; hours: number; minutes: number } {
     const now = new Date();
-    const millisecondsPerDay = 24 * 60 * 60 * 1000; // Number of milliseconds in a day
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
+    const millisecondsPerHour = 60 * 60 * 1000; 
+    const millisecondsPerMinute = 60 * 1000; 
 
-    // Calculate the difference in days
+    // Calculate the difference in days, hours, and minutes
     const timeDiff = now.getTime() - date.getTime();
     const daysPassed = Math.floor(timeDiff / millisecondsPerDay);
+    const hoursPassed = Math.floor(timeDiff / millisecondsPerHour);
+    const minutesPassed = Math.floor(timeDiff / millisecondsPerMinute);
 
-    return daysPassed;
+    return { days: daysPassed, hours: hoursPassed, minutes: minutesPassed };
 }
 
 function formatDateString(dateString: string): string {
@@ -53,29 +57,38 @@ const Alert = (
     props: InferGetStaticPropsType<typeof getStaticProps>,
 ) => {
     const { id } = props;
-    const alertQuery = api.alert.getAlert.useQuery({ id }, {retry: 0});
+    const alertQuery = api.alert.getAlert.useQuery({ id }, { retry: 0 });
 
-    if(alertQuery.isError){
+    if (alertQuery.isError) {
         const error = alertQuery.error;
         let message = error?.shape?.message || 'Unknown error';
         let httpStatus = error?.data?.httpStatus || 500;
-        if(httpStatus === 503){
+        if (httpStatus === 503) {
             message = "Server under Maintenance. Please check back in a few minutes."
         }
-        if(httpStatus === 404){
-            return <ErrorPage statusCode={httpStatus} />;  
+        if (httpStatus === 404) {
+            return <ErrorPage statusCode={httpStatus} />;
         }
         return <ErrorDisplay message={message} httpStatus={httpStatus} />;
     }
 
-    if(alertQuery.status !== 'success'){
+    if (alertQuery.status !== 'success') {
         return <>Loading...</>
     }
 
-    const {data} = alertQuery
+    const { data } = alertQuery
 
     const alert = data.data
-    const daysAgo = `${getDaysPassedSince(alert.eventDate)}`;
+    const timePassed = getTimePassedSince(alert.eventDate);
+    let timeAgo: string;
+
+    if (timePassed.days > 0) {
+        timeAgo = `${timePassed.days} days ago`;
+    } else if (timePassed.hours > 0) {
+        timeAgo = `${timePassed.hours} hours ago`;
+    } else {
+        timeAgo = `${timePassed.minutes} minutes ago`;
+    }
     const formattedDateString = formatDateString(alert.localEventDate)
     const confidence = alert.confidence as string;
     const detectedBy = getIdentityGroup(alert.detectedBy)
@@ -83,7 +96,7 @@ const Alert = (
     const longitude = `${alert.longitude}`
 
     const alertData = {
-        daysAgo,
+        timeAgo,
         formattedDateString,
         confidence,
         detectedBy,
@@ -109,13 +122,7 @@ export async function getStaticProps(
     const id = context.params?.alertId as string;
 
     const alertData = await helpers.alert.getAlert.prefetch({ id });
-    
-    // Check if alertData is not null
-    // if (!alertData) {
-    //     return {
-    //         notFound: true,
-    //     }
-    // }
+
     return {
         props: {
             trpcState: helpers.dehydrate(),
