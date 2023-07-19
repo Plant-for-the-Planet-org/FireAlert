@@ -7,14 +7,16 @@ import copyIcon from '../../../public/alertPage/copy.svg'
 import locationPinIcon from '../../../public/alertPage/locationPin.svg'
 import radarIcon from '../../../public/alertPage/radarIcon.svg'
 import Image from 'next/image';
+import { Prisma } from '@prisma/client';
 
-interface AlertData {
+export interface AlertData {
     timeAgo: string;
     formattedDateString: string;
     confidence: string;
     detectedBy: string | null;
     latitude: string;
     longitude: string;
+    polygon: Prisma.JsonValue;
 }
 
 interface Props {
@@ -41,7 +43,7 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
             <div className={classes.AlertId}>
                 <div className={classes.mapView}>
                     <div id="map" className={classes.mapIcon}>
-                        <MapComponent alertData={alertData} />
+                        <MapComponent alertData={alertData}/>
                     </div>
                 </div>
                 <div className={classes.alertInfo}>
