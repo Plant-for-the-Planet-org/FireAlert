@@ -94,6 +94,7 @@ const Alert = (
     const detectedBy = getIdentityGroup(alert.detectedBy)
     const latitude = `${alert.latitude}`
     const longitude = `${alert.longitude}`
+    const polygon = alert.site.geometry
 
     const alertData = {
         timeAgo,
@@ -101,7 +102,8 @@ const Alert = (
         confidence,
         detectedBy,
         latitude,
-        longitude
+        longitude,
+        polygon
     }
 
     return (
