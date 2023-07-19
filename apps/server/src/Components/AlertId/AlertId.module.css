@@ -292,6 +292,12 @@
   color: #e86f56;
 }
 
+@media (max-width: 1067px){
+  .AlertId {
+    height: 478px;
+  }
+}
+
 /* Tablet View */
 @media (max-width: 1024px) { 
   .AlertId {
@@ -424,11 +430,26 @@
   .AlertId{
     min-height: 750px;
   }
+  .detectionInfoWrapper{
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
 }
 
 @media (max-width:441px) {
   .AlertId{
     min-height: 750px;
+  }
+  .alertIcon {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width:401px) {
+  .AlertId{
+    min-height: 767px;
   }
   .alertIcon {
     width: 30px;
