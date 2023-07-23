@@ -192,6 +192,7 @@ export async function handleNewUser(bearer_token: string) {
                     AND s."deletedAt" IS NULL
                     AND s.id IN (${Prisma.join(siteIds)})
                     AND s."isMonitored" IS TRUE
+                    AND s."isFrozen" IS FALSE
                 WHERE
                     e."isProcessed" = TRUE
                     AND (

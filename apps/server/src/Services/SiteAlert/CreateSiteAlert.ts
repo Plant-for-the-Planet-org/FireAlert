@@ -25,6 +25,7 @@ const createSiteAlerts = async (geoEventProviderId: string, geoEventProviderClie
                 INNER JOIN "Site" s ON ST_Within(ST_SetSRID (e.geometry, 4326), s. "detectionGeometry")
                     AND s. "deletedAt" IS NULL
                     AND s. "isMonitored" = TRUE
+                    AND s. "isFrozen" = FALSE
             WHERE
                 e. "isProcessed" = FALSE
                 AND e. "geoEventProviderId" = ${geoEventProviderId}

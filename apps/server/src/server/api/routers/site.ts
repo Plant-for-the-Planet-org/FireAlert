@@ -78,6 +78,7 @@ export const siteRouter = createTRPCRouter({
                         AND s."deletedAt" IS NULL
                         AND s.id = ${site.id}
                         AND s."isMonitored" IS TRUE
+                        AND s."isFrozen" IS FALSE
                 WHERE
                     e."isProcessed" = TRUE
                     AND (
