@@ -72,6 +72,8 @@ model Site {
     deletedAt         DateTime?
     projectId         String?
     lastUpdated       DateTime?
+    isFrozen          Boolean                   @default(false)
+    falseAlertTime    DateTime?
     userId            String
     slices            Json? // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
     detectionGeometry Unsupported("geometry")?
@@ -132,6 +134,7 @@ model SiteAlert {
     detectedBy    String //GeoEventProviderClientId
     confidence    AlertConfidence
     isProcessed   Boolean         @default(false)
+    falsePositive DateTime?
     deletedAt     DateTime?
     distance      Int
     data          Json?
