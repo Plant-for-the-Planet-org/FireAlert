@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { queryAlertSchema } from '../zodSchemas/alert.schema'
+import { queryAlertSchema, falsePositiveSchema } from '../zodSchemas/alert.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -31,9 +31,9 @@ export const alertRouter = createTRPCRouter({
                         alerts: {
                             select: {
                                 id: true,
-                                site:{
-                                    select:{
-                                        id:true,
+                                site: {
+                                    select: {
+                                        id: true,
                                         name: true,
                                         project: {
                                             select: {
@@ -89,14 +89,14 @@ export const alertRouter = createTRPCRouter({
         .query(async ({ ctx, input }) => {
             try {
                 const alert = await ctx.prisma.siteAlert.findFirst({
-                    where: { 
-                        id: input.id 
+                    where: {
+                        id: input.id
                     },
                     select: {
                         id: true,
-                        site:{
-                            select:{
-                                id:true,
+                        site: {
+                            select: {
+                                id: true,
                                 name: true,
                                 geometry: true,
                                 project: {
@@ -142,6 +142,54 @@ export const alertRouter = createTRPCRouter({
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `Unexpected error: ${error}`,
+                });
+            }
+        }),
+
+    markFalsePositive: protectedProcedure
+        .input(falsePositiveSchema)
+        .mutation(async ({ ctx, input }) => {
+            try {
+                // Use the alertId to mark that alert as false positive, by adding the siteAlert.wasFalsePositive as current Date
+                const updatedSiteAlert = await ctx.prisma.siteAlert.update({
+                    where: {
+                        id: input.alertId
+                    },
+                    data: {
+                        falsePositive: new Date()
+                    }
+                })
+                if (!updatedSiteAlert) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: `Cannot Find Site Alert`,
+                    });
+                }
+                // Then, update that site associated with this siteAlert to have isFrozen as true, and add a falseAlertTime
+                const updatedSite = await ctx.prisma.site.update({
+                    where: {
+                        id: updatedSiteAlert.siteId
+                    },
+                    data: {
+                        isFrozen: true,
+                        falseAlertTime: new Date()
+                    }
+                })
+                if (!updatedSite) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: `Cannot Find Site Associated with the Alert`,
+                    });
+                }
+            } catch (error) {
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Something Went Wrong.`,
                 });
             }
         }),

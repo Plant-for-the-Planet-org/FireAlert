@@ -5,6 +5,10 @@ export const queryAlertSchema = z.object({
 })
 
 
+export const falsePositiveSchema = z.object({
+    alertId: z.string(),
+})
+
 
 
 
