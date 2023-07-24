@@ -6,8 +6,11 @@ import ApiUrl from '../axios/url';
 axios.defaults.timeout = 30000;
 
 export default function fireApi({method, URL, data, header, token}) {
-  if (URL === ApiUrl.userDetails) URL = Config.NEXT_API_URL + URL;
-  else URL = URL;
+  if (URL === ApiUrl.userDetails) {
+    URL = Config.NEXT_API_URL + URL;
+  } else {
+    URL = URL;
+  }
   if (method === 'POST') {
     let headers = {
       headers: {

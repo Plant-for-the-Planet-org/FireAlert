@@ -35,7 +35,8 @@ export const MapLayerProvider = ({children}) => {
 
 export const useMapLayers = () => {
   const context = useContext(MapLayerContext);
-  if (!context)
+  if (!context) {
     throw new Error('MapLayerContext must be used with MapLayerContext!');
+  }
   return context;
 };
