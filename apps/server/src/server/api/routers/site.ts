@@ -256,7 +256,7 @@ export const siteRouter = createTRPCRouter({
         });
       }
       try {
-        let updatedData = input.body;
+        const updatedData = input.body;
         // Initialize data
         let data: Prisma.SiteUpdateInput = updatedData;
         // If Site is associated with PlanetRO User then don't allow changes on fields other than radius and isMonitored
