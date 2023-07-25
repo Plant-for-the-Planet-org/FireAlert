@@ -1,11 +1,9 @@
-import {type NotificationParameters} from '../../Interfaces/NotificationParameters';
-import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
-import type {User} from '@prisma/client';
+import { type NotificationParameters } from "../../Interfaces/NotificationParameters";
+import NotifierRegistry from "../../Services/Notifier/NotifierRegistry";
+import type { User } from "@prisma/client";
 
-const sendEmail = async (
-  destination: string,
-  params: NotificationParameters,
-) => {
+
+const sendEmail = async (destination: string, params: NotificationParameters) => {
   const notifier = NotifierRegistry.get('email');
   await notifier.notify(destination, params);
   return true;
@@ -35,10 +33,11 @@ const sendWelcomeEmail = async (user: User): Promise<boolean> => {
       <p>We're excited to have you on board, and thank you for choosing FireAlert!</p>
       
       <p>Best,<br>The FireAlert Team</p>`,
-    subject: 'Welcome to FireAlert',
+    subject: 'Welcome to FireAlert'
   };
   return await sendEmail(user.email, params);
 };
+
 
 // Send email to user when they request to delete Account
 const sendSoftDeletionEmail = async (user: User): Promise<boolean> => {
@@ -52,15 +51,13 @@ const sendSoftDeletionEmail = async (user: User): Promise<boolean> => {
       <p>If you have any issues logging in or if you need any help, please do not hesitate to contact us at <a href="mailto:firealert@plant-for-the-planet.org">firealert@plant-for-the-planet.org</a>.</p>
   
       <p>Best,<br>The FireAlert Team</p>`,
-    subject: 'FireAlert Account Marked for Deletion',
+    subject: 'FireAlert Account Marked for Deletion'
   };
   return await sendEmail(user.email, params);
 };
 
 // Send email to user when user's account is deleted
-const sendAccountDeletionConfirmationEmail = async (
-  user: User,
-): Promise<boolean> => {
+const sendAccountDeletionConfirmationEmail = async (user: User): Promise<boolean> => {
   const params: NotificationParameters = {
     message: `<p>Dear ${getName(user)},</p>
   
@@ -75,15 +72,13 @@ const sendAccountDeletionConfirmationEmail = async (
       <p>Thank you for having been a part of FireAlert. We wish you all the best.</p>
   
       <p>Best,<br>The FireAlert Team</p>`,
-    subject: 'FireAlert Account Deletion Confirmation',
+    subject: 'FireAlert Account Deletion Confirmation'
   };
   return await sendEmail(user.email, params);
 };
 
 // Send email to user when user cancels account deletion because of Login
-const sendAccountDeletionCancellationEmail = async (
-  user: User,
-): Promise<boolean> => {
+const sendAccountDeletionCancellationEmail = async (user: User): Promise<boolean> => {
   const params: NotificationParameters = {
     message: `<p>Dear ${getName(user)},</p>
   
@@ -96,17 +91,13 @@ const sendAccountDeletionCancellationEmail = async (
       <p>We're glad to have you with us, and thank you for using FireAlert!</p>
       
       <p>Best,<br>The FireAlert Team</p>`,
-    subject: 'FireAlert Account Deletion Cancelled',
+    subject: 'FireAlert Account Deletion Cancelled'
   };
   return await sendEmail(user.email, params);
 };
 
-const sendEmailVerificationCode = async (
-  user: User,
-  verificationEmail: string,
-  verificationCode: string,
-  url: string,
-): Promise<boolean> => {
+
+const sendEmailVerificationCode = async (user: User, verificationEmail: string, verificationCode: string, url:string): Promise<boolean> => {
   const params: NotificationParameters = {
     message: `<p>Dear ${getName(user)},</p>
       
@@ -119,17 +110,12 @@ const sendEmailVerificationCode = async (
       <p>If you have any issues or need any help, please don't hesitate to contact us at <a href="mailto:firealert@plant-for-the-planet.org">firealert@plant-for-the-planet.org</a>.</p>
 
       <p>Best,<br>The FireAlert Team</p>`,
-    subject: 'FireAlert Email Verification Code',
+    subject: 'FireAlert Email Verification Code'
   };
   return await sendEmail(verificationEmail, params);
 };
 
-const sendFireAlertNotification = async (
-  user: User,
-  verificationEmail: string,
-  verificationCode: string,
-  url: string,
-): Promise<boolean> => {
+const sendFireAlertNotification = async (user: User, verificationEmail: string, verificationCode: string, url:string): Promise<boolean> => {
   const params: NotificationParameters = {
     message: `<p>Dear ${getName(user)},</p>
       
@@ -144,16 +130,10 @@ const sendFireAlertNotification = async (
       <p><a href="https:/firealerrt/alert/> Open in FireAlert</a></p>
 
       <p>Best,<br>The FireAlert Team</p>`,
-    subject: 'FireAlert Email Verification Code',
+    subject: 'FireAlert Email Verification Code'
   };
   return await sendEmail(verificationEmail, params);
 };
 
-export {
-  sendWelcomeEmail,
-  sendSoftDeletionEmail,
-  sendAccountDeletionConfirmationEmail,
-  sendEmailVerificationCode,
-  sendAccountDeletionCancellationEmail,
-  sendFireAlertNotification,
-};
+
+export { sendWelcomeEmail, sendSoftDeletionEmail, sendAccountDeletionConfirmationEmail, sendEmailVerificationCode, sendAccountDeletionCancellationEmail, sendFireAlertNotification };

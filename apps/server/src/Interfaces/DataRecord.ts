@@ -1,5 +1,6 @@
+
 interface DataRecord {
-  [key: string]: any;
+    [key: string]: any;
 }
 
 export default DataRecord;

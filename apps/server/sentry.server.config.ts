@@ -2,9 +2,9 @@
 // The config you add here will be used whenever the server handles a request.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
-import * as Sentry from '@sentry/nextjs';
-import {env} from './src/env.mjs';
-import {ProfilingIntegration} from '@sentry/profiling-node';
+import * as Sentry from "@sentry/nextjs";
+import { env } from "./src/env.mjs";
+import { ProfilingIntegration } from "@sentry/profiling-node";
 
 Sentry.init({
   dsn: env.NEXT_PUBLIC_SENTRY_DSN,
@@ -14,7 +14,7 @@ Sentry.init({
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
-
+  
   profilesSampleRate: 1,
   integrations: [
     // Add profiling integration to list of integrations
