@@ -36,7 +36,7 @@ model VerificationRequest {
     createdAt     DateTime    @default(now())
     updatedAt     DateTime?   @updatedAt
     alertMethodId String      @unique
-    alertMethod   AlertMethod @relation(fields: [alertMethodId], references: [id])
+    alertMethod   AlertMethod @relation(fields: [alertMethodId], references: [id], onDelete: Cascade)
 
     @@unique([id, token])
 }
@@ -54,7 +54,7 @@ model AlertMethod {
     lastTokenSentDate   DateTime?
     userId              String
     failCount           Int                  @default(0)
-    user                User                 @relation(fields: [userId], references: [id])
+    user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
     verificationRequest VerificationRequest?
 
     @@unique([destination, userId, method])
@@ -76,11 +76,9 @@ model Site {
     slices            Json? // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
     detectionGeometry Unsupported("geometry")?
     originalGeometry  Unsupported("geometry")?
-    // When we make site migration, we need to modify SQL statement that defines the detectionGeometry from "String" to "GEOMETRY". 
-    // As prisma is not able to handle it, but we need it for our triggers to work
     alerts            SiteAlert[]
     project           Project?                 @relation(fields: [projectId], references: [id])
-    user              User                     @relation(fields: [userId], references: [id])
+    user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Project {
@@ -89,7 +87,7 @@ model Project {
     slug        String?
     lastUpdated DateTime?
     userId      String
-    user        User      @relation(fields: [userId], references: [id])
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
     sites       Site[]
 }
 
@@ -125,7 +123,7 @@ model GeoEvent {
 model SiteAlert {
     id            String          @id @default(cuid())
     siteId        String
-    site          Site            @relation(fields: [siteId], references: [id])
+    site          Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
     notifications Notification[]
     type          String //Fire
     latitude      Float
@@ -142,14 +140,12 @@ model SiteAlert {
 model Notification {
     id          String    @id @default(cuid())
     siteAlertId String
-    siteAlert   SiteAlert @relation(fields: [siteAlertId], references: [id])
+    siteAlert   SiteAlert @relation(fields: [siteAlertId], references: [id], onDelete: Cascade)
     alertMethod String
     destination String
     sentAt      DateTime?
     isDelivered Boolean   @default(false)
 }
-
-// TODO: Change siteOrigin to text
 
 enum Role {
     ROLE_CLIENT

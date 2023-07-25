@@ -1,14 +1,8 @@
-import {
-  Text,
-  View,
-  Platform,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
-import React from 'react';
+import React, {useState} from 'react';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
+import {View, Platform, StyleSheet, ImageSourcePropType} from 'react-native';
 
 import Markers from '../markers';
 import {
@@ -23,9 +17,17 @@ let attributionPosition: any = {
   bottom: IS_ANDROID ? 72 : 76,
   left: 18,
 };
-let compassViewMargins: {
-  x: 30;
-  y: 230;
+
+let compassViewMargins = {
+  x: IS_ANDROID ? 16 : 17,
+  y: IS_ANDROID ? 160 : 135,
+};
+
+const compassViewPosition = 3;
+
+type CompassImage = 'compass1';
+const images: Record<CompassImage, ImageSourcePropType> = {
+  compass1: require('../../../assets/images/compassImage.png'),
 };
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
@@ -57,12 +59,10 @@ interface IMapProps {
 
 export default function Map({
   geoJSON,
-  setLoader,
   map,
   camera,
   setIsCameraRefVisible,
   location,
-  loader,
   markerText,
   activePolygonIndex,
   setLocation,
@@ -71,33 +71,29 @@ export default function Map({
   let shouldRenderShape =
     geoJSON.features[activePolygonIndex].geometry.coordinates.length > 1;
   const {state} = useMapLayers(MapLayerContext);
-  const onChangeRegionStart = () => setLoader(true);
-
-  const onChangeRegionComplete = () => {
-    setLoader(false);
-  };
 
   return (
     <View style={styles.container}>
       <MapboxGL.MapView
         ref={map}
+        compassEnabled
         logoEnabled={false}
         onPress={onPressMap}
-        compassViewPosition={3}
         showUserLocation={true}
         scaleBarEnabled={false}
         style={styles.container}
+        compassImage={'compass1'}
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
-        onCameraChanged={onChangeRegionStart}
-        attributionPosition={attributionPosition}
-        onMapIdle={onChangeRegionComplete}>
+        compassViewPosition={compassViewPosition}
+        attributionPosition={attributionPosition}>
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;
             setIsCameraRefVisible(!!el);
           }}
         />
+        <MapboxGL.Images images={images} />
         <Markers geoJSON={geoJSON} type={'LineString'} />
         {shouldRenderShape && (
           <MapboxGL.ShapeSource id={'polygon'} shape={geoJSON}>
@@ -161,4 +157,4 @@ const styles = StyleSheet.create({
   },
 });
 
-const polyline = {lineWidth: 5, lineColor: Colors.BLACK};
+const polyline = {lineWidth: 5, lineColor: Colors.WHITE};

@@ -1,20 +1,21 @@
-import { type NotificationParameters } from "../../../Interfaces/NotificationParameters";
-import type Notifier from "../Notifier";
-import { NOTIFICATION_METHOD } from "../methodConstants";
+import {type NotificationParameters} from '../../../Interfaces/NotificationParameters';
+import type Notifier from '../Notifier';
+import {NOTIFICATION_METHOD} from '../methodConstants';
 import twilio from 'twilio';
-import { env } from '../../../env.mjs';
-import { logger } from "../../../../src/server/logger";
+import {env} from '../../../env.mjs';
+import {logger} from '../../../../src/server/logger';
 
 class WhatsAppNotifier implements Notifier {
-
   getSupportedMethods(): Array<string> {
     return [NOTIFICATION_METHOD.WHATSAPP];
   }
 
-  notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-    const { message, subject, url } = parameters;
-    logger(`Sending WhatsApp message ${message} to ${destination}`, "info");
-    
+  notify(
+    destination: string,
+    parameters: NotificationParameters,
+  ): Promise<boolean> {
+    const {message, url} = parameters;
+    logger(`Sending WhatsApp message ${message} to ${destination}`, 'info');
 
     // Twilio Credentials
     const accountSid = env.TWILIO_ACCOUNT_SID;
@@ -23,7 +24,7 @@ class WhatsAppNotifier implements Notifier {
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message
-    const messageBody = `${subject} ${message} ${url ? url : ''}`;
+    const messageBody = `${message} ${url ? url : ''}`;
 
     return client.messages
       .create({
@@ -34,8 +35,8 @@ class WhatsAppNotifier implements Notifier {
       .then(() => {
         return true;
       })
-      .catch((error) => {
-        logger(`Failed to send WhatsApp message. Error: ${error}`, "error");
+      .catch(error => {
+        logger(`Failed to send WhatsApp message. Error: ${error}`, 'error');
         return false;
       });
   }

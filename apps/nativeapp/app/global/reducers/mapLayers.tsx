@@ -2,7 +2,7 @@ import React, {createContext, useContext, useReducer} from 'react';
 
 import {SELECT_MAP_LAYER} from '../actions/types';
 
-const initialState = 'Satellite';
+const initialState = 'SatelliteStreet';
 
 const mapLayerReducer = (state = initialState, action) => {
   switch (action.type) {
@@ -35,7 +35,8 @@ export const MapLayerProvider = ({children}) => {
 
 export const useMapLayers = () => {
   const context = useContext(MapLayerContext);
-  if (!context)
+  if (!context) {
     throw new Error('MapLayerContext must be used with MapLayerContext!');
+  }
   return context;
 };

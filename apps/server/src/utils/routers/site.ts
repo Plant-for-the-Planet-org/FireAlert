@@ -1,8 +1,10 @@
-import { TRPCError } from '@trpc/server';
+import {TRPCError} from '@trpc/server';
 import {
-  CheckUserHasSitePermissionArgs,
-  CheckIfPlanetROSiteArgs,
+  type CheckUserHasSitePermissionArgs,
+  type CheckIfPlanetROSiteArgs,
 } from '../../Interfaces/Site';
+import {type Site, SiteAlert, AlertConfidence} from '@prisma/client';
+import {prisma} from '../../../src/server/db';
 
 // Compares the User in session or token with the Site that is being Read, Updated or Deleted
 export const checkUserHasSitePermission = async ({
@@ -49,4 +51,103 @@ export const checkIfPlanetROSite = async ({
   } else {
     return false;
   }
+};
+
+// The function below is a helper function that returns a coordinate that lies within or nearby the site's geometry
+// It is used to create a test Site Alert for any site.
+interface Geometry {
+  type: string;
+  coordinates: number[][][];
+}
+
+const getFirstCoordinates = (geojson: Geometry, metersAway: number) => {
+  let coordinates;
+
+  switch (geojson.type) {
+    case 'Point':
+      coordinates = geojson.coordinates;
+      break;
+    case 'Polygon':
+      coordinates = geojson.coordinates[0][0]; // First point of the first polygon
+      break;
+    case 'MultiPolygon':
+      coordinates = geojson.coordinates[0][0][0]; // First point of the first polygon of the first multipolygon
+      break;
+    default:
+      throw new Error('Invalid GeoJSON object');
+  }
+
+  // Convert meters to approximate degrees
+  const degrees = metersAway / 111000;
+
+  return {
+    latitude: coordinates[1] + degrees, // Adding degrees to the latitude
+    longitude: coordinates[0] + degrees, // Adding degrees to the longitude
+  };
+};
+
+export const getTestSiteAlertCount = async (userId: string) => {
+  const siteAlertCount = await prisma.siteAlert.count({
+    where: {
+      site: {
+        userId: userId,
+      },
+      detectedBy: 'TEST_ALERT_PROVIDER', // Count only if detectedBy equals 'TEST_ALERT_PROVIDER'
+    },
+  });
+
+  return siteAlertCount;
+};
+
+export const triggerTestAlert = async (siteId: string) => {
+  const site: Site = await prisma.site.findFirst({
+    where: {
+      id: siteId,
+    },
+    select: {
+      userId: true,
+      projectId: true,
+      geometry: true, // Also select the site's geometry
+    },
+  });
+
+  if (!site) {
+    throw new Error('Site not found!');
+  }
+
+  const existingAlerts = await getTestSiteAlertCount(site.userId);
+  if (existingAlerts >= 3) {
+    throw new TRPCError({
+      code: 'TOO_MANY_REQUESTS',
+      message:
+        'You have reached the maximum number of test alerts for your account.',
+    });
+  }
+
+  const confidences: AlertConfidence[] = ['low', 'medium', 'high'];
+  const randomConfidence =
+    confidences[Math.floor(Math.random() * confidences.length)];
+
+  // randomize distance between 10 to 500 meters
+  const distance = Math.floor(Math.random() * (500 - 10 + 1) + 10);
+  const {latitude: testLatitude, longitude: testLongitude} =
+    getFirstCoordinates(site.geometry as Geometry, distance);
+
+  const siteAlert: SiteAlert = await prisma.siteAlert.create({
+    data: {
+      siteId: siteId,
+      type: 'fire',
+      latitude: testLatitude,
+      longitude: testLongitude,
+      isProcessed: false,
+      distance: distance,
+      data: {},
+      eventDate: new Date(),
+      detectedBy: 'TEST_ALERT_PROVIDER',
+      confidence: randomConfidence,
+    },
+  });
+  // TODO: Limit how many test alerts can be created
+
+  return siteAlert;
 };

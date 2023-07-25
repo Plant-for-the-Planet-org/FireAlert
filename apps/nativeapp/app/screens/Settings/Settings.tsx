@@ -1,3 +1,10 @@
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+} from 'react';
 import {
   Text,
   View,
@@ -13,24 +20,18 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
-import {
-  point,
-  Point,
-  Feature,
-  polygon,
-  Properties,
-  multiPolygon,
-} from '@turf/helpers';
-import centroid from '@turf/centroid';
+import bbox from '@turf/bbox';
 import rewind from '@mapbox/geojson-rewind';
 import OneSignal from 'react-native-onesignal';
+import DeviceInfo from 'react-native-device-info';
 import {useQueryClient} from '@tanstack/react-query';
+import LinearGradient from 'react-native-linear-gradient';
 import {useToast} from 'react-native-toast-notifications';
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {point, polygon, multiPolygon} from '@turf/helpers';
 
 import {
   Switch,
-  AlertModal,
+  DropDown,
   BottomSheet,
   CustomButton,
   FloatingInput,
@@ -38,6 +39,7 @@ import {
 import {
   AddIcon,
   SmsIcon,
+  NatureBg,
   NasaLogo,
   BellIcon,
   PhoneIcon,
@@ -48,9 +50,9 @@ import {
   PencilIcon,
   LayerCheck,
   WarningIcon,
+  LocationWave,
   GlobeWebIcon,
   DistanceIcon,
-  WhatsAppIcon,
   DropdownArrow,
   TrashSolidIcon,
   MapOutlineIcon,
@@ -58,16 +60,16 @@ import {
   VerificationWarning,
   DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
-
 import {trpc} from '../../services/trpc';
-import {WEB_URLS} from '../../constants';
 import {Colors, Typography} from '../../styles';
-import {clearAll} from '../../utils/localStorage';
 import handleLink from '../../utils/browserLinking';
 import {getDeviceInfo} from '../../utils/deviceInfo';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import {useAppDispatch, useAppSelector} from '../../hooks';
-import {updateIsLoggedIn} from '../../redux/slices/login/loginSlice';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
+import {extractCountryCode} from '../../utils/countryCodeFilter';
+import {updateUserDetails} from '../../redux/slices/login/loginSlice';
+import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -75,23 +77,21 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const RADIUS_ARR = [
-  {name: 'within 100 km', value: 100},
-  {name: 'within 10 km', value: 10},
-  {name: 'within 5 km', value: 5},
-  {name: 'inside', value: 0},
-];
-
 const Settings = ({navigation}) => {
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
+  const [siteGeometry, setSiteGeometry] = useState<string | null>('');
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
+  const [isEditSite, setIsEditSite] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [mobileNotify, setMobileNotify] = useState<boolean>(false);
   const [dropDownModal, setDropDownModal] = useState<boolean>(false);
   const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
-  const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
   const [delAlertMethodArr, setDelAlertMethodArr] = useState<Array<string>>([]);
+  const [radiusLoaderArr, setRadiusLoaderArr] = useState<Array<string>>([]);
+  const [alertMethodLoaderArr, setAlertMethodLoaderArr] = useState<
+    Array<string>
+  >([]);
   const [reRender, setReRender] = useState<boolean>(false);
   const [deviceAlertPreferences, setDeviceAlertPreferences] = useState<
     object[]
@@ -105,30 +105,8 @@ const Settings = ({navigation}) => {
   const toast = useToast();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const {openModal} = useContext(BottomBarContext);
   const {userDetails} = useAppSelector(state => state.loginSlice);
-
-  async function deviceNotification() {
-    try {
-      const {deviceId} = await getDeviceInfo();
-      const {userId} = await OneSignal.getDeviceState();
-      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
-        el => userId === el?.destination && el.deviceId === deviceId,
-      );
-      if (filterDeviceAlertMethod.length > 0) {
-        const filteredData = filterDeviceAlertMethod[0];
-        const nonFilteredData = formattedAlertPreferences.device.filter(
-          el => userId !== el?.destination || el.deviceId !== deviceId,
-        );
-        formattedAlertPreferences.device = [
-          filteredData,
-          ...nonFilteredData,
-        ].filter(el => el.deviceName !== '');
-      }
-      setDeviceAlertPreferences(formattedAlertPreferences?.device);
-    } catch {
-      setDeviceAlertPreferences([]);
-    }
-  }
 
   useEffect(() => {
     deviceNotification();
@@ -191,19 +169,25 @@ const Settings = ({navigation}) => {
               }
             : null,
       );
+      queryClient.setQueryData(
+        [
+          ['alert', 'getAlerts'],
+          {input: ['alerts', 'getAlerts'], type: 'query'},
+        ],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item?.site?.id !== req.json.siteId,
+                  ),
+                },
+              }
+            : null,
+      );
       setSitesInfoModal(false);
-    },
-    onError: () => {
-      toast.show('something went wrong', {type: 'danger'});
-    },
-  });
-
-  const softDeleteUser = trpc.user.softDeleteUser.useMutation({
-    retryDelay: 3000,
-    onSuccess: async () => {
-      setShowDelAccount(false);
-      await clearAll();
-      dispatch(updateIsLoggedIn(false));
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
@@ -229,12 +213,23 @@ const Settings = ({navigation}) => {
             : null,
       );
       const loadingArr = delAlertMethodArr.filter(
-        el => el !== data?.json?.data?.id,
+        el => el !== req?.json?.alertMethodId,
       );
       setDelAlertMethodArr(loadingArr);
+      setReRender(!reRender);
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const updateUser = trpc.user.updateUser.useMutation({
+    retryDelay: 3000, // Delay between retry attempts in milliseconds
+    onSuccess: res => {
+      dispatch(updateUserDetails(res?.json));
+    },
+    onError: () => {
+      toast.show('Something went wrong', {type: 'danger'});
     },
   });
 
@@ -256,6 +251,10 @@ const Settings = ({navigation}) => {
               }
             : null,
       );
+      const loadingArr = radiusLoaderArr.filter(
+        el => el !== res?.json?.data?.id,
+      );
+      setRadiusLoaderArr(loadingArr);
       setSiteNameModalVisible(false);
     },
     onError: () => {
@@ -282,6 +281,10 @@ const Settings = ({navigation}) => {
                 }
               : null,
         );
+        const loadingArr = alertMethodLoaderArr.filter(
+          el => el !== res?.json?.data?.id,
+        );
+        setAlertMethodLoaderArr(loadingArr);
         setReRender(!reRender);
       },
       onError: () => {
@@ -311,6 +314,29 @@ const Settings = ({navigation}) => {
     },
   });
 
+  async function deviceNotification() {
+    try {
+      const {deviceId} = await getDeviceInfo();
+      const {userId} = await OneSignal.getDeviceState();
+      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
+        el => userId === el?.destination && el.deviceId === deviceId,
+      );
+      if (filterDeviceAlertMethod.length > 0) {
+        const filteredData = filterDeviceAlertMethod[0];
+        const nonFilteredData = formattedAlertPreferences.device.filter(
+          el => userId !== el?.destination || el.deviceId !== deviceId,
+        );
+        formattedAlertPreferences.device = [
+          filteredData,
+          ...nonFilteredData,
+        ].filter(el => el.deviceName !== '');
+      }
+      setDeviceAlertPreferences(formattedAlertPreferences?.device);
+    } catch {
+      setDeviceAlertPreferences([]);
+    }
+  }
+
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
       updateSite.mutate({
@@ -324,29 +350,32 @@ const Settings = ({navigation}) => {
     setDropDownModal(false);
   };
 
-  const handleRadius = (evt, projectId, siteId, siteRadius) => {
+  const handleRadius = (evt, projectId, siteId, siteRadius, siteGeometry) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       projectId,
       siteId,
       siteRadius,
+      siteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
 
-  const handleSiteRadius = (evt, siteId, siteRadius) => {
+  const handleSiteRadius = (evt, siteId, siteRadius, siteGeometry) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       siteId,
       siteRadius,
+      siteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
 
   const handleNotifySwitch = (data, isEnabled) => {
     const {alertMethodId} = data;
+    setAlertMethodLoaderArr(prevState => [...prevState, alertMethodId]);
     updateAlertPreferences.mutate({
       json: {params: {alertMethodId}, body: {isEnabled}},
     });
@@ -372,11 +401,20 @@ const Settings = ({navigation}) => {
     setSitesInfoModal(false);
     setSiteName(site.name);
     setSiteId(site.id);
-    setTimeout(() => setSiteNameModalVisible(true), 500);
+    setIsEditSite(!!site.remoteId);
+    setSiteGeometry(site.geometry.type);
+    setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
+    setTimeout(() => setSiteNameModalVisible(true), 1000);
   };
 
   const handleEditSiteInfo = () => {
-    updateSite.mutate({json: {params: {siteId}, body: {name: siteName}}});
+    let payload = {
+      json: {params: {siteId}, body: {name: siteName, radius: siteRad?.value}},
+    };
+    if (isEditSite) {
+      delete payload.json.body.name;
+    }
+    updateSite.mutate(payload);
   };
 
   const handleAddEmail = () => {
@@ -397,6 +435,22 @@ const Settings = ({navigation}) => {
     });
   };
 
+  const handleGeostationary = val => {
+    let detectionMethods = [...userDetails?.data?.detectionMethods];
+    if (!val) {
+      detectionMethods = detectionMethods.filter(el => el !== 'GEOSTATIONARY');
+    } else {
+      detectionMethods = [...detectionMethods, 'GEOSTATIONARY'];
+    }
+    updateUser.mutate({
+      json: {
+        body: {
+          detectionMethods,
+        },
+      },
+    });
+  };
+
   const handleWebhook = () => {
     navigation.navigate('Verification', {
       verificationType: 'Webhook',
@@ -410,24 +464,21 @@ const Settings = ({navigation}) => {
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
 
   const _handleViewMap = (siteInfo: object) => () => {
-    let center: Feature<Point, Properties>;
     let highlightSiteInfo = siteInfo;
+    let bboxGeo;
     setSitesInfoModal(false);
     if (siteInfo?.geometry?.type === 'MultiPolygon') {
-      center = centroid(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
+      bboxGeo = bbox(multiPolygon(rewind(siteInfo?.geometry.coordinates)));
       highlightSiteInfo = rewind(siteInfo?.geometry);
     } else if (siteInfo?.geometry?.type === 'Point') {
-      center = point(siteInfo?.geometry.coordinates);
+      bboxGeo = bbox(point(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
     } else {
-      center = centroid(polygon(siteInfo?.geometry.coordinates));
+      bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
     }
-    const lat = center?.geometry?.coordinates[0];
-    const long = center?.geometry?.coordinates[1];
     navigation.navigate('Home', {
-      lat,
-      long,
+      bboxGeo,
       siteInfo: [
         {
           type: 'Feature',
@@ -439,15 +490,6 @@ const Settings = ({navigation}) => {
   };
 
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
-
-  const onDeleteAccount = () => {
-    softDeleteUser.mutate({json: {id: userDetails?.id}});
-  };
-  const onGoBack = () => setShowDelAccount(false);
-
-  const handleDelAccount = () => {
-    setShowDelAccount(true);
-  };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -473,15 +515,17 @@ const Settings = ({navigation}) => {
           />
         }>
         {/* my projects */}
-        {Object.keys(groupOfSites[0] || {})?.length > 0 ? (
-          <View style={[styles.myProjects, styles.commonPadding]}>
-            <Text style={styles.mainHeading}>
-              My Projects via{' '}
+        <View style={[styles.myProjects, styles.commonPadding]}>
+          <Text style={styles.mainHeading}>
+            My Projects{' '}
+            {Object.keys(groupOfSites[0] || {})?.length > 0 && (
               <Text style={styles.ppLink}>
                 <Text onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>pp.eco</Text>
               </Text>
-            </Text>
-            {groupOfSites?.map((item, index) => (
+            )}
+          </Text>
+          {Object.keys(groupOfSites[0] || {})?.length > 0 ? (
+            groupOfSites?.map((item, index) => (
               <View key={`projects_${index}`} style={styles.projectsInfo}>
                 <View style={styles.projectsNameInfo}>
                   <Text style={styles.projectsName}>{item.name}</Text>
@@ -491,6 +535,7 @@ const Settings = ({navigation}) => {
                   ? item?.sites?.map((sites, index) => (
                       <View key={`sites_${index}`}>
                         <TouchableOpacity
+                          disabled={radiusLoaderArr.includes(sites?.id)}
                           onPress={() => handleSiteInformation(sites)}
                           style={styles.sitesInProjects}>
                           <Text style={styles.sitesName}>{sites?.name}</Text>
@@ -502,8 +547,10 @@ const Settings = ({navigation}) => {
                                   item?.id,
                                   sites?.id,
                                   sites?.radius,
+                                  sites?.geometry?.type,
                                 )
                               }
+                              disabled={radiusLoaderArr.includes(sites?.id)}
                               style={[styles.dropDownRadius, {marginRight: 5}]}>
                               <Text style={styles.siteRadius}>
                                 {sites?.radius
@@ -512,17 +559,28 @@ const Settings = ({navigation}) => {
                               </Text>
                               <DropdownArrow />
                             </TouchableOpacity>
-                            <Switch
-                              value={sites?.isMonitored}
-                              onValueChange={val =>
-                                updateSite.mutate({
-                                  json: {
-                                    params: {siteId: sites?.id},
-                                    body: {isMonitored: val},
-                                  },
-                                })
-                              }
-                            />
+                            {radiusLoaderArr.includes(sites?.id) ? (
+                              <ActivityIndicator
+                                size={'small'}
+                                color={Colors.PRIMARY}
+                              />
+                            ) : (
+                              <Switch
+                                value={sites?.isMonitored}
+                                onValueChange={val => {
+                                  updateSite.mutate({
+                                    json: {
+                                      params: {siteId: sites?.id},
+                                      body: {isMonitored: val},
+                                    },
+                                  });
+                                  setRadiusLoaderArr(prevState => [
+                                    ...prevState,
+                                    sites?.id,
+                                  ]);
+                                }}
+                              />
+                            )}
                           </View>
                         </TouchableOpacity>
                         {item?.sites?.length - 1 !== index && (
@@ -532,20 +590,61 @@ const Settings = ({navigation}) => {
                     ))
                   : null}
               </View>
-            ))}
-          </View>
-        ) : null}
-        {/* my sites */}
-        {sites?.json?.data?.filter(site => site?.project === null).length >
-        0 ? (
-          <View style={[styles.mySites, styles.commonPadding]}>
-            <View style={styles.mySitesHead}>
-              <Text style={styles.mainHeading}>My Sites</Text>
+            ))
+          ) : (
+            <View style={[styles.boxShadowPH]}>
+              <View
+                style={[
+                  styles.mySiteNameContainer,
+                  {paddingVertical: 20, overflow: 'hidden'},
+                ]}>
+                <View style={styles.emptyPpInfoCon}>
+                  <View style={styles.emptyPpInfo}>
+                    <Text style={styles.emptySiteText}>
+                      Project sites registered{'\n'}on pp.eco will appear here
+                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={_handleEcoWeb(WEB_URLS.PP_ECO)}>
+                      <LinearGradient
+                        useAngle
+                        angle={135}
+                        angleCenter={{x: 0.5, y: 0.5}}
+                        colors={Colors.GREEN_GRADIENT_ARR}
+                        style={[styles.addSiteBtn, {justifyContent: 'center'}]}>
+                        <Text
+                          style={[
+                            styles.emptySiteText,
+                            {paddingHorizontal: 0, color: Colors.WHITE},
+                          ]}>
+                          Visit pp.eco
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.planetLogo}>
+                    <PlanetLogo />
+                  </View>
+                </View>
+                <View style={styles.natureBgCon}>
+                  <NatureBg />
+                </View>
+              </View>
             </View>
-            {sites?.json?.data
+          )}
+        </View>
+        {/* my sites */}
+        <View style={[styles.mySites, styles.commonPadding]}>
+          <View style={styles.mySitesHead}>
+            <Text style={styles.mainHeading}>My Sites</Text>
+          </View>
+          {sites?.json?.data?.filter(site => site?.project === null).length >
+          0 ? (
+            sites?.json?.data
               ?.filter(site => site?.project === null)
               .map((item, index) => (
                 <TouchableOpacity
+                  disabled={radiusLoaderArr.includes(item?.id)}
                   onPress={() => handleSiteInformation(item)}
                   key={`mySites_${index}`}
                   style={styles.mySiteNameContainer}>
@@ -554,8 +653,14 @@ const Settings = ({navigation}) => {
                   </Text>
                   <View style={styles.rightConPro}>
                     <TouchableOpacity
+                      disabled={radiusLoaderArr.includes(item?.id)}
                       onPress={evt =>
-                        handleSiteRadius(evt, item?.id, item?.radius)
+                        handleSiteRadius(
+                          evt,
+                          item?.id,
+                          item?.radius,
+                          item.geometry.type,
+                        )
                       }
                       style={[
                         styles.dropDownRadius,
@@ -570,22 +675,56 @@ const Settings = ({navigation}) => {
                       </Text>
                       <DropdownArrow />
                     </TouchableOpacity>
-                    <Switch
-                      value={item?.isMonitored}
-                      onValueChange={val =>
-                        updateSite.mutate({
-                          json: {
-                            params: {siteId: item?.id},
-                            body: {isMonitored: val},
-                          },
-                        })
-                      }
-                    />
+                    {radiusLoaderArr.includes(item?.id) ? (
+                      <ActivityIndicator
+                        size={'small'}
+                        color={Colors.PRIMARY}
+                      />
+                    ) : (
+                      <Switch
+                        value={item?.isMonitored}
+                        onValueChange={val => {
+                          updateSite.mutate({
+                            json: {
+                              params: {siteId: item?.id},
+                              body: {isMonitored: val},
+                            },
+                          });
+                          setRadiusLoaderArr(prevState => [
+                            ...prevState,
+                            item?.id,
+                          ]);
+                        }}
+                      />
+                    )}
                   </View>
                 </TouchableOpacity>
-              ))}
-          </View>
-        ) : null}
+              ))
+          ) : (
+            <View style={[styles.mySiteNameContainer, {paddingVertical: 20}]}>
+              <View style={styles.emptySiteInfoCon}>
+                <Text style={styles.emptySiteText}>
+                  Create Your Own{'\n'}Fire Alert Site{'\n'}
+                  <Text style={{fontFamily: Typography.FONT_FAMILY_REGULAR}}>
+                    and Receive Notifications
+                  </Text>
+                </Text>
+                <TouchableOpacity
+                  onPress={openModal}
+                  activeOpacity={0.7}
+                  style={styles.addSiteBtn}>
+                  <AddIcon width={11} height={11} color={Colors.WHITE} />
+                  <Text style={[styles.emptySiteText, {color: Colors.WHITE}]}>
+                    Add Site
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.locWaveCon}>
+                <LocationWave />
+              </View>
+            </View>
+          )}
+        </View>
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
@@ -605,21 +744,47 @@ const Settings = ({navigation}) => {
                         styles.emailSubContainer,
                         {justifyContent: 'space-between'},
                       ]}>
-                      <Text style={styles.myEmailName}>
-                        {item?.deviceName}
+                      <View style={styles.deviceItem}>
+                        <Text style={styles.myEmailName}>
+                          {item?.deviceName}
+                        </Text>
                         {i === 0 && (
-                          <Text style={styles.projectSyncInfo}>
-                            {''} ( this device )
-                          </Text>
+                          <View style={styles.deviceTagCon}>
+                            <Text style={styles.deviceTag}>
+                              {''} this device
+                            </Text>
+                          </View>
                         )}
-                      </Text>
+                      </View>
                       <View style={styles.emailSubContainer}>
-                        <Switch
-                          value={item?.isEnabled}
-                          onValueChange={val =>
-                            handleNotifySwitch({alertMethodId: item.id}, val)
-                          }
-                        />
+                        {alertMethodLoaderArr.includes(item?.id) ? (
+                          <ActivityIndicator
+                            size={'small'}
+                            color={Colors.PRIMARY}
+                          />
+                        ) : (
+                          <Switch
+                            value={item?.isEnabled}
+                            onValueChange={val =>
+                              handleNotifySwitch({alertMethodId: item.id}, val)
+                            }
+                          />
+                        )}
+                        {!(i === 0) && (
+                          <TouchableOpacity
+                            style={styles.trashIcon}
+                            disabled={delAlertMethodArr.includes(item?.id)}
+                            onPress={() => handleRemoveAlertMethod(item?.id)}>
+                            {delAlertMethodArr.includes(item?.id) ? (
+                              <ActivityIndicator
+                                size={'small'}
+                                color={Colors.PRIMARY}
+                              />
+                            ) : (
+                              <TrashSolidIcon />
+                            )}
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                     {deviceAlertPreferences?.length - 1 !== i && (
@@ -655,12 +820,22 @@ const Settings = ({navigation}) => {
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item.id}, val)
-                            }
-                          />
+                          alertMethodLoaderArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <Switch
+                              value={item?.isEnabled}
+                              onValueChange={val =>
+                                handleNotifySwitch(
+                                  {alertMethodId: item.id},
+                                  val,
+                                )
+                              }
+                            />
+                          )
                         ) : (
                           <TouchableOpacity
                             style={styles.verifiedChipsCon}
@@ -695,7 +870,7 @@ const Settings = ({navigation}) => {
             )}
           </View>
           {/* whatsapp */}
-          <View style={styles.mySiteNameMainContainer}>
+          {/* <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
@@ -719,12 +894,22 @@ const Settings = ({navigation}) => {
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item?.id}, val)
-                            }
-                          />
+                          alertMethodLoaderArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <Switch
+                              value={item?.isEnabled}
+                              onValueChange={val =>
+                                handleNotifySwitch(
+                                  {alertMethodId: item?.id},
+                                  val,
+                                )
+                              }
+                            />
+                          )
                         ) : (
                           <TouchableOpacity
                             style={styles.verifiedChipsCon}
@@ -749,13 +934,13 @@ const Settings = ({navigation}) => {
                 ))}
               </View>
             )}
-          </View>
+          </View> */}
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <SmsIcon />
-                <Text style={styles.smallHeading}>Sms</Text>
+                <Text style={styles.smallHeading}>SMS</Text>
               </View>
               <TouchableOpacity onPress={handleAddSms}>
                 <AddIcon />
@@ -771,16 +956,28 @@ const Settings = ({navigation}) => {
                         {justifyContent: 'space-between'},
                       ]}>
                       <Text style={styles.myEmailName}>
-                        {item?.destination}
+                        {extractCountryCode(item?.destination).countryCode +
+                          ' ' +
+                          extractCountryCode(item?.destination).remainingNumber}
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item.id}, val)
-                            }
-                          />
+                          alertMethodLoaderArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <Switch
+                              value={item?.isEnabled}
+                              onValueChange={val =>
+                                handleNotifySwitch(
+                                  {alertMethodId: item.id},
+                                  val,
+                                )
+                              }
+                            />
+                          )
                         ) : (
                           <TouchableOpacity
                             style={styles.verifiedChipsCon}
@@ -837,12 +1034,22 @@ const Settings = ({navigation}) => {
                       </Text>
                       <View style={styles.emailSubContainer}>
                         {item?.isVerified ? (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item.id}, val)
-                            }
-                          />
+                          alertMethodLoaderArr.includes(item?.id) ? (
+                            <ActivityIndicator
+                              size={'small'}
+                              color={Colors.PRIMARY}
+                            />
+                          ) : (
+                            <Switch
+                              value={item?.isEnabled}
+                              onValueChange={val =>
+                                handleNotifySwitch(
+                                  {alertMethodId: item.id},
+                                  val,
+                                )
+                              }
+                            />
+                          )
                         ) : (
                           <TouchableOpacity
                             style={styles.verifiedChipsCon}
@@ -912,14 +1119,15 @@ const Settings = ({navigation}) => {
         </View>
         {/* geoStationary */}
         <View style={[styles.geostationaryMainContainer, styles.commonPadding]}>
-          <View style={styles.geostationaryContainer}>
+          <View style={styles.comingSoonCon}>
             <Text style={styles.subHeading}>Geostationary</Text>
-            <Switch
-              value={mobileNotify}
-              onValueChange={val => setMobileNotify(val)}
-            />
+            <View style={[styles.deviceTagCon, styles.comingSoon]}>
+              <Text style={styles.deviceTag}>Coming Soon</Text>
+            </View>
           </View>
-          <Text style={styles.desc}>Quick but many false alarms [BETA]</Text>
+          <Text style={styles.desc}>
+            Quick detection but many false alarms [BETA]
+          </Text>
           <View style={styles.geostationaryInfoContainer}>
             <View style={styles.iconContainer}>
               <BellIcon />
@@ -983,7 +1191,7 @@ const Settings = ({navigation}) => {
             </View>
             <View style={styles.iconContainer}>
               <DistanceIcon />
-              <Text style={styles.geoDesc}>30m resolution</Text>
+              <Text style={styles.geoDesc}>30km resolution</Text>
             </View>
           </View>
         </View>
@@ -1058,25 +1266,18 @@ const Settings = ({navigation}) => {
               onPress={_handleEcoWeb(WEB_URLS.FIRMS_DISCLAIMER)}>
               FIRMS Disclaimer
             </Text>
-            . 
+            .
           </Text>
         </View>
-        <TouchableOpacity onPress={handleDelAccount} style={styles.delTextCon}>
-          <Text style={styles.delText}>Delete Account</Text>
-        </TouchableOpacity>
-        {/* Del Account Alert */}
-        <AlertModal
-          visible={showDelAccount}
-          heading={'Delete Account'}
-          message={
-            'If you proceed, your FireAlert data will be scheduled for deletion in 7 days. If you change your mind please login again to cancel the deletion.\n\nTo delete your Plant-for-the-Planet Account, and Platform data, please visit pp.eco'
-          }
-          primaryBtnText={'Delete'}
-          secondaryBtnText={'Go Back'}
-          onPressPrimaryBtn={onDeleteAccount}
-          onPressSecondaryBtn={onGoBack}
-          showSecondaryButton={true}
-        />
+        <View style={styles.appInfoContainer}>
+          <Text style={styles.versionText}>
+            Version {DeviceInfo.getVersion()} ({DeviceInfo.getBuildNumber()}) •{' '}
+            <Text onPress={_handleEcoWeb(WEB_URLS.PP_IMPRINT)}>Imprint</Text> •{' '}
+            <Text onPress={_handleEcoWeb(WEB_URLS.PP_PRIVACY_POLICY)}>
+              Privacy Policy
+            </Text>
+          </Text>
+        </View>
         {/* site information modal */}
         <BottomSheet
           isVisible={sitesInfoModal}
@@ -1096,11 +1297,12 @@ const Settings = ({navigation}) => {
                   {selectedSiteInfo?.name || selectedSiteInfo?.id}
                 </Text>
               </View>
-              <TouchableOpacity
-                disabled={selectedSiteInfo?.project !== null}
-                onPress={() => handleEditSite(selectedSiteInfo)}>
-                <PencilIcon />
-              </TouchableOpacity>
+              {selectedSiteInfo?.project === null && (
+                <TouchableOpacity
+                  onPress={() => handleEditSite(selectedSiteInfo)}>
+                  <PencilIcon />
+                </TouchableOpacity>
+              )}
             </View>
             <TouchableOpacity
               onPress={_handleViewMap(selectedSiteInfo)}
@@ -1108,38 +1310,38 @@ const Settings = ({navigation}) => {
               <MapOutlineIcon />
               <Text style={styles.siteActionText}>View on Map</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              disabled={
-                deleteSite?.isLoading || selectedSiteInfo?.project !== null
-              }
-              onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
-              style={[
-                styles.btn,
-                selectedSiteInfo?.project !== null && {
-                  borderColor: Colors.GRAY_LIGHTEST,
-                },
-              ]}>
-              {deleteSite?.isLoading ? (
-                <ActivityIndicator color={Colors.PRIMARY} />
-              ) : (
-                <>
-                  {selectedSiteInfo?.project !== null ? (
-                    <DisabledTrashOutlineIcon />
-                  ) : (
-                    <TrashOutlineIcon />
-                  )}
-                  <Text
-                    style={[
-                      styles.siteActionText,
-                      selectedSiteInfo?.project !== null && {
-                        color: Colors.GRAY_LIGHTEST,
-                      },
-                    ]}>
-                    Delete Site
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {selectedSiteInfo?.project === null && (
+              <TouchableOpacity
+                disabled={deleteSite?.isLoading}
+                onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
+                style={[
+                  styles.btn,
+                  selectedSiteInfo?.project !== null && {
+                    borderColor: Colors.GRAY_LIGHTEST,
+                  },
+                ]}>
+                {deleteSite?.isLoading ? (
+                  <ActivityIndicator color={Colors.PRIMARY} />
+                ) : (
+                  <>
+                    {selectedSiteInfo?.project !== null ? (
+                      <DisabledTrashOutlineIcon />
+                    ) : (
+                      <TrashOutlineIcon />
+                    )}
+                    <Text
+                      style={[
+                        styles.siteActionText,
+                        selectedSiteInfo?.project !== null && {
+                          color: Colors.GRAY_LIGHTEST,
+                        },
+                      ]}>
+                      Delete Site
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
             {selectedSiteInfo?.project && (
               <Text style={styles.projectSyncInfo}>
                 This site is synced from pp.eco. To make changes, please visit
@@ -1160,7 +1362,7 @@ const Settings = ({navigation}) => {
               style={styles.crossContainer}>
               <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
             </TouchableOpacity>
-            <Text style={[styles.heading, {paddingHorizontal: 40}]}>
+            <Text style={[styles.heading, {paddingHorizontal: 16}]}>
               Enter Site Name
             </Text>
             <View
@@ -1168,12 +1370,27 @@ const Settings = ({navigation}) => {
                 styles.siteModalStyle,
                 {justifyContent: 'space-between'},
               ]}>
-              <FloatingInput
-                autoFocus
-                isFloat={false}
-                value={siteName}
-                onChangeText={setSiteName}
-              />
+              <View>
+                <FloatingInput
+                  autoFocus
+                  isFloat={false}
+                  value={siteName}
+                  editable={!isEditSite}
+                  onChangeText={setSiteName}
+                />
+                <View style={[styles.commonPadding]}>
+                  <DropDown
+                    expandHeight={10}
+                    items={
+                      siteGeometry === 'Point' ? POINT_RADIUS_ARR : RADIUS_ARR
+                    }
+                    value={siteRad?.value}
+                    onSelectItem={setSiteRad}
+                    defaultValue={siteRad?.value}
+                    label={'Notify me if fires occur...'}
+                  />
+                </View>
+              </View>
               <CustomButton
                 title="Continue"
                 titleStyle={styles.title}
@@ -1202,7 +1419,10 @@ const Settings = ({navigation}) => {
               <View key={`RADIUS_ARR_${index}`} style={styles.subDropDownCon}>
                 <TouchableOpacity
                   style={styles.siteRadiusCon}
-                  disabled={item?.value === pageXY?.siteRadius}
+                  disabled={
+                    item?.value === pageXY?.siteRadius ||
+                    (pageXY?.siteGeometry === 'Point' && item.value === 0)
+                  }
                   onPress={() => handleSelectRadius(item.value)}>
                   <Text
                     style={[
@@ -1211,6 +1431,10 @@ const Settings = ({navigation}) => {
                         fontFamily: Typography.FONT_FAMILY_BOLD,
                         color: Colors.GRADIENT_PRIMARY,
                       },
+                      pageXY?.siteGeometry === 'Point' &&
+                        item.value === 0 && {
+                          color: Colors.DISABLE,
+                        },
                     ]}>
                     {item.name}
                   </Text>
@@ -1536,16 +1760,6 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
   },
-  delTextCon: {
-    marginTop: 40,
-    alignSelf: 'center',
-  },
-  delText: {
-    fontSize: Typography.FONT_SIZE_20,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: '#EB5757',
-    padding: 10,
-  },
   geostationaryMainContainer: {
     marginTop: 32,
     marginHorizontal: 16,
@@ -1578,11 +1792,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4.62,
     elevation: 8,
   },
-  geostationaryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  geostationaryContainer: {},
   desc: {
     marginTop: 10,
     fontSize: Typography.FONT_SIZE_12,
@@ -1605,6 +1815,7 @@ const styles = StyleSheet.create({
   },
   geoDesc: {
     marginLeft: 5,
+    color: Colors.PLANET_DARK_GRAY,
   },
   primaryUnderline: {
     fontFamily: FONT_FAMILY_BOLD,
@@ -1657,12 +1868,12 @@ const styles = StyleSheet.create({
   crossContainer: {
     width: 25,
     marginTop: 60,
-    marginHorizontal: 40,
+    marginHorizontal: 16,
   },
   heading: {
     marginTop: 20,
     marginBottom: 10,
-    fontSize: Typography.FONT_SIZE_24,
+    fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
   },
@@ -1710,5 +1921,110 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     fontFamily: Typography.FONT_FAMILY_ITALIC,
     paddingHorizontal: 10,
+  },
+  appInfoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 40,
+  },
+  versionText: {
+    textAlign: 'center',
+    color: Colors.GRAY_LIGHTEST,
+    fontSize: Typography.FONT_SIZE_12,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
+  deviceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deviceTagCon: {
+    backgroundColor: Colors.ORANGE,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  deviceTag: {
+    textTransform: 'uppercase',
+    fontSize: Typography.FONT_SIZE_10,
+    fontWeight: Typography.FONT_WEIGHT_BOLD,
+    color: Colors.WHITE,
+  },
+  comingSoonCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  comingSoon: {
+    width: 93,
+    marginLeft: 10,
+  },
+  emptySiteText: {
+    fontSize: 12,
+    color: Colors.PLANET_DARK_GRAY,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    paddingHorizontal: 10,
+  },
+  emptySiteCon: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addSiteBtn: {
+    backgroundColor: Colors.GRADIENT_PRIMARY,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    width: 93,
+    borderRadius: 8,
+    marginTop: 12,
+    marginLeft: 10,
+  },
+  locWaveCon: {
+    position: 'absolute',
+    right: 5,
+  },
+  emptyPpInfoCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  emptyPpInfo: {
+    width: SCREEN_WIDTH / 1.8,
+  },
+  natureBgCon: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+  },
+  planetLogo: {
+    width: 70,
+    height: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 20,
+    backgroundColor: Colors.WHITE,
+    shadowColor: '#D9EAE0',
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    elevation: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.WHITE,
+  },
+  boxShadowPH: {
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4.62,
+    elevation: 8,
   },
 });

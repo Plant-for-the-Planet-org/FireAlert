@@ -25,7 +25,9 @@ export function groupSitesAsProject(data: Array<ResStructure>) {
     .sort((a, b) => a.name.localeCompare(b.name))
     .filter(site => site !== null);
   for (const key in data) {
-    if (data[key]?.project) arr.push(data[key]);
+    if (data[key]?.project) {
+      arr.push(data[key]);
+    }
   }
   arr.forEach(method => {
     const filteredData = arr?.filter(
@@ -40,6 +42,6 @@ export function groupSitesAsProject(data: Array<ResStructure>) {
       sites: newObj[key],
     });
   }
-
+  newArr.sort((a, b) => a.name.localeCompare(b.name));
   return newArr;
 }

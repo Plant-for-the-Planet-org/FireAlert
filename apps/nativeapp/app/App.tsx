@@ -9,6 +9,7 @@ import {store} from './redux/store';
 import {TRPCProvider} from './services/trpc';
 import AppNavigator from './routes/appNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
+import {BottomBarProvider} from './global/reducers/bottomBar';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
@@ -22,13 +23,15 @@ function App(): JSX.Element {
         offsetBottom={100}
         placement={'bottom'}
         animationType="zoom-in">
-        <TRPCProvider>
-          <Provider store={store}>
-            <MapLayerProvider>
-              <AppNavigator />
-            </MapLayerProvider>
-          </Provider>
-        </TRPCProvider>
+        <BottomBarProvider>
+          <TRPCProvider>
+            <Provider store={store}>
+              <MapLayerProvider>
+                <AppNavigator />
+              </MapLayerProvider>
+            </Provider>
+          </TRPCProvider>
+        </BottomBarProvider>
       </ToastProvider>
     </Auth0Provider>
   );
