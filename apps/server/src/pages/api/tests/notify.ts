@@ -1,12 +1,11 @@
 // to execute, point your browser to: http://localhost:3000/api/tests/notify
 
-import {type NextApiRequest, type NextApiResponse} from 'next';
+import {type NextApiResponse} from 'next';
 import {PrismaClient} from '@prisma/client';
 import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
 import {logger} from '../../../../src/server/logger';
 
 export default async function notify(
-  req: NextApiRequest,
   res: NextApiResponse,
 ) {
   const prisma = new PrismaClient({
@@ -27,9 +26,9 @@ export default async function notify(
 
     await Promise.all(
       notifications.map(async notification => {
-        const {id, alertMethod, destination, siteAlert, siteAlertId} =
+        const {id, alertMethod, destination, siteAlert} =
           notification;
-        const {confidence, data, type, longitude, latitude} = siteAlert;
+        const {confidence, type, longitude, latitude} = siteAlert;
 
         const notifier = NotifierRegistry.get(alertMethod);
         const isDelivered = notifier.notify(
@@ -44,7 +43,7 @@ export default async function notify(
               isDelivered: true,
             },
           });
-          const a = response;
+          // const a = response;
         } else {
           // increment the retry count if a pre-defined limit has not been reached
         }

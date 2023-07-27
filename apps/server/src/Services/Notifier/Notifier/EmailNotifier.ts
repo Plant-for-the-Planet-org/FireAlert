@@ -32,7 +32,7 @@ class EmailNotifier implements Notifier {
     destination: string,
     parameters: NotificationParameters,
   ): Promise<boolean> {
-    const {message, subject, url} = parameters;
+    const {message, subject} = parameters;
 
     // if env.SMTP_URL is not set return promise with false
     if (!env.SMTP_URL) {
@@ -67,7 +67,7 @@ class EmailNotifier implements Notifier {
 
     // Send the email
     return new Promise((resolve, reject) => {
-      transporter.sendMail(mailOptions, (err, info) => {
+      transporter.sendMail(mailOptions, (err) => {
         if (err) {
           logger(`Error sending email: ${err}`, 'error');
           reject(false);

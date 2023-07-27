@@ -110,7 +110,7 @@ export async function getStaticProps(
   });
   const id = context.params?.alertId as string;
 
-  const alertData = await helpers.alert.getAlert.prefetch({id});
+  await helpers.alert.getAlert.prefetch({id});
 
   // Check if alertData is not null
   // if (!alertData) {

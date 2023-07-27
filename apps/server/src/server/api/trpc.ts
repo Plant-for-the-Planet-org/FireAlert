@@ -34,7 +34,7 @@ export const createTRPCContext = async (
   isAdmin: boolean,
   isImpersonatedUser: boolean,
 ) => {
-  const {req, res} = opts;
+  const {req} = opts;
 
   return createInnerTRPCContext({
     req,

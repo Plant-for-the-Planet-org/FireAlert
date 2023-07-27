@@ -18,7 +18,6 @@ interface AlertData {
 }
 
 interface Props {
-  className?: string;
   alertData: AlertData;
 }
 
@@ -26,7 +25,6 @@ const MapComponent = dynamic(() => import('./MapComponent'), {ssr: false});
 
 export const AlertId: FC<Props> = memo(function AlertIdWeb({
   alertData,
-  className,
 }: Props) {
   const googleMapUrl = `https://maps.google.com/?q=${alertData.latitude},${alertData.longitude}`;
 
