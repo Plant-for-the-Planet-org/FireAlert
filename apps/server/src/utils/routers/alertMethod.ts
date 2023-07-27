@@ -3,7 +3,6 @@ import {type TRPCContext} from '../../Interfaces/Context';
 import {
   type CheckUserHasAlertMethodPermissionArgs,
   type CtxWithAlertMethod,
-  CtxWithAlertMethodId,
   type CtxWithUserID,
 } from '../../Interfaces/AlertMethod';
 import {generate5DigitOTP} from '../notification/otp';
@@ -11,7 +10,6 @@ import {
   type AlertMethod,
   type Prisma,
   type PrismaClient,
-  type User,
 } from '@prisma/client';
 import {env} from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';

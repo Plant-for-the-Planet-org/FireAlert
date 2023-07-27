@@ -106,7 +106,7 @@ export async function handleNewUser(bearer_token: string) {
   // Therefore check both string and boolean values
 
   const email_verified =
-    userData.email_verified === 'true' || true ? true : false;
+    userData.email_verified === 'true' ? true : false;
 
   const getPlanetUser = await planetUser(bearer_token);
   const isPlanetRO = getPlanetUser.isPlanetRO;
@@ -124,7 +124,7 @@ export async function handleNewUser(bearer_token: string) {
     isPlanetRO: isPlanetRO,
     remoteId: planetId,
   });
-  const createdAlertMethod = await createAlertMethodInPrismaTransaction({
+  await createAlertMethodInPrismaTransaction({
     prisma,
     email,
     isVerified: email_verified,

@@ -1,11 +1,10 @@
-import {memo, useState} from 'react';
+import {memo} from 'react';
 import type {FC} from 'react';
 import Image from 'next/image';
 import classes from './VerifyAlertMethod.module.css';
 import letterImage from '../../../public/verify/letterImage.png';
 
 interface Props {
-  className?: string;
   otpValues: string[];
   setOtpValues: (values: string[]) => void;
   onVerificationComplete: () => void;

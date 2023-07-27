@@ -110,14 +110,12 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
         const parser = parse(csv, {columns: true});
 
         const records: GeoEvent[] = [];
-        let recordCount = 0;
 
         parser
           .on('readable', () => {
             let record: DataRecord;
             while ((record = parser.read())) {
               records.push(normalize(record, record.instrument));
-              recordCount++;
             }
           })
           .on('end', () => {
