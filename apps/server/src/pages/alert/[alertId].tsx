@@ -60,7 +60,7 @@ const Alert = (props: InferGetStaticPropsType<typeof getStaticProps>) => {
   if (alertQuery.isError) {
     const error = alertQuery.error;
     let message = error?.shape?.message || 'Unknown error';
-    let httpStatus = error?.data?.httpStatus || 500;
+    const httpStatus = error?.data?.httpStatus || 500;
     if (httpStatus === 503) {
       message = 'Server under Maintenance. Please check back in a few minutes.';
     }
