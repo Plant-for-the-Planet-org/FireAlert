@@ -619,14 +619,8 @@ const Home = ({navigation, route}) => {
             };
           }) || [],
       }}>
-      <MapboxGL.FillLayer
-        id="fillLayer"
-        style={mapBoxStyles.fillLayer}
-      />
-      <MapboxGL.LineLayer
-        id="fillOutline"
-        style={mapBoxStyles.fillOutline}
-      />
+      <MapboxGL.FillLayer id="fillLayer" style={mapBoxStyles.fillLayer} />
+      <MapboxGL.LineLayer id="fillOutline" style={mapBoxStyles.fillOutline} />
     </MapboxGL.ShapeSource>
   );
 
@@ -669,10 +663,7 @@ const Home = ({navigation, route}) => {
         layerIndex={2}
         style={mapBoxStyles.polyFill}
       />
-      <MapboxGL.LineLayer
-        id={'polyline'}
-        style={mapBoxStyles.polyline}
-      />
+      <MapboxGL.LineLayer id={'polyline'} style={mapBoxStyles.polyline} />
     </MapboxGL.ShapeSource>
   );
 
@@ -886,7 +877,7 @@ const Home = ({navigation, route}) => {
           <View
             style={[
               styles.alertLocInfoCon,
-              styles.marginTop30, 
+              styles.marginTop30,
               styles.justifyContentSpaceBetween,
             ]}>
             <View style={styles.satelliteInfoLeft}>
@@ -942,7 +933,11 @@ const Home = ({navigation, route}) => {
               <RadarIcon />
             </View>
             <View style={styles.satelliteInfo}>
-              <Text style={[styles.alertLocText, styles.alertLocTextScreenWidthOneThird]}>
+              <Text
+                style={[
+                  styles.alertLocText,
+                  styles.alertLocTextScreenWidthOneThird,
+                ]}>
                 Search for the fire within a{' '}
                 <Text
                   style={[styles.confidenceVal, styles.textTransformLowercase]}>
@@ -1147,7 +1142,7 @@ const mapBoxStyles = {
     fillColor: Colors.WHITE,
     fillOpacity: 0.4,
   },
-  polyline:{
+  polyline: {
     lineWidth: 2,
     lineColor: Colors.WHITE,
     lineOpacity: 1,
@@ -1155,10 +1150,9 @@ const mapBoxStyles = {
   },
 };
 
-
 const styles = StyleSheet.create({
   width81Height81: {
-    width: 81, 
+    width: 81,
     height: 81,
   },
   marginBottom16: {
