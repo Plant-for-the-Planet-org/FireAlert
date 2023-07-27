@@ -621,19 +621,11 @@ const Home = ({navigation, route}) => {
       }}>
       <MapboxGL.FillLayer
         id="fillLayer"
-        style={{
-          fillColor: Colors.GRADIENT_PRIMARY,
-          fillOpacity: 0.4,
-        }}
+        style={mapBoxStyles.fillLayer}
       />
       <MapboxGL.LineLayer
         id="fillOutline"
-        style={{
-          lineWidth: 2,
-          lineColor: Colors.GRADIENT_PRIMARY,
-          lineOpacity: 1,
-          lineJoin: 'bevel',
-        }}
+        style={mapBoxStyles.fillOutline}
       />
     </MapboxGL.ShapeSource>
   );
@@ -675,19 +667,11 @@ const Home = ({navigation, route}) => {
       <MapboxGL.FillLayer
         id={'polyFill'}
         layerIndex={2}
-        style={{
-          fillColor: Colors.WHITE,
-          fillOpacity: 0.4,
-        }}
+        style={mapBoxStyles.polyFill}
       />
       <MapboxGL.LineLayer
         id={'polyline'}
-        style={{
-          lineWidth: 2,
-          lineColor: Colors.WHITE,
-          lineOpacity: 1,
-          lineJoin: 'bevel',
-        }}
+        style={mapBoxStyles.polyline}
       />
     </MapboxGL.ShapeSource>
   );
@@ -829,7 +813,7 @@ const Home = ({navigation, route}) => {
                   source={{
                     uri: userDetails?.data?.image,
                   }}
-                  style={[styles.userAvatar, {width: 81, height: 81}]}
+                  style={[styles.userAvatar, styles.width81Height81]}
                 />
               ) : (
                 <UserPlaceholder width={81} height={81} />
@@ -857,7 +841,7 @@ const Home = ({navigation, route}) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDelAccount}
-            style={[styles.btn, {marginBottom: 16}]}>
+            style={[styles.btn, styles.marginBottom16]}>
             <TrashSolidIcon width={20} height={20} />
             <Text style={styles.siteActionPfText}>Delete Account</Text>
           </TouchableOpacity>
@@ -871,6 +855,7 @@ const Home = ({navigation, route}) => {
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.satelliteInfoCon}>
+            {/* TODO: satelliteIcon style is not defined */}
             <View style={styles.satelliteIcon}>
               <SatelliteIcon />
             </View>
@@ -901,7 +886,8 @@ const Home = ({navigation, route}) => {
           <View
             style={[
               styles.alertLocInfoCon,
-              {marginTop: 30, justifyContent: 'space-between'},
+              styles.marginTop30, 
+              styles.justifyContentSpaceBetween,
             ]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
@@ -912,7 +898,7 @@ const Home = ({navigation, route}) => {
                   <Text style={styles.satelliteLocText}>PROJECT</Text>
                   <Text style={styles.alertLocText}>
                     {selectedAlert?.site?.project?.name}{' '}
-                    <Text style={{fontSize: Typography.FONT_SIZE_12}}>
+                    <Text style={styles.fontSize12}>
                       {selectedAlert?.site?.name}
                     </Text>
                   </Text>
@@ -929,7 +915,7 @@ const Home = ({navigation, route}) => {
           </View>
           <View style={styles.separator} />
           <View
-            style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
+            style={[styles.alertLocInfoCon, styles.justifyContentSpaceBetween]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
                 <LocationPinIcon />
@@ -956,10 +942,10 @@ const Home = ({navigation, route}) => {
               <RadarIcon />
             </View>
             <View style={styles.satelliteInfo}>
-              <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
+              <Text style={[styles.alertLocText, styles.alertLocTextScreenWidthOneThird]}>
                 Search for the fire within a{' '}
                 <Text
-                  style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
+                  style={[styles.confidenceVal, styles.textTransformLowercase]}>
                   {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
                   km
                 </Text>{' '}
@@ -970,7 +956,7 @@ const Home = ({navigation, route}) => {
           <TouchableOpacity
             onPress={handleGoogleRedirect}
             style={styles.simpleBtn}>
-            <Text style={[styles.siteActionText, {marginLeft: 0}]}>
+            <Text style={[styles.siteActionText, styles.marginLeft0]}>
               Open in Google Maps
             </Text>
           </TouchableOpacity>
@@ -1034,9 +1020,7 @@ const Home = ({navigation, route}) => {
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
             style={[
               styles.simpleBtn,
-              selectedSite?.site?.project?.id && {
-                borderColor: Colors.GRAY_LIGHTEST,
-              },
+              selectedSite?.site?.project?.id && styles.borderColorGrayLightest,
             ]}>
             {deleteSite?.isLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
@@ -1050,9 +1034,7 @@ const Home = ({navigation, route}) => {
                 <Text
                   style={[
                     styles.siteActionText,
-                    selectedSite?.site?.project?.id && {
-                      color: Colors.GRAY_LIGHTEST,
-                    },
+                    selectedSite?.site?.project?.id && styles.colorGrayLightest,
                   ]}>
                   Delete Site
                 </Text>
@@ -1077,11 +1059,11 @@ const Home = ({navigation, route}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
+          <Text style={[styles.heading, styles.paddingHorizontal16]}>
             Edit Your Name
           </Text>
           <View
-            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            style={[styles.siteModalStyle, styles.justifyContentSpaceBetween]}>
             <FloatingInput
               autoFocus
               isFloat={false}
@@ -1108,11 +1090,11 @@ const Home = ({navigation, route}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
+          <Text style={[styles.heading, styles.paddingHorizontal16]}>
             Enter Site Name
           </Text>
           <View
-            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            style={[styles.siteModalStyle, styles.justifyContentSpaceBetween]}>
             <View>
               <FloatingInput
                 autoFocus
@@ -1150,7 +1132,65 @@ const Home = ({navigation, route}) => {
 
 export default Home;
 
+const mapBoxStyles = {
+  fillLayer: {
+    fillColor: Colors.GRADIENT_PRIMARY,
+    fillOpacity: 0.4,
+  },
+  fillOutline: {
+    lineWidth: 2,
+    lineColor: Colors.GRADIENT_PRIMARY,
+    lineOpacity: 1,
+    lineJoin: 'bevel',
+  },
+  polyFill: {
+    fillColor: Colors.WHITE,
+    fillOpacity: 0.4,
+  },
+  polyline:{
+    lineWidth: 2,
+    lineColor: Colors.WHITE,
+    lineOpacity: 1,
+    lineJoin: 'bevel',
+  },
+};
+
+
 const styles = StyleSheet.create({
+  width81Height81: {
+    width: 81, 
+    height: 81,
+  },
+  marginBottom16: {
+    marginBottom: 16,
+  },
+  marginTop30: {
+    marginTop: 30,
+  },
+  paddingHorizontal16: {
+    paddingHorizontal: 16,
+  },
+  justifyContentSpaceBetween: {
+    justifyContent: 'space-between',
+  },
+  fontSize12: {
+    fontSize: Typography.FONT_SIZE_12,
+  },
+  alertLocTextScreenWidthOneThird: {
+    width: SCREEN_WIDTH / 1.3,
+  },
+  textTransformLowercase: {
+    textTransform: 'lowercase',
+  },
+  marginLeft0: {
+    marginLeft: 0,
+  },
+  borderColorGrayLightest: {
+    borderColor: Colors.GRAY_LIGHTEST,
+  },
+  colorGrayLightest: {
+    color: Colors.GRAY_LIGHTEST,
+  },
   map: {
     flex: 1,
   },
