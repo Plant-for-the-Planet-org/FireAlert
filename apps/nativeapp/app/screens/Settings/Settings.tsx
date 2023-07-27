@@ -24,10 +24,10 @@ import bbox from '@turf/bbox';
 import rewind from '@mapbox/geojson-rewind';
 import OneSignal from 'react-native-onesignal';
 import DeviceInfo from 'react-native-device-info';
-import { useQueryClient } from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 import LinearGradient from 'react-native-linear-gradient';
-import { useToast } from 'react-native-toast-notifications';
-import { point, polygon, multiPolygon } from '@turf/helpers';
+import {useToast} from 'react-native-toast-notifications';
+import {point, polygon, multiPolygon} from '@turf/helpers';
 
 import {
   Switch,
@@ -60,24 +60,24 @@ import {
   VerificationWarning,
   DisabledTrashOutlineIcon,
 } from '../../assets/svgs';
-import { trpc } from '../../services/trpc';
-import { Colors, Typography } from '../../styles';
+import {trpc} from '../../services/trpc';
+import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
-import { getDeviceInfo } from '../../utils/deviceInfo';
-import { FONT_FAMILY_BOLD } from '../../styles/typography';
+import {getDeviceInfo} from '../../utils/deviceInfo';
+import {FONT_FAMILY_BOLD} from '../../styles/typography';
 // import { useAppDispatch, useAppSelector } from '../../hooks';
-import { BottomBarContext } from '../../global/reducers/bottomBar';
-import { extractCountryCode } from '../../utils/countryCodeFilter';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
+import {extractCountryCode} from '../../utils/countryCodeFilter';
 // import { updateUserDetails } from '../../redux/slices/login/loginSlice';
-import { POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS } from '../../constants';
-import { categorizedRes, groupSitesAsProject } from '../../utils/filters';
+import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
+import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const Settings = ({ navigation }) => {
+const Settings = ({navigation}) => {
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
@@ -105,7 +105,7 @@ const Settings = ({ navigation }) => {
   const toast = useToast();
   // const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
-  const { openModal } = useContext(BottomBarContext);
+  const {openModal} = useContext(BottomBarContext);
   // const { userDetails } = useAppSelector(state => state.loginSlice);
 
   useEffect(() => {
@@ -127,7 +127,7 @@ const Settings = ({ navigation }) => {
     },
     onError: () => {
       setRefreshing(false);
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
   const groupOfSites = useMemo(
@@ -135,7 +135,7 @@ const Settings = ({ navigation }) => {
     [sites],
   );
 
-  const { data: alertPreferences, refetch: refetchAlertPreferences } =
+  const {data: alertPreferences, refetch: refetchAlertPreferences} =
     trpc.alertMethod.getAlertMethods.useQuery(undefined, {
       enabled: sitesSuccess,
       retryDelay: 3000,
@@ -144,7 +144,7 @@ const Settings = ({ navigation }) => {
       },
       onError: () => {
         setRefreshing(false);
-        toast.show('something went wrong', { type: 'danger' });
+        toast.show('something went wrong', {type: 'danger'});
       },
     });
   const formattedAlertPreferences = useMemo(
@@ -155,42 +155,42 @@ const Settings = ({ navigation }) => {
     retryDelay: 3000,
     onSuccess: (res, req) => {
       queryClient.setQueryData(
-        [['site', 'getSites'], { input: ['site', 'getSites'], type: 'query' }],
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
         oldData =>
           oldData
             ? {
-              ...oldData,
-              json: {
-                ...oldData.json,
-                data: oldData.json.data.filter(
-                  item => item.id !== req.json.siteId,
-                ),
-              },
-            }
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req.json.siteId,
+                  ),
+                },
+              }
             : null,
       );
       queryClient.setQueryData(
         [
           ['alert', 'getAlerts'],
-          { input: ['alerts', 'getAlerts'], type: 'query' },
+          {input: ['alerts', 'getAlerts'], type: 'query'},
         ],
         oldData =>
           oldData
             ? {
-              ...oldData,
-              json: {
-                ...oldData.json,
-                data: oldData.json.data.filter(
-                  item => item?.site?.id !== req.json.siteId,
-                ),
-              },
-            }
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item?.site?.id !== req.json.siteId,
+                  ),
+                },
+              }
             : null,
       );
       setSitesInfoModal(false);
     },
     onError: () => {
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
@@ -198,18 +198,18 @@ const Settings = ({ navigation }) => {
     retryDelay: 3000,
     onSuccess: (data, req) => {
       queryClient.setQueryData(
-        [['alertMethod', 'getAlertMethods'], { type: 'query' }],
+        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
         oldData =>
           oldData
             ? {
-              ...oldData,
-              json: {
-                ...oldData.json,
-                data: oldData.json.data.filter(
-                  item => item.id !== req?.json?.alertMethodId,
-                ),
-              },
-            }
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req?.json?.alertMethodId,
+                  ),
+                },
+              }
             : null,
       );
       const loadingArr = delAlertMethodArr.filter(
@@ -219,7 +219,7 @@ const Settings = ({ navigation }) => {
       setReRender(!reRender);
     },
     onError: () => {
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
@@ -235,20 +235,20 @@ const Settings = ({ navigation }) => {
 
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
-    onSuccess: (res) => {
+    onSuccess: res => {
       queryClient.setQueryData(
-        [['site', 'getSites'], { input: ['site', 'getSites'], type: 'query' }],
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
         oldData =>
           oldData
             ? {
-              ...oldData,
-              json: {
-                ...oldData?.json,
-                data: oldData?.json?.data?.map(item =>
-                  item.id === res?.json?.data?.id ? res?.json?.data : item,
-                ),
-              },
-            }
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
             : null,
       );
       const loadingArr = radiusLoaderArr.filter(
@@ -258,7 +258,7 @@ const Settings = ({ navigation }) => {
       setSiteNameModalVisible(false);
     },
     onError: () => {
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
@@ -267,18 +267,18 @@ const Settings = ({ navigation }) => {
       retryDelay: 3000,
       onSuccess: res => {
         queryClient.setQueryData(
-          [['alertMethod', 'getAlertMethods'], { type: 'query' }],
+          [['alertMethod', 'getAlertMethods'], {type: 'query'}],
           oldData =>
             oldData
               ? {
-                ...oldData,
-                json: {
-                  ...oldData?.json,
-                  data: oldData?.json?.data?.map(item =>
-                    item.id === res?.json?.data?.id ? res?.json?.data : item,
-                  ),
-                },
-              }
+                  ...oldData,
+                  json: {
+                    ...oldData?.json,
+                    data: oldData?.json?.data?.map(item =>
+                      item.id === res?.json?.data?.id ? res?.json?.data : item,
+                    ),
+                  },
+                }
               : null,
         );
         const loadingArr = alertMethodLoaderArr.filter(
@@ -288,7 +288,7 @@ const Settings = ({ navigation }) => {
         setReRender(!reRender);
       },
       onError: () => {
-        toast.show('something went wrong', { type: 'danger' });
+        toast.show('something went wrong', {type: 'danger'});
       },
     },
   );
@@ -310,14 +310,14 @@ const Settings = ({ navigation }) => {
       });
     },
     onError: () => {
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
   async function deviceNotification() {
     try {
-      const { deviceId } = await getDeviceInfo();
-      const { userId } = await OneSignal.getDeviceState();
+      const {deviceId} = await getDeviceInfo();
+      const {userId} = await OneSignal.getDeviceState();
       const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
         el => userId === el?.destination && el.deviceId === deviceId,
       );
@@ -340,11 +340,11 @@ const Settings = ({ navigation }) => {
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
       updateSite.mutate({
-        json: { params: { siteId: pageXY?.siteId }, body: { radius: val } },
+        json: {params: {siteId: pageXY?.siteId}, body: {radius: val}},
       });
     } else {
       updateSite.mutate({
-        json: { params: { siteId: pageXY?.siteId }, body: { radius: val } },
+        json: {params: {siteId: pageXY?.siteId}, body: {radius: val}},
       });
     }
     setDropDownModal(false);
@@ -374,22 +374,22 @@ const Settings = ({ navigation }) => {
   };
 
   const handleNotifySwitch = (data, isEnabled) => {
-    const { alertMethodId } = data;
+    const {alertMethodId} = data;
     setAlertMethodLoaderArr(prevState => [...prevState, alertMethodId]);
     updateAlertPreferences.mutate({
-      json: { params: { alertMethodId }, body: { isEnabled } },
+      json: {params: {alertMethodId}, body: {isEnabled}},
     });
   };
 
   const _handleVerify = alertMethodData => () => {
     verifyAlertPreference.mutate({
-      json: { alertMethodId: alertMethodData.id },
+      json: {alertMethodId: alertMethodData.id},
     });
   };
 
   const handleRemoveAlertMethod = alertMethodId => {
     setDelAlertMethodArr(prevState => [...prevState, alertMethodId]);
-    deleteAlertMethod.mutate({ json: { alertMethodId } });
+    deleteAlertMethod.mutate({json: {alertMethodId}});
   };
 
   const handleSiteInformation = item => {
@@ -409,7 +409,7 @@ const Settings = ({ navigation }) => {
 
   const handleEditSiteInfo = () => {
     let payload = {
-      json: { params: { siteId }, body: { name: siteName, radius: siteRad?.value } },
+      json: {params: {siteId}, body: {name: siteName, radius: siteRad?.value}},
     };
     if (isEditSite) {
       delete payload.json.body.name;
@@ -459,7 +459,7 @@ const Settings = ({ navigation }) => {
   };
 
   const handleDeleteSite = (id: string) => {
-    deleteSite.mutate({ json: { siteId: id } });
+    deleteSite.mutate({json: {siteId: id}});
   };
 
   const _handleEcoWeb = (URL: string) => () => handleLink(URL);
@@ -484,7 +484,7 @@ const Settings = ({ navigation }) => {
         {
           type: 'Feature',
           geometry: highlightSiteInfo,
-          properties: { site: siteInfo },
+          properties: {site: siteInfo},
         },
       ],
     });
@@ -531,64 +531,69 @@ const Settings = ({ navigation }) => {
                 <View style={styles.projectsNameInfo}>
                   <Text style={styles.projectsName}>{item.name}</Text>
                 </View>
-                {item?.sites?.length > 0 && <View style={styles.sitesViewStyle} />}
+                {item?.sites?.length > 0 && (
+                  <View style={styles.sitesViewStyle} />
+                )}
                 {item?.sites
                   ? item?.sites?.map((sites, index) => (
-                    <View key={`sites_${index}`}>
-                      <TouchableOpacity
-                        disabled={radiusLoaderArr.includes(sites?.id)}
-                        onPress={() => handleSiteInformation(sites)}
-                        style={styles.sitesInProjects}>
-                        <Text style={styles.sitesName}>{sites?.name}</Text>
-                        <View style={styles.rightConPro}>
-                          <TouchableOpacity
-                            onPress={evt =>
-                              handleRadius(
-                                evt,
-                                item?.id,
-                                sites?.id,
-                                sites?.radius,
-                                sites?.geometry?.type,
-                              )
-                            }
-                            disabled={radiusLoaderArr.includes(sites?.id)}
-                            style={[styles.dropDownRadius, styles.marginRight5]}>
-                            <Text style={styles.siteRadius}>
-                              {sites?.radius
-                                ? `within ${sites?.radius} km`
-                                : 'inside'}
-                            </Text>
-                            <DropdownArrow />
-                          </TouchableOpacity>
-                          {radiusLoaderArr.includes(sites?.id) ? (
-                            <ActivityIndicator
-                              size={'small'}
-                              color={Colors.PRIMARY}
-                            />
-                          ) : (
-                            <Switch
-                              value={sites?.isMonitored}
-                              onValueChange={val => {
-                                updateSite.mutate({
-                                  json: {
-                                    params: { siteId: sites?.id },
-                                    body: { isMonitored: val },
-                                  },
-                                });
-                                setRadiusLoaderArr(prevState => [
-                                  ...prevState,
+                      <View key={`sites_${index}`}>
+                        <TouchableOpacity
+                          disabled={radiusLoaderArr.includes(sites?.id)}
+                          onPress={() => handleSiteInformation(sites)}
+                          style={styles.sitesInProjects}>
+                          <Text style={styles.sitesName}>{sites?.name}</Text>
+                          <View style={styles.rightConPro}>
+                            <TouchableOpacity
+                              onPress={evt =>
+                                handleRadius(
+                                  evt,
+                                  item?.id,
                                   sites?.id,
-                                ]);
-                              }}
-                            />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                      {item?.sites?.length - 1 !== index && (
-                        <View style={styles.separator} />
-                      )}
-                    </View>
-                  ))
+                                  sites?.radius,
+                                  sites?.geometry?.type,
+                                )
+                              }
+                              disabled={radiusLoaderArr.includes(sites?.id)}
+                              style={[
+                                styles.dropDownRadius,
+                                styles.marginRight5,
+                              ]}>
+                              <Text style={styles.siteRadius}>
+                                {sites?.radius
+                                  ? `within ${sites?.radius} km`
+                                  : 'inside'}
+                              </Text>
+                              <DropdownArrow />
+                            </TouchableOpacity>
+                            {radiusLoaderArr.includes(sites?.id) ? (
+                              <ActivityIndicator
+                                size={'small'}
+                                color={Colors.PRIMARY}
+                              />
+                            ) : (
+                              <Switch
+                                value={sites?.isMonitored}
+                                onValueChange={val => {
+                                  updateSite.mutate({
+                                    json: {
+                                      params: {siteId: sites?.id},
+                                      body: {isMonitored: val},
+                                    },
+                                  });
+                                  setRadiusLoaderArr(prevState => [
+                                    ...prevState,
+                                    sites?.id,
+                                  ]);
+                                }}
+                              />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                        {item?.sites?.length - 1 !== index && (
+                          <View style={styles.separator} />
+                        )}
+                      </View>
+                    ))
                   : null}
               </View>
             ))
@@ -596,7 +601,8 @@ const Settings = ({ navigation }) => {
             <View style={[styles.boxShadowPH]}>
               <View
                 style={[
-                  styles.mySiteNameContainer, styles.paddingVertical20OverflowHidden
+                  styles.mySiteNameContainer,
+                  styles.paddingVertical20OverflowHidden,
                 ]}>
                 <View style={styles.emptyPpInfoCon}>
                   <View style={styles.emptyPpInfo}>
@@ -609,12 +615,16 @@ const Settings = ({ navigation }) => {
                       <LinearGradient
                         useAngle
                         angle={135}
-                        angleCenter={{ x: 0.5, y: 0.5 }}
+                        angleCenter={{x: 0.5, y: 0.5}}
                         colors={Colors.GREEN_GRADIENT_ARR}
-                        style={[styles.addSiteBtn, styles.justifyContentCenter]}>
+                        style={[
+                          styles.addSiteBtn,
+                          styles.justifyContentCenter,
+                        ]}>
                         <Text
                           style={[
-                            styles.emptySiteText, styles.paddingHorizontal0ColorWhite
+                            styles.emptySiteText,
+                            styles.paddingHorizontal0ColorWhite,
                           ]}>
                           Visit pp.eco
                         </Text>
@@ -638,7 +648,7 @@ const Settings = ({ navigation }) => {
             <Text style={styles.mainHeading}>My Sites</Text>
           </View>
           {sites?.json?.data?.filter(site => site?.project === null).length >
-            0 ? (
+          0 ? (
             sites?.json?.data
               ?.filter(site => site?.project === null)
               .map((item, index) => (
@@ -661,13 +671,11 @@ const Settings = ({ navigation }) => {
                           item.geometry.type,
                         )
                       }
-                      style={[
-                        styles.dropDownRadius
-                      ]}>
+                      style={[styles.dropDownRadius]}>
                       <Text style={styles.siteRadius}>
                         {
                           RADIUS_ARR.filter(
-                            ({ value }) => item?.radius === value,
+                            ({value}) => item?.radius === value,
                           )[0]?.name
                         }
                       </Text>
@@ -684,8 +692,8 @@ const Settings = ({ navigation }) => {
                         onValueChange={val => {
                           updateSite.mutate({
                             json: {
-                              params: { siteId: item?.id },
-                              body: { isMonitored: val },
+                              params: {siteId: item?.id},
+                              body: {isMonitored: val},
                             },
                           });
                           setRadiusLoaderArr(prevState => [
@@ -741,7 +749,7 @@ const Settings = ({ navigation }) => {
                     <View
                       style={[
                         styles.emailSubContainer,
-                        styles.justifyContentSpaceBetween
+                        styles.justifyContentSpaceBetween,
                       ]}>
                       <View style={styles.deviceItem}>
                         <Text style={styles.myEmailName}>
@@ -765,7 +773,7 @@ const Settings = ({ navigation }) => {
                           <Switch
                             value={item?.isEnabled}
                             onValueChange={val =>
-                              handleNotifySwitch({ alertMethodId: item.id }, val)
+                              handleNotifySwitch({alertMethodId: item.id}, val)
                             }
                           />
                         )}
@@ -787,7 +795,9 @@ const Settings = ({ navigation }) => {
                       </View>
                     </View>
                     {deviceAlertPreferences?.length - 1 !== i && (
-                      <View style={[styles.separator, styles.marginVertical12]} />
+                      <View
+                        style={[styles.separator, styles.marginVertical12]}
+                      />
                     )}
                   </View>
                 ))}
@@ -829,7 +839,7 @@ const Settings = ({ navigation }) => {
                               value={item?.isEnabled}
                               onValueChange={val =>
                                 handleNotifySwitch(
-                                  { alertMethodId: item.id },
+                                  {alertMethodId: item.id},
                                   val,
                                 )
                               }
@@ -861,7 +871,9 @@ const Settings = ({ navigation }) => {
                       </View>
                     </View>
                     {formattedAlertPreferences?.email?.length - 1 !== i && (
-                      <View style={[styles.separator, styles.marginVertical12]} />
+                      <View
+                        style={[styles.separator, styles.marginVertical12]}
+                      />
                     )}
                   </View>
                 ))}
@@ -971,7 +983,7 @@ const Settings = ({ navigation }) => {
                               value={item?.isEnabled}
                               onValueChange={val =>
                                 handleNotifySwitch(
-                                  { alertMethodId: item.id },
+                                  {alertMethodId: item.id},
                                   val,
                                 )
                               }
@@ -1001,7 +1013,9 @@ const Settings = ({ navigation }) => {
                       </View>
                     </View>
                     {formattedAlertPreferences?.sms?.length - 1 !== i && (
-                      <View style={[styles.separator, styles.marginVertical12]} />
+                      <View
+                        style={[styles.separator, styles.marginVertical12]}
+                      />
                     )}
                   </View>
                 ))}
@@ -1043,7 +1057,7 @@ const Settings = ({ navigation }) => {
                               value={item?.isEnabled}
                               onValueChange={val =>
                                 handleNotifySwitch(
-                                  { alertMethodId: item.id },
+                                  {alertMethodId: item.id},
                                   val,
                                 )
                               }
@@ -1072,7 +1086,9 @@ const Settings = ({ navigation }) => {
                       </View>
                     </View>
                     {formattedAlertPreferences?.webhook?.length - 1 !== i && (
-                      <View style={[styles.separator, styles.marginVertical12]} />
+                      <View
+                        style={[styles.separator, styles.marginVertical12]}
+                      />
                     )}
                   </View>
                 ))}
@@ -1230,7 +1246,8 @@ const Settings = ({ navigation }) => {
             styles.backgroundColorEB57571A,
             styles.marginTop65,
           ]}>
-          <View style={[styles.warnLogo, styles.boxShadow, styles.paddingRight14]}>
+          <View
+            style={[styles.warnLogo, styles.boxShadow, styles.paddingRight14]}>
             <NasaLogo />
           </View>
           <Text style={styles.warningText2}>
@@ -1316,7 +1333,8 @@ const Settings = ({ navigation }) => {
                 onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
                 style={[
                   styles.btn,
-                  selectedSiteInfo?.project !== null && styles.borderColorGrayLightest,
+                  selectedSiteInfo?.project !== null &&
+                    styles.borderColorGrayLightest,
                 ]}>
                 {deleteSite?.isLoading ? (
                   <ActivityIndicator color={Colors.PRIMARY} />
@@ -1330,7 +1348,8 @@ const Settings = ({ navigation }) => {
                     <Text
                       style={[
                         styles.siteActionText,
-                        selectedSiteInfo?.project !== null && styles.colorGrayLightest
+                        selectedSiteInfo?.project !== null &&
+                          styles.colorGrayLightest,
                       ]}>
                       Delete Site
                     </Text>
@@ -1351,7 +1370,7 @@ const Settings = ({ navigation }) => {
           animationType={'slide'}
           visible={siteNameModalVisible}>
           <KeyboardAvoidingView
-            {...(Platform.OS === 'ios' ? { behavior: 'padding' } : {})}
+            {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
             style={styles.siteModalStyle}>
             <TouchableOpacity
               onPress={handleCloseSiteModal}
@@ -1424,9 +1443,11 @@ const Settings = ({ navigation }) => {
                   <Text
                     style={[
                       styles.siteRadiusText,
-                      item?.value === pageXY?.siteRadius && styles.fontFamilyBoldColorGradientPrimary,
+                      item?.value === pageXY?.siteRadius &&
+                        styles.fontFamilyBoldColorGradientPrimary,
                       pageXY?.siteGeometry === 'Point' &&
-                      item.value === 0 && styles.colorDisable,
+                        item.value === 0 &&
+                        styles.colorDisable,
                     ]}>
                     {item.name}
                   </Text>
@@ -1448,49 +1469,49 @@ export default Settings;
 
 const styles = StyleSheet.create({
   marginRight5: {
-    marginRight: 5
+    marginRight: 5,
   },
   justifyContentSpaceBetween: {
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
   marginVertical12: {
-    marginVertical: 12
+    marginVertical: 12,
   },
   marginLeft20: {
-    marginLeft: 20
+    marginLeft: 20,
   },
   marginTop73: {
-    marginTop: 73
+    marginTop: 73,
   },
   textDecorationLineUnderline: {
-    textDecorationLine: 'underline'
+    textDecorationLine: 'underline',
   },
   backgroundColorEB57571A: {
     backgroundColor: '#EB57571A',
   },
   marginTop65: {
-    marginTop: 65
+    marginTop: 65,
   },
   marginHorizontal16: {
-    marginHorizontal: 16
+    marginHorizontal: 16,
   },
   paddingRight14: {
-    paddingRight: 14
+    paddingRight: 14,
   },
-  paddingHorizonatal16 : { 
-    paddingHorizontal: 16 
+  paddingHorizonatal16: {
+    paddingHorizontal: 16,
   },
   borderColorGrayLightest: {
     borderColor: Colors.GRAY_LIGHTEST,
   },
-  colorGrayLightest :{
+  colorGrayLightest: {
     color: Colors.GRAY_LIGHTEST,
   },
   fontFamilyBoldColorGradientPrimary: {
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.GRADIENT_PRIMARY,
   },
-  colorDisable : {
+  colorDisable: {
     color: Colors.DISABLE,
   },
   container: {
@@ -2021,10 +2042,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     paddingHorizontal: 0,
-    color: Colors.WHITE
+    color: Colors.WHITE,
   },
   colorWhite: {
-    color: Colors.WHITE
+    color: Colors.WHITE,
   },
   emptySiteText: {
     fontSize: 12,
