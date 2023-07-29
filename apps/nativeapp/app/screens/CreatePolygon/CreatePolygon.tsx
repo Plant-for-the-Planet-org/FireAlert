@@ -57,7 +57,9 @@ const CreatePolygon = ({navigation}) => {
   const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
   const [alphabets, setAlphabets] = useState<string[]>([]);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
-  const [activePolygonIndex, setActivePolygonIndex] = useState<number>(0);
+  // const [activePolygonIndex, setActivePolygonIndex] = useState<number>(0);
+  const activePolygonIndex: number = 0;
+
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
 
@@ -106,7 +108,7 @@ const CreatePolygon = ({navigation}) => {
         animationDuration: 100,
       });
     }
-  }, [isCameraRefVisible, mapInfo?.centerCoordinate, mapInfo?.currZoom]);
+  }, [isCameraRefVisible, mapInfo?.centerCoordinates, mapInfo?.currZoom]);
 
   const _handleViewMap = (siteInfo: object) => {
     let highlightSiteInfo = siteInfo;
@@ -230,9 +232,9 @@ const CreatePolygon = ({navigation}) => {
       await updateCurrentPosition(showAlert);
       return true;
     } catch (err: any) {
-      if (err?.message == 'blocked') {
+      if (err?.message === 'blocked') {
         setIsPermissionBlocked(true);
-      } else if (err?.message == 'denied') {
+      } else if (err?.message === 'denied') {
         setIsPermissionDenied(true);
       } else {
         console.error(err);
@@ -278,7 +280,7 @@ const CreatePolygon = ({navigation}) => {
     setActiveMarkerIndex(prevState => prevState + 1);
   };
 
-  const addPolygonMarker = async (forceContinue = false) => {
+  const addPolygonMarker = async () => {
     let centerCoordinates = await map.current.getCenter();
     let isValidMarkers = await checkIsValidMarker(centerCoordinates);
     if (!isValidMarkers) {
@@ -490,12 +492,12 @@ const CreatePolygon = ({navigation}) => {
             style={[
               styles.heading,
               styles.commonPadding,
-              {marginTop: 20, marginBottom: 10},
+              styles.marginTop20MarginBottom10,
             ]}>
             Enter Site Name
           </Text>
           <View
-            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            style={[styles.siteModalStyle, styles.justifyContentSpaceBetween]}>
             <View>
               <FloatingInput
                 autoFocus
@@ -531,6 +533,13 @@ const CreatePolygon = ({navigation}) => {
 export default CreatePolygon;
 
 const styles = StyleSheet.create({
+  justifyContentSpaceBetween: {
+    justifyContent: 'space-between',
+  },
+  marginTop20MarginBottom10: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
   container: {
     flex: 1,
   },

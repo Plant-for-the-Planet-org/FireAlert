@@ -65,10 +65,10 @@ import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {getDeviceInfo} from '../../utils/deviceInfo';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
-// import { useAppDispatch, useAppSelector } from '../../hooks';
+// import {useAppDispatch, useAppSelector} from '../../hooks';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {extractCountryCode} from '../../utils/countryCodeFilter';
-// import { updateUserDetails } from '../../redux/slices/login/loginSlice';
+// import {updateUserDetails} from '../../redux/slices/login/loginSlice';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
@@ -106,11 +106,7 @@ const Settings = ({navigation}) => {
   // const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const {openModal} = useContext(BottomBarContext);
-  // const { userDetails } = useAppSelector(state => state.loginSlice);
-
-  useEffect(() => {
-    deviceNotification();
-  }, [reRender]);
+  // const {userDetails} = useAppSelector(state => state.loginSlice);
 
   const {
     data: sites,
@@ -151,6 +147,34 @@ const Settings = ({navigation}) => {
     () => categorizedRes(alertPreferences?.json?.data || [], 'method'),
     [alertPreferences],
   );
+
+  const deviceNotification = useCallback(async () => {
+    try {
+      const {deviceId} = await getDeviceInfo();
+      const {userId} = await OneSignal.getDeviceState();
+      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
+        el => userId === el?.destination && el.deviceId === deviceId,
+      );
+      if (filterDeviceAlertMethod.length > 0) {
+        const filteredData = filterDeviceAlertMethod[0];
+        const nonFilteredData = formattedAlertPreferences.device.filter(
+          el => userId !== el?.destination || el.deviceId !== deviceId,
+        );
+        formattedAlertPreferences.device = [
+          filteredData,
+          ...nonFilteredData,
+        ].filter(el => el.deviceName !== '');
+      }
+      setDeviceAlertPreferences(formattedAlertPreferences?.device);
+    } catch {
+      setDeviceAlertPreferences([]);
+    }
+  }, [formattedAlertPreferences, setDeviceAlertPreferences]);
+
+  useEffect(() => {
+    deviceNotification();
+  }, [reRender, deviceNotification]);
+
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
     onSuccess: (res, req) => {
@@ -314,29 +338,6 @@ const Settings = ({navigation}) => {
     },
   });
 
-  async function deviceNotification() {
-    try {
-      const {deviceId} = await getDeviceInfo();
-      const {userId} = await OneSignal.getDeviceState();
-      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
-        el => userId === el?.destination && el.deviceId === deviceId,
-      );
-      if (filterDeviceAlertMethod.length > 0) {
-        const filteredData = filterDeviceAlertMethod[0];
-        const nonFilteredData = formattedAlertPreferences.device.filter(
-          el => userId !== el?.destination || el.deviceId !== deviceId,
-        );
-        formattedAlertPreferences.device = [
-          filteredData,
-          ...nonFilteredData,
-        ].filter(el => el.deviceName !== '');
-      }
-      setDeviceAlertPreferences(formattedAlertPreferences?.device);
-    } catch {
-      setDeviceAlertPreferences([]);
-    }
-  }
-
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
       updateSite.mutate({
@@ -350,25 +351,25 @@ const Settings = ({navigation}) => {
     setDropDownModal(false);
   };
 
-  const handleRadius = (evt, projectId, siteId, siteRadius, siteGeometry) => {
+  const handleRadius = (evt, projectId, handleRadiusSiteId, siteRadius, handleRadiusSiteGeometry) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       projectId,
-      siteId,
+      handleRadiusSiteId,
       siteRadius,
-      siteGeometry,
+      handleRadiusSiteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
 
-  const handleSiteRadius = (evt, siteId, siteRadius, siteGeometry) => {
+  const handleSiteRadius = (evt, handleSiteRadiusSiteId, siteRadius, handleSiteRadiusSiteGeometry) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
-      siteId,
+      handleSiteRadiusSiteId,
       siteRadius,
-      siteGeometry,
+      handleSiteRadiusSiteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
@@ -403,7 +404,7 @@ const Settings = ({navigation}) => {
     setSiteId(site.id);
     setIsEditSite(!!site.remoteId);
     setSiteGeometry(site.geometry.type);
-    setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
+    setSiteRad(RADIUS_ARR.filter(el => el.value === site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 1000);
   };
 
@@ -496,7 +497,7 @@ const Settings = ({navigation}) => {
     setRefreshing(true);
     refetchSites();
     refetchAlertPreferences();
-  }, []);
+  }, [refetchSites, refetchAlertPreferences]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -535,61 +536,61 @@ const Settings = ({navigation}) => {
                   <View style={styles.sitesViewStyle} />
                 )}
                 {item?.sites
-                  ? item?.sites?.map((sites, index) => (
-                      <View key={`sites_${index}`}>
+                  ? item?.sites?.map((sitesItem, sitesIndex) => (
+                      <View key={`sites_${sitesIndex}`}>
                         <TouchableOpacity
-                          disabled={radiusLoaderArr.includes(sites?.id)}
-                          onPress={() => handleSiteInformation(sites)}
+                          disabled={radiusLoaderArr.includes(sitesItem?.id)}
+                          onPress={() => handleSiteInformation(sitesItem)}
                           style={styles.sitesInProjects}>
-                          <Text style={styles.sitesName}>{sites?.name}</Text>
+                          <Text style={styles.sitesName}>{sitesItem?.name}</Text>
                           <View style={styles.rightConPro}>
                             <TouchableOpacity
                               onPress={evt =>
                                 handleRadius(
                                   evt,
                                   item?.id,
-                                  sites?.id,
-                                  sites?.radius,
-                                  sites?.geometry?.type,
+                                  sitesItem?.id,
+                                  sitesItem?.radius,
+                                  sitesItem?.geometry?.type,
                                 )
                               }
-                              disabled={radiusLoaderArr.includes(sites?.id)}
+                              disabled={radiusLoaderArr.includes(sitesItem?.id)}
                               style={[
                                 styles.dropDownRadius,
                                 styles.marginRight5,
                               ]}>
                               <Text style={styles.siteRadius}>
-                                {sites?.radius
-                                  ? `within ${sites?.radius} km`
+                                {sitesItem?.radius
+                                  ? `within ${sitesItem?.radius} km`
                                   : 'inside'}
                               </Text>
                               <DropdownArrow />
                             </TouchableOpacity>
-                            {radiusLoaderArr.includes(sites?.id) ? (
+                            {radiusLoaderArr.includes(sitesItem?.id) ? (
                               <ActivityIndicator
                                 size={'small'}
                                 color={Colors.PRIMARY}
                               />
                             ) : (
                               <Switch
-                                value={sites?.isMonitored}
+                                value={sitesItem?.isMonitored}
                                 onValueChange={val => {
                                   updateSite.mutate({
                                     json: {
-                                      params: {siteId: sites?.id},
+                                      params: {siteId: sitesItem?.id},
                                       body: {isMonitored: val},
                                     },
                                   });
                                   setRadiusLoaderArr(prevState => [
                                     ...prevState,
-                                    sites?.id,
+                                    sitesItem?.id,
                                   ]);
                                 }}
                               />
                             )}
                           </View>
                         </TouchableOpacity>
-                        {item?.sites?.length - 1 !== index && (
+                        {item?.sites?.length - 1 !== sitesIndex && (
                           <View style={styles.separator} />
                         )}
                       </View>

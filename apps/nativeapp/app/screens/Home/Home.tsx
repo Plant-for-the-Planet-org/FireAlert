@@ -26,7 +26,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   DropDown,
@@ -49,7 +49,6 @@ import {
   PencilIcon,
   PointSiteIcon,
   SatelliteIcon,
-  MapOutlineIcon,
   TrashSolidIcon,
   LocationPinIcon,
   PencilRoundIcon,
@@ -106,11 +105,11 @@ const images: Record<CompassImage, ImageSourcePropType> = {
   compass1: require('../../assets/images/compassImage.png'),
 };
 
-const Home = ({navigation, route}) => {
+const Home = ({route}) => {
   const siteInfo = route?.params;
   const {state} = useMapLayers(MapLayerContext);
   const {selectedSiteBar, passMapInfo} = useContext(BottomBarContext);
-  const {userDetails, configData} = useAppSelector(state => state.loginSlice);
+  const {userDetails, configData} = useAppSelector(appState => appState.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -162,7 +161,7 @@ const Home = ({navigation, route}) => {
       passMapInfo({centerCoordinates, currZoom});
     }
     passProp();
-  }, [selectedSiteBar]);
+  }, [selectedSiteBar, passMapInfo]);
 
   useEffect(() => {
     if (
@@ -181,7 +180,7 @@ const Home = ({navigation, route}) => {
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
       }, 1000);
     }
-  }, [isCameraRefVisible, siteInfo?.siteInfo]);
+  }, [isCameraRefVisible, siteInfo?.siteInfo, siteInfo?.bboxGeo]);
 
   useEffect(() => {
     if (
@@ -211,7 +210,7 @@ const Home = ({navigation, route}) => {
 
   const {data: alerts} = useFetchSites({enabled: true});
 
-  const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
+  const {data: sites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],
     {
       enabled: true,
@@ -231,7 +230,7 @@ const Home = ({navigation, route}) => {
     retryDelay: 3000,
     onSuccess: () => {
       const request = {
-        onSuccess: async message => {},
+        onSuccess: async () => {},
         onFail: () => {
           toast.show('something went wrong', {type: 'danger'});
         },
@@ -352,7 +351,7 @@ const Home = ({navigation, route}) => {
     setSiteId(site.id);
     setIsEditSite(!!site.remoteId);
     setSiteGeometry(site.geometry.type);
-    setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
+    setSiteRad(RADIUS_ARR.filter(el => el.value === site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 500);
   };
 
@@ -371,28 +370,32 @@ const Home = ({navigation, route}) => {
   };
 
   // recenter the mapmap to the current coordinates of user location
-  const onPressMyLocationIcon = (
-    position: MapboxGL.Location | Geolocation.GeoPosition,
-  ) => {
-    if (isCameraRefVisible && camera?.current?.setCamera) {
-      setIsInitial(false);
-      camera.current.setCamera({
-        centerCoordinate: [position.coords.longitude, position.coords.latitude],
-        // centerCoordinate: [-90.133284, 18.675638],
-        zoomLevel: ZOOM_LEVEL,
-        animationDuration: ANIMATION_DURATION,
-      });
-    }
-  };
+  const onPressMyLocationIcon = useCallback(
+    (position: MapboxGL.Location | Geolocation.GeoPosition) => {
+      if (isCameraRefVisible && camera?.current?.setCamera) {
+        setIsInitial(false);
+        camera.current.setCamera({
+          centerCoordinate: [position.coords.longitude, position.coords.latitude],
+          // centerCoordinate: [-90.133284, 18.675638],
+          zoomLevel: ZOOM_LEVEL,
+          animationDuration: ANIMATION_DURATION,
+        });
+      }
+    }, 
+    [isCameraRefVisible, camera] 
+  );
+  
 
   // only for the first time map will follow the user's current location by default
-  const onUpdateUserLocation = (
-    userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined,
-  ) => {
-    if (isInitial && userLocation) {
-      onPressMyLocationIcon(userLocation);
-    }
-  };
+  const onUpdateUserLocation = useCallback(
+    (userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined) => {
+      if (isInitial && userLocation) {
+        onPressMyLocationIcon(userLocation);
+      }
+    },
+    [isInitial, onPressMyLocationIcon]
+  );
+  
 
   const onPressLocationAlertPrimaryBtn = () => {
     setIsLocationAlertShow(false);
@@ -440,9 +443,9 @@ const Home = ({navigation, route}) => {
       updateCurrentPosition(showAlert);
       return true;
     } catch (err: any) {
-      if (err?.message == 'blocked') {
+      if (err?.message === 'blocked') {
         setIsPermissionBlocked(true);
-      } else if (err?.message == 'denied') {
+      } else if (err?.message === 'denied') {
         setIsPermissionDenied(true);
       } else {
         console.error(err);
@@ -541,7 +544,7 @@ const Home = ({navigation, route}) => {
         id={id}
         key={id}
         title={title}
-        onSelected={e => {
+        onSelected={() => {
           camera.current.setCamera({
             centerCoordinate: [
               alertsArr[counter]?.longitude,
@@ -596,11 +599,9 @@ const Home = ({navigation, route}) => {
     const items = [];
     const arr = isAlert ? alerts?.json?.data : formattedSites?.point;
     for (let i = 0; i < arr?.length; i++) {
-      {
         isAlert
           ? items.push(renderAnnotation(i))
           : items.push(renderSelectedPoint(i));
-      }
     }
     return items;
   };
@@ -632,7 +633,7 @@ const Home = ({navigation, route}) => {
         features:
           (formattedSites?.polygon ?? [])
             .concat(formattedSites?.multipolygon ?? [])
-            ?.map((singleSite, i) => {
+            ?.map(singleSite => {
               return {
                 type: 'Feature',
                 properties: {site: singleSite},
@@ -941,7 +942,7 @@ const Home = ({navigation, route}) => {
                 Search for the fire within a{' '}
                 <Text
                   style={[styles.confidenceVal, styles.textTransformLowercase]}>
-                  {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
+                  {selectedAlert?.distance === 0 ? 1 : selectedAlert?.distance}{' '}
                   km
                 </Text>{' '}
                 radius around the location.

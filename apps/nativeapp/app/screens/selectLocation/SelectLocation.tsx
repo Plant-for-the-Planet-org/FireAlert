@@ -116,7 +116,7 @@ const SelectLocation = ({navigation}) => {
         animationDuration: 100,
       });
     }
-  }, [isCameraRefVisible, mapInfo?.centerCoordinate, mapInfo?.currZoom]);
+  }, [isCameraRefVisible, mapInfo?.centerCoordinates, mapInfo?.currZoom]);
 
   const _handleViewMap = (siteInfo: object) => {
     let highlightSiteInfo = siteInfo;
@@ -194,9 +194,9 @@ const SelectLocation = ({navigation}) => {
       updateCurrentPosition(showAlert);
       return true;
     } catch (err: any) {
-      if (err?.message == 'blocked') {
+      if (err?.message === 'blocked') {
         setIsPermissionBlocked(true);
-      } else if (err?.message == 'denied') {
+      } else if (err?.message === 'denied') {
         setIsPermissionDenied(true);
       } else {
         console.error(err);
@@ -416,12 +416,12 @@ const SelectLocation = ({navigation}) => {
             style={[
               styles.heading,
               styles.commonPadding,
-              {marginTop: 20, marginBottom: 10},
+              styles.marginTop20MarginBottom10,
             ]}>
             Enter Site Name
           </Text>
           <View
-            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
+            style={[styles.siteModalStyle, styles.justifyContentSpaceBetween]}>
             <View>
               <FloatingInput
                 autoFocus
@@ -457,6 +457,13 @@ const SelectLocation = ({navigation}) => {
 export default SelectLocation;
 
 const styles = StyleSheet.create({
+  justifyContentSpaceBetween: {
+    justifyContent: 'space-between',
+  },
+  marginTop20MarginBottom10: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
   safeAreaView: {
     backgroundColor: '#000',
   },
