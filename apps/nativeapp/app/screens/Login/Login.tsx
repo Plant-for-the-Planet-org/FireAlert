@@ -108,7 +108,7 @@ const Login = ({navigation}) => {
               angle={135}
               angleCenter={{x: 0.5, y: 0.5}}
               colors={Colors.GREEN_GRADIENT_ARR}
-              style={[styles.addSiteBtn, {justifyContent: 'center'}]}>
+              style={[styles.addSiteBtn, styles.justifyContentCenter]}>
               <Text style={styles.emptySiteText}>Continue to Login</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -121,6 +121,9 @@ const Login = ({navigation}) => {
 export default Login;
 
 const styles = StyleSheet.create({
+  justifyContentCenter: {
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
   },

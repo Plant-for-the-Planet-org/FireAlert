@@ -29,40 +29,32 @@ const FloatingInput = props => {
   const [isFocused, setIsFocused] = useState(false);
   const onBlur = () => setIsFocused(false);
 
-  let color = Colors.TEXT_COLOR;
-  if (errors) {
-    color = Colors.ALERT;
-  }
+  const containerStyles = [
+    styles.container,
+    containerStyle,
+    errors ? styles.errorBorder : styles.grayBorder,
+    verifier && styles.verifierContainer,
+  ];
+
+  const labelStyles = [styles.label, {color: errors ? Colors.ALERT : Colors.TEXT_COLOR}];
+
+  const inputStyles = [
+    styles.input,
+    inputStyle,
+    {color: errors ? Colors.ALERT : Colors.BLACK},
+    verifier && styles.verifierInput,
+  ];
 
   return (
-    <View
-      style={[
-        styles.container,
-        containerStyle,
-        {borderColor: errors ? Colors.ALERT : Colors.GRAY_MEDIUM},
-        verifier && {flexDirection: 'row', alignItems: 'center'},
-      ]}>
+    <View style={containerStyles}>
       {isFloat && (
         <View style={styles.labelContainer}>
-          <Text
-            style={[
-              styles.label,
-              {
-                color,
-              },
-            ]}>
-            {label}
-          </Text>
+          <Text style={labelStyles}>{label}</Text>
         </View>
       )}
       <TextInput
         onBlur={onBlur}
-        style={[
-          styles.input,
-          inputStyle,
-          {color: errors ? Colors.ALERT : Colors.BLACK},
-          verifier && {width: 240},
-        ]}
+        style={inputStyles}
         onFocus={setIsFocused}
         onChangeText={onChangeText}
         selectionColor={Colors.TEXT_COLOR}
@@ -91,6 +83,16 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     alignSelf: 'center',
   },
+  errorBorder: {
+    borderColor: Colors.ALERT,
+  },
+  grayBorder: {
+    borderColor: Colors.GRAY_MEDIUM,
+  },
+  verifierContainer: {
+    flexDirection: 'row', 
+    alignItems: 'center',
+  },
   labelContainer: {
     top: TOP,
     left: 10,
@@ -104,6 +106,9 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     fontSize: 18,
+  },
+  verifierInput: {
+    width: 240,
   },
   verified: {
     width: 15,

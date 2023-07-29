@@ -30,7 +30,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
     },
   });
 
-  const {data: alertMethodsData} = trpc.alertMethod.getAlertMethods.useQuery(
+  trpc.alertMethod.getAlertMethods.useQuery(
     undefined,
     {
       enabled: !!userDetails?.data?.id,
@@ -77,7 +77,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
         );
         const notification = notificationReceivedEvent.getNotification();
 
-        const data = notification.additionalData;
+        // const data = notification.additionalData;
 
         notificationReceivedEvent.complete(notification);
 

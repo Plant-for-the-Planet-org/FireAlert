@@ -113,7 +113,7 @@ export default function AppNavigator() {
         SplashScreen.hide();
       }
     })();
-  }, []);
+  }, [dispatch, queryClient]);
 
   return (
     <NavigationContainer>
