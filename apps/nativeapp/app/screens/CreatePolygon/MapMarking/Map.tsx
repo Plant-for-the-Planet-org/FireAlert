@@ -63,7 +63,6 @@ export default function Map({
   camera,
   setIsCameraRefVisible,
   location,
-  // markerText,
   activePolygonIndex,
   setLocation,
   onPressMap,

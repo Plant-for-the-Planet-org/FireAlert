@@ -45,6 +45,7 @@ import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
+const activePolygonIndex: number = 0;
 
 const CreatePolygon = ({navigation}) => {
   const camera = useRef<MapboxGL.Camera | null>(null);
@@ -57,9 +58,7 @@ const CreatePolygon = ({navigation}) => {
   const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
   const [alphabets, setAlphabets] = useState<string[]>([]);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
-  // const [activePolygonIndex, setActivePolygonIndex] = useState<number>(0);
-  const activePolygonIndex: number = 0;
-
+  
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
 

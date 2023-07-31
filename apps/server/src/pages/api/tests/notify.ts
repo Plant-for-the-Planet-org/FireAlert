@@ -37,7 +37,7 @@ export default async function notify(
         );
 
         if (isDelivered) {
-          const response = await prisma.notification.update({
+          await prisma.notification.update({
             where: {id: id},
             data: {
               isDelivered: true,

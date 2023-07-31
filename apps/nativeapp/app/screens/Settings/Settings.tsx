@@ -351,25 +351,25 @@ const Settings = ({navigation}) => {
     setDropDownModal(false);
   };
 
-  const handleRadius = (evt, projectId, handleRadiusSiteId, siteRadius, handleRadiusSiteGeometry) => {
+  const handleRadius = (evt, projectId, projectSiteId, projectSiteRadius, projectSiteGeometry) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       projectId,
-      handleRadiusSiteId,
-      siteRadius,
-      handleRadiusSiteGeometry,
+      siteId: projectSiteId,
+      siteRadius: projectSiteRadius,
+      siteGeometry: projectSiteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
 
-  const handleSiteRadius = (evt, handleSiteRadiusSiteId, siteRadius, handleSiteRadiusSiteGeometry) => {
+  const handleSiteRadius = (evt, siteSiteId, siteSiteRadius, siteSiteGeometry) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
-      handleSiteRadiusSiteId,
-      siteRadius,
-      handleSiteRadiusSiteGeometry,
+      siteId: siteSiteId,
+      siteRadius: siteSiteRadius,
+      siteGeometry: siteSiteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
@@ -708,9 +708,8 @@ const Settings = ({navigation}) => {
                 </TouchableOpacity>
               ))
           ) : (
-            <View style={styles.mySiteNameContainer}>
-              {/* TODO: emptySiteInfoCon style needs to be defined or did you mean emptySiteCon */}
-              <View style={styles.emptySiteCon}>
+            <View style={[styles.mySiteNameContainer, styles.paddingVertical20]}>
+              <View>
                 <Text style={styles.emptySiteText}>
                   Create Your Own{'\n'}Fire Alert Site{'\n'}
                   <Text style={styles.receiveNotifications}>
@@ -1499,6 +1498,9 @@ const styles = StyleSheet.create({
   paddingRight14: {
     paddingRight: 14,
   },
+  paddingVertical20: {
+    paddingVertical: 20,
+  },
   paddingHorizonatal16: {
     paddingHorizontal: 16,
   },
@@ -1713,9 +1715,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4.62,
     elevation: 8,
-  },
-  paddingVertical20: {
-    paddingVertical: 20,
   },
   paddingVertical20OverflowHidden: {
     paddingVertical: 20,

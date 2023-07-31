@@ -111,7 +111,7 @@ const Home = ({navigation, route}) => {
   const {state} = useMapLayers(MapLayerContext);
   const {selected, setSelected, selectedSiteBar, passMapInfo} =
     useContext(BottomBarContext);
-  const {userDetails, configData} = useAppSelector(state => state.loginSlice);
+  const {userDetails, configData} = useAppSelector(appState => appState.loginSlice);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -163,7 +163,7 @@ const Home = ({navigation, route}) => {
       passMapInfo({centerCoordinates, currZoom});
     }
     passProp();
-  }, [selectedSiteBar, passMapInfo]);
+  }, [selectedSiteBar]);
 
   useEffect(() => {
     if (
@@ -183,7 +183,7 @@ const Home = ({navigation, route}) => {
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
       }, 1000);
     }
-  }, [isCameraRefVisible, siteInfo?.siteInfo, siteInfo?.bboxGeo]);
+  }, [isCameraRefVisible, siteInfo?.siteInfo]);
 
   useEffect(() => {
     if (
@@ -693,7 +693,7 @@ const Home = ({navigation, route}) => {
       />
     </MapboxGL.ShapeSource>
   );
-
+  console.log(`Selected Site consoled ${JSON.stringify(selectedSite)}`)
   return (
     <>
       <MapboxGL.MapView

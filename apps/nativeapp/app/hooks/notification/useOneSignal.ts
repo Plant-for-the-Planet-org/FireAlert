@@ -77,8 +77,6 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
         );
         const notification = notificationReceivedEvent.getNotification();
 
-        // const data = notification.additionalData;
-
         notificationReceivedEvent.complete(notification);
 
         if (handlers.onReceived) {
