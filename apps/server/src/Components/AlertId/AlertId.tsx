@@ -7,14 +7,16 @@ import copyIcon from '../../../public/alertPage/copy.svg'
 import locationPinIcon from '../../../public/alertPage/locationPin.svg'
 import radarIcon from '../../../public/alertPage/radarIcon.svg'
 import Image from 'next/image';
+import { Prisma } from '@prisma/client';
 
-interface AlertData {
-    daysAgo: string;
+export interface AlertData {
+    timeAgo: string;
     formattedDateString: string;
     confidence: string;
     detectedBy: string | null;
     latitude: string;
     longitude: string;
+    polygon: Prisma.JsonValue;
 }
 
 interface Props {
@@ -34,37 +36,37 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({ alertData, classNam
         navigator.clipboard.writeText(`${alertData.latitude}, ${alertData.longitude}`);
         setTimeout(() => setIsCoordinatesCopied(false), 200); // reset after 200ms
     };
-    
+
 
     return (
         <div className={classes.root}>
             <div className={classes.AlertId}>
                 <div className={classes.mapView}>
                     <div id="map" className={classes.mapIcon}>
-                        <MapComponent alertData={alertData} />
+                        <MapComponent alertData={alertData}/>
                     </div>
                 </div>
                 <div className={classes.alertInfo}>
                     <div className={classes.alertInfoSubContainer}>
                         <div className={classes.alertInfoFirstDiv}>
-                        <div className={classes.detectionInfo}>
-                            <div className={classes.alertIconWrapper}>
-                                <Image src={alertIcon} alt="Alert Icon" className={classes.alertIcon} />
-                            </div>
-                            <div className={classes.detectionInfoWrapper}>
-                                <div className={classes.detectedByText}>DETECTED BY {alertData.detectedBy}</div>
-                                <div className={classes.detectedInfoInner}>
-                                    <p className={classes.detectedDateWrapper}>
-                                        <span className={classes.detectedDays}>{alertData.daysAgo}d ago</span>
-                                        <span className={classes.detectedDateText}> ({alertData.formattedDateString})</span>
-                                    </p>
-                                    <p className={classes.alertConfidence}>
-                                        <span className={classes.alertConfidenceValue}>{alertData.confidence}</span>
-                                        <span className={classes.alertConfidenceText}> alert confidence</span>
-                                    </p>
+                            <div className={classes.detectionInfo}>
+                                <div className={classes.alertIconWrapper}>
+                                    <Image src={alertIcon} alt="Alert Icon" className={classes.alertIcon} />
+                                </div>
+                                <div className={classes.detectionInfoWrapper}>
+                                    <div className={classes.detectedByText}>DETECTED BY {alertData.detectedBy}</div>
+                                    <div className={classes.detectedInfoInner}>
+                                        <p className={classes.detectedDateWrapper}>
+                                            <span className={classes.detectedDays}>{alertData.timeAgo}</span>
+                                            <span className={classes.detectedDateText}> ({alertData.formattedDateString})</span>
+                                        </p>
+                                        <p className={classes.alertConfidence}>
+                                            <span className={classes.alertConfidenceValue}>{alertData.confidence}</span>
+                                            <span className={classes.alertConfidenceText}> alert confidence</span>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         </div>
                         <div className={classes.alertInfoSecondDiv}>
                             <div className={classes.alertLocationParent}>
