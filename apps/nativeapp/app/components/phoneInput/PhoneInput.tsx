@@ -19,7 +19,7 @@ const PhoneInput = ({containerStyle, inputValue, valid, defaultCode}) => {
     valid(checkValid ? checkValid : false);
     inputValue(formattedValue);
   }, [value, formattedValue, valid, inputValue]);
-  
+
   useEffect(() => {
     isValidPhone();
   }, [formattedValue, isValidPhone]);

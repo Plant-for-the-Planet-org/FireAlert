@@ -111,7 +111,9 @@ const Home = ({navigation, route}) => {
   const {state} = useMapLayers(MapLayerContext);
   const {selected, setSelected, selectedSiteBar, passMapInfo} =
     useContext(BottomBarContext);
-  const {userDetails, configData} = useAppSelector(appState => appState.loginSlice);
+  const {userDetails, configData} = useAppSelector(
+    appState => appState.loginSlice,
+  );
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -693,7 +695,7 @@ const Home = ({navigation, route}) => {
       />
     </MapboxGL.ShapeSource>
   );
-  console.log(`Selected Site consoled ${JSON.stringify(selectedSite)}`)
+  console.log(`Selected Site consoled ${JSON.stringify(selectedSite)}`);
   return (
     <>
       <MapboxGL.MapView
