@@ -48,9 +48,14 @@ export const alertMethodRouter = createTRPCRouter({
                 }
             } catch (error) {
                 logger(`Error in sendVerification: ${error}`, "error");
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
-                    message: `${error}`,
+                    message: `Something Went Wrong`,
                 });
             }
         }),
@@ -212,9 +217,14 @@ export const alertMethodRouter = createTRPCRouter({
                 }
             } catch (error) {
                 logger(`Error in createAlertMethod: ${error}`, "error");
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
-                    message: `${error}`,
+                    message: `Something Went Wrong.`,
                 });
             }
         }),
@@ -246,9 +256,14 @@ export const alertMethodRouter = createTRPCRouter({
                 };
             } catch (error) {
                 logger(`Error in getAlertMethods: ${error}`, "error");
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
+                    message: `Something Went Wrong`,
                 });
             }
         }),
@@ -274,9 +289,14 @@ export const alertMethodRouter = createTRPCRouter({
                 };
             } catch (error) {
                 logger(`Error in getAlertMethod: ${error}`, "error");
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
+                    message: `Something Went Wrong`,
                 });
             }
         }),
@@ -312,9 +332,14 @@ export const alertMethodRouter = createTRPCRouter({
                 };
             } catch (error) {
                 logger(`Error in updateAlertMethod: ${error}`, "error");
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
+                    message: `Something Went Wrong`,
                 });
             }
         }),
@@ -345,9 +370,14 @@ export const alertMethodRouter = createTRPCRouter({
                 };
             } catch (error) {
                 logger(`Error in deleteAlertMethod: ${error}`, "error");
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
+                    message: `Something Went Wrong`,
                 });
             }
         }),
