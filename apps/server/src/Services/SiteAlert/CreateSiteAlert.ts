@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from '../../server/db'
 import { logger } from "../../../src/server/logger";
-import { GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
+import { type GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
 
 const createSiteAlerts = async (geoEventProviderId: string, geoEventProviderClientId: GeoEventProviderClientId, slice: string) => {
     let siteAlertsCreatedCount = 0;

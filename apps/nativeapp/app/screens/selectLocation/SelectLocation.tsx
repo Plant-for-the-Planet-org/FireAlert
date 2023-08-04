@@ -6,16 +6,18 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
-  Dimensions,
   BackHandler,
   TouchableOpacity,
   KeyboardAvoidingView,
+  ImageSourcePropType,
 } from 'react-native';
+import bbox from '@turf/bbox';
+import {point} from '@turf/helpers';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
-import React, {useEffect, useRef, useState} from 'react';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 
 import {
   CrossIcon,
@@ -29,6 +31,7 @@ import {
 } from '../home/permissionAlert/locationPermissionAlerts';
 
 import {
+  DropDown,
   AlertModal,
   LayerModal,
   CustomButton,
@@ -39,11 +42,10 @@ import {useFetchSites} from '../../utils/api';
 import {Colors, Typography} from '../../styles';
 import {useQueryClient} from '@tanstack/react-query';
 import {locationPermission} from '../../utils/permissions';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 let attributionPosition: any = {
   bottom: IS_ANDROID ? 72 : 56,
@@ -51,8 +53,8 @@ let attributionPosition: any = {
 };
 
 let compassViewMargins = {
-  x: IS_ANDROID ? 12 : 16,
-  y: IS_ANDROID ? 160 : 120,
+  x: IS_ANDROID ? 16 : 16,
+  y: IS_ANDROID ? 160 : 125,
 };
 
 const compassViewPosition = 3;
@@ -60,20 +62,36 @@ const compassViewPosition = 3;
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 
+const RADIUS_ARR = [
+  {name: 'Within 100 km', value: 100000},
+  {name: 'Within 10 km', value: 10000},
+  {name: 'Within 5 km', value: 5000},
+];
+
+type CompassImage = 'compass1';
+const images: Record<CompassImage, ImageSourcePropType> = {
+  compass1: require('../../assets/images/compassImage.png'),
+};
+
 const SelectLocation = ({navigation}) => {
   const {state} = useMapLayers(MapLayerContext);
-  const [loader, setLoader] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const {mapInfo} = useContext(BottomBarContext);
+  const [visible, setVisible] = useState<boolean>(false);
   const [isInitial, setIsInitial] = useState(true);
-  const [isCameraRefVisible, setIsCameraRefVisible] = useState(false);
+  const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
 
-  const [isPermissionDenied, setIsPermissionDenied] = useState(false);
-  const [isPermissionBlocked, setIsPermissionBlocked] = useState(false);
-  const [isLocationAlertShow, setIsLocationAlertShow] = useState(false);
+  const [isPermissionDenied, setIsPermissionDenied] = useState<boolean>(false);
+  const [isPermissionBlocked, setIsPermissionBlocked] =
+    useState<boolean>(false);
+  const [isLocationAlertShow, setIsLocationAlertShow] =
+    useState<boolean>(false);
 
   const [siteName, setSiteName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [siteNameModalVisible, setSiteNameModalVisible] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [siteNameModalVisible, setSiteNameModalVisible] =
+    useState<boolean>(false);
+
+  const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[3]);
 
   const [enableGetFireAlerts, setEnableGetFireAlerts] =
     useState<boolean>(false);
@@ -88,6 +106,33 @@ const SelectLocation = ({navigation}) => {
   const toast = useToast();
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
+
+  useEffect(() => {
+    if (isCameraRefVisible && camera?.current?.setCamera) {
+      setIsInitial(false);
+      camera.current.setCamera({
+        centerCoordinate: mapInfo?.centerCoordinates,
+        zoomLevel: mapInfo?.currZoom,
+        animationDuration: 100,
+      });
+    }
+  }, [isCameraRefVisible, mapInfo?.centerCoordinate, mapInfo?.currZoom]);
+
+  const _handleViewMap = (siteInfo: object) => {
+    let highlightSiteInfo = siteInfo;
+    let bboxGeo = bbox(point(siteInfo?.geometry.coordinates));
+    highlightSiteInfo = siteInfo?.geometry;
+    navigation.navigate('Home', {
+      bboxGeo,
+      siteInfo: [
+        {
+          type: 'Feature',
+          geometry: highlightSiteInfo,
+          properties: {site: siteInfo},
+        },
+      ],
+    });
+  };
 
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
@@ -108,7 +153,7 @@ const SelectLocation = ({navigation}) => {
       setEnableGetFireAlerts(true);
       setLoading(false);
       setSiteNameModalVisible(false);
-      navigation.navigate('Home');
+      _handleViewMap(res?.json?.data);
     },
     onError: () => {
       setLoading(false);
@@ -196,6 +241,7 @@ const SelectLocation = ({navigation}) => {
         geometry,
         type: 'Point',
         name: siteName,
+        radius: siteRad?.value,
       },
     });
   };
@@ -211,15 +257,10 @@ const SelectLocation = ({navigation}) => {
   const onPressLocationAlertPrimaryBtn = () => {
     setIsLocationAlertShow(false);
     if (IS_ANDROID) {
-      updateCurrentPosition();
+      checkPermission();
     } else {
       Linking.openURL('app-settings:');
     }
-  };
-
-  const onChangeRegionStart = () => setLoader(true);
-  const onChangeRegionComplete = () => {
-    setLoader(false);
   };
 
   const handleSiteModalContinue = () => {
@@ -234,7 +275,8 @@ const SelectLocation = ({navigation}) => {
   const closeMapLayer = () => setVisible(false);
   const handleContinue = () => setSiteNameModalVisible(true);
 
-  const onPressPerBlockedAlertPrimaryBtn = () => {};
+  const onPressPerBlockedAlertPrimaryBtn = () =>
+    onPressLocationAlertPrimaryBtn();
   const onPressPerBlockedAlertSecondaryBtn = () => {
     BackHandler.exitApp();
   };
@@ -247,11 +289,10 @@ const SelectLocation = ({navigation}) => {
   useEffect(() => {
     const watchId = Geolocation.watchPosition(
       position => {
-        onUpdateUserLocation(position);
         setLocation(position);
       },
       err => {
-        setIsLocationAlertShow(true);
+        console.log(err);
       },
       {
         enableHighAccuracy: true,
@@ -267,28 +308,28 @@ const SelectLocation = ({navigation}) => {
     };
   }, []);
 
-  useEffect(() => {
-    onUpdateUserLocation(location);
-  }, [isCameraRefVisible, location]);
-
   return (
     <>
       <StatusBar
+        animated
         translucent
-        barStyle={'light-content'}
-        backgroundColor={'transparent'}
+        barStyle={siteNameModalVisible ? 'dark-content' : 'light-content'}
+        backgroundColor={
+          siteNameModalVisible ? Colors.WHITE : Colors.TRANSPARENT
+        }
       />
       <MapboxGL.MapView
         ref={map}
         style={styles.map}
         logoEnabled={false}
         scaleBarEnabled={false}
+        compassEnabled
+        compassImage={'compass1'}
         styleURL={MapboxGL.StyleURL[state]}
         compassViewMargins={compassViewMargins}
         compassViewPosition={compassViewPosition}
-        onCameraChanged={onChangeRegionStart}
-        onMapIdle={onChangeRegionComplete}
         attributionPosition={attributionPosition}>
+        <MapboxGL.Images images={images} />
         <MapboxGL.Camera
           ref={el => {
             camera.current = el;
@@ -301,10 +342,10 @@ const SelectLocation = ({navigation}) => {
             onUpdate={data => setLocation(data)}
           />
         )}
-        <View style={styles.fakeMarkerCont}>
-          <SvgXml xml={active_marker} style={styles.markerImage} />
-        </View>
       </MapboxGL.MapView>
+      <View style={styles.fakeMarkerCont}>
+        <SvgXml xml={active_marker} style={styles.markerImage} />
+      </View>
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.7}
@@ -371,17 +412,34 @@ const SelectLocation = ({navigation}) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, styles.commonPadding]}>
+          <Text
+            style={[
+              styles.heading,
+              styles.commonPadding,
+              {marginTop: 20, marginBottom: 10},
+            ]}>
             Enter Site Name
           </Text>
           <View
             style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
-            <FloatingInput
-              autoFocus
-              isFloat={false}
-              label={'Site Name'}
-              onChangeText={setSiteName}
-            />
+            <View>
+              <FloatingInput
+                autoFocus
+                isFloat={false}
+                label={'Site Name'}
+                onChangeText={setSiteName}
+              />
+              <View style={[styles.commonPadding]}>
+                <DropDown
+                  expandHeight={10}
+                  items={RADIUS_ARR}
+                  value={siteRad?.value}
+                  onSelectItem={setSiteRad}
+                  defaultValue={siteRad?.value}
+                  label={'Notify me if fires occur...'}
+                />
+              </View>
+            </View>
             <CustomButton
               title="Continue"
               isLoading={loading}
@@ -406,15 +464,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   myLocationIcon: {
-    right: 16,
-    width: 45,
-    height: 45,
+    right: 23,
+    width: 32,
+    height: 32,
     borderWidth: 1,
     borderRadius: 100,
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    bottom: IS_ANDROID ? 92 : 112,
+    bottom: IS_ANDROID ? 112 : 112,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
@@ -427,7 +485,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'absolute',
     justifyContent: 'center',
-    top: IS_ANDROID ? 92 : 138,
+    top: IS_ANDROID ? 122 : 138,
     backgroundColor: Colors.WHITE,
     borderColor: Colors.GRAY_LIGHT,
   },
@@ -443,10 +501,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     bottom: 0,
   },
-  loader: {
-    position: 'absolute',
-    bottom: 67,
-  },
+
   header: {
     top: 50,
     width: 336,
@@ -480,27 +535,6 @@ const styles = StyleSheet.create({
     paddingRight: 15,
     paddingVertical: 25,
   },
-  accuracyModalText: {
-    color: '#000000',
-    lineHeight: Typography.LINE_HEIGHT_20,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    fontSize: Typography.FONT_SIZE_14,
-  },
-  gpsContainer: {
-    height: 44,
-    width: 122,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-evenly',
-    backgroundColor: '#FFC40080',
-  },
-  gpsText: {
-    color: '#6F7173',
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    fontWeight: Typography.FONT_WEIGHT_REGULAR,
-    fontSize: Typography.FONT_SIZE_12,
-  },
   siteModalStyle: {
     flex: 1,
     backgroundColor: Colors.WHITE,
@@ -513,17 +547,15 @@ const styles = StyleSheet.create({
   crossContainer: {
     width: 25,
     marginTop: 60,
-    marginHorizontal: 40,
+    marginHorizontal: 16,
   },
   heading: {
-    marginTop: 20,
-    marginBottom: 10,
-    fontSize: Typography.FONT_SIZE_24,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
   },
   commonPadding: {
-    paddingHorizontal: 40,
+    paddingHorizontal: 16,
   },
   crossIcon: {
     width: 30,

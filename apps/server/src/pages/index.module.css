@@ -147,3 +147,10 @@
 .loginButton:hover {
   background-color: rgba(24, 5, 122);
 }
+
+
+/* For react-leaflet */
+.leaflet-container {
+  width: 100%;
+  height: 100vh;
+}

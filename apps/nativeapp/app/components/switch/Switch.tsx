@@ -3,8 +3,8 @@ import {Switch as RNSwitch} from 'react-native-switch';
 
 import {Colors} from '../../styles';
 
-const toggleWidth = 28;
-const circleSize = 16;
+const toggleWidth = 31;
+const circleSize = 18;
 const switchWidthMultiplier = toggleWidth / circleSize;
 const multiplierFix =
   circleSize / ((circleSize * switchWidthMultiplier - circleSize) / 2);
@@ -16,7 +16,7 @@ const Switch = ({value = false, onValueChange}) => (
     disabled={false}
     activeText={'On'}
     inActiveText={'Off'}
-    barHeight={9}
+    barHeight={12}
     circleSize={circleSize}
     switchLeftPx={multiplierFix}
     switchRightPx={multiplierFix}

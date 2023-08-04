@@ -4,6 +4,10 @@
 <dict>
 	<key>aps-environment</key>
 	<string>development</string>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:firealert.plant-for-the-planet.org</string>
+	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.eco.pp.firealert.onesignal</string>

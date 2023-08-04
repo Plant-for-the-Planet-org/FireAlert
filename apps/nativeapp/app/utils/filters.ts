@@ -40,6 +40,6 @@ export function groupSitesAsProject(data: Array<ResStructure>) {
       sites: newObj[key],
     });
   }
-
+  newArr.sort((a, b) => a.name.localeCompare(b.name));
   return newArr;
 }

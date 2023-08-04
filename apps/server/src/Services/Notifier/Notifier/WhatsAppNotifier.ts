@@ -12,7 +12,7 @@ class WhatsAppNotifier implements Notifier {
   }
 
   notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-    const { message, subject, url } = parameters;
+    const { message, url } = parameters;
     logger(`Sending WhatsApp message ${message} to ${destination}`, "info");
     
 
@@ -23,7 +23,7 @@ class WhatsAppNotifier implements Notifier {
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message
-    const messageBody = `${subject} ${message} ${url ? url : ''}`;
+    const messageBody = `${message} ${url ? url : ''}`;
 
     return client.messages
       .create({

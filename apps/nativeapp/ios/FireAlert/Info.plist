@@ -56,6 +56,8 @@
 	<string>We need access to precise location to show your current location for creating sites.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need access to precise location to show your current location for creating sites.</string>
+	<key>OneSignal_suppress_launch_urls</key>
+	<true/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>OpenSans-Bold.ttf</string>
@@ -75,7 +77,7 @@
 		<string>remote-notification</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
+	<string>LaunchScreen.storyboard</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>

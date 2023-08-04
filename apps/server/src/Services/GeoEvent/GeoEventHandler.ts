@@ -1,63 +1,58 @@
-import { GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
+import { type GeoEventProviderClientId } from "../../Interfaces/GeoEventProvider";
 import { AlertType } from "../../Interfaces/SiteAlert";
 import { type geoEventInterface as GeoEvent } from "../../Interfaces/GeoEvent";
-import md5 from "md5";
+import { createXXHash3 } from "hash-wasm";
 import { prisma } from '../../server/db';
 import { logger } from "../../../src/server/logger";
 
 const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
+  const hasher = await createXXHash3();  // Create the hasher outside the function
   const buildChecksum = (geoEvent: GeoEvent): string => {
-    return md5(
+    hasher.init();  // Reset the hasher
+    return hasher.update(
       geoEvent.type +
       geoEvent.latitude.toString() +
       geoEvent.longitude.toString() +
       geoEvent.eventDate.toISOString()
-    );
+    ).digest('hex');
   };
+  
   // events from multiple sources but same satellite with the same geoEventProviderId will be considered duplicates
 
-  const compareIds = (dbEventIds: string[], fetchedEvents: GeoEvent[]): {
-    newGeoEvents: GeoEvent[];
-    // DeletedIds are those ids in the database, that are not being reported anymore, so the fire has probably ceased.
-    deletedIds: string[];
-  } => {
+  // Check whether the fetchId already exists in the database and returns only the ones that are not in the database in the variable newGeoEvents
+  const compareIds = async (dbEventIds: string[], fetchedEvents: GeoEvent[]): Promise<GeoEvent[]> => {
     const newGeoEvents: GeoEvent[] = [];
-    const fetchedIds: string[] = [];
-    const deletedIds: string[] = [];
-
+    const dbEventIdsSet = new Set(dbEventIds); // convert array to Set for efficient lookup
+  
     // Identify new hashes
-    fetchedEvents.forEach((fetchedEvent: GeoEvent) => {
-      const id = buildChecksum(fetchedEvent);
-      fetchedIds.push(id);
-      if (!dbEventIds.includes(id)) {
-        fetchedEvent.id = id;
-        newGeoEvents.push(fetchedEvent);
+    const fetchedIds = await Promise.all(fetchedEvents.map(buildChecksum)); // compute all checksums concurrently
+  
+    for (let i = 0; i < fetchedEvents.length; i++) {
+      const id = fetchedIds[i];
+      if (!dbEventIdsSet.has(id)) {
+        fetchedEvents[i].id = id;
+        newGeoEvents.push(fetchedEvents[i]);
       }
-    });
-
-    // Identify existing hashes
-    dbEventIds.forEach((dbEventId) => {
-      if (!fetchedIds.includes(dbEventId)) {
-        deletedIds.push(dbEventId);
-      }
-    });
-    return { newGeoEvents, deletedIds };
+    }
+  
+    return newGeoEvents;
   };
-
+  
 
   const fetchDbEventIds = async (
     geoEventProviderId: string
   ): Promise<Array<string>> => {
-    // the the ids of all events from AreaEvent that are either 'pending' or 'notfied'
+    // the the ids of all events from AreaEvent that are either 'pending' or 'notified'
     // having the provided providerKey
     const geoEvents = await prisma.geoEvent.findMany({
       select: { id: true },
-      where: { geoEventProviderId: geoEventProviderId }
+      where: { geoEventProviderId: geoEventProviderId, eventDate: { gt: new Date(Date.now() - 30 * 60 * 60 * 1000) }  },
     });
+    // Only compare with data from last 26 hrs
     return geoEvents.map(geoEvent => geoEvent.id);
   };
 
-  const { newGeoEvents, deletedIds } = compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
+  const newGeoEvents = await compareIds(await fetchDbEventIds(geoEventProviderId), geoEvents);
 
   const filterDuplicateEvents = (newGeoEvents: GeoEvent[]): GeoEvent[] => {
     const filteredNewGeoEvents: GeoEvent[] = [];
@@ -74,8 +69,8 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
   logger(`${breadcrumbPrefix} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`, "info");
-  
-  let geoEventsCreatedCount = 0;
+
+  let geoEventsCreated = 0;
   // Create new GeoEvents in the database
   // TODO: save GeoEvents stored in newGeoEvents to the database
   if (filteredDuplicateNewGeoEvents.length > 0) {
@@ -93,26 +88,29 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
       slice: slice,
       data: geoEvent.data,
     }))
-    const geoEventsCreated = await prisma.geoEvent.createMany({
-      data: geoEventsToBeCreated,
-    });
-    geoEventsCreatedCount = geoEventsCreated.count
 
-    logger(`${breadcrumbPrefix} Created ${geoEventsCreatedCount} Geo Events`, "info");
+    // Take an array of GeoEvents to be created 
+    // Define a variable bulkSize with a value of 20,000
+    // Split the variable geoEventsToBeCreated into chunks of bulkSize
+    // Insert each chunk into the database using prism.geoEvent.createMany
+    // Repeat until all chunks have been inserted
+    // Return the number of GeoEvents created
+
+    const bulkSize = 20000;
+    for (let i = 0; i < geoEventsToBeCreated.length; i += bulkSize) {
+      const chunk = geoEventsToBeCreated.slice(i, i + bulkSize);
+      await prisma.geoEvent.createMany({
+        data: chunk,
+        skipDuplicates: true,
+      });
+      geoEventsCreated += chunk.length;
+    }
+
+    logger(`${breadcrumbPrefix} Created ${geoEventsCreated} Geo Events`, "info");
 
   }
-  // Update deleted GeoEvents identified by deletedIdsHashes (set isProcessed to true)
-  if (deletedIds.length > 0) {
-    await prisma.geoEvent.updateMany({
-      where: {
-        id: { in: deletedIds },
-      },
-      data: {
-        isProcessed: true,
-      },
-    });
-  }
-  return geoEventsCreatedCount;
+
+  return geoEventsCreated;
 };
 
 export default processGeoEvents;

@@ -5,6 +5,9 @@
 
 #import <UserNotifications/UserNotifications.h>
 
+#import "RNSplashScreen.h"
+#import <React/RCTBridge.h>
+
 
 @implementation AppDelegate
 
@@ -14,8 +17,9 @@
   // You can add your custom initial props in the dictionary below.
   // They will be passed down to the ViewController used by React Native.
   self.initialProps = @{};
-
-  return [super application:application didFinishLaunchingWithOptions:launchOptions];
+  bool didFinish=[super application:application didFinishLaunchingWithOptions:launchOptions];
+  [RNSplashScreen show];
+  return didFinish;
 }
 
 //Called when a notification is delivered to a foreground app.
