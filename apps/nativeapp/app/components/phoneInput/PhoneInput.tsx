@@ -1,5 +1,5 @@
 import {StyleSheet, Platform} from 'react-native';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState, useCallback} from 'react';
 import PhoneNoInput from 'react-native-phone-number-input';
 
 import {Colors, Typography} from '../../styles';
@@ -9,19 +9,20 @@ const IS_ANDROID = Platform.OS === 'android';
 const PhoneInput = ({containerStyle, inputValue, valid, defaultCode}) => {
   const [value, setValue] = useState('');
   const [formattedValue, setFormattedValue] = useState('');
-  const [showMessage, setShowMessage] = useState(false);
+  // const [showMessage, setShowMessage] = useState(false);
+  const [_, setShowMessage] = useState(false); // changed showMessage to _
   const phoneInput = useRef<PhoneInput>(null);
 
-  const isValidPhone = () => {
+  const isValidPhone = useCallback(() => {
     const checkValid = phoneInput.current?.isValidNumber(value);
     setShowMessage(true);
     valid(checkValid ? checkValid : false);
     inputValue(formattedValue);
-  };
+  }, [value, formattedValue, valid, inputValue]);
 
   useEffect(() => {
     isValidPhone();
-  }, [formattedValue]);
+  }, [formattedValue, isValidPhone]);
 
   return (
     <>

@@ -1,7 +1,7 @@
 import React from 'react';
 import Svg, {Text, Path} from 'react-native-svg';
 
-function MarkerSVG({point, color, opacity = 1, ...props}) {
+function MarkerSVG({point, ...props}) {
   return (
     <Svg
       width={24}
