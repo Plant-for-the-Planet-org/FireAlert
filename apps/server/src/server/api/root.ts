@@ -3,7 +3,6 @@ import { siteRouter } from "../../server/api/routers/site";
 import { alertMethodRouter } from "../../server/api/routers/alertMethod";
 import { alertRouter } from "../../server/api/routers/alert";
 import { userRouter } from "./routers/user";
-import { cronRouter } from "./routers/cron";
 import { projectRouter } from "./routers/project";
 import { geoEventProviderRouter } from "./routers/geoEventProvider";
 
@@ -17,7 +16,6 @@ export const appRouter = createTRPCRouter({
   alertMethod: alertMethodRouter,
   alert: alertRouter,
   user: userRouter,
-  cron: cronRouter,
   project: projectRouter,
   geoEventProvider: geoEventProviderRouter,
 });
