@@ -351,7 +351,13 @@ const Settings = ({navigation}) => {
     setDropDownModal(false);
   };
 
-  const handleRadius = (evt, projectId, projectSiteId, projectSiteRadius, projectSiteGeometry) => {
+  const handleRadius = (
+    evt,
+    projectId,
+    projectSiteId,
+    projectSiteRadius,
+    projectSiteGeometry,
+  ) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
@@ -363,7 +369,12 @@ const Settings = ({navigation}) => {
     setDropDownModal(!dropDownModal);
   };
 
-  const handleSiteRadius = (evt, siteSiteId, siteSiteRadius, siteSiteGeometry) => {
+  const handleSiteRadius = (
+    evt,
+    siteSiteId,
+    siteSiteRadius,
+    siteSiteGeometry,
+  ) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
@@ -542,7 +553,9 @@ const Settings = ({navigation}) => {
                           disabled={radiusLoaderArr.includes(sitesItem?.id)}
                           onPress={() => handleSiteInformation(sitesItem)}
                           style={styles.sitesInProjects}>
-                          <Text style={styles.sitesName}>{sitesItem?.name}</Text>
+                          <Text style={styles.sitesName}>
+                            {sitesItem?.name}
+                          </Text>
                           <View style={styles.rightConPro}>
                             <TouchableOpacity
                               onPress={evt =>
@@ -708,7 +721,8 @@ const Settings = ({navigation}) => {
                 </TouchableOpacity>
               ))
           ) : (
-            <View style={[styles.mySiteNameContainer, styles.paddingVertical20]}>
+            <View
+              style={[styles.mySiteNameContainer, styles.paddingVertical20]}>
               <View>
                 <Text style={styles.emptySiteText}>
                   Create Your Own{'\n'}Fire Alert Site{'\n'}

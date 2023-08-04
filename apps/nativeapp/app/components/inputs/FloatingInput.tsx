@@ -37,8 +37,8 @@ const FloatingInput = props => {
   ];
 
   const labelStyles = [
-    styles.label, 
-    {color: errors ? Colors.ALERT : Colors.TEXT_COLOR}
+    styles.label,
+    {color: errors ? Colors.ALERT : Colors.TEXT_COLOR},
   ];
 
   const inputStyles = [
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.GRAY_MEDIUM,
   },
   verifierContainer: {
-    flexDirection: 'row', 
+    flexDirection: 'row',
     alignItems: 'center',
   },
   labelContainer: {

@@ -162,7 +162,7 @@ const BottomBar = ({...props}) => {
         },
       ).start();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalVisible]);
 
   // Next, interpolate beginning and end values (in this case 0 and 1)
@@ -226,7 +226,11 @@ const BottomBar = ({...props}) => {
           onPress={handleMap}>
           <View style={styles.tabIconCon}>
             <MapIcon fill={selected === 0 ? Colors.DEEP_PRIMARY : '#828282'} />
-            <Text style={[styles.tabText, selected === 0 ? activeTabStyle : inactiveTabStyle]}>
+            <Text
+              style={[
+                styles.tabText,
+                selected === 0 ? activeTabStyle : inactiveTabStyle,
+              ]}>
               Explore
             </Text>
           </View>
@@ -238,7 +242,11 @@ const BottomBar = ({...props}) => {
           onPress={handleList}>
           <View style={styles.tabIconCon}>
             <ListIcon fill={selected === 1 ? Colors.DEEP_PRIMARY : '#828282'} />
-            <Text style={[styles.tabText, selected === 1 ? activeTabStyle : inactiveTabStyle]}>
+            <Text
+              style={[
+                styles.tabText,
+                selected === 1 ? activeTabStyle : inactiveTabStyle,
+              ]}>
               Settings
             </Text>
           </View>

@@ -58,7 +58,7 @@ const CreatePolygon = ({navigation}) => {
   const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
   const [alphabets, setAlphabets] = useState<string[]>([]);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
-  
+
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
 
