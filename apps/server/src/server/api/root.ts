@@ -1,10 +1,10 @@
-import { createTRPCRouter } from "../../server/api/trpc";
-import { siteRouter } from "../../server/api/routers/site";
-import { alertMethodRouter } from "../../server/api/routers/alertMethod";
-import { alertRouter } from "../../server/api/routers/alert";
-import { userRouter } from "./routers/user";
-import { projectRouter } from "./routers/project";
-import { geoEventProviderRouter } from "./routers/geoEventProvider";
+import {createTRPCRouter} from '../../server/api/trpc';
+import {siteRouter} from '../../server/api/routers/site';
+import {alertMethodRouter} from '../../server/api/routers/alertMethod';
+import {alertRouter} from '../../server/api/routers/alert';
+import {userRouter} from './routers/user';
+import {projectRouter} from './routers/project';
+import {geoEventProviderRouter} from './routers/geoEventProvider';
 
 /**
  * This is the primary router for your server.

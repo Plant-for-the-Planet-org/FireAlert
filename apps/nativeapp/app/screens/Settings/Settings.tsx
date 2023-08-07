@@ -1266,7 +1266,7 @@ const Settings = ({navigation}) => {
               onPress={_handleEcoWeb(WEB_URLS.FIRMS_DISCLAIMER)}>
               FIRMS Disclaimer
             </Text>
-            . 
+            .
           </Text>
         </View>
         <View style={styles.appInfoContainer}>
