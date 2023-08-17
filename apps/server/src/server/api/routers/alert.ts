@@ -236,11 +236,12 @@ export const alertRouter = createTRPCRouter({
                 // Create checksum
                 const hasher = await createXXHash3();
                 hasher.init();  // Reset the hasher
-                const eventDate = inputEventDate ? inputEventDate : new Date()
+                const eventDate = inputEventDate ? inputEventDate : new Date();
+                const eventDayIsoString = eventDate.toISOString().split('T')[0]; // Extracting the date portion (YYYY-MM-DD);
                 const checksum = hasher.update(
                     latitude.toString() +
                     longitude.toString() +
-                    eventDate.toISOString() +
+                    eventDayIsoString +
                     type +
                     geoEventProviderClientId
                 ).digest('hex');

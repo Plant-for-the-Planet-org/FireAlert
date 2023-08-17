@@ -55,13 +55,6 @@ export const geoEventRouter = createTRPCRouter({
                             clientApiKey: geoEventProviderClientApiKey,
                         },
                     });
-                    // If provider exists, and provider's clientApiKey is not equal to the apiKey from headers
-                    if (provider && provider.clientApiKey !== geoEventProviderClientApiKey) {
-                        throw new TRPCError({
-                            code: "FORBIDDEN",
-                            message: "Client API Key does not match",
-                        });
-                    }
                 } else if (ctx.user?.id) {
                     // Find provider where clientId and userId
                     provider = await ctx.prisma.geoEventProvider.findFirst({
@@ -87,11 +80,12 @@ export const geoEventRouter = createTRPCRouter({
                 // Create checksum
                 const hasher = await createXXHash3();
                 hasher.init();  // Reset the hasher
-                const eventDate = inputEventDate ? inputEventDate : new Date()
+                const eventDate = inputEventDate ? inputEventDate : new Date();
+                const eventDayIsoString = eventDate.toISOString().split('T')[0]; // Extracting the date portion (YYYY-MM-DD);
                 const checksum = hasher.update(
                     latitude.toString() +
                     longitude.toString() +
-                    eventDate.toISOString() +
+                    eventDayIsoString +
                     type +
                     geoEventProviderClientId
                 ).digest('hex');
