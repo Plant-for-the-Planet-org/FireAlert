@@ -37,15 +37,13 @@ export const geoEventRouter = createTRPCRouter({
                     throw new TRPCError({ code: "BAD_REQUEST", message: `The value of req.headers['x-client-id'] must be a string` });
                 }
 
+                // Check whether the User is a GeoEventProviderClient or if the request has a GeoEventProviderApiKey and GeoEventProviderClientId
+                // Logic:
                 // get geoeventprovider from database where clientId = geoEventProviderClientId and (apiKey = geoEventProviderApiKey or userId = user.id)
                 // if no geoeventprovider is found throw error
-                // if geoeventprovider is found and apiKey is not equal to geoEventProviderClientApiKey
-                // throw error
-                // if geoeventprovider is found and userId is not equal to user.id continue normally
-                // if geoeventprovider is found and userId is equal to user.id continue normally
+                // This logic ensures that either a geoEventProviderClient can continue, or that the one accessing this route must have a correct geoEventProviderClientKey
 
 
-                // Aashish: The code below replicates above commented logic.
                 let provider: (GeoEventProvider | null) = null;
 
                 // If apiKey exists and is a string
@@ -80,9 +78,6 @@ export const geoEventRouter = createTRPCRouter({
                         message: `Provider not found`,
                     });
                 }
-
-
-
 
                 // To ensure same data isn't stored twice we will use id as a unique identifier
                 // generated from a hash of latitude, longitude, eventDate, type and x-client-id
