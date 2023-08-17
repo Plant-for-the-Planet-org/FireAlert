@@ -1,0 +1,505 @@
+.root {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  background-color: #d5d5d5;
+  overflow: visible;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.AlertId {
+  position: relative;
+  width: 80%;
+  height: 433px;
+  align-items: flex-start;
+  border-radius: 14px;
+  background-color: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  max-width: 1000px;
+  align-items: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.mapView {
+  position: relative;
+  width: 50%;
+  height: 100%;
+  align-items: center;
+}
+
+.mapIcon {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+}
+
+.alertInfo {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 17px;
+}
+.alertInfoSubContainer {
+  height: 75%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px;
+  margin-top: 20px;
+}
+.alertInfoFirstDiv{
+  width:100%;
+}
+.detectionInfo {
+  width: 100%;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: #eb57571a;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.alertIconWrapper {
+  object-fit: contain;
+}
+.alertIcon {
+  width: 45px;
+  height: 45px;
+}
+.detectionInfoWrapper {
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.detectedByText {
+  color: #4f4f4f;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.detectedInfoInner{
+  display: flex;
+  flex-direction: column;
+}
+.detectedDateWrapper {
+  font-size: 18px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+.detectedDays {
+  color: #e86f56;
+  font-weight: 600;
+}
+.detectedDateText {
+  color: #4f4f4f;
+}
+.alertConfidence {
+  display: block;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+.alertConfidenceValue {
+  color: #4f4f4f;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.alertConfidenceText {
+  color: #4f4f4f;
+  font-size: 14px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+.alertInfoSecondDiv{
+  width: 100%;
+  align-items: center;
+}
+.alertLocationParent {
+  width: 100%;
+  outline: solid 1px #d9d9d9;
+  outline-offset: 0px;
+  border-radius: 12px;
+  background-color: #ffffff1a;
+  overflow: hidden;
+  margin-top: 18px;
+  margin-bottom: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.eightyPercentSectionLocation{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width:80%;
+  align-items: center;
+}
+.pinIconWrapper {
+  object-fit: contain;
+}
+.pinIcon {
+  width: 17.25px;
+  height: 20px;
+}
+.locationInfo {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  margin-left: 10px;
+  flex-grow: 1;
+}
+.locationText {
+  color: #4f4f4f;
+  font-size: 8px;
+  font-weight: bold;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  position: relative;
+  width: min-content;
+  height: min-content;
+  white-space: nowrap;
+  flex-direction: column;
+}
+.alertCoordinates {
+  color: #4f4f4f;
+  font-size: 16px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  position: relative;
+  width: min-content;
+  height: min-content;
+  white-space: nowrap;
+  flex-direction: column;
+}
+.copyIconParent {
+  position: relative;
+  overflow: visible;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s, outline 0.3s;
+}
+.copyIcon {
+  width: 31px;
+  height: 31px;
+  opacity: 0.95;
+}
+.copyIconParent:hover .copyIcon{
+  opacity: 1;
+}
+.copyIconClicked {
+  transform: scale(0.9);
+  transition: transform 0.1s;
+}
+.copyIconParent:hover .copyIconClicked{
+  opacity: 1;
+}
+.actionParent {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 15px;
+  outline: solid 1px #d9d9d9;
+  outline-offset: 0px;
+  border-radius: 12px;
+  background-color: #ffffff1a;
+  overflow: hidden;
+  justify-content: space-between;
+  align-items: center;
+}
+.eightyPercentSectionAction{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width:80%;
+  align-items: center;
+}
+.radarIconWrapper {
+  object-fit: contain;
+}
+.radarIcon {
+  width: 20px;
+  height: 20px;
+}
+.actionLabel {
+  font-size: 16px;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  flex-grow: 1;
+  margin-top:0;
+  margin-bottom: 0;
+  color: #4f4f4f;
+  position: relative;
+  width: 240px;
+  height: min-content;
+  flex-direction: column;
+  margin-left: 10px;
+}
+.actionText2 {
+  font-weight: bold;
+}
+.buttonDiv{
+  height:25%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.googleMapsButton {
+  width: 70.5%;
+  padding: 3% 5%;
+  border-radius: 14px;
+  background-color: #e86f56;
+  border-width: 0;
+  transition: background-color 0.3s, color 0.3s, outline 0.3s;
+}
+
+.googleMapsButton:hover {
+  background-color: #fff;
+  outline: solid 2px #e86f56;
+  outline-offset: -1px;
+  cursor: pointer;
+}
+
+.googleMapsButton .openInGoogleMapsText {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  z-index: 0;
+  white-space: nowrap;
+  flex-direction: column;
+  line-height: 24.41px;
+}
+
+.googleMapsButton:hover .openInGoogleMapsText {
+  color: #e86f56;
+}
+
+@media (max-width: 1067px){
+  .AlertId {
+    height: 478px;
+  }
+}
+
+/* Tablet View */
+@media (max-width: 1024px) { 
+  .AlertId {
+    position: relative;
+    width: 75%;
+    height: 684px;
+    flex-direction: column;
+    max-width: 720px;
+  }
+  .mapView {
+    position: relative;
+    width: 100%;
+    height: 53%;
+    align-items: center;
+    justify-content: center;
+  }
+  .alertInfo {
+    width: 100%;
+    height: 47%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 5px;
+  }
+  .alertInfoSubContainer{
+    padding:5px 10px;
+    margin-top: 10px;
+  }
+  .detectionInfo{
+    padding: 15px;
+  }
+  .detectionInfoWrapper{
+    display: flex;
+    flex-direction: row-reverse;
+    flex-grow: 1;
+  }
+  .detectedByText{
+    padding-top: 7px;
+  }
+  .alertInfoSecondDiv{
+    display: flex;
+  }
+  .alertLocationParent{
+    margin-right: 10px;
+  }
+  .eightyPercentSectionAction{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width:100%;
+    align-items: center;
+  }
+  .googleMapsButton {
+    width: 41.5%;
+    background-color: #fff;
+    outline: solid 2px #e86f56;
+    outline-offset: -1px;
+    transition: background-color 0.3s, color 0.3s, outline 0.3s; /* Add transition for smooth hover effect */
+  }
+  .googleMapsButton:hover {
+    background-color:#e86f56;
+  }
+  .googleMapsButton .openInGoogleMapsText {
+    color: #e86f56;
+  }
+  .googleMapsButton:hover .openInGoogleMapsText {
+    color: #fff;
+  }
+}
+
+/* Smaller tablet view */
+@media (max-width: 813px) {
+  .AlertId {
+    height: 650px;
+
+  }
+  .mapView {
+    width: 100%;
+    height: 45%;
+  }
+  .alertInfo {
+    width: 100%;
+    height: 55%;
+  }
+  .alertInfoSubContainer{
+    margin-bottom: 10px;
+  }
+  .alertInfoSecondDiv{
+    flex-direction: column;
+    margin-left: 10px;
+  }
+  .actionParent{
+    margin-right: 10px;
+  }
+  .googleMapsButton {
+    width: min-content;
+  }
+}
+
+@media (max-width:681px) {
+  .AlertId{
+    width: 90%;
+  }
+}
+
+@media (max-width:590px) {
+  .AlertId{
+    min-height: 690px;
+  }
+}
+
+@media (max-width:567px) {
+  .detectionInfo{
+    padding: 15px;
+    flex-grow: 1;
+  }
+}
+
+@media (max-width:513px) {
+  .AlertId{
+    min-height: 725px;
+  }
+  .detectionInfo{
+    flex-grow: 1;
+  }
+}
+
+@media (max-width:487px){
+  .AlertId{
+    min-height: 750px;
+  }
+  .detectionInfoWrapper{
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+}
+
+@media (max-width:441px) {
+  .AlertId{
+    min-height: 750px;
+  }
+  .alertIcon {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width:401px) {
+  .AlertId{
+    min-height: 767px;
+  }
+  .alertIcon {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width:350px) {
+  .AlertId{
+    width:95%;
+    max-height: 90vh;
+    min-height: 604px;
+  }
+  .mapView {
+    height: 45%;
+  }
+  .alertInfo {
+    height: 55%;
+    padding:0;
+  }
+  .alertIcon {
+    width: 30px;
+    height: 30px;
+  }
+  .alertLocationParent{
+    padding:5px;
+  }
+  .actionParent{
+    padding:5px;
+  }
+  .detectionInfo{
+    padding:0;
+  }
+  .alertIconWrapper{
+    display: none;
+  }
+  .pinIconWrapper{
+    display: none;
+  }
+  .radarIconWrapper{
+    display: none;
+  }
+  .detectedByText {
+    font-size: 9px;
+  }
+  .detectedDateWrapper {
+    font-size: 14px;
+  }
+  .detectionInfoWrapper{
+    padding:5px;
+  }
+}
+

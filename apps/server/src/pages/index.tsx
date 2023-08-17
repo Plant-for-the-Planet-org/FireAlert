@@ -6,15 +6,14 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Fire Alert Next</title>
-        <meta name="description" content="Frontend demo for FireAlert T3 stack" />
-        <link rel="icon" href="https://play-lh.googleusercontent.com/H1lnAWzD9x9uCyEWfjTz2-Ub1zHLhvSj29P_ZsWpFXKiB92pWAuKSk0wk3OhYarQzvM6=w240-h480-rw" />
+        <title>Fire Alert </title>
+        <meta name="description" content="FireAlert by Plant-for-the-Planet" />
       </Head>
       <main className={styles.main}>
         <div className={styles.container}>
           <div className={styles.showcaseContainer}>
             <h1 className={styles.showcaseText}>
-              Fire Alert Dummy Frontend
+              This Page is under construction. Find us at <a href="https://plant-for-the-planet.org/firealert">plant-for-the-planet.org/firealert</a>
             </h1>
           </div>
         </div>

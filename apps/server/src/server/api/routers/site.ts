@@ -30,9 +30,18 @@ export const siteRouter = createTRPCRouter({
                 }
             }
             try {
-                const radius = input.radius ?? 0;
                 const origin = 'firealert';
                 const lastUpdated = new Date();
+                let radius = 0;
+                // radius 0 on Point would generally not return any results
+                // So monitor 1km around the point by default
+
+                if (input.type === 'Point' && input.radius === 0) {
+                    radius = 1000;
+                }
+                else {
+                    radius = input.radius;
+                }
 
                 const site = await ctx.prisma.site.create({
                     data: {
@@ -110,9 +119,14 @@ export const siteRouter = createTRPCRouter({
                 };
             } catch (error) {
                 console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
+                    message: `Something Went Wrong`,
                 });
             }
         }),
@@ -243,9 +257,14 @@ export const siteRouter = createTRPCRouter({
                 }
             } catch (error) {
                 console.log(error)
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: `${error}`,
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Something Went Wrong`,
                 });
             }
         }),
@@ -308,9 +327,14 @@ export const siteRouter = createTRPCRouter({
 
             } catch (error) {
                 console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: "CONFLICT",
-                    message: `${error}`,
+                    message: `Error Updating Site.`,
                 });
             }
         }),
@@ -327,16 +351,21 @@ export const siteRouter = createTRPCRouter({
                 });
             }
             try {
-                const alert:SiteAlert = await triggerTestAlert(input.siteId)
+                const alert: SiteAlert = await triggerTestAlert(input.siteId)
                 return {
                     status: 'success',
                     data: alert,
                 };
             } catch (error) {
                 console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
-                    code: `${error.code}`,
-                    message: `${error}`,
+                    code: `INTERNAL_SERVER_ERROR`,
+                    message: `Something Went Wrong`,
                 });
             }
         }),
@@ -383,9 +412,14 @@ export const siteRouter = createTRPCRouter({
 
             } catch (error) {
                 console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: `${error}`,
+                    message: `Something Went Wrong`,
                 });
             }
         }),

@@ -1,39 +1,33 @@
 import * as React from 'react';
+import jwt_decode from 'jwt-decode';
 import Auth0 from 'react-native-auth0';
 import Config from 'react-native-config';
+import NetInfo from '@react-native-community/netinfo';
 import SplashScreen from 'react-native-splash-screen';
 import {NavigationContainer} from '@react-navigation/native';
+import {onlineManager, useQueryClient} from '@tanstack/react-query';
 
 import {
+  getConfigData,
   getUserDetails,
   updateIsLoggedIn,
   updateAccessToken,
-  getConfigData,
 } from '../redux/slices/login/loginSlice';
-import {getData} from '../utils/localStorage';
 import {CommonStack, SignInStack} from './stack';
+import {clearAll, getData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector, useOneSignal} from '../hooks';
+import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';
 
 const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
+const auth0 = new Auth0({
+  domain: Config.AUTH0_DOMAIN,
+  clientId: Config.AUTH0_CLIENT_ID,
+});
 
 export default function AppNavigator() {
   const {isLoggedIn} = useAppSelector(state => state.loginSlice);
   const dispatch = useAppDispatch();
-
-  const checkUserValidation = async () => {
-    const auth0 = new Auth0({
-      domain: Config.AUTH0_DOMAIN,
-      clientId: Config.AUTH0_CLIENT_ID,
-    });
-
-    const isLogged = await auth0.credentialsManager.hasValidCredentials();
-
-    if (isLogged) {
-      dispatch(updateIsLoggedIn(true));
-    } else {
-      dispatch(updateIsLoggedIn(false));
-    }
-  };
+  const queryClient = useQueryClient();
 
   useOneSignal(onesignalAppId, {
     onReceived: notification => {
@@ -50,54 +44,75 @@ export default function AppNavigator() {
     },
   });
 
+  const handleUrl = url => {
+    console.log(url, 'url');
+  };
+
+  useAppLinkHandler(handleUrl);
+
+  React.useEffect(() => {
+    onlineManager.setEventListener(setOnline => {
+      return NetInfo.addEventListener(state => {
+        setOnline(!!state.isConnected);
+      });
+    });
+  }, []);
+
   React.useEffect(() => {
     const request = {
       onSuccess: async message => {},
       onFail: message => {},
     };
-    checkUserValidation();
     dispatch(getConfigData(request));
   }, []);
 
   React.useEffect(() => {
     (async () => {
-      const auth0 = new Auth0({
-        domain: Config.AUTH0_DOMAIN,
-        clientId: Config.AUTH0_CLIENT_ID,
-      });
       const cred = await getData('cred');
       if (cred) {
-        auth0.auth
-          .userInfo({token: cred?.accessToken})
-          .then(data => {
-            const request = {
-              onSuccess: async message => {},
-              onFail: message => {},
-            };
-            dispatch(updateIsLoggedIn(true));
-            dispatch(updateAccessToken(cred?.accessToken));
-            dispatch(getUserDetails(request));
-          })
-          .catch(err => {
-            // get the refresh token from the secure storage
-            // request for a new access token using the refresh token
+        try {
+          const decoded = jwt_decode(cred?.accessToken);
+          const currentTime = new Date();
+          if (decoded.exp * 1000 < currentTime.getTime()) {
             auth0.auth
               .refreshToken({refreshToken: cred?.refreshToken})
               .then(newAccessToken => {
                 const request = {
-                  onSuccess: async message => {},
+                  onSuccess: message => {},
                   onFail: message => {},
                 };
-                dispatch(updateAccessToken(newAccessToken));
+                dispatch(updateAccessToken(newAccessToken?.accessToken));
                 dispatch(getUserDetails(request));
+                dispatch(updateIsLoggedIn(true));
+                SplashScreen.hide();
               })
               .catch(accessTokenErr => {
                 console.log('error getting new access token: ', accessTokenErr);
+                SplashScreen.hide();
               });
+          } else {
+            const request = {
+              onSuccess: message => {},
+              onFail: message => {},
+            };
+            dispatch(updateAccessToken(cred?.accessToken));
+            dispatch(getUserDetails(request));
+            dispatch(updateIsLoggedIn(true));
+            SplashScreen.hide();
+          }
+        } catch (e) {
+          SplashScreen.hide();
+          console.log(e);
+          auth0.webAuth.clearSession().then(async () => {
+            dispatch(updateIsLoggedIn(false));
+            queryClient.clear();
+            await clearAll();
           });
+        }
+      } else {
+        SplashScreen.hide();
       }
     })();
-    SplashScreen.hide();
   }, []);
 
   return (

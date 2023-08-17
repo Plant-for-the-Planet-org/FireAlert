@@ -27,9 +27,14 @@ export const projectRouter = createTRPCRouter({
                 }
             } catch (error) {
                 console.log(error)
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
                 throw new TRPCError({
-                    code: "NOT_FOUND",
-                    message: `${error}`,
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Something Went Wrong`,
                 });
             }
         }),

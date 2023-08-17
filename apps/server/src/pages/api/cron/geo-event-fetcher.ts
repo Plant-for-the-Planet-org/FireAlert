@@ -25,26 +25,49 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     }
   }
 
-  // get all active providers where now  fetch frequenncy + last run is greater than current time
+  // Set Limit to 7 if not provided or greater than 10
+  // Extract limit from query
+  const rawLimit = req.query['limit'];
+
+  // Initialize final limit as number
+  let limit: number;
+
+  if (typeof rawLimit === 'string') {
+    const parsedLimit = parseInt(rawLimit, 10);
+    if (isNaN(parsedLimit) || parsedLimit > 15) {
+      limit = 15;
+    } else {
+      limit = parsedLimit;
+    }
+  } else {
+    limit = 4;
+  }
+
+
+
+  // get all active providers where now  fetch frequency + last run is greater than current time
+
 
   let newSiteAlertCount = 0;
   let processedProviders = 0;
 
-  while (true) {
+  // while (processedProviders <= limit) {
     const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
-          SELECT *
-          FROM "GeoEventProvider"
-          WHERE "isActive" = true
+        SELECT *
+        FROM "GeoEventProvider"
+        WHERE "isActive" = true
           AND "fetchFrequency" IS NOT NULL
-          AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < NOW()
-          LIMIT 3;
+          AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < (current_timestamp AT TIME ZONE 'UTC')
+        LIMIT ${limit};
+
     `;
     // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
     // Break the loop if there are no active providers
-    if (activeProviders.length === 0) {
-      logger(`Nothing to process anymore activeProviders.length = 0`, "info");
-      break;
-    }
+    
+    // if (activeProviders.length === 0) {
+    //   logger(`Nothing to process anymore activeProviders.length = 0`, "info");
+    //   break;
+    // }
 
     logger(`Running Geo Event Fetcher. Taking ${activeProviders.length} eligible providers.`, "info");
 
@@ -77,12 +100,12 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
           // This helps in creating SiteAlerts for unprocessed geoEvents from past runs, if fetch fails for some reason
 
           // and then create site Alerts
-          
-          //if (eventCount > 0) {
-            const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
-            logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
 
-            newSiteAlertCount += alertCount
+          //if (eventCount > 0) {
+          const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
+          logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
+
+          newSiteAlertCount += alertCount
           // }
 
           // Update lastRun value of the provider to the current Date()
@@ -91,7 +114,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
               id: provider.id
             },
             data: {
-              lastRun: new Date()
+              lastRun: new Date().toISOString()
             },
           });
         });
@@ -100,16 +123,16 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     processedProviders += activeProviders.length;
 
     await Promise.all(promises).catch(error => logger(`Something went wrong before creating notifications. ${error}`, "error"));
-  }
+  //} // end of while loop
 
-  let notificationCount;
-  if (newSiteAlertCount > 0) {
-    notificationCount = await createNotifications();
-    logger(`Added ${notificationCount} notifications for ${newSiteAlertCount} alerts`, "info");
-  }
-  else {
-    logger(`All done. ${newSiteAlertCount} Alerts. No new notifications. Waving Goodbye!`, "info");
-  }
+  // let notificationCount;
+  //if (newSiteAlertCount > 0) {
+  const notificationCount = await createNotifications();
+  logger(`Added ${notificationCount} notifications for ${newSiteAlertCount} alerts`, "info");
+  // }
+  // else {
+  //   logger(`All done. ${newSiteAlertCount} Alerts. No new notifications. Waving Goodbye!`, "info");
+  // }
 
   res.status(200).json({
     message: "Cron job executed successfully",

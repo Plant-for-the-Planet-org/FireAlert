@@ -12,7 +12,7 @@ class SMSNotifier implements Notifier {
   }
 
   notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-    const { message, subject, url } = parameters;
+    const { message, url } = parameters;
 
     // if env.TWILIO_ACCOUNT_SID or env.TWILIO_AUTH_TOKEN or env.TWILIO_PHONE_NUMBER is not set return promise with false
     if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_PHONE_NUMBER) {
@@ -29,7 +29,7 @@ class SMSNotifier implements Notifier {
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message
-    const messageBody = `${subject} ${message} ${url ? url : ''}`;
+    const messageBody = `${message} ${url ? url : ''}`;
 
     return client.messages
       .create({

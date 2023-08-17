@@ -8,6 +8,7 @@ export const TEXT_COLOR = '#4D5153';
 export const LIGHT_BORDER_COLOR = '#D5D5D5';
 export const DISABLE = '#CCCCCC';
 export const BACKGROUND = '#FAFAFF';
+export const ORANGE = '#F2994A';
 
 // ACTIONS
 export const SUCCESS = '#2ecc71';
@@ -29,3 +30,7 @@ export const GRADIENT_PRIMARY = '#E86F56';
 
 // PLANET COLORS
 export const PLANET_DARK_GRAY = '#4F4F4F';
+export const PLANET_DARK_GREEN = '#68B030';
+
+// GRADIENT COLORS ARRAY
+export const GREEN_GRADIENT_ARR = ['#68B030', '#34953D', '#007A49'];

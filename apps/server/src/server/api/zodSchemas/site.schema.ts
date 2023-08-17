@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { nameSchema } from './user.schema';
 
 const PointSchema = z.object({
     type: z.literal("Point"),
@@ -18,11 +19,11 @@ const MultiPolygonSchema = z.object({
 
 export const createSiteSchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
-    name: z.string().optional(),
+    name: nameSchema.optional(),
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
     radius: z.number().optional().default(0),
     isMonitored: z.boolean().optional(),
-    userId: z.string().optional(),
+    userId: z.string().cuid({ message: "Invalid CUID" }).optional(),
 }).refine((obj) => obj.type === obj.geometry.type, {
     message: "geometry type does not match the specified type",
     path: ["geometry.type", "type"],
@@ -30,7 +31,7 @@ export const createSiteSchema = z.object({
 
 
 export const params = z.object({
-    siteId: z.string(),
+    siteId: z.string().cuid({ message: "Invalid CUID" }),
 })
 
 export const getSitesWithProjectIdParams = z.object({
@@ -38,7 +39,7 @@ export const getSitesWithProjectIdParams = z.object({
 })
 const bodySchema = z.object({
     type: z.enum(["Point", "Polygon", "MultiPolygon"]),
-    name: z.string(),
+    name: nameSchema,
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
     radius: z.number(),
     isMonitored: z.boolean(),

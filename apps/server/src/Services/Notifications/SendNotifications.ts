@@ -4,6 +4,7 @@ import { type NotificationParameters } from "../../Interfaces/NotificationParame
 import type DataRecord from "../../Interfaces/DataRecord";
 import { prisma } from '../../server/db'
 import { logger } from "../../server/logger";
+import { getLocalTime } from "../../../src/utils/date";
 
 // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
 // for each notification, send the notification to the destination
@@ -57,15 +58,16 @@ const sendNotifications = async (): Promise<boolean> => {
                 //     return;
                 // }
 
-                const distanceKm = Math.round(distance / 1000);
                 const siteName = site.name ? site.name : "";
-                const subject = `Heat anomaly near ${siteName} 🔥`;
-                const checkLatLong= `Check ${latitude}, ${longitude} for fires.`;
                 
+                const distanceKm = Math.round(distance / 1000);
                 let inout = `${distanceKm} km outside`;
                 if (distance == 0) {
                     inout = `inside`;
                 }
+                
+                const checkLatLong = `Check ${latitude}, ${longitude} for fires.`;
+                const subject = `Likely fire ${inout} ${siteName} 🔥`;
 
                 let message = `Detected ${inout} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
 
@@ -76,16 +78,25 @@ const sendNotifications = async (): Promise<boolean> => {
 
                 // If the alertMethod is email, Construct the message for email
                 if (alertMethod === "email") {
-                    message = `<p>A heat anomaly was detected ${inout} ${siteName} </p>
+                    // Get Local Time for Email
+                const localTimeObject = getLocalTime(eventDate, latitude.toString(), longitude.toString());
+                const localEventDate = new Date(localTimeObject.localDate).toLocaleString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                    timeZone: localTimeObject.timeZone
+                });
+
+                    message = `<p>A likely fire was detected at ${localEventDate} ${inout} ${siteName} with ${confidence} confidence </p>
                 
                     <p>${checkLatLong}</p>
-              
-                    <p>${confidence} alert confidence</p>
                 
-                    <p>Detected by ${detectedBy}</p>
                     <p><a href="https://maps.google.com/?q=${latitude},${longitude}">Open in Google Maps</a></p>
 
-                    <p><a href="https://firealert.plant-for-the-planet.org/alert/${id}">Open in FireAlert</a></p>
+                    <p><a href="https://firealert.plant-for-the-planet.org/alert/${alertId}">Open in FireAlert</a></p>
               
                     <p>Best,<br>The FireAlert Team</p>`;
                 }
@@ -143,7 +154,7 @@ const sendNotifications = async (): Promise<boolean> => {
         // wait .7 seconds before starting the next round to ensure we aren't hitting any rate limits. 
         // Todo: make this configurable and adjust as needed.
         await new Promise((resolve) => setTimeout(resolve, 700));
-        
+
     }
     return true;
 }
