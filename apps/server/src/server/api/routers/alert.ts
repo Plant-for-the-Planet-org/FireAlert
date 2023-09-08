@@ -152,7 +152,9 @@ export const alertRouter = createTRPCRouter({
                 });
             }
         }),
-
+    
+        // TODO: Make sure that the siteId must belong to the clientApiKey!
+        // TODO: We need to check if the geoEventProvider is verified or enabled or not! 
         create: protectedProcedure
         .input(createAlertSchema)
         .mutation(async ({ ctx, input }) => {
@@ -219,12 +221,32 @@ export const alertRouter = createTRPCRouter({
                     });
                 }
     
-                // Get site from the database using siteId; if not found, throw an error
-                const site = await ctx.prisma.site.findUnique({ where: { id: siteId } });
+                if(!provider.isApproved){
+                    throw new TRPCError({
+                        code: "METHOD_NOT_SUPPORTED",
+                        message: `GeoEventProvider is not verified. Verify it first to create alerts.`,
+                    });
+                }
+
+                // Find the userId associated with the provider
+                // Since the provider is either found by using the user's authorization headers, or by using the clientApiKey
+                // This ensures that, there is no difference between a user accessing their own provider, 
+                // or someone else accessing the provider with the clientApiKey (which acts as a password for the provider) 
+                // Then, we can find the provider.userId for that provider.
+                const providerUserId = provider.userId ? provider.userId : ""
+
+                // Get site from the database using siteId and providerUserId; if not found, throw an error
+                const site = await ctx.prisma.site.findUnique({ 
+                    where: { 
+                        id: siteId,
+                        userId: providerUserId,
+                    } 
+                });
                 if (!site) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
-                        message: `Site Not Found`,
+                        message: `Site Not Found.`,
+                        // Either the site does not exist, or not authorized to access that site.
                     });
                 }
 

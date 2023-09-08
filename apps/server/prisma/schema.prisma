@@ -102,6 +102,7 @@ model GeoEventProvider {
     clientId       String // LANDSAT_NRT
     fetchFrequency Int?
     isActive       Boolean
+    isApproved     Boolean
     lastRun        DateTime?
     config         Json
     userId         String?
