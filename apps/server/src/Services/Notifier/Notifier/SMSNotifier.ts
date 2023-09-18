@@ -31,19 +31,24 @@ class SMSNotifier implements Notifier {
     // Define message body and send message
     const messageBody = `${message} ${url ? url : ''}`;
 
-    return client.messages
-      .create({
-        body: messageBody,
-        from: phoneNumber,
-        to: destination,
-      })
-      .then(() => {
-        return true;
-      })
-      .catch((error) => {
-        logger(`Failed to send SMS. Error: ${error}`, "error");
-        return false;
-      });
+    // Temporarily halting SMS sending process. 
+    logger(`SMS sending is temporarily stopped`, "info");
+    // Indicate a "successful" operation
+    return Promise.resolve(true); 
+
+    // return client.messages
+    //   .create({
+    //     body: messageBody,
+    //     from: phoneNumber,
+    //     to: destination,
+    //   })
+    //   .then(() => {
+    //     return true;
+    //   })
+    //   .catch((error) => {
+    //     logger(`Failed to send SMS. Error: ${error}`, "error");
+    //     return false;
+    //   });
   }
 }
 
