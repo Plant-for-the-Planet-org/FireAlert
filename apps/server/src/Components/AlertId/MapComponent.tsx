@@ -79,10 +79,15 @@ const MapComponent: FC<Props> = ({ alertData }) => {
             ];
         }, [Infinity, Infinity, -Infinity, -Infinity]);
     }
+    // When the site is a point, then polygon.type is a "Point".
+    // For site which is a point, we do not need to find the bbox. Thus, bbox is undefined.
+
+    // So, if bbox is defined, then we calculate the center and zoom, 
+    // Else we calculate center as (longitude, latitude) and make zoom as the be a default value of 13
     const center = bbox ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : [parseFloat(alertData.longitude), parseFloat(alertData.latitude)];
 
     // Calculate the zoom level based on the size of the bounding box
-    const zoom = getZoomLevel(bbox)
+    const zoom = bbox? getZoomLevel(bbox) : 13
 
     const mapRef = React.useRef<MapRef | null>(null);
     const [viewState, setViewState] = React.useState({
