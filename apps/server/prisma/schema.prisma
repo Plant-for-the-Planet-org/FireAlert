@@ -69,6 +69,7 @@ model Site {
     geometry          Json
     radius            Int                      @default(0)
     isMonitored       Boolean                  @default(true)
+    siteProcessed     DateTime?
     deletedAt         DateTime?
     projectId         String?
     lastUpdated       DateTime?
