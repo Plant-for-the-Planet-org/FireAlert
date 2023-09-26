@@ -109,6 +109,11 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
                         while (record = parser.read()) {
                             records.push(normalize(record, record.instrument));
                             recordCount++;
+                            // Handle Stream Backpressure
+                            if(recordCount % 1000 === 0){ // after every 1000 records
+                                parser.pause(); // pause the stream
+                                setTimeout(()=> parser.resume(),0) // schedule resume in next tick
+                            }
                         }
                     })
                     .on("end", () => {
