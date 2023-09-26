@@ -22,6 +22,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
 
     const promises = [];
 
+    // Since our database follows cascade-on-delete constraint, when a User is deleted, 
+    // it will cascade delete AlertMethod, Site, and Project. 
+    // Also, deleting a Site will cascade delete SiteAlert, 
+    // and deleting a SiteAlert will cascade delete Notification, so the db-cleanup follows this order
+    // to optimize the cleanup process.
+
     // item 1:
     // delete all geo events that are older than 30 days and have been processed
     promises.push(prisma.geoEvent.deleteMany({
@@ -34,19 +40,6 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     }));
 
     // item 2:
-    // Delete all notifications that are older than 30 days and have been processed 
-    // Note that we aren't deleting SiteAlerts but simply Notifications that have been sent out
-    // SiteAlerts will be stored in the database for historical purposes
-    promises.push(prisma.notification.deleteMany({
-        where: {
-            isDelivered: true,
-            sentAt: {
-                lt: new Date(new Date().getTime() - 90 * 24 * 60 * 60 * 1000)
-            }
-        }
-    }));
-
-    // item 3:
     // Delete all users who've requested to be deleted and have deletedAt date older than 7 days
     // Send sendAccountDeletionConfirmationEmail to all users who qualify for deletion,
     // and then delete them immediately
@@ -80,6 +73,17 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
         }
     }));
 
+    // item 3:
+    // Delete all Sites that have been soft-deleted and have deletedAt date older than 30 days and doesn't have a remoteId
+    promises.push(prisma.site.deleteMany({
+        where: {
+            deletedAt: {
+                lte: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
+            },
+            remoteId: null
+        }
+    }));
+
     // item 4:
     // Delete all SiteAlerts that have deletedAt date older than 30 days
     promises.push(prisma.siteAlert.deleteMany({
@@ -91,29 +95,31 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     }));
 
     // item 5:
-    // Delete all Sites that have been soft-deleted and have deletedAt date older than 30 days and doesn't have a remoteId
-    promises.push(prisma.site.deleteMany({
+    // Delete all notifications that are older than 30 days and have been processed 
+    promises.push(prisma.notification.deleteMany({
         where: {
-            deletedAt: {
-                lte: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
-            },
-            remoteId: null
+            isDelivered: true,
+            sentAt: {
+                lt: new Date(new Date().getTime() - 90 * 24 * 60 * 60 * 1000)
+            }
         }
     }));
 
+
     try {
 
-        const [deletedGeoEvent, deletedNotification, deletedUsers, deletedNotifications, deletedSiteAlerts, deletedSites] =
+        const [deletedGeoEvent, deletedUsers, deletedSites, deletedSiteAlerts, deletedNotification] =
             await Promise.all(promises);
+        
+        // Deleted ${deletedNotifications.count} notifications for soft-deleted SiteAlerts
 
         logger(`
                 Deleted ${deletedGeoEvent.count} geo events that are older than 30 days and have been processed
-                Deleted ${deletedNotification.count} notifications that are older than 90 days and have been processed
                 Deleted ${deletedUsers.count} users who've requested to be deleted and have deletedAt date older than 7 days
-                Deleted ${deletedNotifications.count} notifications for soft-deleted SiteAlerts
-                Deleted ${deletedSiteAlerts.count} soft-deleted SiteAlerts
                 Deleted ${deletedSites.count} soft-deleted Sites
-                 `, 'info');
+                Deleted ${deletedSiteAlerts.count} soft-deleted SiteAlerts
+                Deleted ${deletedNotification.count} notifications that are older than 90 days and have been processed
+                `, 'info');
 
         res.status(200).json({
             message: "Success! Db is as clean as a whistle!",
