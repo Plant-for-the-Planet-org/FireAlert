@@ -98,6 +98,7 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const csv = await response.text();
+
                 const parser = parse(csv, { columns: true });
 
                 const records: GeoEvent[] = [];

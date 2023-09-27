@@ -68,7 +68,7 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
   };
 
   const filteredDuplicateNewGeoEvents = filterDuplicateEvents(newGeoEvents)
-  logger(`${breadcrumbPrefix} Found ${filteredDuplicateNewGeoEvents.length} new Geo Events`, "info");
+  const countFilteredDuplicateNewGeoEvents = filteredDuplicateNewGeoEvents.length
 
   let geoEventsCreated = 0;
   // Create new GeoEvents in the database
@@ -96,7 +96,7 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
     // Repeat until all chunks have been inserted
     // Return the number of GeoEvents created
 
-    const bulkSize = 20000;
+    const bulkSize = 1000;
     for (let i = 0; i < geoEventsToBeCreated.length; i += bulkSize) {
       const chunk = geoEventsToBeCreated.slice(i, i + bulkSize);
       await prisma.geoEvent.createMany({
@@ -105,12 +105,9 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
       });
       geoEventsCreated += chunk.length;
     }
-
-    logger(`${breadcrumbPrefix} Created ${geoEventsCreated} Geo Events`, "info");
-
   }
 
-  return geoEventsCreated;
+  return {geoEventCount: geoEventsCreated, newGeoEventCount: countFilteredDuplicateNewGeoEvents}
 };
 
 export default processGeoEvents;
