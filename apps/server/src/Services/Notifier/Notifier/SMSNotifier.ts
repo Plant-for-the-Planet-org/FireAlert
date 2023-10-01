@@ -14,7 +14,7 @@ class SMSNotifier implements Notifier {
 
   async disableAlertMethodsForDestination(destination: string): Promise<void> {
     try {
-      await prisma.alertMethod.updateMany({
+      const result = await prisma.alertMethod.updateMany({
         where: {
           destination: destination,
           method: NOTIFICATION_METHOD.SMS
@@ -23,11 +23,17 @@ class SMSNotifier implements Notifier {
           isEnabled: false
         }
       });
-      logger(`Disabled SMS alert method for destination: ${destination}`, "info");
+
+      if (result.count > 0) {
+        logger(`Disabled alertMethod for destination: ${destination}`, "info");
+      } else {
+        logger(`No alertMethod found for destination: ${destination}`, "info");
+      }
     } catch (dbError) {
-      logger(`Database Error disabling SMS alert method for destination: ${destination}.`, "error");
+      logger(`Database Error when disabling alertMethod for destination: ${destination}.`, "error");
     }
   }
+
 
   notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
     const { message, url } = parameters;
@@ -38,7 +44,7 @@ class SMSNotifier implements Notifier {
       return Promise.resolve(false);
     }
     // logger(`Sending message ${message} to ${destination}`, "info");
-  
+
 
     // Twilio Credentials
     const accountSid = env.TWILIO_ACCOUNT_SID;
@@ -63,14 +69,25 @@ class SMSNotifier implements Notifier {
       .then(() => {
         return true;
       })
-      .catch(async(error) => {
-        logger(`Failed to send SMS.`, "error");
+      .catch(async (error) => {
+        // General logging for all failed attempts
+        logger(`Failed to send SMS. Error code: ${error.code}`, "error");
 
-        // Check if error code is 21610
-        if (error.code === 21610) {
-          logger(`${error}. Disabling AlertMethods associated with this Phone Number`,"error")
+        // Error codes for which alertMethods should be disabled
+        const disableCodes = [21610, 30005, 21408, 21211];
+
+        // Error codes for which the error should just be logged
+        const logErrorCodes = [30008, 30007, 30006, 30003];
+
+        if (disableCodes.includes(error.code)) {
+          // Log a more detailed message for these error codes
+          logger(`${error}. Disabling AlertMethods associated with this Phone Number`, "error");
+
           // Disable corresponding alertMethods
           await this.disableAlertMethodsForDestination(destination);
+        } else if (logErrorCodes.includes(error.code)) {
+          // Additional detailed logging for just logging error codes
+          logger(`${error.message}. Error while sending SMS to ${destination}.`, "error");
         }
 
         return false;
