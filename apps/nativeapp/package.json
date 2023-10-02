@@ -43,7 +43,7 @@
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.43",
     "react-native": "0.71.1",
-    "react-native-auth0": "^2.17.1",
+    "react-native-auth0": "^3.0.1",
     "react-native-config": "^1.5.0",
     "react-native-device-info": "^10.6.0",
     "react-native-document-picker": "^8.1.4",
