@@ -1,10 +1,11 @@
-import { type NotificationParameters } from "../../../Interfaces/NotificationParameters";
+import {type NotificationParameters} from "../../../Interfaces/NotificationParameters";
 import type Notifier from "../Notifier";
-import { NOTIFICATION_METHOD } from "../methodConstants";
+import {NOTIFICATION_METHOD} from "../methodConstants";
+import {isPhoneNumberRestricted} from "../../../utils/notification/restrictedSMS"
 import twilio from 'twilio';
-import { env } from '../../../env.mjs';
-import { logger } from "../../../../src/server/logger";
-import { prisma } from "../../../server/db";
+import {env} from '../../../env.mjs';
+import {logger} from "../../../../src/server/logger";
+import {prisma} from "../../../server/db";
 
 class SMSNotifier implements Notifier {
 
@@ -43,8 +44,12 @@ class SMSNotifier implements Notifier {
       logger(`Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`, "error");
       return Promise.resolve(false);
     }
-    // logger(`Sending message ${message} to ${destination}`, "info");
-
+    
+    // If the destination is a restricted Country, return false, log error.
+    if (isPhoneNumberRestricted(destination)) {
+      logger(`Sending SMS to ${destination} is restricted due to country limitations.`, "error");
+      return Promise.resolve(false);
+    }
 
     // Twilio Credentials
     const accountSid = env.TWILIO_ACCOUNT_SID;
@@ -54,11 +59,6 @@ class SMSNotifier implements Notifier {
 
     // Define message body and send message
     const messageBody = `${message} ${url ? url : ''}`;
-
-    // // Temporarily halting SMS sending process. 
-    // logger(`SMS sending is temporarily stopped`, "info");
-    // // Indicate a "successful" operation
-    // return Promise.resolve(true); 
 
     return client.messages
       .create({

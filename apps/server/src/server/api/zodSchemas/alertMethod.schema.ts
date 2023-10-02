@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import phone from 'phone'
 import validator from 'validator';
+import { isPhoneNumberRestricted } from '../../../../src/utils/notification/restrictedSMS';
 
 export const createAlertMethodSchema = z.object({
     method: z.enum(["email", "sms", "device", "whatsapp", "webhook"]),
@@ -17,7 +18,7 @@ export const createAlertMethodSchema = z.object({
 }).refine((obj) => {
     if (obj.method === 'sms') {
         // Check if the destination is a valid phone number in E.164 format
-        const { isValid } = phone(obj.destination)
+        const { isValid } = phone(obj.destination);
         return isValid;
     }
     if (obj.method === 'email') {
@@ -26,6 +27,14 @@ export const createAlertMethodSchema = z.object({
     return true; // Return true for other methods
 }, {
     message: 'Must be a valid phone number in E.164 format when the method is "sms"'
+}).refine((obj)=>{
+    if (obj.method === 'sms') {
+        // Check if the destination falls inside of accepted countries
+        const acceptedDestination = !isPhoneNumberRestricted(obj.destination);
+        return acceptedDestination;
+    }
+},{
+    message: 'Destination is restricted due to country limitations'
 });
 
 export const params = z.object({

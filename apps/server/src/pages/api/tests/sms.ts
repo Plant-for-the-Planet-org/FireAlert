@@ -1,3 +1,4 @@
+// Call this api to run this page: http://localhost:3000/api/tests/sms?phoneNumber="encoded-phone-number"
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { logger } from "../../../../src/server/logger";
 import NotifierRegistry from "../../../Services/Notifier/NotifierRegistry";
