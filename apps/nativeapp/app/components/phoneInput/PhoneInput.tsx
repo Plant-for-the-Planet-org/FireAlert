@@ -1,22 +1,52 @@
 import {StyleSheet, Platform} from 'react-native';
 import React, {useEffect, useRef, useState} from 'react';
 import PhoneNoInput from 'react-native-phone-number-input';
+import {CountryCode} from 'react-native-country-picker-modal';
 
 import {Colors, Typography} from '../../styles';
+import {EXCLUDED_COUNTRIES} from '../../constants';
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const PhoneInput = ({containerStyle, inputValue, valid, defaultCode}) => {
-  const [value, setValue] = useState('');
-  const [formattedValue, setFormattedValue] = useState('');
-  const [showMessage, setShowMessage] = useState(false);
+interface IPhoneInput {
+  containerStyle?: any;
+  defaultCode: CountryCode;
+  excludeCountries: string[];
+  valid: (checkValid: boolean) => any;
+  inputValue: (formattedValue: string) => any;
+  verificationType: string;
+  destinationFlag: (param: boolean) => any;
+}
+
+const PhoneInput = ({
+  containerStyle,
+  inputValue,
+  valid,
+  defaultCode,
+  verificationType,
+  destinationFlag,
+}: IPhoneInput) => {
+  const [value, setValue] = useState<string>('');
+  const [formattedValue, setFormattedValue] = useState<string>('');
+  const [showMessage, setShowMessage] = useState<boolean>(false);
+
   const phoneInput = useRef<PhoneInput>(null);
 
   const isValidPhone = () => {
     const checkValid = phoneInput.current?.isValidNumber(value);
-    setShowMessage(true);
+    const countryCode = phoneInput.current?.getCountryCode(value);
     valid(checkValid ? checkValid : false);
     inputValue(formattedValue);
+    if (
+      verificationType === 'Sms' &&
+      EXCLUDED_COUNTRIES.includes(countryCode)
+    ) {
+      destinationFlag(true);
+      return;
+    } else {
+      destinationFlag(false);
+    }
+    setShowMessage(true);
   };
 
   useEffect(() => {
