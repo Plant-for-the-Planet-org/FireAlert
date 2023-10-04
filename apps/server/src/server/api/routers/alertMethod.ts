@@ -20,6 +20,7 @@ import {
     deviceVerification
 } from "../../../utils/routers/alertMethod";
 import { logger } from "../../../../src/server/logger";
+import { isPhoneNumberRestricted } from "../../../../src/utils/notification/restrictedSMS";
 
 export const alertMethodRouter = createTRPCRouter({
 
@@ -64,7 +65,17 @@ export const alertMethodRouter = createTRPCRouter({
         .input(verifySchema)
         .mutation(async ({ ctx, input }) => {
             const alertMethodId = input.params.alertMethodId
-            await findAlertMethod(alertMethodId)
+            const alertMethod = await findAlertMethod(alertMethodId)
+            const destination = alertMethod.destination
+            const method = alertMethod.method
+            if(method === 'sms'){
+                if (isPhoneNumberRestricted(destination)) {
+                    throw new TRPCError({
+                        code: 'UNAUTHORIZED',
+                        message: `Cannot Verify AlertMethod. ${destination} is restricted due to country limitations.`,
+                    });
+                }
+            }
             const verificatonRequest = await findVerificationRequest(alertMethodId)
             const currentTime = new Date();
             // TODO: Also check if it is expired or not, by checking if the verificationRequest.expires is less than the time right now, if yes, set isExpired to true.
@@ -193,6 +204,17 @@ export const alertMethodRouter = createTRPCRouter({
                     throw new TRPCError({
                         code: 'BAD_REQUEST',
                         message: `Device verification failed. Please try again.`,
+                    });
+                }
+            }
+            // If Method is sms, restrict phone number to only allowed countries
+            if(input.method === 'sms'){
+                // Check if the destination falls inside of accepted countries
+                const isDestinationAccepted = !isPhoneNumberRestricted(input.destination);
+                if(isDestinationAccepted === false){
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: `Destination is restricted due to country limitations`,
                     });
                 }
             }
