@@ -207,6 +207,17 @@ export const alertMethodRouter = createTRPCRouter({
                     });
                 }
             }
+            // If Method is sms, restrict phone number to only allowed countries
+            if(input.method === 'sms'){
+                // Check if the destination falls inside of accepted countries
+                const isDestinationAccepted = !isPhoneNumberRestricted(input.destination);
+                if(isDestinationAccepted === false){
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: `Destination is restricted due to country limitations`,
+                    });
+                }
+            }
             // For all other alertMethod methods, create alertMethod, then sendVerification code.
             try {
                 const alertMethod = await ctx.prisma.alertMethod.create({
