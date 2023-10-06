@@ -5,18 +5,21 @@ interface ErrorDisplayProps {
   httpStatus: number;
 }
 
-const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message, httpStatus }) => {
+const ErrorDisplay: React.FC<ErrorDisplayProps> = ({message, httpStatus}) => {
   return (
-    <div id="__next" style={{
-      fontFamily: "system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji",
-      height: "100vh",
-      textAlign: "center",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center"
-    }}>
-      <div style={{ lineHeight: "48px" }}>
+    <div
+      id="__next"
+      style={{
+        fontFamily:
+          'system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji',
+        height: '100vh',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      <div style={{lineHeight: '48px'}}>
         <style>
           {`
             body { color: #000; background: #fff; margin: 0 }
@@ -27,22 +30,25 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message, httpStatus }) => {
             }
           `}
         </style>
-        <h1 className="next-error-h1" style={{
-          display: "inline-block",
-          margin: "0 20px 0 0",
-          paddingRight: "23px",
-          fontSize: "24px",
-          fontWeight: 500,
-          verticalAlign: "top"
-        }}>{httpStatus}</h1>
-        <div style={{ display: "inline-block" }}>
-          <h2 style={{ fontSize: "14px", fontWeight: 400, lineHeight: "28px" }}>
+        <h1
+          className="next-error-h1"
+          style={{
+            display: 'inline-block',
+            margin: '0 20px 0 0',
+            paddingRight: '23px',
+            fontSize: '24px',
+            fontWeight: 500,
+            verticalAlign: 'top',
+          }}>
+          {httpStatus}
+        </h1>
+        <div style={{display: 'inline-block'}}>
+          <h2 style={{fontSize: '14px', fontWeight: 400, lineHeight: '28px'}}>
             {message}
           </h2>
         </div>
       </div>
     </div>
-    
   );
 };
 

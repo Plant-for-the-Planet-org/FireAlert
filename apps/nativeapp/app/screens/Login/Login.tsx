@@ -25,7 +25,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 const launch_screen = require('../../assets/images/launch_screen.png');
 
-const Login = ({navigation}) => {
+const Login = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showVerifyAccModal, setShowVerifyAccModal] = useState<boolean>(false);
 
@@ -50,12 +50,12 @@ const Login = ({navigation}) => {
       )
       .then(cred => {
         const request = {
-          onSuccess: async message => {
+          onSuccess: async () => {
             dispatch(updateIsLoggedIn(true));
             storeData('cred', cred);
             setIsLoading(false);
           },
-          onFail: message => {
+          onFail: () => {
             setIsLoading(false);
           },
         };
@@ -108,7 +108,7 @@ const Login = ({navigation}) => {
               angle={135}
               angleCenter={{x: 0.5, y: 0.5}}
               colors={Colors.GREEN_GRADIENT_ARR}
-              style={[styles.addSiteBtn, {justifyContent: 'center'}]}>
+              style={[styles.addSiteBtn, styles.justifyContentCenter]}>
               <Text style={styles.emptySiteText}>Continue to Login</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -121,6 +121,9 @@ const Login = ({navigation}) => {
 export default Login;
 
 const styles = StyleSheet.create({
+  justifyContentCenter: {
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
   },

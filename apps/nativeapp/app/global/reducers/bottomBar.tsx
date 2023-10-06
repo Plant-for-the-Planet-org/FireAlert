@@ -2,11 +2,13 @@ import React, {createContext, useState, ReactNode} from 'react';
 
 interface BottomBarContextProps {
   mapInfo: any;
+  selected: number;
   modalVisible: boolean;
   openModal: () => void;
   closeModal: () => void;
   selectedSiteBar: boolean;
   passMapInfo: (param: any) => void;
+  setSelected: (param: number) => void;
   setSelectedSiteBar: (param: boolean) => void;
 }
 
@@ -23,6 +25,7 @@ export const BottomBarProvider: React.FC<BottomBarProviderProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSiteBar, setSelectedSiteBar] = useState(false);
+  const [selected, setSelected] = useState(0);
   const [mapInfo, setMapInfo] = useState({});
 
   const openModal = () => {
@@ -39,8 +42,10 @@ export const BottomBarProvider: React.FC<BottomBarProviderProps> = ({
     <BottomBarContext.Provider
       value={{
         mapInfo,
+        selected,
         openModal,
         closeModal,
+        setSelected,
         passMapInfo,
         modalVisible,
         selectedSiteBar,

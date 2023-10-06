@@ -37,12 +37,14 @@ const DropDown = ({
 
   const onOpen = () => setExpandPadding(true);
   const onClose = () => setExpandPadding(false);
+
+  const dropDownContainerStyle = StyleSheet.flatten([
+    styles.container,
+    {paddingBottom: expandPadding ? expandHeight : 0},
+  ]);
+
   return (
-    <View
-      style={[
-        styles.container,
-        {paddingBottom: expandPadding ? expandHeight : 0},
-      ]}>
+    <View style={dropDownContainerStyle}>
       {label !== '' ? <Text style={styles.label}>{label}</Text> : null}
       <DropDownPicker
         {...props}

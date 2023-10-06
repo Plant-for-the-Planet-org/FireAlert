@@ -60,11 +60,11 @@ export default function AppNavigator() {
 
   React.useEffect(() => {
     const request = {
-      onSuccess: async message => {},
-      onFail: message => {},
+      onSuccess: async () => {},
+      onFail: () => {},
     };
     dispatch(getConfigData(request));
-  }, []);
+  }, [dispatch]);
 
   React.useEffect(() => {
     (async () => {
@@ -78,8 +78,8 @@ export default function AppNavigator() {
               .refreshToken({refreshToken: cred?.refreshToken})
               .then(newAccessToken => {
                 const request = {
-                  onSuccess: message => {},
-                  onFail: message => {},
+                  onSuccess: () => {},
+                  onFail: () => {},
                 };
                 dispatch(updateAccessToken(newAccessToken?.accessToken));
                 dispatch(getUserDetails(request));
@@ -92,8 +92,8 @@ export default function AppNavigator() {
               });
           } else {
             const request = {
-              onSuccess: message => {},
-              onFail: message => {},
+              onSuccess: () => {},
+              onFail: () => {},
             };
             dispatch(updateAccessToken(cred?.accessToken));
             dispatch(getUserDetails(request));
@@ -113,7 +113,7 @@ export default function AppNavigator() {
         SplashScreen.hide();
       }
     })();
-  }, []);
+  }, [dispatch, queryClient]);
 
   return (
     <NavigationContainer>

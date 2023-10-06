@@ -30,39 +30,35 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
     },
   });
 
-  const {data: alertMethodsData} = trpc.alertMethod.getAlertMethods.useQuery(
-    undefined,
-    {
-      enabled: !!userDetails?.data?.id,
-      onSuccess: alertMethods => {
-        OneSignal.getDeviceState().then(async res => {
-          if (res?.userId) {
-            if (
-              !(
-                alertMethods?.json?.data?.filter(
-                  el =>
-                    el.destination === res?.userId && el.method === 'device',
-                ).length > 0
-              ) &&
-              res?.hasNotificationPermission
-            ) {
-              const {deviceName, deviceId} = await getDeviceInfo();
-              const payload = {
-                deviceId,
-                deviceName,
-                method: 'device',
-                destination: res?.userId,
-              };
-              createAlertPreference.mutate({json: payload});
-            }
+  trpc.alertMethod.getAlertMethods.useQuery(undefined, {
+    enabled: !!userDetails?.data?.id,
+    onSuccess: alertMethods => {
+      OneSignal.getDeviceState().then(async res => {
+        if (res?.userId) {
+          if (
+            !(
+              alertMethods?.json?.data?.filter(
+                el => el.destination === res?.userId && el.method === 'device',
+              ).length > 0
+            ) &&
+            res?.hasNotificationPermission
+          ) {
+            const {deviceName, deviceId} = await getDeviceInfo();
+            const payload = {
+              deviceId,
+              deviceName,
+              method: 'device',
+              destination: res?.userId,
+            };
+            createAlertPreference.mutate({json: payload});
           }
-        });
-      },
-      onError: () => {
-        toast.show('something went wrong', {type: 'danger'});
-      },
+        }
+      });
     },
-  );
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
 
   useEffect(() => {
     if (userDetails?.data?.id) {
@@ -76,8 +72,6 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
           notificationReceivedEvent,
         );
         const notification = notificationReceivedEvent.getNotification();
-
-        const data = notification.additionalData;
 
         notificationReceivedEvent.complete(notification);
 

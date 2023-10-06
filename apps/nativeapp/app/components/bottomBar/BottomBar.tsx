@@ -136,12 +136,16 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
 };
 
 const BottomBar = ({...props}) => {
-  const [selected, setSelected] = useState(0);
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [spinValue] = useState(new Animated.Value(0));
 
-  const {modalVisible, selectedSiteBar, setSelectedSiteBar} =
-    useContext(BottomBarContext);
+  const {
+    selected,
+    setSelected,
+    modalVisible,
+    selectedSiteBar,
+    setSelectedSiteBar,
+  } = useContext(BottomBarContext);
 
   useEffect(() => {
     return () => setShowAddOptions(false);
@@ -158,6 +162,7 @@ const BottomBar = ({...props}) => {
         },
       ).start();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalVisible]);
 
   // Next, interpolate beginning and end values (in this case 0 and 1)
@@ -193,6 +198,9 @@ const BottomBar = ({...props}) => {
     props.navigation.navigate('Settings');
   };
 
+  const activeTabStyle = {color: Colors.DEEP_PRIMARY};
+  const inactiveTabStyle = {color: '#828282'};
+
   return (
     <SafeAreaView>
       <View style={styles.bottomBarContainer}>
@@ -221,9 +229,7 @@ const BottomBar = ({...props}) => {
             <Text
               style={[
                 styles.tabText,
-                {
-                  color: selected === 0 ? Colors.DEEP_PRIMARY : '#828282',
-                },
+                selected === 0 ? activeTabStyle : inactiveTabStyle,
               ]}>
               Explore
             </Text>
@@ -239,9 +245,7 @@ const BottomBar = ({...props}) => {
             <Text
               style={[
                 styles.tabText,
-                {
-                  color: selected === 1 ? Colors.DEEP_PRIMARY : '#828282',
-                },
+                selected === 1 ? activeTabStyle : inactiveTabStyle,
               ]}>
               Settings
             </Text>
