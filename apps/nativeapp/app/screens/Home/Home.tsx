@@ -109,8 +109,11 @@ const images: Record<CompassImage, ImageSourcePropType> = {
 const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
   const {state} = useMapLayers(MapLayerContext);
-  const {selectedSiteBar, passMapInfo} = useContext(BottomBarContext);
-  const {userDetails, configData} = useAppSelector(state => state.loginSlice);
+  const {selected, setSelected, selectedSiteBar, passMapInfo} =
+    useContext(BottomBarContext);
+  const {userDetails, configData} = useAppSelector(
+    appState => appState.loginSlice,
+  );
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -170,6 +173,7 @@ const Home = ({navigation, route}) => {
       siteInfo?.bboxGeo?.length > 0 &&
       camera?.current?.fitBounds
     ) {
+      setSelected(0);
       setTimeout(() => {
         camera.current.fitBounds(
           [siteInfo?.bboxGeo[0], siteInfo?.bboxGeo[1]],
@@ -691,7 +695,7 @@ const Home = ({navigation, route}) => {
       />
     </MapboxGL.ShapeSource>
   );
-
+  console.log(`Selected Site consoled ${JSON.stringify(selectedSite)}`);
   return (
     <>
       <MapboxGL.MapView

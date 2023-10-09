@@ -15,4 +15,19 @@ const POINT_RADIUS_ARR = [
   {name: 'Within 1 km', value: 1000},
 ];
 
-export {WEB_URLS, RADIUS_ARR, POINT_RADIUS_ARR};
+// Excluded countries for sms type alert methods
+const EXCLUDED_COUNTRIES = [
+  'RU',
+  'TJ',
+  'MG',
+  'ID',
+  'PK',
+  'AZ',
+  'PS',
+  'LY',
+  'UZ',
+  'AF',
+  'BZ',
+];
+
+export {WEB_URLS, RADIUS_ARR, POINT_RADIUS_ARR, EXCLUDED_COUNTRIES};

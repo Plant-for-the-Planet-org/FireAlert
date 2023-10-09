@@ -17,7 +17,7 @@ export const createAlertMethodSchema = z.object({
 }).refine((obj) => {
     if (obj.method === 'sms') {
         // Check if the destination is a valid phone number in E.164 format
-        const { isValid } = phone(obj.destination)
+        const { isValid } = phone(obj.destination);
         return isValid;
     }
     if (obj.method === 'email') {

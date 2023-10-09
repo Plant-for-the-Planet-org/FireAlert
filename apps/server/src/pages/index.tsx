@@ -1,6 +1,6 @@
-import styles from "./index.module.css";
-import { type NextPage } from "next";
-import Head from "next/head";
+import styles from './index.module.css';
+import {type NextPage} from 'next';
+import Head from 'next/head';
 
 const Home: NextPage = () => {
   return (
@@ -13,7 +13,10 @@ const Home: NextPage = () => {
         <div className={styles.container}>
           <div className={styles.showcaseContainer}>
             <h1 className={styles.showcaseText}>
-              This Page is under construction. Find us at <a href="https://plant-for-the-planet.org/firealert">plant-for-the-planet.org/firealert</a>
+              This Page is under construction. Find us at{' '}
+              <a href="https://plant-for-the-planet.org/firealert">
+                plant-for-the-planet.org/firealert
+              </a>
             </h1>
           </div>
         </div>
@@ -23,6 +26,3 @@ const Home: NextPage = () => {
 };
 
 export default Home;
-
-
-

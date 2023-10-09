@@ -65,10 +65,10 @@ import {Colors, Typography} from '../../styles';
 import handleLink from '../../utils/browserLinking';
 import {getDeviceInfo} from '../../utils/deviceInfo';
 import {FONT_FAMILY_BOLD} from '../../styles/typography';
-import {useAppDispatch, useAppSelector} from '../../hooks';
+// import {useAppDispatch, useAppSelector} from '../../hooks';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {extractCountryCode} from '../../utils/countryCodeFilter';
-import {updateUserDetails} from '../../redux/slices/login/loginSlice';
+// import {updateUserDetails} from '../../redux/slices/login/loginSlice';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 
@@ -103,14 +103,10 @@ const Settings = ({navigation}) => {
   );
 
   const toast = useToast();
-  const dispatch = useAppDispatch();
+  // const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const {openModal} = useContext(BottomBarContext);
-  const {userDetails} = useAppSelector(state => state.loginSlice);
-
-  useEffect(() => {
-    deviceNotification();
-  }, [reRender]);
+  // const {userDetails} = useAppSelector(state => state.loginSlice);
 
   const {
     data: sites,
@@ -151,6 +147,34 @@ const Settings = ({navigation}) => {
     () => categorizedRes(alertPreferences?.json?.data || [], 'method'),
     [alertPreferences],
   );
+
+  const deviceNotification = useCallback(async () => {
+    try {
+      const {deviceId} = await getDeviceInfo();
+      const {userId} = await OneSignal.getDeviceState();
+      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
+        el => userId === el?.destination && el.deviceId === deviceId,
+      );
+      if (filterDeviceAlertMethod.length > 0) {
+        const filteredData = filterDeviceAlertMethod[0];
+        const nonFilteredData = formattedAlertPreferences.device.filter(
+          el => userId !== el?.destination || el.deviceId !== deviceId,
+        );
+        formattedAlertPreferences.device = [
+          filteredData,
+          ...nonFilteredData,
+        ].filter(el => el.deviceName !== '');
+      }
+      setDeviceAlertPreferences(formattedAlertPreferences?.device);
+    } catch {
+      setDeviceAlertPreferences([]);
+    }
+  }, [formattedAlertPreferences, setDeviceAlertPreferences]);
+
+  useEffect(() => {
+    deviceNotification();
+  }, [reRender, deviceNotification]);
+
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
     onSuccess: (res, req) => {
@@ -223,19 +247,19 @@ const Settings = ({navigation}) => {
     },
   });
 
-  const updateUser = trpc.user.updateUser.useMutation({
-    retryDelay: 3000, // Delay between retry attempts in milliseconds
-    onSuccess: res => {
-      dispatch(updateUserDetails(res?.json));
-    },
-    onError: () => {
-      toast.show('Something went wrong', {type: 'danger'});
-    },
-  });
+  // const updateUser = trpc.user.updateUser.useMutation({
+  //   retryDelay: 3000, // Delay between retry attempts in milliseconds
+  //   onSuccess: res => {
+  //     dispatch(updateUserDetails(res?.json));
+  //   },
+  //   onError: () => {
+  //     toast.show('Something went wrong', { type: 'danger' });
+  //   },
+  // });
 
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
-    onSuccess: (res, req) => {
+    onSuccess: res => {
       queryClient.setQueryData(
         [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
         oldData =>
@@ -314,29 +338,6 @@ const Settings = ({navigation}) => {
     },
   });
 
-  async function deviceNotification() {
-    try {
-      const {deviceId} = await getDeviceInfo();
-      const {userId} = await OneSignal.getDeviceState();
-      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
-        el => userId === el?.destination && el.deviceId === deviceId,
-      );
-      if (filterDeviceAlertMethod.length > 0) {
-        const filteredData = filterDeviceAlertMethod[0];
-        const nonFilteredData = formattedAlertPreferences.device.filter(
-          el => userId !== el?.destination || el.deviceId !== deviceId,
-        );
-        formattedAlertPreferences.device = [
-          filteredData,
-          ...nonFilteredData,
-        ].filter(el => el.deviceName !== '');
-      }
-      setDeviceAlertPreferences(formattedAlertPreferences?.device);
-    } catch {
-      setDeviceAlertPreferences([]);
-    }
-  }
-
   const handleSelectRadius = val => {
     if (pageXY.projectId) {
       updateSite.mutate({
@@ -350,25 +351,36 @@ const Settings = ({navigation}) => {
     setDropDownModal(false);
   };
 
-  const handleRadius = (evt, projectId, siteId, siteRadius, siteGeometry) => {
+  const handleRadius = (
+    evt,
+    projectId,
+    projectSiteId,
+    projectSiteRadius,
+    projectSiteGeometry,
+  ) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
       projectId,
-      siteId,
-      siteRadius,
-      siteGeometry,
+      siteId: projectSiteId,
+      siteRadius: projectSiteRadius,
+      siteGeometry: projectSiteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
 
-  const handleSiteRadius = (evt, siteId, siteRadius, siteGeometry) => {
+  const handleSiteRadius = (
+    evt,
+    siteSiteId,
+    siteSiteRadius,
+    siteSiteGeometry,
+  ) => {
     setPageXY({
       x: evt.nativeEvent.pageX,
       y: evt.nativeEvent.pageY,
-      siteId,
-      siteRadius,
-      siteGeometry,
+      siteId: siteSiteId,
+      siteRadius: siteSiteRadius,
+      siteGeometry: siteSiteGeometry,
     });
     setDropDownModal(!dropDownModal);
   };
@@ -403,7 +415,7 @@ const Settings = ({navigation}) => {
     setSiteId(site.id);
     setIsEditSite(!!site.remoteId);
     setSiteGeometry(site.geometry.type);
-    setSiteRad(RADIUS_ARR.filter(el => el.value == site?.radius)[0]);
+    setSiteRad(RADIUS_ARR.filter(el => el.value === site?.radius)[0]);
     setTimeout(() => setSiteNameModalVisible(true), 1000);
   };
 
@@ -429,27 +441,28 @@ const Settings = ({navigation}) => {
     });
   };
 
-  const handleAddWhatsapp = () => {
-    navigation.navigate('Verification', {
-      verificationType: 'Whatsapp',
-    });
-  };
+  // ----------------- handle whatsapp, and Geostationary
+  // const handleAddWhatsapp = () => {
+  //   navigation.navigate('Verification', {
+  //     verificationType: 'Whatsapp',
+  //   });
+  // };
 
-  const handleGeostationary = val => {
-    let detectionMethods = [...userDetails?.data?.detectionMethods];
-    if (!val) {
-      detectionMethods = detectionMethods.filter(el => el !== 'GEOSTATIONARY');
-    } else {
-      detectionMethods = [...detectionMethods, 'GEOSTATIONARY'];
-    }
-    updateUser.mutate({
-      json: {
-        body: {
-          detectionMethods,
-        },
-      },
-    });
-  };
+  // const handleGeostationary = val => {
+  //   let detectionMethods = [...userDetails?.data?.detectionMethods];
+  //   if (!val) {
+  //     detectionMethods = detectionMethods.filter(el => el !== 'GEOSTATIONARY');
+  //   } else {
+  //     detectionMethods = [...detectionMethods, 'GEOSTATIONARY'];
+  //   }
+  //   updateUser.mutate({
+  //     json: {
+  //       body: {
+  //         detectionMethods,
+  //       },
+  //     },
+  //   });
+  // };
 
   const handleWebhook = () => {
     navigation.navigate('Verification', {
@@ -495,7 +508,7 @@ const Settings = ({navigation}) => {
     setRefreshing(true);
     refetchSites();
     refetchAlertPreferences();
-  }, []);
+  }, [refetchSites, refetchAlertPreferences]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -530,60 +543,67 @@ const Settings = ({navigation}) => {
                 <View style={styles.projectsNameInfo}>
                   <Text style={styles.projectsName}>{item.name}</Text>
                 </View>
-                {item?.sites?.length > 0 && <View style={{marginTop: 16}} />}
+                {item?.sites?.length > 0 && (
+                  <View style={styles.sitesViewStyle} />
+                )}
                 {item?.sites
-                  ? item?.sites?.map((sites, index) => (
-                      <View key={`sites_${index}`}>
+                  ? item?.sites?.map((sitesItem, sitesIndex) => (
+                      <View key={`sites_${sitesIndex}`}>
                         <TouchableOpacity
-                          disabled={radiusLoaderArr.includes(sites?.id)}
-                          onPress={() => handleSiteInformation(sites)}
+                          disabled={radiusLoaderArr.includes(sitesItem?.id)}
+                          onPress={() => handleSiteInformation(sitesItem)}
                           style={styles.sitesInProjects}>
-                          <Text style={styles.sitesName}>{sites?.name}</Text>
+                          <Text style={styles.sitesName}>
+                            {sitesItem?.name}
+                          </Text>
                           <View style={styles.rightConPro}>
                             <TouchableOpacity
                               onPress={evt =>
                                 handleRadius(
                                   evt,
                                   item?.id,
-                                  sites?.id,
-                                  sites?.radius,
-                                  sites?.geometry?.type,
+                                  sitesItem?.id,
+                                  sitesItem?.radius,
+                                  sitesItem?.geometry?.type,
                                 )
                               }
-                              disabled={radiusLoaderArr.includes(sites?.id)}
-                              style={[styles.dropDownRadius, {marginRight: 5}]}>
+                              disabled={radiusLoaderArr.includes(sitesItem?.id)}
+                              style={[
+                                styles.dropDownRadius,
+                                styles.marginRight5,
+                              ]}>
                               <Text style={styles.siteRadius}>
-                                {sites?.radius
-                                  ? `within ${sites?.radius} km`
+                                {sitesItem?.radius
+                                  ? `within ${sitesItem?.radius} km`
                                   : 'inside'}
                               </Text>
                               <DropdownArrow />
                             </TouchableOpacity>
-                            {radiusLoaderArr.includes(sites?.id) ? (
+                            {radiusLoaderArr.includes(sitesItem?.id) ? (
                               <ActivityIndicator
                                 size={'small'}
                                 color={Colors.PRIMARY}
                               />
                             ) : (
                               <Switch
-                                value={sites?.isMonitored}
+                                value={sitesItem?.isMonitored}
                                 onValueChange={val => {
                                   updateSite.mutate({
                                     json: {
-                                      params: {siteId: sites?.id},
+                                      params: {siteId: sitesItem?.id},
                                       body: {isMonitored: val},
                                     },
                                   });
                                   setRadiusLoaderArr(prevState => [
                                     ...prevState,
-                                    sites?.id,
+                                    sitesItem?.id,
                                   ]);
                                 }}
                               />
                             )}
                           </View>
                         </TouchableOpacity>
-                        {item?.sites?.length - 1 !== index && (
+                        {item?.sites?.length - 1 !== sitesIndex && (
                           <View style={styles.separator} />
                         )}
                       </View>
@@ -596,7 +616,7 @@ const Settings = ({navigation}) => {
               <View
                 style={[
                   styles.mySiteNameContainer,
-                  {paddingVertical: 20, overflow: 'hidden'},
+                  styles.paddingVertical20OverflowHidden,
                 ]}>
                 <View style={styles.emptyPpInfoCon}>
                   <View style={styles.emptyPpInfo}>
@@ -611,11 +631,14 @@ const Settings = ({navigation}) => {
                         angle={135}
                         angleCenter={{x: 0.5, y: 0.5}}
                         colors={Colors.GREEN_GRADIENT_ARR}
-                        style={[styles.addSiteBtn, {justifyContent: 'center'}]}>
+                        style={[
+                          styles.addSiteBtn,
+                          styles.justifyContentCenter,
+                        ]}>
                         <Text
                           style={[
                             styles.emptySiteText,
-                            {paddingHorizontal: 0, color: Colors.WHITE},
+                            styles.paddingHorizontal0ColorWhite,
                           ]}>
                           Visit pp.eco
                         </Text>
@@ -662,10 +685,7 @@ const Settings = ({navigation}) => {
                           item.geometry.type,
                         )
                       }
-                      style={[
-                        styles.dropDownRadius,
-                        {marginRight: 5, paddingVertical: 16},
-                      ]}>
+                      style={[styles.dropDownRadius]}>
                       <Text style={styles.siteRadius}>
                         {
                           RADIUS_ARR.filter(
@@ -701,11 +721,12 @@ const Settings = ({navigation}) => {
                 </TouchableOpacity>
               ))
           ) : (
-            <View style={[styles.mySiteNameContainer, {paddingVertical: 20}]}>
-              <View style={styles.emptySiteInfoCon}>
+            <View
+              style={[styles.mySiteNameContainer, styles.paddingVertical20]}>
+              <View>
                 <Text style={styles.emptySiteText}>
                   Create Your Own{'\n'}Fire Alert Site{'\n'}
-                  <Text style={{fontFamily: Typography.FONT_FAMILY_REGULAR}}>
+                  <Text style={styles.receiveNotifications}>
                     and Receive Notifications
                   </Text>
                 </Text>
@@ -714,7 +735,7 @@ const Settings = ({navigation}) => {
                   activeOpacity={0.7}
                   style={styles.addSiteBtn}>
                   <AddIcon width={11} height={11} color={Colors.WHITE} />
-                  <Text style={[styles.emptySiteText, {color: Colors.WHITE}]}>
+                  <Text style={[styles.emptySiteText, styles.colorWhite]}>
                     Add Site
                   </Text>
                 </TouchableOpacity>
@@ -742,7 +763,7 @@ const Settings = ({navigation}) => {
                     <View
                       style={[
                         styles.emailSubContainer,
-                        {justifyContent: 'space-between'},
+                        styles.justifyContentSpaceBetween,
                       ]}>
                       <View style={styles.deviceItem}>
                         <Text style={styles.myEmailName}>
@@ -788,7 +809,9 @@ const Settings = ({navigation}) => {
                       </View>
                     </View>
                     {deviceAlertPreferences?.length - 1 !== i && (
-                      <View style={[styles.separator, {marginVertical: 12}]} />
+                      <View
+                        style={[styles.separator, styles.marginVertical12]}
+                      />
                     )}
                   </View>
                 ))}
@@ -813,7 +836,7 @@ const Settings = ({navigation}) => {
                     <View
                       style={[
                         styles.emailSubContainer,
-                        {justifyContent: 'space-between'},
+                        styles.justifyContentSpaceBetween,
                       ]}>
                       <Text style={styles.myEmailName}>
                         {item?.destination}
@@ -862,7 +885,9 @@ const Settings = ({navigation}) => {
                       </View>
                     </View>
                     {formattedAlertPreferences?.email?.length - 1 !== i && (
-                      <View style={[styles.separator, {marginVertical: 12}]} />
+                      <View
+                        style={[styles.separator, styles.marginVertical12]}
+                      />
                     )}
                   </View>
                 ))}
@@ -887,7 +912,7 @@ const Settings = ({navigation}) => {
                     <View
                       style={[
                         styles.emailSubContainer,
-                        {justifyContent: 'space-between'},
+                        styles.justifyContentSpaceBetween,
                       ]}>
                       <Text style={styles.myEmailName}>
                         {item?.destination}
@@ -921,14 +946,14 @@ const Settings = ({navigation}) => {
                           </TouchableOpacity>
                         )}
                         <TouchableOpacity
-                          style={{marginLeft: 20}}
+                          style={styles.marginLeft20}
                           onPress={() => handleRemoveAlertMethod(item?.id)}>
                           <TrashSolidIcon />
                         </TouchableOpacity>
                       </View>
                     </View>
                     {formattedAlertPreferences?.whatsapp?.length - 1 !== i && (
-                      <View style={[styles.separator, {marginVertical: 12}]} />
+                      <View style={[styles.separator, styles.marginVertical12]} />
                     )}
                   </View>
                 ))}
@@ -953,7 +978,7 @@ const Settings = ({navigation}) => {
                     <View
                       style={[
                         styles.emailSubContainer,
-                        {justifyContent: 'space-between'},
+                        styles.justifyContentSpaceBetween,
                       ]}>
                       <Text style={styles.myEmailName}>
                         {extractCountryCode(item?.destination).countryCode +
@@ -1002,7 +1027,9 @@ const Settings = ({navigation}) => {
                       </View>
                     </View>
                     {formattedAlertPreferences?.sms?.length - 1 !== i && (
-                      <View style={[styles.separator, {marginVertical: 12}]} />
+                      <View
+                        style={[styles.separator, styles.marginVertical12]}
+                      />
                     )}
                   </View>
                 ))}
@@ -1027,7 +1054,7 @@ const Settings = ({navigation}) => {
                     <View
                       style={[
                         styles.emailSubContainer,
-                        {justifyContent: 'space-between'},
+                        styles.justifyContentSpaceBetween,
                       ]}>
                       <Text style={styles.myEmailName}>
                         {item?.destination}
@@ -1073,7 +1100,9 @@ const Settings = ({navigation}) => {
                       </View>
                     </View>
                     {formattedAlertPreferences?.webhook?.length - 1 !== i && (
-                      <View style={[styles.separator, {marginVertical: 12}]} />
+                      <View
+                        style={[styles.separator, styles.marginVertical12]}
+                      />
                     )}
                   </View>
                 ))}
@@ -1100,7 +1129,7 @@ const Settings = ({navigation}) => {
               <Text
                 style={[
                   styles.secondaryUnderline,
-                  {textDecorationLine: 'underline'},
+                  styles.textDecorationLineUnderline,
                 ]}
                 onPress={_handleEcoWeb(WEB_URLS.FIRMS_FAQ)}>
                 FAQs
@@ -1196,7 +1225,7 @@ const Settings = ({navigation}) => {
           </View>
         </View>
         {/* warning */}
-        <View style={[styles.warningContainer, {marginTop: 73}]}>
+        <View style={[styles.warningContainer, styles.marginTop73]}>
           <View style={[styles.warnLogo, styles.boxShadow]}>
             <PlanetLogo />
           </View>
@@ -1228,9 +1257,11 @@ const Settings = ({navigation}) => {
         <View
           style={[
             styles.warningContainer,
-            {backgroundColor: '#EB57571A', marginTop: 65},
+            styles.backgroundColorEB57571A,
+            styles.marginTop65,
           ]}>
-          <View style={[styles.warnLogo, styles.boxShadow, {paddingRight: 14}]}>
+          <View
+            style={[styles.warnLogo, styles.boxShadow, styles.paddingRight14]}>
             <NasaLogo />
           </View>
           <Text style={styles.warningText2}>
@@ -1266,7 +1297,7 @@ const Settings = ({navigation}) => {
               onPress={_handleEcoWeb(WEB_URLS.FIRMS_DISCLAIMER)}>
               FIRMS Disclaimer
             </Text>
-            . 
+            .
           </Text>
         </View>
         <View style={styles.appInfoContainer}>
@@ -1316,9 +1347,8 @@ const Settings = ({navigation}) => {
                 onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
                 style={[
                   styles.btn,
-                  selectedSiteInfo?.project !== null && {
-                    borderColor: Colors.GRAY_LIGHTEST,
-                  },
+                  selectedSiteInfo?.project !== null &&
+                    styles.borderColorGrayLightest,
                 ]}>
                 {deleteSite?.isLoading ? (
                   <ActivityIndicator color={Colors.PRIMARY} />
@@ -1332,9 +1362,8 @@ const Settings = ({navigation}) => {
                     <Text
                       style={[
                         styles.siteActionText,
-                        selectedSiteInfo?.project !== null && {
-                          color: Colors.GRAY_LIGHTEST,
-                        },
+                        selectedSiteInfo?.project !== null &&
+                          styles.colorGrayLightest,
                       ]}>
                       Delete Site
                     </Text>
@@ -1362,13 +1391,13 @@ const Settings = ({navigation}) => {
               style={styles.crossContainer}>
               <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
             </TouchableOpacity>
-            <Text style={[styles.heading, {paddingHorizontal: 16}]}>
+            <Text style={[styles.heading, styles.paddingHorizonatal16]}>
               Enter Site Name
             </Text>
             <View
               style={[
                 styles.siteModalStyle,
-                {justifyContent: 'space-between'},
+                styles.justifyContentSpaceBetween,
               ]}>
               <View>
                 <FloatingInput
@@ -1411,6 +1440,7 @@ const Settings = ({navigation}) => {
           <View
             style={[
               styles.dropDownModal,
+              // TODO: Is there a way to add this in StyleSheet
               {
                 top: pageXY.y + 15,
               },
@@ -1427,21 +1457,18 @@ const Settings = ({navigation}) => {
                   <Text
                     style={[
                       styles.siteRadiusText,
-                      item?.value === pageXY?.siteRadius && {
-                        fontFamily: Typography.FONT_FAMILY_BOLD,
-                        color: Colors.GRADIENT_PRIMARY,
-                      },
+                      item?.value === pageXY?.siteRadius &&
+                        styles.fontFamilyBoldColorGradientPrimary,
                       pageXY?.siteGeometry === 'Point' &&
-                        item.value === 0 && {
-                          color: Colors.DISABLE,
-                        },
+                        item.value === 0 &&
+                        styles.colorDisable,
                     ]}>
                     {item.name}
                   </Text>
                   {item?.value === pageXY?.siteRadius && <LayerCheck />}
                 </TouchableOpacity>
                 {RADIUS_ARR.length - 1 !== index && (
-                  <View style={[styles.separator, {marginHorizontal: 16}]} />
+                  <View style={[styles.separator, styles.marginHorizontal16]} />
                 )}
               </View>
             ))}
@@ -1455,6 +1482,55 @@ const Settings = ({navigation}) => {
 export default Settings;
 
 const styles = StyleSheet.create({
+  marginRight5: {
+    marginRight: 5,
+  },
+  justifyContentSpaceBetween: {
+    justifyContent: 'space-between',
+  },
+  marginVertical12: {
+    marginVertical: 12,
+  },
+  marginLeft20: {
+    marginLeft: 20,
+  },
+  marginTop73: {
+    marginTop: 73,
+  },
+  textDecorationLineUnderline: {
+    textDecorationLine: 'underline',
+  },
+  backgroundColorEB57571A: {
+    backgroundColor: '#EB57571A',
+  },
+  marginTop65: {
+    marginTop: 65,
+  },
+  marginHorizontal16: {
+    marginHorizontal: 16,
+  },
+  paddingRight14: {
+    paddingRight: 14,
+  },
+  paddingVertical20: {
+    paddingVertical: 20,
+  },
+  paddingHorizonatal16: {
+    paddingHorizontal: 16,
+  },
+  borderColorGrayLightest: {
+    borderColor: Colors.GRAY_LIGHTEST,
+  },
+  colorGrayLightest: {
+    color: Colors.GRAY_LIGHTEST,
+  },
+  fontFamilyBoldColorGradientPrimary: {
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.GRADIENT_PRIMARY,
+  },
+  colorDisable: {
+    color: Colors.DISABLE,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.BACKGROUND,
@@ -1542,6 +1618,9 @@ const styles = StyleSheet.create({
     color: Colors.TEXT_COLOR,
     width: SCREEN_WIDTH / 1.3,
   },
+  sitesViewStyle: {
+    marginTop: 16,
+  },
   rightConPro: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1569,6 +1648,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
+  },
+  dropDownRadiusMarginRight5PaddingVeritcal16: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 5,
+    paddingVertical: 16,
   },
   dropDownModal: {
     right: 70,
@@ -1643,6 +1729,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4.62,
     elevation: 8,
+  },
+  paddingVertical20OverflowHidden: {
+    paddingVertical: 20,
+    overflow: 'hidden',
   },
   notificationContainer: {
     padding: 16,
@@ -1957,16 +2047,31 @@ const styles = StyleSheet.create({
     width: 93,
     marginLeft: 10,
   },
+  emptySiteCon: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  paddingHorizontal0ColorWhite: {
+    fontSize: 12,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    paddingHorizontal: 0,
+    color: Colors.WHITE,
+  },
+  colorWhite: {
+    color: Colors.WHITE,
+  },
   emptySiteText: {
     fontSize: 12,
     color: Colors.PLANET_DARK_GRAY,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     paddingHorizontal: 10,
   },
-  emptySiteCon: {
-    justifyContent: 'space-between',
-    flexDirection: 'row',
-    alignItems: 'center',
+  receiveNotifications: {
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+  },
+  justifyContentCenter: {
+    justifyContent: 'center',
   },
   addSiteBtn: {
     backgroundColor: Colors.GRADIENT_PRIMARY,

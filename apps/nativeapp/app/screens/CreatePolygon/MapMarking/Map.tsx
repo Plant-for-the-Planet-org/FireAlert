@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {SvgXml} from 'react-native-svg';
 import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
@@ -63,7 +63,6 @@ export default function Map({
   camera,
   setIsCameraRefVisible,
   location,
-  markerText,
   activePolygonIndex,
   setLocation,
   onPressMap,
