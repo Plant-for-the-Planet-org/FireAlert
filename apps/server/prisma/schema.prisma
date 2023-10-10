@@ -17,6 +17,7 @@ model User {
     emailVerified    Boolean       @default(false)
     detectionMethods Json // ["MODIS","VIIRS","LANDSAT","GEOSTATIONARY"]
     isPlanetRO       Boolean?
+    plan             String        @default("basic") //"basic" or "custom"
     image            String?
     deletedAt        DateTime?
     isVerified       Boolean?
@@ -43,7 +44,7 @@ model VerificationRequest {
 
 model AlertMethod {
     id                  String               @id @default(cuid())
-    method              String
+    method              String  //"email","sms","webhook","device","whatsapp"
     destination         String
     isVerified          Boolean              @default(false)
     isEnabled           Boolean              @default(false)
