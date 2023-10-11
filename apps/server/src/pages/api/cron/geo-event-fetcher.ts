@@ -12,6 +12,13 @@ import {logger} from '../../../../src/server/logger';
 import {type GeoEventProviderClientId} from '../../../Interfaces/GeoEventProvider';
 import {prisma} from '../../../../src/server/db';
 
+// This ensures that the alertFetcher Vercel serverless function runs for a maximum of 300 seconds
+// 300s is the maximum allowed duration for Vercel pro plans
+export const config = {
+  maxDuration: 300,
+};
+
+
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(
   req: NextApiRequest,
