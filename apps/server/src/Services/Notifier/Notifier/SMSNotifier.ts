@@ -36,8 +36,8 @@ class SMSNotifier implements Notifier {
   }
 
 
-  notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-    const { message, url } = parameters;
+  async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
+    const { message, url, id } = parameters;
 
     // if env.TWILIO_ACCOUNT_SID or env.TWILIO_AUTH_TOKEN or env.TWILIO_PHONE_NUMBER is not set return promise with false
     if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_PHONE_NUMBER) {
@@ -47,7 +47,15 @@ class SMSNotifier implements Notifier {
     
     // If the destination is a restricted Country, return false, log error.
     if (isPhoneNumberRestricted(destination)) {
-      logger(`Sending SMS to ${destination} is restricted due to country limitations.`, "error");
+      // If destination is a restricted phone number
+      // Then, notification was created before FireAlert introduced SMS Restriction
+      // Thus, notification must be deleted, so that it is not constantly marked as "not-delivered"
+      await prisma.notification.delete({
+        where:{
+          id: id
+        }
+      })
+      // Resolve the promise with false ensures that notifier function stops for this notification
       return Promise.resolve(false);
     }
 
