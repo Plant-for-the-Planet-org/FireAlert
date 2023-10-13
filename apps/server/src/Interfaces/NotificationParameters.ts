@@ -1,6 +1,7 @@
 import type DataRecord from './DataRecord';
 
 export interface NotificationParameters {
+  id: string;
   message: string;
   subject: string;
   url?: string;
