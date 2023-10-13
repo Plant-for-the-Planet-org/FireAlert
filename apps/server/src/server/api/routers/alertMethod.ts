@@ -158,7 +158,16 @@ export const alertMethodRouter = createTRPCRouter({
             }
             // If existing alertMethod doesn't exist:
             // Check if the user has reached the maximum limit of alert methods for all alertMethods (e.g., 5)
-            await limitAlertMethodBasedOnPlan({ctx, userId, userPlan: userPlan, method: input.method});
+            const limitAlertMethod = await limitAlertMethodBasedOnPlan({ctx, userId, userPlan: userPlan, method: input.method});
+            
+            // If AlertMethod Limit has been reached, we get status.error response.
+            // If status is 'error' return with the error message, httpStatus, and code.
+            // If status is not 'error', continue with createAlertMethod logic
+            if(limitAlertMethod?.status === 'error'){
+                return{
+                    ...limitAlertMethod
+                }
+            }
 
             // If the alertMethod method is device then try deviceVerification, if it fails, throw an error, if it succeds create alertMethod
 

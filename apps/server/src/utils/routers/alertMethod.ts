@@ -29,13 +29,14 @@ export const limitSpecificAlertMethodPerUser = async ({
       method
     },
   });
-
   if (specificAlertMethodCount >= count) {
-    throw new TRPCError({
+    return {
+      httpStatus: 403,
       code: 'FORBIDDEN',
       message: `You've exceeded the fair ${method} use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
-    });
-  }
+    };
+  };
+  return null;
 };
 
 export const limitAlertMethodBasedOnPlan = async (props: LimitAlertMethodBasedOnPlanProps) => {
@@ -78,8 +79,18 @@ export const limitAlertMethodBasedOnPlan = async (props: LimitAlertMethodBasedOn
               return; // Or handle any other cases as required
       }
   }
-
-  await limitSpecificAlertMethodPerUser({ctx, userId, count: countLimit, method});
+  const errorResponse =  await limitSpecificAlertMethodPerUser({ctx, userId, count: countLimit, method});
+  // If errorResponse is not null
+  if(errorResponse){
+    return{
+      ...errorResponse,
+      status: 'error'
+    }
+  }else{
+    return{
+      status: 'success'
+    }
+  }
 };
 
 
