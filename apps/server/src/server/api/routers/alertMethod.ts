@@ -142,7 +142,7 @@ export const alertMethodRouter = createTRPCRouter({
                 });
                 return {
                     status: 'success',
-                    code: '202', // Don't send OTP again
+                    httpStatus: 202, // Don't send OTP again
                     message: 'Deleted alertMethod has been restored',
                     data: updatedAlertMethod,
                 }
@@ -151,7 +151,7 @@ export const alertMethodRouter = createTRPCRouter({
             if (existingAlertMethod) {
                 return {
                     status: 'success',
-                    code: '204', // AlertMethod already present, do nothing. "SMS/Email/ already present"
+                    httpStatus: 204, // AlertMethod already present, do nothing. "SMS/Email/ already present"
                     message: 'AlertMethod already exists',
                     data: returnAlertMethod(existingAlertMethod)
                 };
@@ -199,7 +199,7 @@ export const alertMethodRouter = createTRPCRouter({
                     });
                     return {
                         status: 'success',
-                        code: '200', // New AlertMethod created.
+                        httpStatus: 200, // New AlertMethod created.
                         message: 'Device has been Verified. Successfully create alertMethod.',
                         data: alertMethod
                     }
@@ -237,7 +237,7 @@ export const alertMethodRouter = createTRPCRouter({
                 const sendVerification = await handlePendingVerification(ctx, alertMethod)
                 return {
                     status: "success",
-                    code: '200', // New AlertMethod created. OTP Sent.
+                    httpStatus: 200, // New AlertMethod created. OTP Sent.
                     message: 'Successfully Created AlertMethod. ' + sendVerification.message,
                     data: returnAlertMethod(alertMethod)
                 }
