@@ -334,8 +334,12 @@ const CreatePolygon = ({navigation}) => {
   const handleClose = () => navigation.goBack();
   const closeMapLayer = () => setVisible(false);
   const handleSiteModalContinue = () => {
-    if (siteName !== '') {
+    if (siteName.length >= 5) {
       postPolygon();
+    } else {
+      modalToast.current.show('Site name must be at least 5 characters long.', {
+        type: 'warning',
+      });
     }
   };
 
@@ -481,7 +485,7 @@ const CreatePolygon = ({navigation}) => {
         <KeyboardAvoidingView
           {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
-          <Toast ref={modalToast} offsetBottom={100} duration={1000} />
+          <Toast ref={modalToast} offsetBottom={100} duration={2000} />
           <TouchableOpacity
             onPress={handleCloseSiteModal}
             style={styles.crossContainer}>
