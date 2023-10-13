@@ -1,18 +1,45 @@
-import { TRPCError } from "@trpc/server";
-import { createSiteSchema, getSitesWithProjectIdParams, params, updateSiteSchema } from '../zodSchemas/site.schema'
+import {TRPCError} from "@trpc/server";
+import {createSiteSchema, getSitesWithProjectIdParams, params, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert } from '../../../utils/routers/site'
-import { Prisma, SiteAlert } from "@prisma/client";
+import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
+import {Prisma, SiteAlert} from "@prisma/client";
+import {UserPlan} from "../../../Interfaces/AlertMethod";
 
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
         .input(createSiteSchema)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
+            const userPlan = ctx.user!.plan ? ctx.user!.plan as UserPlan : 'basic';
+            const siteCount = await ctx.prisma.site.count({
+                where:{
+                    userId,
+                }
+            })
+            if(userPlan === 'basic'){
+                if (siteCount >= 20){
+                    return {
+                        status: 'error',
+                        httpStatus: 403,
+                        code: 'FORBIDDEN',
+                        message: `You've exceeded the fair site use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
+                    };
+                }
+            }
+            if(userPlan === 'custom'){
+                if (siteCount >= 50){
+                    return {
+                        status: 'error',
+                        httpStatus: 403,
+                        code: 'FORBIDDEN',
+                        message: `You've exceeded the fair site use limits of FireAlert. You cannot create any more sites.`,
+                    };
+                }
+            }
             try {
                 const origin = 'firealert';
                 const lastUpdated = new Date();
@@ -77,7 +104,7 @@ export const siteRouter = createTRPCRouter({
 
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
-        .query(async ({ ctx, input }) => {
+        .query(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
                 // Only returns a list of sites if the user has sites with the inputted projectId, else returns not found.
@@ -120,7 +147,7 @@ export const siteRouter = createTRPCRouter({
         }),
 
     getSites: protectedProcedure
-        .query(async ({ ctx }) => {
+        .query(async ({ctx}) => {
             const userId = ctx.user!.id;
             try {
                 const sites = await ctx.prisma.site.findMany({
@@ -161,7 +188,7 @@ export const siteRouter = createTRPCRouter({
 
     getSite: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .query(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
@@ -215,7 +242,7 @@ export const siteRouter = createTRPCRouter({
 
     updateSite: protectedProcedure
         .input(updateSiteSchema)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
             if (!site) {
@@ -285,7 +312,7 @@ export const siteRouter = createTRPCRouter({
 
     triggerTestAlert: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .query(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             const site = await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
             if (!site) {
@@ -316,7 +343,7 @@ export const siteRouter = createTRPCRouter({
 
     deleteSite: protectedProcedure
         .input(params)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             // Check if user is authenticated and not soft deleted
             const userId = ctx.user!.id;
             await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
