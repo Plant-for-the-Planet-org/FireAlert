@@ -44,7 +44,7 @@ model VerificationRequest {
 
 model AlertMethod {
     id                  String               @id @default(cuid())
-    method              String  //"email","sms","webhook","device","whatsapp"
+    method              String  
     destination         String
     isVerified          Boolean              @default(false)
     isEnabled           Boolean              @default(false)
@@ -77,6 +77,7 @@ model Site {
     slices            Json? // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
     detectionGeometry Unsupported("geometry")?
     originalGeometry  Unsupported("geometry")?
+    detectionArea     Float?
     alerts            SiteAlert[]
     project           Project?                 @relation(fields: [projectId], references: [id])
     user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -14,32 +14,32 @@ export const siteRouter = createTRPCRouter({
         .input(createSiteSchema)
         .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
-            const userPlan = ctx.user!.plan ? ctx.user!.plan as UserPlan : 'basic';
-            const siteCount = await ctx.prisma.site.count({
-                where:{
-                    userId,
-                }
-            })
-            if(userPlan === 'basic'){
-                if (siteCount >= 20){
-                    return {
-                        status: 'error',
-                        httpStatus: 403,
-                        code: 'FORBIDDEN',
-                        message: `You've exceeded the fair site use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
-                    };
-                }
-            }
-            if(userPlan === 'custom'){
-                if (siteCount >= 50){
-                    return {
-                        status: 'error',
-                        httpStatus: 403,
-                        code: 'FORBIDDEN',
-                        message: `You've exceeded the fair site use limits of FireAlert. You cannot create any more sites.`,
-                    };
-                }
-            }
+            // const userPlan = ctx.user!.plan ? ctx.user!.plan as UserPlan : 'basic';
+            // const siteCount = await ctx.prisma.site.count({
+            //     where:{
+            //         userId,
+            //     }
+            // })
+            // if(userPlan === 'basic'){
+            //     if (siteCount >= 20){
+            //         return {
+            //             status: 'error',
+            //             httpStatus: 403,
+            //             code: 'FORBIDDEN',
+            //             message: `You've exceeded the fair site use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
+            //         };
+            //     }
+            // }
+            // if(userPlan === 'custom'){
+            //     if (siteCount >= 50){
+            //         return {
+            //             status: 'error',
+            //             httpStatus: 403,
+            //             code: 'FORBIDDEN',
+            //             message: `You've exceeded the fair site use limits of FireAlert. You cannot create any more sites.`,
+            //         };
+            //     }
+            // }
             try {
                 const origin = 'firealert';
                 const lastUpdated = new Date();
