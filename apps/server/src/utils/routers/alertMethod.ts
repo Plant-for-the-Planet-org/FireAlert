@@ -3,7 +3,8 @@ import {type TRPCContext} from '../../Interfaces/Context';
 import {
   type CheckUserHasAlertMethodPermissionArgs,
   type CtxWithAlertMethod,
-  type CtxWithUserID,
+  type LimitSpecificAlertMethods,
+  type LimitAlertMethodBasedOnPlanProps,
 } from '../../Interfaces/AlertMethod';
 import {generate5DigitOTP} from '../notification/otp';
 import {
@@ -16,23 +17,83 @@ import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import {prisma} from '../../server/db';
 import {sendEmailVerificationCode} from '../notification/userEmails';
 
-export const limitAlertMethodPerUser = async ({
+export const limitSpecificAlertMethodPerUser = async ({
   ctx,
   userId,
   count,
-}: CtxWithUserID) => {
-  const alertMethodCount = await ctx.prisma.alertMethod.count({
+  method
+}: LimitSpecificAlertMethods) => {
+  const specificAlertMethodCount = await ctx.prisma.alertMethod.count({
     where: {
       userId,
+      method
     },
   });
-  if (alertMethodCount >= count) {
+  if (specificAlertMethodCount >= count) {
     return {
-      status: 403,
-      message: 'Exceeded maximum alert methods limit',
+      httpStatus: 403,
+      code: 'FORBIDDEN',
+      message: `You've exceeded the fair ${method} use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
     };
+  };
+  return null;
+};
+
+export const limitAlertMethodBasedOnPlan = async (props: LimitAlertMethodBasedOnPlanProps) => {
+  const {ctx, userId, userPlan, method} = props;
+  
+  let countLimit = 0;
+
+  if(userPlan === 'basic') {
+      switch (method) {
+          case 'email':
+              countLimit = 20;
+              break;
+          case 'sms':
+              countLimit = 5;
+              break;
+          case 'webhook':
+              countLimit = 20;
+              break;
+          case 'whatsapp':
+              countLimit = 5;
+              break;
+          default:
+              return; // Or handle any other cases as required
+      }
+  } else if (userPlan === 'custom') {
+      switch (method) {
+          case 'email':
+              countLimit = 50;
+              break;
+          case 'sms':
+              countLimit = 10;
+              break;
+          case 'webhook':
+              countLimit = 50;
+              break;
+          case 'whatsapp':
+              countLimit = 10;
+              break;
+          default:
+              return; // Or handle any other cases as required
+      }
+  }
+  const errorResponse =  await limitSpecificAlertMethodPerUser({ctx, userId, count: countLimit, method});
+  // If errorResponse is not null
+  if(errorResponse){
+    return{
+      ...errorResponse,
+      status: 'error'
+    }
+  }else{
+    return{
+      status: 'success'
+    }
   }
 };
+
+
 
 // Compares the User in session or token with the AlertMethod that is being Read, Updated or Deleted
 export const checkUserHasAlertMethodPermission = async ({

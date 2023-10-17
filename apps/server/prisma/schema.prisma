@@ -17,6 +17,7 @@ model User {
     emailVerified    Boolean       @default(false)
     detectionMethods Json // ["MODIS","VIIRS","LANDSAT","GEOSTATIONARY"]
     isPlanetRO       Boolean?
+    plan             String        @default("basic") //"basic" or "custom"
     image            String?
     deletedAt        DateTime?
     isVerified       Boolean?
@@ -43,7 +44,7 @@ model VerificationRequest {
 
 model AlertMethod {
     id                  String               @id @default(cuid())
-    method              String
+    method              String  
     destination         String
     isVerified          Boolean              @default(false)
     isEnabled           Boolean              @default(false)
@@ -76,6 +77,7 @@ model Site {
     slices            Json? // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
     detectionGeometry Unsupported("geometry")?
     originalGeometry  Unsupported("geometry")?
+    detectionArea     Float?
     alerts            SiteAlert[]
     project           Project?                 @relation(fields: [projectId], references: [id])
     user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)

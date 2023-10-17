@@ -28,8 +28,24 @@ export type CtxWithAlertMethodId = {
   alertMethodId: string;
 };
 
-export type CtxWithUserID = {
+export type LimitAlertMethods = {
   ctx: TRPCContext;
   userId: string;
   count: number;
+};
+
+export type LimitSpecificAlertMethods = {
+  ctx: TRPCContext;
+  userId: string;
+  count: number;
+  method: string;
+};
+
+export type UserPlan = 'basic' | 'custom';
+
+export type LimitAlertMethodBasedOnPlanProps = {
+  ctx: TRPCContext;
+  userId: string;
+  userPlan: UserPlan;
+  method: string;
 };

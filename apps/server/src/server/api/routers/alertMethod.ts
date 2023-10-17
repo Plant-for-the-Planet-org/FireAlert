@@ -1,4 +1,4 @@
-import { TRPCError } from "@trpc/server";
+import {TRPCError} from "@trpc/server";
 import {
     createAlertMethodSchema,
     params,
@@ -13,21 +13,22 @@ import {
 import {
     findAlertMethod,
     findVerificationRequest,
-    limitAlertMethodPerUser,
     checkUserHasAlertMethodPermission,
     returnAlertMethod,
     handlePendingVerification,
-    deviceVerification
+    deviceVerification,
+    limitAlertMethodBasedOnPlan
 } from "../../../utils/routers/alertMethod";
-import { logger } from "../../../../src/server/logger";
-import { isPhoneNumberRestricted } from "../../../../src/utils/notification/restrictedSMS";
+import {logger} from "../../../../src/server/logger";
+import {isPhoneNumberRestricted} from "../../../../src/utils/notification/restrictedSMS";
+import {UserPlan} from "../../../../src/Interfaces/AlertMethod";
 
 export const alertMethodRouter = createTRPCRouter({
 
     //Todo: Abstract the functions in SendVerification and createAlertMethod to a separate file so that it can be reused in the verify function.
     sendVerification: protectedProcedure
         .input(params)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
                 const alertMethodId = input.alertMethodId
@@ -63,7 +64,7 @@ export const alertMethodRouter = createTRPCRouter({
 
     verify: publicProcedure
         .input(verifySchema)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const alertMethodId = input.params.alertMethodId
             const alertMethod = await findAlertMethod(alertMethodId)
             const destination = alertMethod.destination
@@ -120,8 +121,9 @@ export const alertMethodRouter = createTRPCRouter({
 
     createAlertMethod: protectedProcedure
         .input(createAlertMethodSchema)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
+            const userPlan = ctx.user!.plan ? ctx.user!.plan as UserPlan : 'basic';
             //Check if that AlertMethod already exists
             const existingAlertMethod = await ctx.prisma.alertMethod.findFirst({
                 where: {
@@ -155,8 +157,17 @@ export const alertMethodRouter = createTRPCRouter({
                 };
             }
             // If existing alertMethod doesn't exist:
-            // Check if the user has reached the maximum limit of alert methods (e.g., 5)
-            await limitAlertMethodPerUser({ ctx, userId: userId, count: 10 })
+            // Check if the user has reached the maximum limit of alert methods for all alertMethods (e.g., 5)
+            const limitAlertMethod = await limitAlertMethodBasedOnPlan({ctx, userId, userPlan: userPlan, method: input.method});
+            
+            // If AlertMethod Limit has been reached, we get status.error response.
+            // If status is 'error' return with the error message, httpStatus, and code.
+            // If status is not 'error', continue with createAlertMethod logic
+            if(limitAlertMethod?.status === 'error'){
+                return{
+                    ...limitAlertMethod
+                }
+            }
 
             // If the alertMethod method is device then try deviceVerification, if it fails, throw an error, if it succeds create alertMethod
 
@@ -252,7 +263,7 @@ export const alertMethodRouter = createTRPCRouter({
         }),
 
     getAlertMethods: protectedProcedure
-        .query(async ({ ctx }) => {
+        .query(async ({ctx}) => {
             const userId = ctx.user!.id;
             try {
                 const alertMethods = await ctx.prisma.alertMethod.findMany({
@@ -292,9 +303,9 @@ export const alertMethodRouter = createTRPCRouter({
 
     getAlertMethod: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .query(async ({ctx, input}) => {
             const userId = ctx.user!.id;
-            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
+            const existingAlertMethod = await checkUserHasAlertMethodPermission({ctx, alertMethodId: input.alertMethodId, userId: userId});
             if (existingAlertMethod.deletedAt) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
@@ -325,9 +336,9 @@ export const alertMethodRouter = createTRPCRouter({
 
     updateAlertMethod: protectedProcedure
         .input(updateAlertMethodSchema)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
-            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.params.alertMethodId, userId: userId });
+            const existingAlertMethod = await checkUserHasAlertMethodPermission({ctx, alertMethodId: input.params.alertMethodId, userId: userId});
             if (existingAlertMethod.deletedAt) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -368,9 +379,9 @@ export const alertMethodRouter = createTRPCRouter({
 
     deleteAlertMethod: protectedProcedure
         .input(params)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
-            const existingAlertMethod = await checkUserHasAlertMethodPermission({ ctx, alertMethodId: input.alertMethodId, userId: userId });
+            const existingAlertMethod = await checkUserHasAlertMethodPermission({ctx, alertMethodId: input.alertMethodId, userId: userId});
             if (existingAlertMethod.deletedAt) {
                 return {
                     status: "success",
