@@ -120,6 +120,7 @@ const sendNotifications = async (): Promise<boolean> => {
           }
 
           const notificationParameters: NotificationParameters = {
+            id: id,
             message: message,
             subject: subject,
             url: url,
