@@ -16,7 +16,7 @@ import { type geoEventInterface as GeoEvent } from "../../../Interfaces/GeoEvent
 // This ensures that the alertFetcher Vercel serverless function runs for a maximum of 300 seconds
 // 300s is the maximum allowed duration for Vercel pro plans
 export const config = {
-  maxDuration: 300,
+  maxDuration: 60,
 };
 
 // TODO: Run this cron every 5 minutes
