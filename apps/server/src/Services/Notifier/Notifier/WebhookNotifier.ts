@@ -34,7 +34,7 @@ class WebhookNotifier implements Notifier {
 
     if (!response.ok) {
       logger(
-        `Failed to send notification. Error: ${response.statusText}`,
+        `Failed to send webhook notification. Error: ${response.statusText}  for ${parameters.id}`,
         'error',
       );
       return false;

@@ -43,7 +43,7 @@ class DeviceNotifier implements Notifier {
     console.log(response);
     if (!response.ok) {
       logger(
-        `Failed to send notification. Error: ${response.statusText}`,
+        `Failed to send device notification. Error: ${response.statusText} for ${parameters.id}`,
         'error',
       );
       return false;
