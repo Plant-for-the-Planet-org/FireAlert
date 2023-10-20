@@ -8,6 +8,23 @@ BEGIN
     NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
     NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
 
+    -- Calculate detection area
+    NEW."detectionArea" := ST_Area(
+                                ST_Transform(
+                                    ST_Buffer(
+                                        ST_Transform(
+                                            ST_SetSRID(
+                                                ST_GeomFromGeoJSON(NEW."geometry"::text),
+                                                4326
+                                            ),
+                                            3857
+                                        ),
+                                        NEW."radius"
+                                    ),
+                                    3857
+                                )
+                            );
+
     -- Determine slices
     WITH slices AS (
         SELECT 
@@ -44,7 +61,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER site_update_trigger
+CREATE OR REPLACE TRIGGER site_update_trigger
 BEFORE INSERT OR UPDATE OF "geometry", "radius", "slices" ON "Site"
 FOR EACH ROW EXECUTE FUNCTION app_site_detectionGeometry_update();
 
@@ -65,6 +82,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER geoevent_insert_update_trigger
+CREATE OR REPLACE TRIGGER geoevent_insert_update_trigger
 BEFORE INSERT OR UPDATE ON "GeoEvent"
 FOR EACH ROW EXECUTE FUNCTION handle_geoevent();
