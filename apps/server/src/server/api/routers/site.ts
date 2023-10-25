@@ -1,12 +1,12 @@
 import {TRPCError} from "@trpc/server";
-import {createSiteSchema, getSitesWithProjectIdParams, params, updateSiteSchema} from '../zodSchemas/site.schema'
+import {createSiteSchema, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
 import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
 import {Prisma, SiteAlert} from "@prisma/client";
-import {UserPlan} from "../../../Interfaces/AlertMethod";
+// import {UserPlan} from "../../../Interfaces/AlertMethod";
 
 export const siteRouter = createTRPCRouter({
 
@@ -340,6 +340,50 @@ export const siteRouter = createTRPCRouter({
                 });
             }
         }),
+
+        pauseAlertForSite: protectedProcedure
+            .input(pauseAlertInputSchema)
+            .mutation(async ({ctx, input}) => {
+                try {
+                    // Destructure input parameters, including siteId
+                    const {siteId, duration, unit} = input;
+            
+                    // Calculate the time for the stopAlertUntil field based on unit
+                    const additionFactor = {
+                    minutes: 1000 * 60,
+                    hours: 1000 * 60 * 60,
+                    days: 1000 * 60 * 60 * 24,
+                    };
+            
+                    // Calculate future date based on current time, duration, and unit
+                    const futureDate = new Date(Date.now() + duration * additionFactor[unit]);
+            
+                    // Update specific site's stopAlertUntil field in the database
+                    await ctx.prisma.site.update({
+                        where: { 
+                            id: siteId 
+                        },
+                        data: { 
+                            stopAlertUntil: futureDate 
+                        },
+                    });
+                    // Constructing a readable duration message
+                    const durationUnit = unit === 'minutes' && duration === 1 ? 'minute' :
+                                        unit === 'hours' && duration === 1 ? 'hour' :
+                                        unit === 'days' && duration === 1 ? 'day' : unit;
+
+                    // Respond with a success message including pause duration details
+                    return { 
+                        status: 'success', 
+                        message: `Alert has been successfully paused for the site for ${duration} ${durationUnit}.` 
+                    };
+                } catch (error) {
+                    throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'An error occurred while pausing the alert for the site',
+                    });
+                }
+            }),
 
     deleteSite: protectedProcedure
         .input(params)
