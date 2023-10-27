@@ -44,7 +44,7 @@ model VerificationRequest {
 
 model AlertMethod {
     id                  String               @id @default(cuid())
-    method              String  
+    method              String
     destination         String
     isVerified          Boolean              @default(false)
     isEnabled           Boolean              @default(false)
@@ -62,25 +62,27 @@ model AlertMethod {
 }
 
 model Site {
-    id                String                   @id @default(cuid())
-    remoteId          String?
-    name              String?
-    origin            String                   @default("firealert")
-    type              SiteType
-    geometry          Json
-    radius            Int                      @default(0)
-    isMonitored       Boolean                  @default(true)
-    deletedAt         DateTime?
-    projectId         String?
-    lastUpdated       DateTime?
-    userId            String
-    slices            Json? // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
-    detectionGeometry Unsupported("geometry")?
-    originalGeometry  Unsupported("geometry")?
-    detectionArea     Float?
-    alerts            SiteAlert[]
-    project           Project?                 @relation(fields: [projectId], references: [id])
-    user              User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id                 String                   @id @default(cuid())
+    remoteId           String?
+    name               String?
+    origin             String                   @default("firealert")
+    type               SiteType
+    geometry           Json
+    radius             Int                      @default(0)
+    isMonitored        Boolean                  @default(true)
+    deletedAt          DateTime?
+    projectId          String?
+    lastUpdated        DateTime?
+    stopAlertUntil     DateTime?
+    lastMessageCreated DateTime?
+    userId             String
+    slices             Json? // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
+    detectionGeometry  Unsupported("geometry")?
+    originalGeometry   Unsupported("geometry")?
+    detectionArea      Float?
+    alerts             SiteAlert[]
+    project            Project?                 @relation(fields: [projectId], references: [id])
+    user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Project {
