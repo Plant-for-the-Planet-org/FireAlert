@@ -6,7 +6,11 @@ import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { sendAccountDeletionConfirmationEmail } from "../../../../src/utils/notification/userEmails";
 
-// Run this cron every day once.
+// Run this cron every day once for max 60s.
+export const config = {
+    maxDuration: 60,
+  };
+
 // This cron will also help with GDPR compliance and data retention.
 
 export default async function dbCleanup(req: NextApiRequest, res: NextApiResponse) {
