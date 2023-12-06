@@ -75,7 +75,23 @@ const createNotifications = async () => {
           // This is because these siteAlerts do not have any associated enabled-alertMethod, so they were not considered by the SQL above
           // To address these unprocessed siteAlerts, update isProcessed for all remaining unprocessed siteAlerts to true
           const updateSiteAlertIsProcessedToTrue = Prisma.sql`
-          UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false AND "deletedAt" IS NULL`;
+          WITH UnprocessedSiteAlerts AS (
+            SELECT sa.id
+            FROM "SiteAlert" sa
+            INNER JOIN "Site" s ON sa."siteId" = s.id
+            INNER JOIN "AlertMethod" am ON s."userId" = am."userId"
+            WHERE sa."isProcessed" = false 
+            AND sa."deletedAt" IS NULL
+            AND (
+              am.id IS NULL OR
+              am."isVerified" = false OR
+              am."isEnabled" = false
+            )
+          )
+          UPDATE "SiteAlert"
+          SET "isProcessed" = true
+          WHERE "id" IN (SELECT id FROM UnprocessedSiteAlerts)
+          RETURNING "id";`;
           await prisma.$executeRaw(updateSiteAlertIsProcessedToTrue)
           // Exit the while loop          
           moreAlertsToProcess = false; // No more alerts to process, exit the loop
