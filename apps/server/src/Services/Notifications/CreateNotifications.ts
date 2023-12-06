@@ -73,7 +73,8 @@ const createNotifications = async () => {
         if(siteAlertProcessed === 0){
           // All notifications have been created, however, there might be some siteAlerts that are still unprocessed
           // This is because these siteAlerts do not have any associated enabled-alertMethod, so they were not considered by the SQL above
-          // To address these unprocessed siteAlerts, update isProcessed for all remaining unprocessed siteAlerts to true
+          // To address this, find those sitealerts whose associated alertMethods are not present or are disabled, 
+          // then update their isProcessed to true. This ensures that there are no pending siteAlerts which will unnecessarily populate the queue.
           const updateSiteAlertIsProcessedToTrue = Prisma.sql`
           WITH UnprocessedSiteAlerts AS (
             SELECT sa.id
