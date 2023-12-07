@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { nameSchema } from './user.schema';
+import {z} from 'zod';
+import {nameSchema} from './user.schema';
 
 const PointSchema = z.object({
     type: z.literal("Point"),
@@ -31,7 +31,7 @@ export const createSiteSchema = z.object({
 
 
 export const params = z.object({
-    siteId: z.string().cuid({ message: "Invalid CUID" }),
+    siteId: z.string().cuid({message: "Invalid CUID"}),
 })
 
 export const getSitesWithProjectIdParams = z.object({
@@ -56,6 +56,12 @@ const bodySchema = z.object({
 export const updateSiteSchema = z.object({
     params,
     body: bodySchema,
+});
+
+export const pauseAlertInputSchema = z.object({
+    siteId: z.string().cuid({message: "Invalid CUID"}),
+    duration: z.number().min(1),
+    unit: z.enum(['minutes', 'hours', 'days']),
 });
 
 

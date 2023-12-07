@@ -1,32 +1,109 @@
 import {Prisma} from '@prisma/client';
 import {prisma} from '../../server/db';
 
+// Logic
+// Execute SQL
+
+// 1. Join SiteAlert with alertMethod using site and userId: 
+//     1. **get the oldest unique unprocessed alert for all sites**
+//         1. Create notifications for alertMethods 
+//             1. Create notifications for ‘device’ and ‘webhook’
+//             2. if `site.lastMessageCreated = NULL` or `site.lastMessageCreated < 2 hours ago`create notifications for ‘sms’, ‘whatsapp’, and ‘email’
+//                 1. set `site.lastMessageCreated = now`
+// 2. For all processed siteAlerts , set `siteAlert.isProcessed` to true
+
+// Repeat until nothing left to process
+
 const createNotifications = async () => {
-  let notificationsCreated = 0;
+  let totalSiteAlertProcessed = 0;
   try {
-    // In this query, the subquery retrieves all enabled and verified AlertMethods (m) for the user associated with the site.
-    // Then, a cross join is performed between the SiteAlert table (a) and the AlertMethod subquery (m), ensuring that each siteAlert is paired with all relevant alertMethods.
-    const notificationCreationQuery = Prisma.sql`
-        INSERT INTO "Notification" (id, "siteAlertId", "alertMethod", destination, "isDelivered") 
-        SELECT gen_random_uuid(), a.id, m.method, m.destination, false 
-            FROM "SiteAlert" a 
-                INNER JOIN "Site" s ON a."siteId" = s.id 
-                INNER JOIN "AlertMethod" m ON m."userId" = s."userId" 
-                    WHERE a."isProcessed" = false AND a."deletedAt" IS NULL AND m."deletedAt" IS NULL AND m."isEnabled" = true AND m."isVerified" = true AND a."eventDate" > CURRENT_TIMESTAMP - INTERVAL '24 hours'`;
+      let moreAlertsToProcess = true;
 
-    const updateSiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false AND "deletedAt" IS NULL`;
+      while(moreAlertsToProcess){
+        const notificationCreationAndUpdate = Prisma.sql`
+        WITH NotificationsForInsert AS (
+          SELECT 
+            a.id AS "siteAlertId", 
+            m.method AS "alertMethod", 
+            m.destination,
+            a."siteId"
+          FROM "AlertMethod" m
+            INNER JOIN "Site" s ON s."userId" = m."userId" 
+            INNER JOIN (
+              SELECT DISTINCT ON ("siteId") *
+              FROM "SiteAlert"
+              WHERE "isProcessed" = false AND "deletedAt" IS NULL
+              ORDER BY "siteId", "eventDate"
+            ) a ON a."siteId" = s.id 
+          WHERE 
+            m."deletedAt" IS NULL 
+            AND m."isEnabled" = true 
+            AND m."isVerified" = true 
+            AND (
+              ((s."lastMessageCreated" IS NULL OR s."lastMessageCreated" < (CURRENT_TIMESTAMP - INTERVAL '2 hours')) AND m."method" IN ('sms', 'whatsapp', 'email')) 
+              OR m."method" IN ('device', 'webhook')
+            )
+        ),
+        InsertedNotifications AS (
+          INSERT INTO "Notification" (id, "siteAlertId", "alertMethod", destination, "isDelivered")
+          SELECT 
+            gen_random_uuid(), 
+            "siteAlertId", 
+            "alertMethod", 
+            destination, 
+            false 
+          FROM NotificationsForInsert
+          RETURNING "siteAlertId", "alertMethod"
+        ),
+        UpdatedSites AS (
+          UPDATE "Site"
+          SET "lastMessageCreated" = CURRENT_TIMESTAMP
+          WHERE "id" IN (
+            SELECT "siteId" FROM NotificationsForInsert WHERE "alertMethod" IN ('sms', 'whatsapp', 'email')
+          )
+          RETURNING "id"
+        )
+        UPDATE "SiteAlert"
+        SET "isProcessed" = true
+        WHERE "id" IN (SELECT "siteAlertId" FROM InsertedNotifications);`;
 
-    // Create Notifications for all unprocessed SiteAlerts and Set all SiteAlert as processed
-    const results = await prisma.$transaction([
-      prisma.$executeRaw(notificationCreationQuery),
-      prisma.$executeRaw(updateSiteAlertIsProcessedToTrue),
-    ]);
-    // Since $executeRaw() returns the number of rows affected, the first result of the transaction would be notificationsCreated
-    notificationsCreated = results[0];
+        const siteAlertProcessed = await prisma.$executeRaw(notificationCreationAndUpdate);
+        totalSiteAlertProcessed += siteAlertProcessed
+
+        if(siteAlertProcessed === 0){
+          // All notifications have been created, however, there might be some siteAlerts that are still unprocessed
+          // This is because these siteAlerts do not have any associated enabled-alertMethod, so they were not considered by the SQL above
+          // To address this, find those sitealerts whose associated alertMethods are not present or are disabled, 
+          // then update their isProcessed to true. This ensures that there are no pending siteAlerts populating the queue.
+          const updateSiteAlertIsProcessedToTrue = Prisma.sql`
+          WITH UnprocessedSiteAlerts AS (
+            SELECT sa.id
+            FROM "SiteAlert" sa
+            INNER JOIN "Site" s ON sa."siteId" = s.id
+            LEFT JOIN "AlertMethod" am ON s."userId" = am."userId"
+            WHERE sa."isProcessed" = false 
+            AND sa."deletedAt" IS NULL
+            AND (
+              am.id IS NULL OR
+              am."isVerified" = false OR
+              am."isEnabled" = false
+            )
+          )
+          UPDATE "SiteAlert"
+          SET "isProcessed" = true
+          WHERE "id" IN (SELECT id FROM UnprocessedSiteAlerts)
+          RETURNING "id";`;
+          await prisma.$executeRaw(updateSiteAlertIsProcessedToTrue)
+          // Exit the while loop          
+          moreAlertsToProcess = false; // No more alerts to process, exit the loop
+        }else {
+          await new Promise(resolve => setTimeout(resolve, 200)); // Delay of 1/5 second
+        }
+      }
   } catch (error) {
     console.log(error);
   }
-  return notificationsCreated;
+  return totalSiteAlertProcessed;
 };
 
 export default createNotifications;
