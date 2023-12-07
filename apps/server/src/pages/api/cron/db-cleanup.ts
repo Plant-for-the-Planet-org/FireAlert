@@ -9,7 +9,7 @@ import { sendAccountDeletionConfirmationEmail } from "../../../../src/utils/noti
 // Run this cron every day once for max 60s.
 export const config = {
     maxDuration: 60,
-  };
+};
 
 // This cron will also help with GDPR compliance and data retention.
 
@@ -92,7 +92,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     // Delete all SiteAlerts that have deletedAt date older than 30 days
     promises.push(prisma.siteAlert.deleteMany({
         where: {
-            deletedAt: {
+            eventDate: {
                 lte: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
             }
         }
