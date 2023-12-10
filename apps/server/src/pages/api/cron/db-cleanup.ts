@@ -98,31 +98,18 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
         }
     }));
 
-    // item 5:
-    // Delete all notifications that are older than 30 days and have been processed 
-    promises.push(prisma.notification.deleteMany({
-        where: {
-            isDelivered: true,
-            sentAt: {
-                lt: new Date(new Date().getTime() - 90 * 24 * 60 * 60 * 1000)
-            }
-        }
-    }));
-
+    // We do not delete notifications, as we will need notifications data in the future for further analysis
 
     try {
 
-        const [deletedGeoEvent, deletedUsers, deletedSites, deletedSiteAlerts, deletedNotification] =
+        const [deletedGeoEvent, deletedUsers, deletedSites, deletedSiteAlerts] =
             await Promise.all(promises);
         
-        // Deleted ${deletedNotifications.count} notifications for soft-deleted SiteAlerts
-
         logger(`
                 Deleted ${deletedGeoEvent.count} geo events that are older than 30 days and have been processed
                 Deleted ${deletedUsers.count} users who've requested to be deleted and have deletedAt date older than 7 days
                 Deleted ${deletedSites.count} soft-deleted Sites
                 Deleted ${deletedSiteAlerts.count} soft-deleted SiteAlerts
-                Deleted ${deletedNotification.count} notifications that are older than 90 days and have been processed
                 `, 'info');
 
         res.status(200).json({
