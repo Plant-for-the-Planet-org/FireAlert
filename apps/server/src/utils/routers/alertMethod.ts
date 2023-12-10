@@ -26,7 +26,8 @@ export const limitSpecificAlertMethodPerUser = async ({
   const specificAlertMethodCount = await ctx.prisma.alertMethod.count({
     where: {
       userId,
-      method
+      method,
+      deletedAt: null
     },
   });
   if (specificAlertMethodCount >= count) {

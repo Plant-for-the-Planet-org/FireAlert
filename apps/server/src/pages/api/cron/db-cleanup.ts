@@ -89,6 +89,16 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     }));
 
     // item 4:
+    // Delete all AlertMethods that have been soft-deleteted for longer than 7 days
+    promises.push(prisma.alertMethod.deleteMany({
+        where: {
+            deletedAt: {
+                lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
+            }
+        }
+    }))
+
+    // item 5:
     // Delete all SiteAlerts that have deletedAt date older than 30 days
     promises.push(prisma.siteAlert.deleteMany({
         where: {
@@ -102,13 +112,14 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
 
     try {
 
-        const [deletedGeoEvent, deletedUsers, deletedSites, deletedSiteAlerts] =
+        const [deletedGeoEvents, deletedUsers, deletedSites, deletedAlertMethods, deletedSiteAlerts] =
             await Promise.all(promises);
         
         logger(`
-                Deleted ${deletedGeoEvent.count} geo events that are older than 30 days and have been processed
+                Deleted ${deletedGeoEvents.count} geo events that are older than 30 days and have been processed
                 Deleted ${deletedUsers.count} users who've requested to be deleted and have deletedAt date older than 7 days
                 Deleted ${deletedSites.count} soft-deleted Sites
+                Deleted ${deletedAlertMethods.count} soft-deleted AlertMethods
                 Deleted ${deletedSiteAlerts.count} soft-deleted SiteAlerts
                 `, 'info');
 

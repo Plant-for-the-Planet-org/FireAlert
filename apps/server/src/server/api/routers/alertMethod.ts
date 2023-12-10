@@ -134,6 +134,11 @@ export const alertMethodRouter = createTRPCRouter({
             });
             // If the existing alertMethod has been soft deleted, un-soft delete it, and return success
             if (existingAlertMethod?.deletedAt) {
+                // This block re-creates the soft-deleted alertMethod.
+                // Check if the user has reached the maximum limit of alert methods for all alertMethods (e.g., 5)
+                // If limit has reached, the function will throw an error message
+                await limitAlertMethodBasedOnPlan({ctx, userId, userPlan: userPlan, method: input.method});
+                // Else, restore the soft-deleted alertMethod
                 const updatedAlertMethod = await ctx.prisma.alertMethod.update({
                     where: {
                         id: existingAlertMethod.id,
