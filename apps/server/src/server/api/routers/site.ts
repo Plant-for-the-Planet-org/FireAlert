@@ -1,34 +1,45 @@
-import { TRPCError } from "@trpc/server";
-import { createSiteSchema, getSitesWithProjectIdParams, params, updateSiteSchema } from '../zodSchemas/site.schema'
+import {TRPCError} from "@trpc/server";
+import {createSiteSchema, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import { checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert } from '../../../utils/routers/site'
-import { Prisma, SiteAlert } from "@prisma/client";
+import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
+import {Prisma, SiteAlert} from "@prisma/client";
+// import {UserPlan} from "../../../Interfaces/AlertMethod";
 
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
         .input(createSiteSchema)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
-            const userPlan = ctx.user!.plan
-            // Setup user plan constraint
-            if (userPlan === 'basic') {
-                const siteCount = await ctx.prisma.site.count({
-                    where: {
-                        userId: userId,
-                    },
-                });
-                // Basic plan
-                if (siteCount >= 5) {
-                    throw new TRPCError({
-                        code: "UNAUTHORIZED",
-                        message: "Please upgrade your plan to continue adding more alert methods.",
-                    });
-                }
-            }
+            // const userPlan = ctx.user!.plan ? ctx.user!.plan as UserPlan : 'basic';
+            // const siteCount = await ctx.prisma.site.count({
+            //     where:{
+            //         userId,
+            //     }
+            // })
+            // if(userPlan === 'basic'){
+            //     if (siteCount >= 20){
+            //         return {
+            //             status: 'error',
+            //             httpStatus: 403,
+            //             code: 'FORBIDDEN',
+            //             message: `You've exceeded the fair site use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
+            //         };
+            //     }
+            // }
+            // if(userPlan === 'custom'){
+            //     if (siteCount >= 50){
+            //         return {
+            //             status: 'error',
+            //             httpStatus: 403,
+            //             code: 'FORBIDDEN',
+            //             message: `You've exceeded the fair site use limits of FireAlert. You cannot create any more sites.`,
+            //         };
+            //     }
+            // }
             try {
                 const origin = 'firealert';
                 const lastUpdated = new Date();
@@ -73,46 +84,6 @@ export const siteRouter = createTRPCRouter({
                     },
                 });
 
-
-                const siteAlertCreationQuery = Prisma.sql`
-                INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
-                SELECT
-                    gen_random_uuid(),
-                    e.type,
-                    TRUE,
-                    e."eventDate",
-                    e."geoEventProviderClientId",
-                    e.confidence,
-                    e.latitude,
-                    e.longitude,
-                    s.id,
-                    e.data,
-                    ST_Distance(ST_SetSRID(e.geometry, 4326), s."detectionGeometry") AS distance
-                FROM
-                    "GeoEvent" e
-                    INNER JOIN "Site" s ON ST_Within(ST_SetSRID(e.geometry, 4326), s."detectionGeometry")
-                        AND s."deletedAt" IS NULL
-                        AND s.id = ${site.id}
-                        AND s."isMonitored" IS TRUE
-                WHERE
-                    e."isProcessed" = TRUE
-                    AND (
-                        e.slice = ANY(array(SELECT jsonb_array_elements_text(slices)))
-                        OR '0' = ANY(array(SELECT jsonb_array_elements_text(slices)))
-                    )
-                    AND NOT EXISTS (
-                        SELECT
-                            1
-                        FROM
-                            "SiteAlert"
-                        WHERE
-                            "SiteAlert"."isProcessed" = FALSE
-                            AND "SiteAlert".longitude = e.longitude
-                            AND "SiteAlert".latitude = e.latitude
-                            AND "SiteAlert"."eventDate" = e."eventDate"
-                    );
-            `;
-                await ctx.prisma.$executeRaw(siteAlertCreationQuery);
                 return {
                     status: "success",
                     data: site,
@@ -133,7 +104,7 @@ export const siteRouter = createTRPCRouter({
 
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
-        .query(async ({ ctx, input }) => {
+        .query(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
                 // Only returns a list of sites if the user has sites with the inputted projectId, else returns not found.
@@ -176,7 +147,7 @@ export const siteRouter = createTRPCRouter({
         }),
 
     getSites: protectedProcedure
-        .query(async ({ ctx }) => {
+        .query(async ({ctx}) => {
             const userId = ctx.user!.id;
             try {
                 const sites = await ctx.prisma.site.findMany({
@@ -217,7 +188,7 @@ export const siteRouter = createTRPCRouter({
 
     getSite: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .query(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
                 await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
@@ -271,7 +242,7 @@ export const siteRouter = createTRPCRouter({
 
     updateSite: protectedProcedure
         .input(updateSiteSchema)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             const site = await checkUserHasSitePermission({ ctx, siteId: input.params.siteId, userId: userId });
             if (!site) {
@@ -281,7 +252,7 @@ export const siteRouter = createTRPCRouter({
                 });
             }
             try {
-                const updatedData = input.body
+                let updatedData = input.body
                 // Initialize data
                 let data: Prisma.SiteUpdateInput = updatedData;
                 // If Site is associated with PlanetRO User then don't allow changes on fields other than radius and isMonitored
@@ -341,7 +312,7 @@ export const siteRouter = createTRPCRouter({
 
     triggerTestAlert: protectedProcedure
         .input(params)
-        .query(async ({ ctx, input }) => {
+        .query(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             const site = await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });
             if (!site) {
@@ -370,9 +341,53 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
+        pauseAlertForSite: protectedProcedure
+            .input(pauseAlertInputSchema)
+            .mutation(async ({ctx, input}) => {
+                try {
+                    // Destructure input parameters, including siteId
+                    const {siteId, duration, unit} = input;
+            
+                    // Calculate the time for the stopAlertUntil field based on unit
+                    const additionFactor = {
+                    minutes: 1000 * 60,
+                    hours: 1000 * 60 * 60,
+                    days: 1000 * 60 * 60 * 24,
+                    };
+            
+                    // Calculate future date based on current time, duration, and unit
+                    const futureDate = new Date(Date.now() + duration * additionFactor[unit]);
+            
+                    // Update specific site's stopAlertUntil field in the database
+                    await ctx.prisma.site.update({
+                        where: { 
+                            id: siteId 
+                        },
+                        data: { 
+                            stopAlertUntil: futureDate 
+                        },
+                    });
+                    // Constructing a readable duration message
+                    const durationUnit = unit === 'minutes' && duration === 1 ? 'minute' :
+                                        unit === 'hours' && duration === 1 ? 'hour' :
+                                        unit === 'days' && duration === 1 ? 'day' : unit;
+
+                    // Respond with a success message including pause duration details
+                    return { 
+                        status: 'success', 
+                        message: `Alert has been successfully paused for the site for ${duration} ${durationUnit}.` 
+                    };
+                } catch (error) {
+                    throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'An error occurred while pausing the alert for the site',
+                    });
+                }
+            }),
+
     deleteSite: protectedProcedure
         .input(params)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             // Check if user is authenticated and not soft deleted
             const userId = ctx.user!.id;
             await checkUserHasSitePermission({ ctx, siteId: input.siteId, userId: userId });

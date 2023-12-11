@@ -11,7 +11,13 @@ import createSiteAlerts from "../../../../src/Services/SiteAlert/CreateSiteAlert
 import { logger } from "../../../../src/server/logger";
 import { type GeoEventProviderClientId } from "../../../Interfaces/GeoEventProvider";
 import { prisma } from "../../../../src/server/db";
+import { type geoEventInterface as GeoEvent } from "../../../Interfaces/GeoEvent"
 
+// This ensures that the alertFetcher Vercel serverless function runs for a maximum of 300 seconds
+// 300s is the maximum allowed duration for Vercel pro plans
+export const config = {
+  maxDuration: 300,
+};
 
 // TODO: Run this cron every 5 minutes
 export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
@@ -71,6 +77,17 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
     logger(`Running Geo Event Fetcher. Taking ${activeProviders.length} eligible providers.`, "info");
 
+      // Define Chunk Size for processGeoEvents
+    const chunkSize = 2000;
+    const chunkArray = (array: GeoEvent[], size: number) => {
+      const chunked = [];
+      let index = 0;
+      while (index < array.length) {
+          chunked.push(array.slice(index, size + index));
+          index += size;
+      }
+      return chunked;
+    }
 
     // Loop for each active provider and fetch geoEvents
     const promises = activeProviders.map(async (provider) => {
@@ -88,11 +105,26 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
         .then(async (geoEvents) => {
           // If there are geoEvents, emit an event to find duplicates and persist them
           logger(`${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`, "info");
+          
 
-          let eventCount = 0;
+          let totalEventCount = 0;
+          let totalNewGeoEvent = 0;
+
           if (geoEvents.length > 0) {
-            eventCount = await processGeoEvents(breadcrumbPrefix, geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEvents)
+            // Split geoEvents into smaller chunks
+            const geoEventChunks = chunkArray(geoEvents, chunkSize);
+            
+            // Process each chunk sequentially
+            for (const geoEventChunk of geoEventChunks) {
+                const processedGeoEvent = await processGeoEvents(breadcrumbPrefix, geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEventChunk);
+                totalEventCount += processedGeoEvent.geoEventCount;
+                totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
+            }
           }
+
+          logger(`${breadcrumbPrefix} Found ${totalNewGeoEvent} new Geo Events`, "info");
+          logger(`${breadcrumbPrefix} Created ${totalEventCount} Geo Events`, "info");
+
 
           // TODO:
           // ----------------

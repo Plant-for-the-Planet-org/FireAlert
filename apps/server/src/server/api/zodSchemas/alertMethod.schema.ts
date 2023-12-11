@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import {z} from 'zod';
 import phone from 'phone'
 import validator from 'validator';
 
@@ -6,26 +6,29 @@ export const createAlertMethodSchema = z.object({
     method: z.enum(["email", "sms", "device", "whatsapp", "webhook"]),
     destination: z.string({
         required_error: 'Destination of alert method must be specified'
-    }).refine((value) => {
-            const sanitized = validator.escape(value);
-            return sanitized === value;
-        }, {
-            message: 'Contains invalid characters',
-        }),
+    }),
     deviceName: z.string().optional(),
     deviceId: z.string().optional(),
 }).refine((obj) => {
-    if (obj.method === 'sms') {
-        // Check if the destination is a valid phone number in E.164 format
-        const { isValid } = phone(obj.destination)
-        return isValid;
+    if(obj.method === 'webhook'){
+        return true;
+    }else{
+        const sanitized = validator.escape(obj.destination);
+        if (sanitized !== obj.destination){
+            return false;
+        }
+        if (obj.method === 'sms') {
+            // Check if the destination is a valid phone number in E.164 format
+            const { isValid } = phone(obj.destination);
+            return isValid;
+        }
+        if (obj.method === 'email') {
+            return z.string().email().safeParse(obj.destination).success;
+        }
+        return true; // Return true for other methods
     }
-    if (obj.method === 'email') {
-        return z.string().email().safeParse(obj.destination).success;
-    }
-    return true; // Return true for other methods
 }, {
-    message: 'Must be a valid phone number in E.164 format when the method is "sms"'
+    message: `Invalid Destination`
 });
 
 export const params = z.object({

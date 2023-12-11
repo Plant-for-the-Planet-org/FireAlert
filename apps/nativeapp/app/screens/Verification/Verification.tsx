@@ -15,8 +15,8 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import {trpc} from '../../services/trpc';
 import {useAppSelector} from '../../hooks';
 import {Colors, Typography} from '../../styles';
-import {CrossIcon, InfoIcon, PasteIcon} from '../../assets/svgs';
 import {validateEmail} from '../../utils/emailVerifier';
+import {CrossIcon, InfoIcon, PasteIcon} from '../../assets/svgs';
 import {CustomButton, FloatingInput, PhoneInput} from '../../components';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -29,6 +29,7 @@ const Verification = ({navigation, route}) => {
   const [isValidNum, setIsValidNum] = useState<boolean>(false);
   const [phoneInput, setPhoneInput] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
+  const [limitDestination, setLimitDestination] = useState<boolean>(false);
   const [verifyingLoader, setVerifyingLoader] = useState<boolean>(false);
 
   const {configData} = useAppSelector(state => state.loginSlice);
@@ -79,6 +80,14 @@ const Verification = ({navigation, route}) => {
       (verificationType === 'Whatsapp' && !isValidNum)
     ) {
       return toast.show('Incorrect Number', {type: 'warning'});
+    }
+    if (verificationType === 'Sms' && limitDestination) {
+      return toast.show(
+        'Destination is restricted due to country limitations',
+        {
+          type: 'warning',
+        },
+      );
     }
     setLoading(true);
     const payload = {
@@ -139,6 +148,8 @@ const Verification = ({navigation, route}) => {
               inputValue={setPhoneInput}
               containerStyle={styles.containerStyle}
               defaultCode={configData?.loc?.countryCode}
+              verificationType={verificationType}
+              destinationFlag={setLimitDestination}
             />
           ) : verificationType === 'Webhook' ? (
             <FloatingInput

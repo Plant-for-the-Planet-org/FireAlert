@@ -98,6 +98,7 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const csv = await response.text();
+
                 const parser = parse(csv, { columns: true });
 
                 const records: GeoEvent[] = [];
@@ -127,7 +128,7 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
         const { apiUrl, bbox } = this.getConfig()
         // const currentDate = new Date().toISOString().split("T")[0];
         // If Date isn't passed API returns most recent data
-        return `${apiUrl}/api/area/csv/${clientApiKey}/${clientId}/${bbox}/1/`;
+        return `${apiUrl}/api/area/csv/${clientApiKey}/${clientId}/${bbox}/1/`
     }
 
     getConfig(): NasaGeoEventProviderConfig {
