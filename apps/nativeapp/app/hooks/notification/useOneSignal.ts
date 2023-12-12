@@ -19,7 +19,10 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
   const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
     retryDelay: 3000,
     onSuccess: data => {
-      if (data?.json?.status === 403) {
+      if (
+        [405, 403].includes(data?.json?.status) ||
+        [405, 403].includes(data?.json?.httpStatus)
+      ) {
         return toast.show(data?.json?.message || 'something went wrong', {
           type: 'warning',
         });

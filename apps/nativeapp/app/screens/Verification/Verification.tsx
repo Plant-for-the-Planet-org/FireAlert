@@ -40,7 +40,10 @@ const Verification = ({navigation, route}) => {
   const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
     retryDelay: 3000,
     onSuccess: data => {
-      if ([405, 403].includes(data?.json?.status)) {
+      if (
+        [405, 403].includes(data?.json?.status) ||
+        [405, 403].includes(data?.json?.httpStatus)
+      ) {
         setLoading(false);
         return toast.show(data?.json?.message || 'something went wrong', {
           type: 'warning',

@@ -1,50 +1,105 @@
 import {
   View,
   Text,
+  Modal,
+  Platform,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from 'react-native';
 import DocumentPicker, {
   isInProgress,
   DocumentPickerResponse,
   DirectoryPickerResponse,
 } from 'react-native-document-picker';
+import Toast from 'react-native-toast-notifications';
 
+import area from '@turf/area';
+import bbox from '@turf/bbox';
 import {DOMParser} from 'xmldom';
 import RNFS from 'react-native-fs';
 import {kml} from '@tmcw/togeojson';
 import gjv from 'geojson-validation';
-import React, {useState} from 'react';
+import rewind from '@mapbox/geojson-rewind';
+import React, {useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
+import {convertArea, point, polygon} from '@turf/helpers';
 import {useToast} from 'react-native-toast-notifications';
 
+import {
+  fileNameExtract,
+  fileExtensionExtract,
+} from '../../utils/fileExtensionExtract';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
-import {CustomButton, FloatingInput} from '../../components';
-import {BackArrowIcon, UploadCloud} from '../../assets/svgs';
-import {fileExtensionExtract} from '../../utils/fileExtensionExtract';
+import {POINT_RADIUS_ARR, RADIUS_ARR} from '../../constants';
+
+import {CustomButton, DropDown, FloatingInput} from '../../components';
+import {BackArrowIcon, CrossIcon, UploadCloud} from '../../assets/svgs';
 
 const PICKER_OPTIONS = {
   presentationStyle: 'pageSheet',
   copyTo: 'documentDirectory',
-  // type: ['application/vnd.google-earth.kml+xml', 'application/json'],
+  // type: ['application/vnd.google-earth.kml+xml', 'application/json','application/geo+json'],
 };
 
 const UploadPolygon = ({navigation}) => {
+  const [fileName, setFileName] = useState<string>('');
   const [siteName, setSiteName] = useState<string>('');
+  const [siteGeometry, setSiteGeometry] = useState<string | null>('');
   const [result, setResult] = useState<
     Array<DocumentPickerResponse> | DirectoryPickerResponse | undefined | null
   >();
   const [validToUpload, setValidToUpload] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [siteRad, setSiteRad] = useState<object | null>({});
+  const [siteNameModalVisible, setSiteNameModalVisible] =
+    useState<boolean>(false);
 
   const toast = useToast();
+  const modalToast = useRef();
+  const queryClient = useQueryClient();
+
+  const _handleViewMap = (siteInfo: object) => {
+    let bboxGeo;
+    let highlightSiteInfo = siteInfo;
+    if (siteInfo?.geometry.type === 'Point') {
+      bboxGeo = bbox(point(siteInfo?.geometry.coordinates));
+    } else {
+      bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
+    }
+    highlightSiteInfo = siteInfo?.geometry;
+    navigation.navigate('Home', {
+      bboxGeo,
+      siteInfo: [
+        {
+          type: 'Feature',
+          geometry: highlightSiteInfo,
+          properties: {site: siteInfo},
+        },
+      ],
+    });
+  };
 
   const postSite = trpc.site.createSite.useMutation({
     retryDelay: 3000,
-    onSuccess: () => {
+    onSuccess: res => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: [...oldData.json.data, res.json.data],
+                },
+              }
+            : null,
+      );
       setLoading(false);
-      navigation.navigate('Home');
+      _handleViewMap(res.json.data);
     },
     onError: () => {
       setLoading(false);
@@ -78,18 +133,25 @@ const UploadPolygon = ({navigation}) => {
   };
 
   const addSiteApi = () => {
-    setLoading(true);
-    const geometry = {
-      type: result?.features[0]?.geometry?.type,
-      coordinates: result?.features[0]?.geometry?.coordinates,
-    };
-    postSite.mutate({
-      json: {
-        geometry,
+    if (siteName.length >= 5) {
+      setLoading(true);
+      const geometry = {
         type: result?.features[0]?.geometry?.type,
-        name: siteName,
-      },
-    });
+        coordinates: result?.features[0]?.geometry?.coordinates,
+      };
+      postSite.mutate({
+        json: {
+          geometry,
+          type: result?.features[0]?.geometry?.type,
+          name: siteName,
+          radius: siteRad?.value,
+        },
+      });
+    } else {
+      modalToast.current.show('Site name must be at least 5 characters long.', {
+        type: 'warning',
+      });
+    }
   };
 
   const handleUploadFile = async () => {
@@ -102,14 +164,12 @@ const UploadPolygon = ({navigation}) => {
         if (gjv.valid(geo)) {
           if (geo?.features?.length === 1) {
             setValidToUpload(true);
-            setSiteName(pickerResult?.name);
+            setFileName(pickerResult?.name);
             setResult(geo);
           } else {
-            console.warn('single polygon can be uploaded');
             toast.show('single polygon can be uploaded', {type: 'warning'});
           }
         } else {
-          console.warn('wrong Json');
           toast.show('file contains wrong Json', {type: 'warning'});
         }
       } else if (fileExtensionExtract(pickerResult?.name) === 'kml') {
@@ -118,19 +178,16 @@ const UploadPolygon = ({navigation}) => {
         if (gjv.valid(converted)) {
           if (converted?.features?.length === 1) {
             setValidToUpload(true);
-            setSiteName(pickerResult?.name);
+            setFileName(pickerResult?.name);
             setResult(converted);
           } else {
-            console.warn('single polygon can be uploaded');
             toast.show('single polygon can be uploaded', {type: 'warning'});
           }
         } else {
-          console.warn('wrong Json');
           toast.show('file contains wrong Json', {type: 'warning'});
         }
       } else {
         setValidToUpload(false);
-        console.log('file not supported');
         toast.show('file not supported', {type: 'warning'});
       }
     } catch (e) {
@@ -138,44 +195,136 @@ const UploadPolygon = ({navigation}) => {
     }
   };
 
+  const handleCloseSiteModal = () => setSiteNameModalVisible(false);
+
+  const handleContinue = () => {
+    setSiteRad(POINT_RADIUS_ARR[3]);
+    if (result?.features[0]?.geometry?.type === 'Polygon') {
+      try {
+        const polygonCoordinates = rewind(
+          result?.features[0].geometry.coordinates,
+        );
+        const areaInHactares = convertArea(
+          area(polygon(polygonCoordinates)),
+          'meters',
+          'hectares',
+        );
+        if (areaInHactares > 1000000) {
+          return toast.show('The area is exceeds 1 million hectares', {
+            type: 'warning',
+          });
+        }
+        setSiteRad(RADIUS_ARR[4]);
+      } catch (e) {
+        if (
+          e?.message ===
+          'Each LinearRing of a Polygon must have 4 or more Positions.'
+        ) {
+          return toast.show('Multi-polygons are not supported', {
+            type: 'warning',
+          });
+        }
+      }
+    }
+    const extractedFileName = fileNameExtract(fileName);
+    setSiteGeometry(result?.features[0]?.geometry?.type);
+    setSiteName(extractedFileName);
+    setSiteNameModalVisible(true);
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={[styles.myProjects, styles.commonPadding]}>
-        <TouchableOpacity onPress={handleBack} style={styles.backIcon}>
-          <BackArrowIcon />
-        </TouchableOpacity>
-        <Text style={styles.mainHeading}>New Site</Text>
-        <View style={styles.uploadImageCon}>
-          <TouchableOpacity
-            onPress={handleUploadFile}
-            style={styles.uploadImageSubCon}>
-            <UploadCloud />
-            <Text style={styles.uploadTxt}>
-              Add <Text style={{color: Colors.DEEP_PRIMARY}}>.geojson</Text> or{' '}
-              <Text style={{color: Colors.DEEP_PRIMARY}}>.kml</Text> file
-            </Text>
+    <>
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.myProjects, styles.commonPadding]}>
+          <TouchableOpacity onPress={handleBack} style={styles.backIcon}>
+            <BackArrowIcon />
           </TouchableOpacity>
+          <Text style={styles.mainHeading}>New Site</Text>
+          <View style={styles.uploadImageCon}>
+            <TouchableOpacity
+              onPress={handleUploadFile}
+              style={styles.uploadImageSubCon}>
+              <UploadCloud />
+              <Text style={styles.uploadTxt}>
+                Add <Text style={{color: Colors.DEEP_PRIMARY}}>.geojson</Text>{' '}
+                or <Text style={{color: Colors.DEEP_PRIMARY}}>.kml</Text> file
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {fileName !== '' && (
+            <View style={styles.form}>
+              <Text style={styles.label}>File Name</Text>
+              <FloatingInput
+                isFloat={false}
+                value={fileName}
+                editable={false}
+                inputStyle={styles.input}
+                onChangeText={setFileName}
+                containerStyle={styles.inputContainer}
+              />
+            </View>
+          )}
         </View>
-        <View style={styles.form}>
-          <Text style={styles.uploadTxt}>Site Name</Text>
-          <FloatingInput
-            isFloat={false}
-            value={siteName}
-            onChangeText={setSiteName}
-            placeholder={'Add site name'}
-            containerStyle={styles.inputContainer}
-          />
-        </View>
-      </View>
-      <CustomButton
-        isLoading={loading}
-        title="Upload Site"
-        onPress={addSiteApi}
-        disabled={!validToUpload}
-        titleStyle={styles.title}
-        style={styles.btnContinueSiteModal}
-      />
-    </SafeAreaView>
+        <CustomButton
+          isLoading={loading}
+          title="Continue"
+          onPress={handleContinue}
+          disabled={!validToUpload}
+          titleStyle={styles.title}
+          style={styles.btnContinueSiteModal}
+        />
+      </SafeAreaView>
+      <Modal visible={siteNameModalVisible} transparent>
+        <KeyboardAvoidingView
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
+          style={styles.siteModalStyle}>
+          <Toast ref={modalToast} offsetBottom={100} duration={2000} />
+          <TouchableOpacity
+            onPress={handleCloseSiteModal}
+            style={styles.crossContainer}>
+            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
+          </TouchableOpacity>
+          <Text
+            style={[
+              styles.heading,
+              styles.commonPadding,
+              styles.marginTop20MarginBottom10,
+            ]}>
+            Enter Site Name
+          </Text>
+          <View style={styles.siteModalStyle}>
+            <View>
+              <FloatingInput
+                autoFocus
+                isFloat={false}
+                value={siteName}
+                label={'Site Name'}
+                onChangeText={setSiteName}
+              />
+              <View style={[styles.commonPadding]}>
+                <DropDown
+                  expandHeight={10}
+                  value={siteRad?.value}
+                  items={
+                    siteGeometry === 'Point' ? POINT_RADIUS_ARR : RADIUS_ARR
+                  }
+                  onSelectItem={setSiteRad}
+                  defaultValue={siteRad?.value}
+                  label={'Notify me if fires occur...'}
+                />
+              </View>
+            </View>
+            <CustomButton
+              title="Upload Site"
+              isLoading={loading}
+              onPress={addSiteApi}
+              titleStyle={styles.title}
+              style={styles.btnContinueSiteModal}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </>
   );
 };
 
@@ -185,6 +334,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'space-between',
+    backgroundColor: Colors.WHITE,
   },
   myProjects: {
     marginTop: 20,
@@ -199,7 +349,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   commonPadding: {
-    paddingHorizontal: 30,
+    paddingHorizontal: 16,
   },
   mainHeading: {
     color: Colors.TEXT_COLOR,
@@ -234,8 +384,17 @@ const styles = StyleSheet.create({
   form: {
     marginTop: 40,
   },
+  label: {
+    color: Colors.GRAY_DEEP,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+  },
+  input: {
+    color: Colors.GRAY_DEEP,
+  },
   inputContainer: {
     width: '100%',
+    marginTop: 8,
   },
   btnContinueSiteModal: {
     position: 'absolute',
@@ -243,5 +402,31 @@ const styles = StyleSheet.create({
   },
   title: {
     color: Colors.WHITE,
+  },
+  siteModalStyle: {
+    flex: 1,
+    backgroundColor: Colors.WHITE,
+  },
+  crossContainer: {
+    width: 25,
+    marginTop: 60,
+    marginHorizontal: 16,
+  },
+  heading: {
+    color: Colors.TEXT_COLOR,
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+  },
+  crossIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.WHITE,
+  },
+  marginTop20MarginBottom10: {
+    marginTop: 20,
+    marginBottom: 10,
   },
 });

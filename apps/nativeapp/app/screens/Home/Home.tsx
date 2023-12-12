@@ -367,7 +367,16 @@ const Home = ({navigation, route}) => {
     if (isEditSite) {
       delete payload.json.body.name;
     }
-    updateSite.mutate(payload);
+    if (siteName?.length >= 5) {
+      updateSite.mutate(payload);
+    } else {
+      modalToast?.current?.show(
+        'Site name must be at least 5 characters long.',
+        {
+          type: 'warning',
+        },
+      );
+    }
   };
 
   const handleDeleteSite = (id: string) => {
@@ -695,7 +704,7 @@ const Home = ({navigation, route}) => {
       />
     </MapboxGL.ShapeSource>
   );
-  console.log(`Selected Site consoled ${JSON.stringify(selectedSite)}`);
+
   return (
     <>
       <MapboxGL.MapView
@@ -871,7 +880,7 @@ const Home = ({navigation, route}) => {
       <BottomSheet
         onBackdropPress={() => setSelectedAlert({})}
         isVisible={Object.keys(selectedAlert).length > 0}>
-        <Toast ref={modalToast} offsetBottom={100} duration={1000} />
+        <Toast ref={modalToast} offsetBottom={100} duration={2000} />
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
           <View style={styles.satelliteInfoCon}>
@@ -1107,6 +1116,7 @@ const Home = ({navigation, route}) => {
         <KeyboardAvoidingView
           {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
+          <Toast ref={modalToast} offsetBottom={100} duration={2000} />
           <TouchableOpacity
             onPress={handleCloseSiteModal}
             style={styles.crossContainer}>
