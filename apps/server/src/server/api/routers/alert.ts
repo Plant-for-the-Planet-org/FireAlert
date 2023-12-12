@@ -1,11 +1,13 @@
 import { TRPCError } from "@trpc/server";
-import { queryAlertSchema } from '../zodSchemas/alert.schema'
+import { queryAlertSchema, createAlertSchema } from '../zodSchemas/alert.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
     publicProcedure,
 } from "../trpc";
 import { getLocalTime, subtractDays } from "../../../utils/date";
+import { GeoEventProvider } from "@prisma/client";
+import { createXXHash3 } from "hash-wasm";
 
 export const alertRouter = createTRPCRouter({
 
@@ -147,6 +149,168 @@ export const alertRouter = createTRPCRouter({
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `Something went wrong!`,
+                });
+            }
+        }),
+    
+        // TODO: Make sure that the siteId must belong to the clientApiKey!
+        // TODO: We need to check if the geoEventProvider is verified or enabled or not! 
+        create: protectedProcedure
+        .input(createAlertSchema)
+        .mutation(async ({ ctx, input }) => {
+            try {
+                const {
+                    siteId,
+                    type,
+                    latitude,
+                    longitude,
+                    eventDate: inputEventDate,
+                    detectedBy: geoEventProviderClientId,
+                    confidence,
+                    ...rest
+                } = input;
+                const geoEventProviderClientApiKey = ctx.req.headers["x-api-key"];
+                
+                // Ensure the user is authenticated
+                //Authentication ensure user is authenticated either with access token or with GeoEventProviderApiKey
+                if (!geoEventProviderClientApiKey && !ctx.user) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: `Missing Authorization header`,
+                    });
+                }
+
+                if (!geoEventProviderClientId) {
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: `Missing Provider Client Id Authorization`,
+                    });
+                }
+
+                // Check whether the User is a GeoEventProviderClient or if the request has a GeoEventProviderApiKey and GeoEventProviderClientId
+                // Logic:
+                // get geoeventprovider from database where clientId = geoEventProviderClientId and (apiKey = geoEventProviderApiKey or userId = user.id)
+                // if no geoeventprovider is found throw error
+                // This logic ensures that either a geoEventProviderClient can continue, or that the one accessing this route must have a correct geoEventProviderClientKey
+
+                let provider: (GeoEventProvider | null) = null;
+
+                // If apiKey exists and is a string
+                if (geoEventProviderClientApiKey && typeof geoEventProviderClientApiKey === 'string') {
+                    // Find provider where clientId and apiKey
+                    provider = await ctx.prisma.geoEventProvider.findFirst({
+                        where: {
+                            clientId: geoEventProviderClientId,
+                            clientApiKey: geoEventProviderClientApiKey,
+                        },
+                    });
+                } else if (ctx.user?.id) {
+                    // Find provider where clientId and userId
+                    provider = await ctx.prisma.geoEventProvider.findFirst({
+                        where: {
+                            clientId: geoEventProviderClientId,
+                            userId: ctx.user?.id,
+                        },
+                    });
+                }
+
+                if (!provider) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: `Provider not found`,
+                    });
+                }
+    
+                if(!provider.isApproved){
+                    throw new TRPCError({
+                        code: "METHOD_NOT_SUPPORTED",
+                        message: `GeoEventProvider is not verified. Verify it first to create alerts.`,
+                    });
+                }
+
+                // Find the userId associated with the provider
+                // Since the provider is either found by using the user's authorization headers, or by using the clientApiKey
+                // This ensures that, there is no difference between a user accessing their own provider, 
+                // or someone else accessing the provider with the clientApiKey (which acts as a password for the provider) 
+                // Then, we can find the provider.userId for that provider.
+                const providerUserId = provider.userId ? provider.userId : ""
+
+                // Get site from the database using siteId and providerUserId; if not found, throw an error
+                const site = await ctx.prisma.site.findUnique({ 
+                    where: { 
+                        id: siteId,
+                        userId: providerUserId,
+                    } 
+                });
+                if (!site) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: `Site Not Found.`,
+                        // Either the site does not exist, or not authorized to access that site.
+                    });
+                }
+
+                // To ensure same data isn't stored twice we will use id as a unique identifier
+                // generated from a hash of latitude, longitude, eventDate, type and x-client-id
+                // This will allow us to store the same event multiple times if it is from different providers
+                // but will not store the same event twice from the same provider
+
+                // Create checksum
+                const hasher = await createXXHash3();
+                hasher.init();  // Reset the hasher
+                const eventDate = inputEventDate ? inputEventDate : new Date();
+                const eventDayIsoString = eventDate.toISOString().split('T')[0]; // Extracting the date portion (YYYY-MM-DD);
+                const checksum = hasher.update(
+                    latitude.toString() +
+                    longitude.toString() +
+                    eventDayIsoString +
+                    type +
+                    geoEventProviderClientId
+                ).digest('hex');
+
+                // Verify if the event already exists
+                const existingSiteAlert = await ctx.prisma.siteAlert.findUnique({ where: { id: checksum } });
+
+                // If the event already exists, send a success message saying the creation process was cancelled
+                // Because the event was already stored in our database.
+                if (existingSiteAlert) {
+                    return {
+                        status: 'success',
+                        message: 'Cancelled. This alert was already present in the database.'
+                    }
+                }
+    
+                // Create SiteAlert
+                const siteAlert = await ctx.prisma.siteAlert.create({
+                    data: {
+                        siteId,
+                        type,
+                        latitude,
+                        longitude,
+                        eventDate: eventDate,
+                        detectedBy: geoEventProviderClientId,
+                        confidence,
+                        ...rest,
+                        isProcessed: false,
+                    },
+                });
+    
+                // Return success message with the created siteAlert
+                return {
+                    status: 'success',
+                    data: siteAlert,
+                };
+            }
+            catch (error) {
+                console.log(error);
+                if (error instanceof TRPCError) {
+                    // If the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // If it's a different type of error, throw a new TRPCError
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `${error}`,
                 });
             }
         }),

@@ -10,11 +10,11 @@ datasource db {
 }
 
 model User {
-    id               String        @id @default(cuid())
-    sub              String?       @unique
+    id               String             @id @default(cuid())
+    sub              String?            @unique
     name             String?
-    email            String        @unique
-    emailVerified    Boolean       @default(false)
+    email            String             @unique
+    emailVerified    Boolean            @default(false)
     detectionMethods Json // ["MODIS","VIIRS","LANDSAT","GEOSTATIONARY"]
     isPlanetRO       Boolean?
     plan             String        @default("basic") //"basic" or "custom"
@@ -22,12 +22,14 @@ model User {
     deletedAt        DateTime?
     isVerified       Boolean?
     lastLogin        DateTime?
-    signupDate       DateTime      @default(now())
-    roles            Role          @default(ROLE_CLIENT)
+    signupDate       DateTime           @default(now())
+    plan             String            @default("basic")
+    roles            Role               @default(ROLE_CLIENT)
     alertMethods     AlertMethod[]
     projects         Project[]
     sites            Site[]
     remoteId         String?
+    GeoEventProvider GeoEventProvider[]
 }
 
 model VerificationRequest {
@@ -104,8 +106,11 @@ model GeoEventProvider {
     clientId       String // LANDSAT_NRT
     fetchFrequency Int?
     isActive       Boolean
+    isApproved     Boolean
     lastRun        DateTime?
     config         Json
+    userId         String?
+    user           User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model GeoEvent {

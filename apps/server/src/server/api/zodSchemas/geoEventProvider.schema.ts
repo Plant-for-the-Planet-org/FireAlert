@@ -1,33 +1,26 @@
 import { z } from "zod";
+import { nameSchema } from "./user.schema";
 import validator from 'validator';
 
-export const sanitizedStringSchema = z.string().refine(value => {
+export const descriptionSchema = z.string().min(5, { message: "Description must be 5 or more characters long" }).max(1000, { message: "Description be 1000 or less characters long" }).refine(value => {
     const sanitized = validator.escape(value);
     return sanitized === value;
 }, {
-message: 'Contains invalid characters',
-});
-
-const GeoEventProviderConfigSchema = z.object({
-    apiUrl: sanitizedStringSchema,
-    mapKey: sanitizedStringSchema,
-    sourceKey: sanitizedStringSchema,
+message: 'Description contains invalid characters',
 });
 
 // Zod Schema for createGeoEventProvider
 export const createGeoEventProviderSchema = z.object({
-    type: z.enum(["fire"]),
-    isActive: z.boolean(),
-    providerKey: z.enum(["FIRMS"]),
-    config: GeoEventProviderConfigSchema,
+    isActive: z.boolean().optional(),
+    name: nameSchema,
+    description: descriptionSchema.optional(),
 });
 
 // Zod Schema for updateGeoEventProvider body
 const UpdateGeoEventProviderBodySchema = z.object({
-    type: z.enum(["fire"]),
     isActive: z.boolean(),
-    providerKey: z.enum(["FIRMS"]),
-    config: GeoEventProviderConfigSchema,
+    name: nameSchema,
+    description: descriptionSchema,
 }).partial();
 
 // Zod Schema for updateGeoEventProvider params
