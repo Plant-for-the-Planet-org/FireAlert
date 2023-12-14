@@ -13,6 +13,11 @@ export const queryAlertSchema = z.object({
     id: idSchema,
 })
 
+export const queryAlertsForSiteSchema = z.object({
+    siteId: idSchema,
+    durationInDays: z.number().optional(),
+});
+
 
 
 
