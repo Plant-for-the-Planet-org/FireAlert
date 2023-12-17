@@ -51,12 +51,19 @@ type NotificationToBeCreated = {
   isDelivered: boolean;
 };
 
+type ActiveAlertMethodCount = {
+  sms: number;
+  whatsapp: number;
+  email: number;
+  [key: string]: number;
+};
+
 const createNotifications = async () => {
-  let totalSiteAlertProcessed = 0;
+  let totalNotificationsCreated = 0;
   try {
     // Initialize
     let notificationsToBeProcessed: NotificationToBeProcessed[] = [];
-    let sitesActive: Record<string, boolean> = {};
+    let sitesActive: Record<string, ActiveAlertMethodCount> = {};
     let processedSiteAlerts: string[] = [];
     let notificationsToBeCreated: NotificationToBeCreated[] = [];
     let sitesToBeUpdated: string[] = [];
@@ -88,10 +95,27 @@ const createNotifications = async () => {
       orderBy: [{ siteId: 'asc' }, { eventDate: 'asc' }]
     });
     
+    //Create a set of unique site IDs
+    const sitesNotInitializedYet = new Set(unprocessedAlerts.map(alert => alert.siteId));
+
     // Process each alert
     for (const alert of unprocessedAlerts) {
       const lastMessageCreated = alert.site.lastMessageCreated;
       const alertMethods = alert.site.user.alertMethods;
+      const siteId = alert.siteId;
+
+      // Initialize or update sitesActive for each unique site
+      if (sitesNotInitializedYet.has(siteId)) {
+        // Initialize sitesActive for this site
+        sitesActive[siteId] = { sms: 0, whatsapp: 0, email: 0, device: Infinity, webhook: Infinity };
+        alertMethods.forEach(method => {
+          if (method.isVerified && method.isEnabled) {
+            sitesActive[siteId][method.method] += 1; // Increment the count of each method
+          }
+        });
+        // Remove the siteId from the set
+        sitesNotInitializedYet.delete(siteId);
+      }
 
       if (alertMethods && alertMethods.length > 0) {
         alertMethods.forEach(alertMethod => {
@@ -112,35 +136,35 @@ const createNotifications = async () => {
     // Create notifications based on conditions
     for (const notification of notificationsToBeProcessed) {
       const siteId = notification.siteId;
-      
-      // Check if the site is active or not
-      // If sitesActive object has the siteId, then, use value from that, else check the value from the data from the database
-      const siteActive = sitesActive[siteId] ?? (!notification.lastMessageCreated || new Date(notification.lastMessageCreated) < new Date(Date.now() - 2 * 60 * 60 * 1000));
-      
-      // Prepare createNotificationData object
-      const createNotificationData: NotificationToBeCreated = {
-        siteAlertId: notification.siteAlertId,
-        alertMethod: notification.alertMethod,
-        destination: notification.destination,
-        isDelivered: false,
-      };
+      const method = notification.alertMethod
 
-      // If the alertMethod method is device or webhook, just create notification
-      if (['device', 'webhook'].includes(notification.alertMethod)) {
-        notificationsToBeCreated.push(createNotificationData);
-      } 
+      // Determine if notification can be created
+      // Check if the site is active or not, then check if the method count is sufficient
+      const isSiteActive = !notification.lastMessageCreated || new Date(notification.lastMessageCreated) < new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const isMethodCountSufficient = sitesActive[siteId][method] > 0;
+      const canCreateNotification = isSiteActive && isMethodCountSufficient;
       
-      // ElseIf the alertMethod method is whatsapp, sms or email,
-        // Then Check whether the site is active before creating notification and making the site inactive  
-      else if (siteActive && ['whatsapp', 'sms', 'email'].includes(notification.alertMethod)) {
+      if (canCreateNotification) {
+        // Prepare createNotificationData object
+        const createNotificationData: NotificationToBeCreated = {
+          siteAlertId: notification.siteAlertId,
+          alertMethod: method,
+          destination: notification.destination,
+          isDelivered: false,
+        };
+    
+        // Add to notificationsToBeCreated array
         notificationsToBeCreated.push(createNotificationData);
-        // Make this site inactive
-        sitesActive[siteId] = false;
-        // Add siteId into the site to be updated list
-        if (!sitesToBeUpdated.includes(siteId)) {
+    
+        // Decrement the method count
+        sitesActive[siteId][method] -= 1;
+    
+        // Add siteId to sitesToBeUpdated for methods other than device and webhook
+        if (['sms', 'whatsapp', 'email'].includes(method) && !sitesToBeUpdated.includes(siteId)) {
           sitesToBeUpdated.push(siteId);
         }
       }
+
     }
     
     // Run Prisma Transaction
@@ -168,12 +192,12 @@ const createNotifications = async () => {
       }
     });
 
-    // Update totalSiteAlertProcessed
-    totalSiteAlertProcessed = processedSiteAlerts.length
+    // Update totalNotificationsCreated
+    totalNotificationsCreated = notificationsToBeCreated.length
   } catch (error) {
     console.log(error);
   }
-  return totalSiteAlertProcessed;
+  return totalNotificationsCreated;
 };
 
 export default createNotifications;
