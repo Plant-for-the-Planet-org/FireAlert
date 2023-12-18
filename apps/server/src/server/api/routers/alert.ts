@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { queryAlertSchema } from '../zodSchemas/alert.schema'
+import { queryAlertSchema, queryAlertsForSiteSchema } from '../zodSchemas/alert.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -150,4 +150,55 @@ export const alertRouter = createTRPCRouter({
                 });
             }
         }),
+    
+        getAlertsForSite: protectedProcedure
+            .input(queryAlertsForSiteSchema)
+            .query(async ({ctx, input}) => {
+                try {
+                    const {siteId, durationInDays} = input;
+                    const duration = durationInDays || 1;
+                    // Get alerts for the site within the duration
+                    const alertsForSite = await ctx.prisma.siteAlert.findMany({
+                        where:{
+                            siteId: siteId,
+                            eventDate: {
+                                gte: new Date(new Date().getTime() - duration * 24 * 60 * 60 * 1000)
+                            }
+                        },
+                        select: {
+                            id: true,
+                            eventDate: true,
+                            type: true,
+                            latitude: true,
+                            longitude: true,
+                            detectedBy: true,
+                            confidence: true,
+                            distance: true,
+                            data: true,
+                        }
+                    });
+                    const returnAlertsForSite = alertsForSite.map((alert) => {
+                        const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
+                        return {
+                            ...alert,
+                            localEventDate: localTime.localDate,
+                            localTimeZone: localTime.timeZone,
+                        }
+                    })
+                    return {
+                        status: 'success',
+                        data: returnAlertsForSite,
+                    };
+                }catch(error){
+                    if (error instanceof TRPCError) {
+                        // if the error is already a TRPCError, just re-throw it
+                        throw error;
+                    }
+                    // if it's a different type of error, throw a new TRPCError
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: `Something went wrong!`,
+                    });
+                }
+            })
 });
