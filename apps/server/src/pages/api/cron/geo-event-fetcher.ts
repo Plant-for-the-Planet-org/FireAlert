@@ -159,17 +159,19 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   // let notificationCount;
   //if (newSiteAlertCount > 0) {
-  const notificationCount = await createNotifications();
-  logger(`Added ${notificationCount} notifications for ${newSiteAlertCount} alerts`, "info");
+
+  // const notificationCount = await createNotifications();
+  // logger(`Added ${notificationCount} notifications for ${newSiteAlertCount} alerts`, "info");
+
   // }
   // else {
   //   logger(`All done. ${newSiteAlertCount} Alerts. No new notifications. Waving Goodbye!`, "info");
   // }
 
   res.status(200).json({
-    message: "Cron job executed successfully",
+    message: "Geo-event-fetcher Cron job executed successfully",
     alertsCreated: newSiteAlertCount,
-    notificationCount: notificationCount,
+    // notificationCount: notificationCount,
     processedProviders: processedProviders,
     status: 200
   });
