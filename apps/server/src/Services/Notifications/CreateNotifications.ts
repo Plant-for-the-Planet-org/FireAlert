@@ -1,37 +1,42 @@
 import {prisma} from '../../server/db';
 
 // Logic in Prisma:
-// Initialize an empty array → `notificationDataQueue`
-// Initialize an empty object →  `notificationMethodCounter` with type→ `{siteId1: Boolean, siteId2: Boolean, …}`
-// Initialize an empty array → `processedSiteAlerts`
-// Initialize an empty array → `notificationsToBeCreated`
+// Initialize an empty array → `notificationDataQueue` -> Queue for holding data required for conditional notification creation
+// Initialize an empty object →  `notificationMethodCounter` with type→ `{siteId1: {'sms':number, 'webhook':number, ...}, siteId2: {...}, …}` -> Tracks count of notification methods (email, whatsapp, sms) available for each site
+// Initialize an empty array → `processedSiteAlerts` -> Stores IDs of site alerts that have been processed
+// Initialize an empty array → `notificationsToBeCreated` -> Holds notifications that are pending creation
 // Initialize an empty array → `sitesToBeUpdated`
 // Initialize an empty array → `siteAlertsToBeUpdated`
 
-// Get all unprocessed alerts, Order them by siteId and eventDate, (eventDate must be oldest first)
-
-// For each alert
-  // Get the `site.lastMessageCreated` connected with this alert
-  //Get all alertMethods connected with this alert
-  //If there are more than 1 alertMethod:
-    // For each alertMethod
-      // If alertMethod.isVerified and alertMethod.isEnabled is true
-        // append the object `{siteAlertId, lastMessageCreated:site.lastMessageCreated, alertMethod: alertMethod.method, destination: alertMethod.destination}` to `notificationDataQueue` array.
-  // Append siteAlertId to `processedSiteAlerts` array
-
-// For each `notificationDataQueue`:
-  // If alertMethod is “webhook” and “device”
-    // Append create-notification object to `notificationsToBeCreated` array
-  // If the alertMethod is “whatsapp”, “sms” or “email”
-    // If `site.lastMessageCreated > 2 hours ago` 
-      // `notificationMethodCounter["siteId"] == false`
-    // If `site.lastMessageCreated < 2 hours ago OR is null` and `notificationMethodCounter["siteId"] == true`
-      // Append create-notification object to `notificationsToBeCreated` array
-      // `notificationMethodCounter[’siteId’] = false` // This makes the site inactive, meaning no more SMS WhatsApp or email for this site will be sent
-      // If siteId is not in sitesToBeUpdated array
-        // Append siteId in `sitesToBeUpdated` array
-
 // Run this Prisma Transaction:
+  // Get all unprocessed alerts, Order them by siteId and eventDate, (eventDate must be oldest first)
+
+  // Map a set of unique site IDs from unprocessed alerts
+
+  // Process each alert from unprocessedAlerts:
+  // For each alert:
+    // Retrieve the 'lastMessageCreated' time and alertMethods for the site associated with the alert
+    // Check if the siteId of the alert is in the uniqueSiteIdsForNewSiteAlerts set
+      // If yes, initialize the notificationMethodCounter for this site with the count of each method (email, whatsapp, sms, device, webhook)
+        // For each alertMethod:
+          // If the method is verified and enabled, increment its count in the notificationMethodCounter
+        // Remove the siteId from the set to avoid re-initialization for the same site
+    // For each verified and enabled alertMethod:
+      // Create an object containing necessary data for notification creation
+      // Append this object to the notificationDataQueue
+    // Add the siteAlertId to the processedSiteAlerts array, marking the alert as processed
+
+  // For each notification in the notificationDataQueue:
+    // Determine if the notification can be created by checking two conditions:
+    // 1. If the site is 'active', determined by whether the last message was created over 2 hours ago or is null
+    // 2. If the count for the specific notification method is sufficient (greater than zero) as per notificationMethodCounter
+    // If both conditions are met:
+      // Prepare the data object for creating the notification
+      // Add the notification data to the notificationsToBeCreated array
+      // Decrement the count for this notification method in notificationMethodCounter
+      // For methods other than 'device' and 'webhook', if the site hasn't been added to sitesToBeUpdated yet, add it
+      // This addition implies the site's lastMessageCreated time will be updated, reflecting the most recent notification
+
   // Bulk update sites in `sitesToBeUpdated` as lastMessageCreated = now()
   // Bulk update siteAlerts in `processedSiteAlerts` as isProcessed = true
   // Bulk create notifications using `notificationsToBeCreated`  
@@ -107,7 +112,7 @@ const createNotifications = async () => {
       let notificationsToBeCreated: NotificationToBeCreated[] = [];
       let sitesToBeUpdated: string[] = [];
 
-      //Create a set of unique site IDs
+      // Create a set of unique site IDs from unprocessed alerts
       const uniqueSiteIdsForNewSiteAlerts = new Set(unprocessedAlerts.map(alert => alert.siteId));
 
       // Process each alert
