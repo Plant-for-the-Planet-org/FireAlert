@@ -115,11 +115,11 @@ const createNotifications = async () => {
       // Create a set of unique site IDs from unprocessed alerts
       const uniqueSiteIdsForNewSiteAlerts = new Set(unprocessedAlerts.map(alert => alert.siteId));
 
-      // Process each alert
-      for (const alert of unprocessedAlerts) {
-        const lastMessageCreated = alert.site.lastMessageCreated;
-        const alertMethods = alert.site.user.alertMethods;
-        const siteId = alert.siteId;
+      // Process each siteAlert
+      for (const siteAlert of unprocessedAlerts) {
+        const lastMessageCreated = siteAlert.site.lastMessageCreated;
+        const alertMethods = siteAlert.site.user.alertMethods;
+        const siteId = siteAlert.siteId;
 
         // Initialize or update notificationMethodCounter for each unique site
         if (uniqueSiteIdsForNewSiteAlerts.has(siteId)) {
@@ -138,8 +138,8 @@ const createNotifications = async () => {
           alertMethods.forEach(alertMethod => {
             if (alertMethod.isVerified && alertMethod.isEnabled) {
               notificationDataQueue.push({
-                siteAlertId: alert.id,
-                siteId: alert.siteId,
+                siteAlertId: siteAlert.id,
+                siteId: siteAlert.siteId,
                 lastMessageCreated,
                 alertMethod: alertMethod.method,
                 destination: alertMethod.destination
@@ -147,7 +147,7 @@ const createNotifications = async () => {
             }
           });
         }
-        processedSiteAlerts.push(alert.id);
+        processedSiteAlerts.push(siteAlert.id);
       }
 
       // Create notifications based on conditions
