@@ -101,20 +101,21 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     // We do not manually delete siteAlert or notification during cleanup, 
     // as we will need these data in the future for further analysis
 
-    // // item 5:
-    // // Delete all Notifications that are more than 30 days old
-    // promises.push(prisma.notification.deleteMany({
-    //     where: {
-    //         sentAt: {
-    //             lte: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
-    //         },
-    //     }
-    // }));
+    // item 5:
+    // Delete all VerificationRequests that have been soft-deleteted for longer than 7 days
+    promises.push(prisma.verificationRequest.deleteMany({
+        where: {
+            expires: {
+                lt: new Date()
+            }
+        }
+    }));
+
 
     
     try {
 
-        const [deletedGeoEvents, deletedUsers, deletedSites, deletedAlertMethods] =
+        const [deletedGeoEvents, deletedUsers, deletedSites, deletedAlertMethods, deletedVeificationRequests] =
             await Promise.all(promises);
         
         logger(`
@@ -122,6 +123,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                 Deleted ${deletedUsers.count} users who've requested to be deleted and have deletedAt date older than 7 days
                 Deleted ${deletedSites.count} soft-deleted Sites
                 Deleted ${deletedAlertMethods.count} soft-deleted AlertMethods
+                Deleted ${deletedVeificationRequests.count} expired VerificationRequests
                 `, 'info');
 
         res.status(200).json({
