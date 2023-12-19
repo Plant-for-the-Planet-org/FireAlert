@@ -43,8 +43,8 @@ const FloatingInput = props => {
 
   const inputStyles = [
     styles.input,
-    inputStyle,
     {color: errors ? Colors.ALERT : Colors.BLACK},
+    inputStyle,
     verifier && styles.verifierInput,
   ];
 

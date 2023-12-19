@@ -15,6 +15,7 @@ import bbox from '@turf/bbox';
 import {point} from '@turf/helpers';
 import MapboxGL from '@rnmapbox/maps';
 import {SvgXml} from 'react-native-svg';
+import Toast from 'react-native-toast-notifications';
 import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
 import React, {useContext, useEffect, useRef, useState} from 'react';
@@ -99,6 +100,7 @@ const SelectLocation = ({navigation}) => {
   const camera = useRef<MapboxGL.Camera | null>(null);
 
   const toast = useToast();
+  const modalToast = useRef();
   const queryClient = useQueryClient();
   useFetchSites({enabled: enableGetFireAlerts});
 
@@ -259,8 +261,12 @@ const SelectLocation = ({navigation}) => {
   };
 
   const handleSiteModalContinue = () => {
-    if (siteName !== '') {
+    if (siteName?.length >= 5) {
       onSelectLocation();
+    } else {
+      modalToast.current.show('Site name must be at least 5 characters long.', {
+        type: 'warning',
+      });
     }
   };
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
@@ -402,6 +408,7 @@ const SelectLocation = ({navigation}) => {
         <KeyboardAvoidingView
           {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
+          <Toast ref={modalToast} offsetBottom={100} duration={2000} />
           <TouchableOpacity
             onPress={handleCloseSiteModal}
             style={styles.crossContainer}>

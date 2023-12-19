@@ -1,4 +1,5 @@
 import React, {
+  useRef,
   useMemo,
   useState,
   useEffect,
@@ -24,6 +25,7 @@ import bbox from '@turf/bbox';
 import rewind from '@mapbox/geojson-rewind';
 import OneSignal from 'react-native-onesignal';
 import DeviceInfo from 'react-native-device-info';
+import Toast from 'react-native-toast-notifications';
 import {useQueryClient} from '@tanstack/react-query';
 import LinearGradient from 'react-native-linear-gradient';
 import {useToast} from 'react-native-toast-notifications';
@@ -103,10 +105,9 @@ const Settings = ({navigation}) => {
   );
 
   const toast = useToast();
-  // const dispatch = useAppDispatch();
+  const modalToast = useRef();
   const queryClient = useQueryClient();
   const {openModal} = useContext(BottomBarContext);
-  // const {userDetails} = useAppSelector(state => state.loginSlice);
 
   const {
     data: sites,
@@ -426,7 +427,13 @@ const Settings = ({navigation}) => {
     if (isEditSite) {
       delete payload.json.body.name;
     }
-    updateSite.mutate(payload);
+    if (siteName?.length >= 5) {
+      updateSite.mutate(payload);
+    } else {
+      modalToast.current.show('Site name must be at least 5 characters long.', {
+        type: 'warning',
+      });
+    }
   };
 
   const handleAddEmail = () => {
@@ -1386,6 +1393,7 @@ const Settings = ({navigation}) => {
           <KeyboardAvoidingView
             {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
             style={styles.siteModalStyle}>
+            <Toast ref={modalToast} offsetBottom={100} duration={2000} />
             <TouchableOpacity
               onPress={handleCloseSiteModal}
               style={styles.crossContainer}>
