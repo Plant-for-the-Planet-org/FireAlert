@@ -11,6 +11,26 @@ export const config = {
     maxDuration: 60,
 };
 
+// Function to get unique values after combining two arrays
+function getUniqueValuesInTwoArrays(array1:string[], array2:string[]) {
+    const combinedArray = [...array1, ...array2];
+    return Array.from(new Set(combinedArray));
+}
+
+
+// Function to update or create stats data
+async function updateOrCreateStats(metric:string, count:number) {
+    await prisma.stats.upsert({
+        where: { metric: metric },
+        update: { count: { increment: count } },
+        create: {
+            metric: metric,
+            count: count,
+            lastUpdated: new Date(),
+        },
+    });
+}
+
 // This cron will also help with GDPR compliance and data retention.
 
 export default async function dbCleanup(req: NextApiRequest, res: NextApiResponse) {
@@ -24,107 +44,127 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
         }
     }
 
-    const promises = [];
+    let total_delCount_user = 0;
+    let total_delCount_site = 0;
+    let total_delCount_alertMethod = 0;
+    let total_delCount_siteAlert = 0;
+    let total_delCount_notification = 0;
+    let total_delCount_geoEvents = 0;
+    let total_delCount_verificationRequest = 0;
 
-    // Since our database follows cascade-on-delete constraint, when a User is deleted, 
-    // it will cascade delete AlertMethod, Site, and Project. 
-    // Also, deleting a Site will cascade delete SiteAlert, 
-    // and deleting a SiteAlert will cascade delete Notification, so the db-cleanup follows this order
-    // to optimize the cleanup process.
-
-    // item 1:
-    // delete all geo events that are older than 30 days and have been processed
-    promises.push(prisma.geoEvent.deleteMany({
-        where: {
-            isProcessed: true,
-            eventDate: {
-                lt: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
-            }
-        }
-    }));
-
-    // item 2:
-    // Delete all users who've requested to be deleted and have deletedAt date older than 7 days
-    // Send sendAccountDeletionConfirmationEmail to all users who qualify for deletion,
-    // and then delete them immediately
-    const usersToBeDeleted =
-        await prisma.user.findMany({
-            where: {
-                deletedAt: {
-                    lt: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
-                }
-            }
-        });
-
-    // Send email to all users who qualify for deletion
-    for (const user of usersToBeDeleted) {
-        await sendAccountDeletionConfirmationEmail(user);
-
-        // Note that we aren't deleting Auth0 Accounts using FireAlert. We should likely delete it if there is no remoteID set.
-        // Let's leave this as TODO for now.
-        // We have a n8n worker that deletes Auth0 accounts if sub is provided.
-
-        logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info',);
-    }
-
-
-    // Delete all users who qualify for deletion
-    promises.push(prisma.user.deleteMany({
-        where: {
-            deletedAt: {
-                lt: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
-            }
-        }
-    }));
-
-    // item 3:
-    // Delete all Sites that have been soft-deleted and have deletedAt date older than 30 days and doesn't have a remoteId
-    promises.push(prisma.site.deleteMany({
-        where: {
-            deletedAt: {
-                lte: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
-            },
-            remoteId: null
-        }
-    }));
-
-    // item 4:
-    // Delete all AlertMethods that have been soft-deleteted for longer than 7 days
-    promises.push(prisma.alertMethod.deleteMany({
-        where: {
-            deletedAt: {
-                lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
-            }
-        }
-    }))
-
-    // We do not manually delete siteAlert or notification during cleanup, 
-    // as we will need these data in the future for further analysis
-
-    // item 5:
-    // Delete all VerificationRequests that have been soft-deleteted for longer than 7 days
-    promises.push(prisma.verificationRequest.deleteMany({
-        where: {
-            expires: {
-                lt: new Date()
-            }
-        }
-    }));
-
-
-    
     try {
+        await prisma.$transaction(async (prisma) => {
 
-        const [deletedGeoEvents, deletedUsers, deletedSites, deletedAlertMethods, deletedVeificationRequests] =
-            await Promise.all(promises);
+            let userCleanupDeletion_Ids: string[] = [];
+            let siteCleanupDeletion_Ids: string[] = [];
+            let alertMethodCleanupDeletion_Ids: string[] = [];
         
+            let alertMethodCascadeDeletion_Ids: string[] = [];
+            let siteCascadeDeletion_Ids: string[] = [];
+
+            // Getting users to be deleted with their associated alertMethods and sites
+            const usersToBeDeleted = await prisma.user.findMany({
+                where: {
+                    deletedAt: {
+                        lt: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
+                    }
+                },
+                include: {
+                    alertMethods: true,
+                    sites: true
+                }
+            });
+
+            // Process each user for deletion
+            usersToBeDeleted.forEach(async user => {
+                user.alertMethods.forEach(alertMethod => {
+                    alertMethodCascadeDeletion_Ids.push(alertMethod.id);
+                });
+                const siteAlertPromises = user.sites.map(async site => {
+                    siteCascadeDeletion_Ids.push(site.id);
+            
+                    // Counting cascade-deleted siteAlerts and notifications for each site
+                    const siteAlerts = await prisma.siteAlert.findMany({
+                        where: { siteId: site.id },
+                        include: { notifications: true }
+                    });
+            
+                    siteAlerts.forEach(siteAlert => {
+                        total_delCount_siteAlert++;
+                        total_delCount_notification += siteAlert.notifications.length;
+                    });
+                });
+            
+                await Promise.all(siteAlertPromises);
+
+                // Adding user ID for deletion count
+                userCleanupDeletion_Ids.push(user.id);
+                sendAccountDeletionConfirmationEmail(user);
+                logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info',);
+            });
+
+            // Fetching expired site and alertMethod IDs
+            siteCleanupDeletion_Ids = (await prisma.site.findMany({
+                where: { deletedAt: { lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000) } },
+                select: { id: true }
+            })).map(site => site.id);
+
+            alertMethodCleanupDeletion_Ids = (await prisma.alertMethod.findMany({
+                where: { deletedAt: { lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000) } },
+                select: { id: true }
+            })).map(am => am.id);
+
+            total_delCount_site = getUniqueValuesInTwoArrays(siteCleanupDeletion_Ids, siteCascadeDeletion_Ids).length;
+            total_delCount_alertMethod = getUniqueValuesInTwoArrays(alertMethodCleanupDeletion_Ids, alertMethodCascadeDeletion_Ids).length;
+
+
+            // Calculating deletion counts
+            total_delCount_user = userCleanupDeletion_Ids.length;
+            
+            // Performing user, site and alertMethod deletions
+            await prisma.user.deleteMany({ where: { id: { in: userCleanupDeletion_Ids } } });
+            await prisma.site.deleteMany({ where: { id: { in: siteCleanupDeletion_Ids } } });
+            await prisma.alertMethod.deleteMany({ where: { id: { in: alertMethodCleanupDeletion_Ids } } });
+            // Deleting old geoEvents and expired verificationRequests
+            const deletedGeoEvents = await prisma.geoEvent.deleteMany({
+                where: {
+                    eventDate: {
+                        lt: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
+                    }
+                }
+            });
+            total_delCount_geoEvents = deletedGeoEvents.count
+
+            const deletedVeificationRequests = await prisma.verificationRequest.deleteMany({
+                where: {
+                    expires: {
+                        lt: new Date()
+                    }
+                }
+            });
+            total_delCount_verificationRequest = deletedVeificationRequests.count
+
+            // Update stats table
+            await updateOrCreateStats('users_deleted', total_delCount_user);
+            await updateOrCreateStats('sites_deleted', total_delCount_site);
+            await updateOrCreateStats('alertMethods_deleted', total_delCount_alertMethod);
+            await updateOrCreateStats('siteAlerts_deleted', total_delCount_siteAlert);
+            await updateOrCreateStats('notifications_deleted', total_delCount_notification);
+            await updateOrCreateStats('geoEvents_deleted', total_delCount_geoEvents);
+            await updateOrCreateStats('verificationRequests_deleted', total_delCount_verificationRequest);
+        });
+        // End of Prisma Transaction
+
+        // Logging deletion counts
         logger(`
-                Deleted ${deletedGeoEvents.count} geo events that are older than 30 days and have been processed
-                Deleted ${deletedUsers.count} users who've requested to be deleted and have deletedAt date older than 7 days
-                Deleted ${deletedSites.count} soft-deleted Sites
-                Deleted ${deletedAlertMethods.count} soft-deleted AlertMethods
-                Deleted ${deletedVeificationRequests.count} expired VerificationRequests
-                `, 'info');
+            Deleted ${total_delCount_geoEvents} geo events
+            Deleted ${total_delCount_user} users
+            Deleted ${total_delCount_site} sites
+            Deleted ${total_delCount_alertMethod} alert methods
+            Deleted ${total_delCount_verificationRequest} expired verification requests
+            Cascade Deleted ${total_delCount_siteAlert} site alerts
+            Cascade Deleted ${total_delCount_notification} notifications
+        `, 'info');
 
         res.status(200).json({
             message: "Success! Db is as clean as a whistle!",
