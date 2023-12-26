@@ -54,6 +54,10 @@ export const siteRouter = createTRPCRouter({
                     radius = input.radius;
                 }
 
+                if (input.type === 'MultiPolygon'){
+                    // Create many Site Polygons For this site
+                }
+
                 const site = await ctx.prisma.site.create({
                     data: {
                         origin: origin,
@@ -266,6 +270,10 @@ export const siteRouter = createTRPCRouter({
                         });
                     }
                     data = rest;
+                }
+                // If MultiPolygon then separate it into Polygon
+                if(updatedData.type === 'MultiPolygon'){
+                    // Separate Into Polygons
                 }
                 // Update the site using the modified data object
                 const updatedSite = await ctx.prisma.site.update({
