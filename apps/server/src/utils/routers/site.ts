@@ -6,6 +6,88 @@ import {
 import {type Site, SiteAlert, AlertConfidence} from '@prisma/client';
 import {prisma} from '../../../src/server/db';
 
+export type MultiPolygonInfo = {
+  name: string;
+  numberOfPolygons: number
+}
+
+export type UserInfo = {
+  email: string;
+  name: string | null;
+  multiPolygon: MultiPolygonInfo[]
+}
+
+type Coordinate = [number, number]; // A pair representing longitude and latitude
+type LinearRing = Coordinate[]; // A LinearRing is an array of Coordinates
+type PolygonCoordinates = LinearRing[]; // Array of LinearRings
+type MultiPolygonCoordinates = PolygonCoordinates[]; // Array of PolygonCoordinates for a MultiPolygon
+
+export type MultiPolygonGeometry = {
+  type: string; // Should be 'MultiPolygon'
+  coordinates: MultiPolygonCoordinates; // Array of arrays of LinearRings
+};
+type PolygonGeometry = {
+  type: string; // Should be 'Polygon'
+  coordinates: PolygonCoordinates; // Array of LinearRings
+};
+
+export type CreatePolygonSiteData = {
+  origin: string;
+  type: 'Polygon';
+  name: string;
+  geometry: PolygonGeometry;
+  radius: number;
+  isMonitored: boolean;
+  userId: string;
+  lastUpdated: Date;
+  projectId?: string;
+  remoteId?: string;
+}
+
+export type SiteCreationParams = {
+  origin: string;
+  name?: string | null; // name can be optional or null
+  radius?: number | null; // radius can be optional or null
+  isMonitored?: boolean | null; // isMonitored can be optional or null
+  userId: string;
+  lastUpdated?: Date | null; // lastUpdated can be optional or null
+  projectId?: string | null; // projectId can be optional or null
+  remoteId?: string | null; // remoteId can be optional or null
+};
+
+
+
+export function createPolygonSitesFromMultiPolygon(siteCreationParams: SiteCreationParams, multiPolygonGeometry: MultiPolygonGeometry): CreatePolygonSiteData[] {
+  const { origin, name, radius, isMonitored, userId, lastUpdated, projectId, remoteId } = siteCreationParams;
+  let siteQueue: CreatePolygonSiteData[] = [];
+  let siteIndex = 1;
+
+  for (const polygon of multiPolygonGeometry.coordinates) {
+      const polygonGeometry = {
+          type: 'Polygon',
+          coordinates: polygon
+      };
+
+      const newSiteData: CreatePolygonSiteData = {
+          origin,
+          type: 'Polygon',
+          name: `Site ${siteIndex} ${name || ''}`, // Using an empty string if name is not provided
+          geometry: polygonGeometry,
+          radius: radius || 0, // Default to 0 if radius is not provided
+          isMonitored: isMonitored ?? true, // Default to true if isMonitored is not provided
+          userId: userId,
+          lastUpdated: lastUpdated || new Date(),
+          ...projectId ? { projectId } : {}, // Include projectId only if provided
+          ...remoteId ? { remoteId } : {} // Include remoteId only if provided
+      };
+
+      siteQueue.push(newSiteData);
+      siteIndex++;
+  }
+
+  return siteQueue;
+}
+
 // Compares the User in session or token with the Site that is being Read, Updated or Deleted
 export const checkUserHasSitePermission = async ({
   ctx,
