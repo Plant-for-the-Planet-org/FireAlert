@@ -341,49 +341,49 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-        pauseAlertForSite: protectedProcedure
-            .input(pauseAlertInputSchema)
-            .mutation(async ({ctx, input}) => {
-                try {
-                    // Destructure input parameters, including siteId
-                    const {siteId, duration, unit} = input;
+    pauseAlertForSite: protectedProcedure
+        .input(pauseAlertInputSchema)
+        .mutation(async ({ctx, input}) => {
+            try {
+                // Destructure input parameters, including siteId
+                const {siteId, duration, unit} = input;
             
-                    // Calculate the time for the stopAlertUntil field based on unit
-                    const additionFactor = {
-                    minutes: 1000 * 60,
-                    hours: 1000 * 60 * 60,
-                    days: 1000 * 60 * 60 * 24,
-                    };
+                // Calculate the time for the stopAlertUntil field based on unit
+                const additionFactor = {
+                minutes: 1000 * 60,
+                hours: 1000 * 60 * 60,
+                days: 1000 * 60 * 60 * 24,
+                };
             
-                    // Calculate future date based on current time, duration, and unit
-                    const futureDate = new Date(Date.now() + duration * additionFactor[unit]);
+                // Calculate future date based on current time, duration, and unit
+                const futureDate = new Date(Date.now() + duration * additionFactor[unit]);
             
-                    // Update specific site's stopAlertUntil field in the database
-                    await ctx.prisma.site.update({
-                        where: { 
-                            id: siteId 
-                        },
-                        data: { 
-                            stopAlertUntil: futureDate 
-                        },
-                    });
-                    // Constructing a readable duration message
-                    const durationUnit = unit === 'minutes' && duration === 1 ? 'minute' :
-                                        unit === 'hours' && duration === 1 ? 'hour' :
-                                        unit === 'days' && duration === 1 ? 'day' : unit;
+                // Update specific site's stopAlertUntil field in the database
+                await ctx.prisma.site.update({
+                    where: { 
+                        id: siteId 
+                    },
+                    data: { 
+                        stopAlertUntil: futureDate 
+                    },
+                });
+                // Constructing a readable duration message
+                const durationUnit = unit === 'minutes' && duration === 1 ? 'minute' :
+                                    unit === 'hours' && duration === 1 ? 'hour' :
+                                    unit === 'days' && duration === 1 ? 'day' : unit;
 
-                    // Respond with a success message including pause duration details
-                    return { 
-                        status: 'success', 
-                        message: `Alert has been successfully paused for the site for ${duration} ${durationUnit}.` 
-                    };
-                } catch (error) {
-                    throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: 'An error occurred while pausing the alert for the site',
-                    });
-                }
-            }),
+                // Respond with a success message including pause duration details
+                return { 
+                    status: 'success', 
+                    message: `Alert has been successfully paused for the site for ${duration} ${durationUnit}.` 
+                };
+            } catch (error) {
+                throw new TRPCError({
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'An error occurred while pausing the alert for the site',
+                });
+            }
+        }),
 
     deleteSite: protectedProcedure
         .input(params)
@@ -409,7 +409,9 @@ export const siteRouter = createTRPCRouter({
                         deletedAt: new Date(),
                     }
                 });
-
+                // SiteAlert is automatically cascade deleted during db-cleanup, when the site gets permanently deleted,
+                // However, notifications are still created when siteAlert is not marked as soft-deleted
+                // Therefore, SiteAlerts need to be soft-deleted, as we want to stop creating notifications for soft-deleted sites
                 await ctx.prisma.siteAlert.updateMany({
                     where: {
                         siteId: input.siteId,
