@@ -8,7 +8,7 @@ import { sendAccountDeletionConfirmationEmail } from "../../../../src/utils/noti
 
 // Run this cron every day once for max 60s.
 export const config = {
-    maxDuration: 60,
+    maxDuration: 300,
 };
 
 // Function to get unique values after combining two arrays
