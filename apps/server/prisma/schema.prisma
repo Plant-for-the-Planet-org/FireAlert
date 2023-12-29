@@ -151,6 +151,14 @@ model Notification {
     isDelivered Boolean   @default(false)
 }
 
+model Stats {
+    id           String   @id @default(cuid())
+    metric       String   @unique
+    count        Int
+    lastUpdated  DateTime 
+}
+
+
 enum Role {
     ROLE_CLIENT
     ROLE_ADMIN
