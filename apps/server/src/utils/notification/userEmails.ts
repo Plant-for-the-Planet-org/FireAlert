@@ -59,10 +59,11 @@ const sendSoftDeletionEmail = async (user: User): Promise<boolean> => {
 
 // Send email to user when user's account is deleted
 const sendAccountDeletionConfirmationEmail = async (
-  user: User,
+  email: string,
+  name: string
 ): Promise<boolean> => {
   const params: NotificationParameters = {
-    message: `<p>Dear ${getName(user)},</p>
+    message: `<p>Dear ${name},</p>
   
       <p>We're writing to confirm that your FireAlert account has been successfully deleted. We're sad to see you go.</p>
       
@@ -77,7 +78,7 @@ const sendAccountDeletionConfirmationEmail = async (
       <p>Best,<br>The FireAlert Team</p>`,
     subject: 'FireAlert Account Deletion Confirmation',
   };
-  return await sendEmail(user.email, params);
+  return await sendEmail(email, params);
 };
 
 // Send email to user when user cancels account deletion because of Login

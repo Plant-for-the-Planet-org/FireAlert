@@ -6,6 +6,7 @@ import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { sendAccountDeletionConfirmationEmail } from "../../../../src/utils/notification/userEmails";
 
+
 // Run this cron every day once for max 60s.
 export const config = {
     maxDuration: 300,
@@ -17,7 +18,6 @@ function getUniqueValuesInTwoArrays(array1: string[], array2: string[]) {
     const combinedArray = [...array1, ...array2];
     return Array.from(new Set(combinedArray));
 }
-
 
 // Function to update or create stats data
 async function updateOrCreateStats(metric: string, count: number) {
@@ -110,6 +110,8 @@ async function cleanup_User_Site_AlertMethod_SiteAlert_and_Notification() {
         },
         select: {
             id: true,
+            email: true,
+            name: true,
             alertMethods: {
                 select: {
                     id: true
@@ -162,7 +164,8 @@ async function cleanup_User_Site_AlertMethod_SiteAlert_and_Notification() {
 
         // Adding user ID for deletion count
         userCleanupDeletion_Ids.push(user.id);
-        sendAccountDeletionConfirmationEmail(user);
+        const name = user.name || ""
+        sendAccountDeletionConfirmationEmail(user.email, name);
         logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info',);
     }
 
