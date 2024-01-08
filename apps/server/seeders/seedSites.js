@@ -1,20 +1,5 @@
-import {prisma} from '../src/server/db';
+import { prisma } from '../src/server/db';
 
-// Function to calculate the distance between two points using the Haversine formula
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Radius of the Earth in kilometers
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  return distance;
-}
 
 // Function to generate the GeoJSON polygon
 function generatePolygon(latitude, longitude, maxDistance, vertices) {
@@ -46,47 +31,62 @@ function getRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Function to extract random 5% of records from the GeoEvent table and create Site records
-async function extractAndCreateSites() {
-  const totalRecords = await prisma.geoEvent.count(); // Get the total number of records in the GeoEvent table
-  const randomRecordsCount = Math.ceil((totalRecords * 5) / 100); // Calculate 5% of the total records
+export async function seedSites(totalUsers, batchSize = 500) {
+  const totalSites = totalUsers*5
+  const filePath = __dirname + '/data/GeoEvents.csv';
+  let siteId = 1;
+  let batch = [];
 
-  const randomRecords = await prisma.geoEvent.findMany({
-    take: randomRecordsCount, // Extract the required number of random records
-    orderBy: {
-      id: 'asc', // Order the records by id in ascending order for consistency
-    },
+  const processBatch = async () => {
+    if (batch.length > 0) {
+      await prisma.site.createMany({ data: batch });
+      batch = []; // Reset the batch
+    }
+  };
+  const twoMonthsAgo = new Date();
+  twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(filePath)
+      .pipe(parse({ delimiter: ',' }))
+      .on('data', async (row) => {
+        if (siteId <= totalSites) {
+          const shouldDelete = Math.random() < 0.05; // 5% chance of being marked for deletion
+          const latitude = parseFloat(row[0]);
+          const longitude = parseFloat(row[1]);
+          const maxDistance = getRandomNumber(1, 10);
+          const numVertices = getRandomNumber(3, 5);
+          const polygon = generatePolygon(latitude, longitude, maxDistance, numVertices);
+          const randomUserId = getRandomNumber(1, totalUsers);
+
+          batch.push({
+            id: siteId,
+            name: `Site ${siteId}`,
+            type: 'Polygon',
+            geometry: polygon,
+            radius: 0,
+            isMonitored: true,
+            lastUpdated: new Date(),
+            userId: randomUserId.toString(),
+            deletedAt: shouldDelete ? twoMonthsAgo : null,
+          });
+
+          if (batch.length >= batchSize) {
+            processBatch(); // Process the current batch
+          }
+        }
+      })
+      .on('end', () => {
+        resolve();
+      })
+      .on('error', (error) => {
+        reject(error);
+      });
   });
-
-  for (const record of randomRecords) {
-    const {latitude, longitude} = record;
-    const maxDistance = getRandomNumber(1, 10); // Generate a random maxDistance between 1 and 10
-    const numVertices = getRandomNumber(3, 5); // Generate a random numVertices between 3 and 5
-
-    const polygon = generatePolygon(
-      latitude,
-      longitude,
-      maxDistance,
-      numVertices,
-    );
-
-    // Create a Site record using the extracted values and generated polygon
-    await prisma.Site.create({
-      data: {
-        name: 'Generated Site',
-        type: 'Polygon',
-        geometry: polygon,
-        radius: 0,
-        isMonitored: true,
-        lastUpdated: new Date(),
-        userId: '1',
-      },
-    });
-  }
 }
 
 // Example usage
-extractAndCreateSites()
+seedSites(2000)
   .then(() => {
     console.log('Sites created successfully.');
     process.exit(0);
