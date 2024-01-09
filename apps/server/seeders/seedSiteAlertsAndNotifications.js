@@ -1,10 +1,11 @@
-import { prisma } from '../src/server/db';
+const db = require('./db');
 
 function getRandomDate(startDate, endDate) {
     return new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
 }
 
-export async function seedSiteAlertsAndNotifications(totalUsers, batchSize = 500) {
+async function seedSiteAlertsAndNotifications(totalUsers) {
+    const prisma = await db.prisma; // Await the prisma instance
     const totalSites = totalUsers*5
     let siteAlertBatch = [];
     let notificationBatch = [];
@@ -43,13 +44,14 @@ export async function seedSiteAlertsAndNotifications(totalUsers, batchSize = 500
         await processBatch()
     }
 }
+module.exports.seedSiteAlertsAndNotifications = seedSiteAlertsAndNotifications;
 
-seedDatabase(2000)
-    .then(() => {
-        console.log('SiteAlerts and Notifications seeded successfully.');
-        process.exit(0);
-    })
-    .catch(error => {
-        console.error('Error seeding siteAlerts and notifications', error);
-        process.exit(1);
-    });
+// seedSiteAlertsAndNotifications(2000)
+//     .then(() => {
+//         console.log('SiteAlerts and Notifications seeded successfully.');
+//         process.exit(0);
+//     })
+//     .catch(error => {
+//         console.error('Error seeding siteAlerts and notifications', error);
+//         process.exit(1);
+//     });

@@ -1,11 +1,12 @@
-import { prisma } from '../src/server/db';
+const db = require('./db');
 
-export async function seedUsers(totalUsers, batchSize=500) {
+async function seedUsers(totalUsers, batchSize=500) {
+    const prisma = await db.prisma; // Await the prisma instance
     let batch = [];
 
     const processBatch = async () => {
         if (batch.length > 0) {
-            await prisma.site.createMany({ data: batch });
+            await prisma.user.createMany({ data: batch });
             batch = []; // Reset the batch
         }
     };
@@ -22,6 +23,8 @@ export async function seedUsers(totalUsers, batchSize=500) {
                 isPlanetRO: false,
                 plan: "basic",
                 deletedAt: shouldDelete ? twoMonthsAgo : null,
+                signupDate: new Date(),
+                roles: "ROLE_CLIENT"
         })
         if(batch.length >= batchSize){
             await processBatch()
@@ -29,13 +32,14 @@ export async function seedUsers(totalUsers, batchSize=500) {
     }
     await processBatch()
 }
+module.exports.seedUsers = seedUsers;
 
-seedUsers(2000)
-    .then(() => {
-        console.log('Users seeded successfully.');
-        process.exit(0);
-    })
-    .catch(error => {
-        console.error('Error seeding users', error);
-        process.exit(1);
-    });
+// seedUsers(2000)
+//     .then(() => {
+//         console.log('Users seeded successfully.');
+//         process.exit(0);
+//     })
+//     .catch(error => {
+//         console.error('Error seeding users', error);
+//         process.exit(1);
+//     });

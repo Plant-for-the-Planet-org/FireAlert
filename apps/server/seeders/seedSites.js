@@ -1,5 +1,6 @@
-import { prisma } from '../src/server/db';
-
+const db = require('./db');
+const fs = require('fs');
+const { parse } = require('csv-parse');
 
 // Function to generate the GeoJSON polygon
 function generatePolygon(latitude, longitude, maxDistance, vertices) {
@@ -31,7 +32,8 @@ function getRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export async function seedSites(totalUsers, batchSize = 500) {
+async function seedSites(totalUsers, batchSize = 200) {
+  const prisma = await db.prisma; // Await the prisma instance
   const totalSites = totalUsers*5
   const filePath = __dirname + '/data/GeoEvents.csv';
   let siteId = 1;
@@ -84,14 +86,15 @@ export async function seedSites(totalUsers, batchSize = 500) {
       });
   });
 }
+module.exports.seedSites = seedSites;
 
 // Example usage
-seedSites(2000)
-  .then(() => {
-    console.log('Sites created successfully.');
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('Error creating sites:', error);
-    process.exit(1);
-  });
+// seedSites(2000)
+//   .then(() => {
+//     console.log('Sites created successfully.');
+//     process.exit(0);
+//   })
+//   .catch(error => {
+//     console.error('Error creating sites:', error);
+//     process.exit(1);
+//   });

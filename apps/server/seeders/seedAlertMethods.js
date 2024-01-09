@@ -1,11 +1,12 @@
-import { prisma } from '../src/server/db';
+const db = require('./db');
 
-export async function seedAlertMethods(totalUsers, batchSize=500) {
+async function seedAlertMethods(totalUsers, batchSize=500) {
+    const prisma = await db.prisma; // Await the prisma instance
     let batch = [];
 
     const processBatch = async () => {
         if (batch.length > 0) {
-            await prisma.site.createMany({ data: batch });
+            await prisma.alertMethod.createMany({ data: batch });
             batch = []; // Reset the batch
         }
     };
@@ -47,13 +48,14 @@ export async function seedAlertMethods(totalUsers, batchSize=500) {
     }
     await processBatch()
 }
+module.exports.seedAlertMethods = seedAlertMethods;
 
-seedDatabase(2000)
-    .then(() => {
-        console.log('AlertMethods seeded successfully.');
-        process.exit(0);
-    })
-    .catch(error => {
-        console.error('Error seeding alertMethods', error);
-        process.exit(1);
-    });
+// seedAlertMethods(2000)
+//     .then(() => {
+//         console.log('AlertMethods seeded successfully.');
+//         process.exit(0);
+//     })
+//     .catch(error => {
+//         console.error('Error seeding alertMethods', error);
+//         process.exit(1);
+//     });

@@ -1,13 +1,14 @@
 // To run this file, navigate to the directory of this FireAlert app
-// and, run this in the terminal:
-// node apps/server/seeders/seedDatabase.mjs
+// first set node environment as development: $env:NODE_ENV="development" 
+// and, run this in the terminal: node apps/server/seeders/seedDatabase.mjs
+// If Error -> Reached heap limit Allocation failed - Javascript heap out of memory
+// Use this command instead: node --max-old-space-size=4096 apps/server/seeders/seedDatabase.js
 
-import { prisma } from '../src/server/db';
-import { seedGeoEvents } from './seedGeoEvents'
-import { seedSites } from './seedSites'
-import { seedUsers } from './seedUsers'
-import { seedAlertMethods } from './seedAlertMethods'
-import { seedSiteAlertsAndNotifications } from './seedSiteAlertsAndNotifications'
+const { seedGeoEvents } = require('./seedGeoEvents');
+const { seedSites } = require('./seedSites');
+const { seedUsers } = require('./seedUsers');
+const { seedAlertMethods } = require('./seedAlertMethods');
+const { seedSiteAlertsAndNotifications } = require('./seedSiteAlertsAndNotifications');
 
 // The total number of sites created will be 5 times the number of users, with each user having 5 sites
 // Each site has 1000 siteAlerts from dates ranging from now to 2 months ago
@@ -17,16 +18,14 @@ import { seedSiteAlertsAndNotifications } from './seedSiteAlertsAndNotifications
 
 async function seedDatabase(numberOfUsers, numberOfGeoEvents) {
     try {
-        await seedGeoEvents(numberOfGeoEvents);
-        await seedUsers(numberOfUsers);
+        // await seedGeoEvents(numberOfGeoEvents);
+        // await seedUsers(numberOfUsers);
         await seedSites(numberOfUsers);
-        await seedAlertMethods(numberOfUsers);
-        await seedSiteAlertsAndNotifications(numberOfUsers);
+        // await seedAlertMethods(numberOfUsers);
+        // await seedSiteAlertsAndNotifications(numberOfUsers);
         console.log('Database seeded successfully.');
     } catch (error) {
         console.error('Error seeding database:', error);
-    } finally {
-        await prisma.$disconnect();
     }
 }
 

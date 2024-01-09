@@ -1,12 +1,14 @@
 const fs = require('fs');
 const { parse } = require('csv-parse');
-import { prisma } from '../src/server/db';
+const db = require('./db');
+
 
 function getRandomDate(startDate, endDate) {
   return new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
 }
 
-export async function seedGeoEvents(totalGeoEvents, batchSize = 500) {
+async function seedGeoEvents(totalGeoEvents, batchSize = 500) {
+  const prisma = await db.prisma; // Await the prisma instance
   const filePath = __dirname + '/data/GeoEvents.csv';
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
@@ -63,15 +65,16 @@ export async function seedGeoEvents(totalGeoEvents, batchSize = 500) {
   console.log(`Total ${createdRecords} GeoEvent records created.`);
   prisma.$disconnect();
 }
+module.exports.seedGeoEvents = seedGeoEvents;
 
 // Example usage with 5000 records and 500 batchSize
-seedGeoEvents(5000, 500)
-.then(() => {
-  console.log('GeoEvents seeded successfully.');
-  process.exit(0);
-})
-.catch(error => {
-  console.error('Error seeding geoEvents', error);
-  prisma.$disconnect();
-  process.exit(1);
-});
+// seedGeoEvents(5000, 500)
+// .then(() => {
+//   console.log('GeoEvents seeded successfully.');
+//   process.exit(0);
+// })
+// .catch(error => {
+//   console.error('Error seeding geoEvents', error);
+//   prisma.$disconnect();
+//   process.exit(1);
+// });
