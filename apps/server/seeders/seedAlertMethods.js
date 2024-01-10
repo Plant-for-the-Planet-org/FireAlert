@@ -6,7 +6,7 @@ async function seedAlertMethods(totalUsers, batchSize=500) {
 
     const processBatch = async () => {
         if (batch.length > 0) {
-            await prisma.alertMethod.createMany({ data: batch });
+            await prisma.alertMethod.createMany({data: batch});
             batch = []; // Reset the batch
         }
     };
@@ -21,7 +21,7 @@ async function seedAlertMethods(totalUsers, batchSize=500) {
             method: "email",
             isEnabled: true,
             isVerified: true,
-            userId: userId,
+            userId: userId.toString(),
             deletedAt: shouldDelete ? twoMonthsAgo : null,
         })
         batch.push({
@@ -30,7 +30,7 @@ async function seedAlertMethods(totalUsers, batchSize=500) {
             method: "sms",
             isEnabled: true,
             isVerified: true,
-            userId: userId,
+            userId: userId.toString(),
             deletedAt: shouldDelete ? twoMonthsAgo : null,
         })
         batch.push({
@@ -39,7 +39,7 @@ async function seedAlertMethods(totalUsers, batchSize=500) {
             method: "email",
             isEnabled: true,
             isVerified: true,
-            userId: userId,
+            userId: userId.toString(),
             deletedAt: shouldDelete ? twoMonthsAgo : null,
         })
         if(batch.length >= batchSize){
@@ -47,6 +47,7 @@ async function seedAlertMethods(totalUsers, batchSize=500) {
         }
     }
     await processBatch()
+    console.log(`Successfully Seeded AlertMethods`);
 }
 module.exports.seedAlertMethods = seedAlertMethods;
 

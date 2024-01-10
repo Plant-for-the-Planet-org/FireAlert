@@ -7,7 +7,7 @@ function getRandomDate(startDate, endDate) {
   return new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
 }
 
-async function seedGeoEvents(totalGeoEvents, batchSize = 500) {
+async function seedGeoEvents(totalGeoEvents, batchSize = 10000) {
   const prisma = await db.prisma; // Await the prisma instance
   const filePath = __dirname + '/data/GeoEvents.csv';
   const twoMonthsAgo = new Date();
@@ -61,7 +61,6 @@ async function seedGeoEvents(totalGeoEvents, batchSize = 500) {
         });
     });
   }
-
   console.log(`Total ${createdRecords} GeoEvent records created.`);
   prisma.$disconnect();
 }

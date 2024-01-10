@@ -1,6 +1,4 @@
 const db = require('./db');
-const fs = require('fs');
-const { parse } = require('csv-parse');
 
 // Function to generate the GeoJSON polygon
 function generatePolygon(latitude, longitude, maxDistance, vertices) {
@@ -32,11 +30,9 @@ function getRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-async function seedSites(totalUsers, batchSize = 200) {
+async function seedSites(totalUsers, batchSize = 500) {
   const prisma = await db.prisma; // Await the prisma instance
-  const totalSites = totalUsers*5
-  const filePath = __dirname + '/data/GeoEvents.csv';
-  let siteId = 1;
+  const totalSites = totalUsers * 5
   let batch = [];
 
   const processBatch = async () => {
@@ -48,43 +44,28 @@ async function seedSites(totalUsers, batchSize = 200) {
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
 
-  return new Promise((resolve, reject) => {
-    fs.createReadStream(filePath)
-      .pipe(parse({ delimiter: ',' }))
-      .on('data', async (row) => {
-        if (siteId <= totalSites) {
-          const shouldDelete = Math.random() < 0.05; // 5% chance of being marked for deletion
-          const latitude = parseFloat(row[0]);
-          const longitude = parseFloat(row[1]);
-          const maxDistance = getRandomNumber(1, 10);
-          const numVertices = getRandomNumber(3, 5);
-          const polygon = generatePolygon(latitude, longitude, maxDistance, numVertices);
-          const randomUserId = getRandomNumber(1, totalUsers);
 
-          batch.push({
-            id: siteId,
-            name: `Site ${siteId}`,
-            type: 'Polygon',
-            geometry: polygon,
-            radius: 0,
-            isMonitored: true,
-            lastUpdated: new Date(),
-            userId: randomUserId.toString(),
-            deletedAt: shouldDelete ? twoMonthsAgo : null,
-          });
+  for (let siteId = 1; siteId <= totalSites; siteId++) {
+    const shouldDelete = Math.random() < 0.05; // 5% chance of being marked for deletion
+    const randomUserId = getRandomNumber(1, totalUsers);
 
-          if (batch.length >= batchSize) {
-            processBatch(); // Process the current batch
-          }
-        }
-      })
-      .on('end', () => {
-        resolve();
-      })
-      .on('error', (error) => {
-        reject(error);
-      });
-  });
+    batch.push({
+      id: siteId.toString(),
+      name: `Site ${siteId}`,
+      type: 'Polygon',
+      geometry: { "type": "Polygon", "coordinates": [[[-8.896012, 9.1814909997024], [-8.896012, 9.4829459996931], [-8.6362109999999, 9.4829459996931], [-8.6362109999999, 9.1814909997024], [-8.896012, 9.1814909997024]]] },
+      radius: 0,
+      isMonitored: true,
+      lastUpdated: new Date(),
+      userId: randomUserId.toString(),
+      deletedAt: shouldDelete ? twoMonthsAgo : null,
+    })
+    if (batch.length >= batchSize) {
+      await processBatch()
+    }
+  }
+  await processBatch()
+  console.log(`Successfully Seeded Sites`);
 }
 module.exports.seedSites = seedSites;
 

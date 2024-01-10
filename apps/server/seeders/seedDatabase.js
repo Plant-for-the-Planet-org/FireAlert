@@ -1,8 +1,10 @@
 // To run this file, navigate to the directory of this FireAlert app
-// first set node environment as development: $env:NODE_ENV="development" 
-// and, run this in the terminal: node apps/server/seeders/seedDatabase.mjs
+// first set node environment as development by typing this in the terminal: $env:NODE_ENV="development" 
+// and, run this in the terminal: node apps/server/seeders/seedDatabase.js
 // If Error -> Reached heap limit Allocation failed - Javascript heap out of memory
 // Use this command instead: node --max-old-space-size=4096 apps/server/seeders/seedDatabase.js
+
+// With about million geoEvents and 2000 users, it may take upto 1 hour to seed the entire database
 
 const { seedGeoEvents } = require('./seedGeoEvents');
 const { seedSites } = require('./seedSites');
@@ -18,11 +20,11 @@ const { seedSiteAlertsAndNotifications } = require('./seedSiteAlertsAndNotificat
 
 async function seedDatabase(numberOfUsers, numberOfGeoEvents) {
     try {
-        // await seedGeoEvents(numberOfGeoEvents);
-        // await seedUsers(numberOfUsers);
+        await seedGeoEvents(numberOfGeoEvents);
+        await seedUsers(numberOfUsers);
         await seedSites(numberOfUsers);
-        // await seedAlertMethods(numberOfUsers);
-        // await seedSiteAlertsAndNotifications(numberOfUsers);
+        await seedAlertMethods(numberOfUsers);
+        await seedSiteAlertsAndNotifications(numberOfUsers);
         console.log('Database seeded successfully.');
     } catch (error) {
         console.error('Error seeding database:', error);

@@ -4,7 +4,7 @@ function getRandomDate(startDate, endDate) {
     return new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
 }
 
-async function seedSiteAlertsAndNotifications(totalUsers) {
+async function seedSiteAlertsAndNotifications(totalUsers, siteAlertBatchSize=10000) {
     const prisma = await db.prisma; // Await the prisma instance
     const totalSites = totalUsers*5
     let siteAlertBatch = [];
@@ -18,9 +18,11 @@ async function seedSiteAlertsAndNotifications(totalUsers) {
             notificationBatch = []; // Reset the notificatons batch
         }
     };
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
 
     for (let siteId = 1; siteId <= totalSites; siteId++) {
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 300; i++) {
             siteAlertBatch.push({
                 id: `${siteId}siteAlert${i}`,
                 confidence: 'high',
@@ -30,9 +32,9 @@ async function seedSiteAlertsAndNotifications(totalUsers) {
                 latitude: 10,
                 longitude: 15,
                 type: 'fire',
-                siteId: siteId,
+                siteId: siteId.toString(),
             })
-            if (i < 300) {
+            if (i < 100) {
                 notificationBatch.push({
                     id: `${siteId}notification${i}`,
                     alertMethod: "email",
@@ -40,9 +42,13 @@ async function seedSiteAlertsAndNotifications(totalUsers) {
                     siteAlertId: `${siteId}siteAlert${i}`
                 })
             }
+            if(siteAlertBatch.length >= siteAlertBatchSize){
+                await processBatch()
+            }
         }
-        await processBatch()
     }
+    await processBatch()
+    console.log(`Successfully Seeded SiteAlerts and Notifications`);
 }
 module.exports.seedSiteAlertsAndNotifications = seedSiteAlertsAndNotifications;
 

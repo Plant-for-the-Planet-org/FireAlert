@@ -31,6 +31,7 @@ async function seedUsers(totalUsers, batchSize=500) {
         }
     }
     await processBatch()
+    console.log(`Successfully Seeded Users`);
 }
 module.exports.seedUsers = seedUsers;
 
