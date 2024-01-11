@@ -11,13 +11,8 @@ import { sendAccountDeletionConfirmationEmail } from "../../../../src/utils/noti
 export const config = {
     maxDuration: 300,
 };
-const MAX_DURATION = (config.maxDuration)*1000 - 10000
-
-// Function to get unique values after combining two arrays
-function getUniqueValuesInTwoArrays(array1: string[], array2: string[]) {
-    const combinedArray = [...array1, ...array2];
-    return Array.from(new Set(combinedArray));
-}
+// Set up max duration dynamically to gracefully stop deletion before serverless timeout
+const MAX_DURATION = (config.maxDuration) * 1000 - 20000
 
 // Function to update or create stats data
 async function updateOrCreateStats(metric: string, count: number) {
@@ -41,7 +36,7 @@ async function deleteGeoEventsBatch(startTime: number) {
         // Exit the process if serverless maxDuration is approaching
         const beforeDeletionTime = Date.now();
         if (beforeDeletionTime - startTime > MAX_DURATION) {
-            logger("Db-Cleanup Approaching max duration. Exiting geoEvent_deletion early.", "info");
+            logger("Db-Cleanup Approaching max duration. Exiting geoEvent cleanup early.", "info");
             break;
         }
         // Fetch the IDs of the geoEvents to be deleted outside the transaction
@@ -80,7 +75,7 @@ async function deleteGeoEventsBatch(startTime: number) {
         // Exit the process if serverless maxDuration is approaching
         const afterDeletionTime = Date.now();
         if (afterDeletionTime - startTime > MAX_DURATION) {
-            logger("Db-Cleanup Approaching max duration. Exiting geoEvent_deletion early.", "info");
+            logger("Db-Cleanup Approaching max duration. Exiting geoEvent cleanup early.", "info");
             break;
         }
     }
@@ -100,20 +95,17 @@ async function deleteVerificationRequests() {
     return deletedVerificationRequests.count;
 }
 
-async function cleanup_User_Site_AlertMethod_SiteAlert_and_Notification() {
-    let total_delCount_user = 0;
-    let total_delCount_site = 0;
-    let total_delCount_alertMethod = 0;
-    let total_delCount_siteAlert = 0;
-    let total_delCount_notification = 0;
+async function cleanUsers(startTime: number, batchSize_siteAlert: number) {
+    let continueDeletion = true;
 
-    let userCleanupDeletion_Ids: string[] = [];
-    let siteCleanupDeletion_Ids: string[] = [];
-    let alertMethodCleanupDeletion_Ids: string[] = [];
-    let alertMethodCascadeDeletion_Ids: string[] = [];
-    let siteCascadeDeletion_Ids: string[] = [];
+    // Counters for each entity
+    let countUsers = 0;
+    let countSites = 0;
+    let countAlertMethods = 0;
+    let countSiteAlerts = 0;
+    let countNotifications = 0;
 
-    // Getting users to be deleted with their associated alertMethods and sites
+    // Find all users for deletion along with their alertMethods and sites
     const usersToBeDeleted = await prisma.user.findMany({
         where: {
             deletedAt: {
@@ -124,267 +116,201 @@ async function cleanup_User_Site_AlertMethod_SiteAlert_and_Notification() {
             id: true,
             email: true,
             name: true,
-            alertMethods: {
-                select: {
-                    id: true
-                }
-            },
-            sites: {
-                select: {
-                    id: true
-                }
-            }
+            alertMethods: { select: { id: true } },
+            sites: { select: { id: true } }
         }
     });
 
-    // Process each user for deletion
     for (const user of usersToBeDeleted) {
-        user.alertMethods.forEach(alertMethod => {
-            alertMethodCascadeDeletion_Ids.push(alertMethod.id);
-        });
+        if (!continueDeletion) break;
 
-        const siteAlertPromises = user.sites.map(async site => {
-            siteCascadeDeletion_Ids.push(site.id);
-
-            // Counting cascade-deleted siteAlerts and notifications for each site
-            const siteAlerts = await prisma.siteAlert.findMany({
-                where: { siteId: site.id },
-                select: {
-                    id: true,
-                    notifications: {
-                        select: {
-                            id: true
-                        }
-                    }
-                }
-            });
-
-            let siteAlertCount = 0;
-            let notificationCount = 0;
-            siteAlerts.forEach(siteAlert => {
-                siteAlertCount++;
-                notificationCount += siteAlert.notifications.length;
-            });
-            return { siteAlertCount, notificationCount };
-        });
-
-        const siteAlertResults = await Promise.all(siteAlertPromises);
-        siteAlertResults.forEach(result => {
-            total_delCount_siteAlert += result.siteAlertCount;
-            total_delCount_notification += result.notificationCount;
-        });
-
-        // Adding user ID for deletion count
-        userCleanupDeletion_Ids.push(user.id);
-        const name = user.name || ""
-        sendAccountDeletionConfirmationEmail(user.email, name);
-        logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info',);
-    }
-
-    // Fetching expired site and alertMethod IDs
-    siteCleanupDeletion_Ids = (await prisma.site.findMany({
-        where: { deletedAt: { lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000) } },
-        select: { id: true }
-    })).map(site => site.id);
-
-    alertMethodCleanupDeletion_Ids = (await prisma.alertMethod.findMany({
-        where: { deletedAt: { lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000) } },
-        select: { id: true }
-    })).map(am => am.id);
-
-    total_delCount_site = getUniqueValuesInTwoArrays(siteCleanupDeletion_Ids, siteCascadeDeletion_Ids).length;
-    total_delCount_alertMethod = getUniqueValuesInTwoArrays(alertMethodCleanupDeletion_Ids, alertMethodCascadeDeletion_Ids).length;
-
-
-    // Calculating deletion counts
-    total_delCount_user = userCleanupDeletion_Ids.length;
-
-    // Run all process of Performing user, site and alertMethod deletions, and updating stats table  in a transcation
-    await prisma.$transaction(async (prisma) => {
-        // Deleting records
-        await prisma.user.deleteMany({ where: { id: { in: userCleanupDeletion_Ids } } });
-        await prisma.site.deleteMany({ where: { id: { in: siteCleanupDeletion_Ids } } });
-        await prisma.alertMethod.deleteMany({ where: { id: { in: alertMethodCleanupDeletion_Ids } } });
-
-        // Updating del_count in stats table
-        await updateOrCreateStats('users_deleted', total_delCount_user);
-        await updateOrCreateStats('sites_deleted', total_delCount_site);
-        await updateOrCreateStats('siteAlerts_deleted', total_delCount_siteAlert);
-        await updateOrCreateStats('notifications_deleted', total_delCount_notification);
-    });
-    // End of transaction
-    // Logging deletions:
-    logger(`
-        Deleted ${total_delCount_user} users
-        Deleted ${total_delCount_site} sites
-        Deleted ${total_delCount_alertMethod} alert methods
-        Cascade Deleted ${total_delCount_siteAlert} site alerts
-        Cascade Deleted ${total_delCount_notification} notifications
-    `, 'info');
-}
-
-async function cleanUsers() {
-    let total_delCount_user = 0;
-    let total_delCount_site = 0;
-    let total_delCount_alertMethod = 0;
-    let total_delCount_siteAlert = 0;
-    let total_delCount_notification = 0;
-
-    let userCleanupDeletion_Ids: string[] = [];
-    let alertMethodCascadeDeletion_Ids: string[] = [];
-    let siteCascadeDeletion_Ids: string[] = [];
-
-    // Getting users to be deleted with their associated alertMethods and sites
-    const usersToBeDeleted = await prisma.user.findMany({
-        where: {
-            deletedAt: {
-                lt: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
-            }
-        },
-        select: {
-            id: true,
-            email: true,
-            name: true,
-            alertMethods: {
-                select: {
-                    id: true
-                }
-            },
-            sites: {
-                select: {
-                    id: true
-                }
-            }
+        // Delete all alertMethods for the user
+        const alertMethodIds = user.alertMethods.map(am => am.id);
+        if (alertMethodIds.length > 0) {
+            await prisma.alertMethod.deleteMany({ where: { id: { in: alertMethodIds } } });
+            countAlertMethods += alertMethodIds.length;
         }
-    });
 
-    // Process each user for deletion
-    for (const user of usersToBeDeleted) {
-        user.alertMethods.forEach(alertMethod => {
-            alertMethodCascadeDeletion_Ids.push(alertMethod.id);
-        });
+        const siteIds = user.sites.map(s => s.id)
 
-        const siteAlertPromises = user.sites.map(async site => {
-            siteCascadeDeletion_Ids.push(site.id);
+        for (const siteId of siteIds) {
+            let notificationIds: string[] = [];
+            let siteAlertIds: string[] = [];
 
-            // Counting cascade-deleted siteAlerts and notifications for each site
-            const siteAlerts = await prisma.siteAlert.findMany({
-                where: { siteId: site.id },
-                select: {
-                    id: true,
-                    notifications: {
-                        select: {
-                            id: true
-                        }
-                    }
-                }
-            });
-
-            let siteAlertCount = 0;
-            let notificationCount = 0;
-            siteAlerts.forEach(siteAlert => {
-                siteAlertCount++;
-                notificationCount += siteAlert.notifications.length;
-            });
-            return { siteAlertCount, notificationCount };
-        });
-
-        const siteAlertResults = await Promise.all(siteAlertPromises);
-        siteAlertResults.forEach(result => {
-            total_delCount_siteAlert += result.siteAlertCount;
-            total_delCount_notification += result.notificationCount;
-        });
-
-        // Adding user ID for deletion count
-        userCleanupDeletion_Ids.push(user.id);
-        const name = user.name || ""
-        sendAccountDeletionConfirmationEmail(user.email, name);
-        logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info',);
-    }
-    // Calculating deletion counts
-    total_delCount_user = userCleanupDeletion_Ids.length;
-    total_delCount_site = siteCascadeDeletion_Ids.length;
-    total_delCount_alertMethod = alertMethodCascadeDeletion_Ids.length;
-    // Run all process of Performing user, site and alertMethod deletions, and updating stats table  in a transcation
-    await prisma.$transaction(async (prisma) => {
-        // Deleting users
-        await prisma.user.deleteMany({ where: { id: { in: userCleanupDeletion_Ids } } });
-        // Updating del_count in stats table
-        await updateOrCreateStats('users_deleted', total_delCount_user);
-        await updateOrCreateStats('sites_deleted', total_delCount_site);
-        await updateOrCreateStats('siteAlerts_deleted', total_delCount_siteAlert);
-        await updateOrCreateStats('notifications_deleted', total_delCount_notification);
-    });
-    // End of transaction
-    // Logging deletions:
-    logger(`
-        Deleted ${total_delCount_user} users
-        Cascade Deleted ${total_delCount_site} sites
-        Cascade Deleted ${total_delCount_alertMethod} alert methods
-        Cascade Deleted ${total_delCount_siteAlert} site alerts
-        Cascade Deleted ${total_delCount_notification} notifications
-    `, 'info');
-}
-
-async function cleanSites(){
-    let total_delCount_site = 0;
-    let total_delCount_siteAlert = 0;
-    let total_delCount_notification = 0;
-
-    let siteCleanupDeletion_Ids: string[] = [];
-
-    siteCleanupDeletion_Ids = (await prisma.site.findMany({
-        where: { deletedAt: { lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000) } },
-        select: { id: true }
-    })).map(site => site.id);
-
-    // Process each site for deletion
-    for (const siteId of siteCleanupDeletion_Ids) {
-        // Counting cascade-deleted siteAlerts and notifications for each site
-        const siteAlerts = await prisma.siteAlert.findMany({
-            where: { siteId: siteId },
-            select: {
-                id: true,
-                notifications: {
+            // For each site, find all siteAlerts and associated notifications
+            while (true) {
+                const siteAlerts = await prisma.siteAlert.findMany({
+                    where: { siteId: siteId },
                     select: {
-                        id: true
+                        id: true,
+                        notifications: { select: { id: true } }
+                    }
+                });
+
+                if (siteAlerts.length === 0) break;
+
+                for (const siteAlert of siteAlerts) {
+                    siteAlertIds.push(siteAlert.id);
+                    notificationIds.push(...siteAlert.notifications.map(n => n.id));
+
+                    if (siteAlertIds.length >= batchSize_siteAlert) {
+                        await prisma.$transaction(async (prisma) => {
+                            await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
+                            await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
+                            await updateOrCreateStats('notifications_deleted', notificationIds.length);
+                            await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
+                        });
+                        countNotifications += notificationIds.length;
+                        countSiteAlerts += siteAlertIds.length;
+                        notificationIds = [];
+                        siteAlertIds = [];
                     }
                 }
+                if (Date.now() - startTime > MAX_DURATION) {
+                    logger("Db-Cleanup Approaching max duration. Exiting user cleanup early.", "info");
+                    continueDeletion = false;
+                    break;
+                }
             }
-        });
 
-        let siteAlertCount = 0;
-        let notificationCount = 0;
-        siteAlerts.forEach(siteAlert => {
-            siteAlertCount++;
-            notificationCount += siteAlert.notifications.length;
-        });
-        total_delCount_siteAlert += siteAlertCount;
-        total_delCount_notification += notificationCount;
+            if (siteAlertIds.length > 0) {
+                await prisma.$transaction(async (prisma) => {
+                    await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
+                    await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
+                    await updateOrCreateStats('notifications_deleted', notificationIds.length);
+                    await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
+                });
+                countNotifications += notificationIds.length;
+                countSiteAlerts += siteAlertIds.length;
+            }
+
+            await prisma.$transaction(async (prisma) => {
+                await prisma.site.delete({ where: { id: siteId } });
+                await updateOrCreateStats('sites_deleted', 1);
+            })
+            countSites++;
+        }
+        await prisma.$transaction(async (prisma) => {
+            await prisma.user.delete({ where: { id: user.id } });
+            await updateOrCreateStats('users_deleted', 1);
+        })
+        countUsers++;
+        const name = user.name || ""
+        sendAccountDeletionConfirmationEmail(user.email, name);
+        logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info',);
     }
-    // Calculating deletion counts
-    total_delCount_site = siteCleanupDeletion_Ids.length;
+    // Logging the counts
+    logger(`Deleted ${countUsers} users, ${countSites} sites, ${countAlertMethods} alertMethods, ${countSiteAlerts} siteAlerts, ${countNotifications} notifications`, 'info');
 
-    // Run all process of Performing user, site and alertMethod deletions, and updating stats table  in a transcation
-    await prisma.$transaction(async (prisma) => {
-        // Deleting records
-        await prisma.site.deleteMany({ where: { id: { in: siteCleanupDeletion_Ids } } });
+    // Returning the counts
+    return {
+        deletedUsers: countUsers,
+        deletedSites: countSites,
+        deletedAlertMethods: countAlertMethods,
+        deletedSiteAlerts: countSiteAlerts,
+        deletedNotifications: countNotifications
+    };
+}
 
-        // Updating del_count in stats table
-        await updateOrCreateStats('sites_deleted', total_delCount_site);
-        await updateOrCreateStats('siteAlerts_deleted', total_delCount_siteAlert);
-        await updateOrCreateStats('notifications_deleted', total_delCount_notification);
-    });
-    // End of transaction
-    // Logging deletions:
+async function cleanSites(startTime: number, batchSize_siteAlert: number) {
+    let continueDeletion = true;
+
+    let total_delCount_site = 0;
+    let total_delCount_siteAlert = 0;
+    let total_delCount_notification = 0;
+
+    // Find all sites for deletion
+    const allSites_toBe_deleted_Ids = (await prisma.site.findMany({
+        where: { deletedAt: { lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000) } },
+        select: { id: true }
+    })).map(site => site.id);
+
+    for (const siteId of allSites_toBe_deleted_Ids) {
+        if (!continueDeletion) break;
+
+        let notificationIds: string[] = [];
+        let siteAlertIds: string[] = [];
+
+        // For each site, find all siteAlerts and associated notifications
+        while (true) {
+            const siteAlerts = await prisma.siteAlert.findMany({
+                where: { siteId: siteId },
+                select: {
+                    id: true,
+                    notifications: { select: { id: true } }
+                }
+            });
+
+            if (siteAlerts.length === 0) break; // No more siteAlerts for the site
+
+            for (const siteAlert of siteAlerts) {
+                siteAlertIds.push(siteAlert.id);
+                notificationIds.push(...siteAlert.notifications.map(n => n.id));
+
+                // Check if batchSize is reached
+                if (siteAlertIds.length >= batchSize_siteAlert) {
+                    // Delete notifications and siteAlerts in a transaction
+                    await prisma.$transaction(async (prisma) => {
+                        await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
+                        await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
+                        await updateOrCreateStats('notifications_deleted', notificationIds.length);
+                        await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
+                    });
+
+                    total_delCount_notification += notificationIds.length;
+                    total_delCount_siteAlert += siteAlertIds.length;
+
+                    notificationIds = [];
+                    siteAlertIds = [];
+                }
+            }
+
+            // Check for timeout
+            if (Date.now() - startTime > MAX_DURATION) {
+                logger("Db-Cleanup Approaching max duration. Exiting site cleanup early.", "info");
+                continueDeletion = false;
+                break;
+            }
+        }
+
+        // Deleting remaining siteAlerts and notifications if any
+        if (siteAlertIds.length > 0) {
+            await prisma.$transaction(async (prisma) => {
+                await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
+                await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
+                await updateOrCreateStats('notifications_deleted', notificationIds.length);
+                await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
+            });
+
+            total_delCount_notification += notificationIds.length;
+            total_delCount_siteAlert += siteAlertIds.length;
+        }
+
+        // Deleting the site and upserting site stats
+        await prisma.$transaction(async (prisma) => {
+            await prisma.site.delete({ where: { id: siteId } });
+            await updateOrCreateStats('sites_deleted', 1);
+        });
+
+        total_delCount_site += 1;
+    }
+
+    // Logging deletions
     logger(`
         Deleted ${total_delCount_site} sites
         Cascade Deleted ${total_delCount_siteAlert} site alerts
         Cascade Deleted ${total_delCount_notification} notifications
     `, 'info');
+
+    //Return
+    return {
+        deletedSites: total_delCount_site,
+        deletedSiteAlerts: total_delCount_siteAlert,
+        deletedNotifications: total_delCount_notification
+    };
 }
 
-async function cleanAlertMethods(){
+async function cleanAlertMethods() {
     const deletedAlertMethods = await prisma.alertMethod.deleteMany({
         where: { deletedAt: { lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000) } },
     });
@@ -404,46 +330,91 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
         }
     }
     const startTime = Date.now()
-
     // What is to be cleaned
     const validCleanupOptions = ['geoEvent', 'verificationRequest', 'user', 'site', 'alertMethod'];
-
     // Extract the 'clean' parameter from the request query
     const tableToClean = req.query['clean'] as string;
-
+    let loop = true;
     try {
         if (validCleanupOptions.includes(tableToClean)) {
             // Execute specific cleanup based on the provided option
-            switch(tableToClean){
+            switch (tableToClean) {
                 case 'geoEvent':
                     const geoEventsDeleted = await deleteGeoEventsBatch(startTime)
-                    res.status(200).json({message: `Successfully deleted ${geoEventsDeleted} geo events`});
+                    if (geoEventsDeleted == 0) {
+                        loop = false;
+                    }
+                    res.status(200)
+                        .json({
+                            message: `Successfully deleted ${geoEventsDeleted} geo events`,
+                            loop: loop
+                        });
                     break;
                 case 'verificationRequest':
                     const verificationRequestsDeleted = await deleteVerificationRequests()
-                    res.status(200).json({message: `Successfully deleted ${verificationRequestsDeleted} verification requests`});
+                    if (verificationRequestsDeleted == 0) {
+                        loop = false;
+                    }
+                    res.status(200)
+                        .json({
+                            message: `Successfully deleted ${verificationRequestsDeleted} verification requests`,
+                            loop: loop
+                        });
                     break;
                 case 'user':
-                    await cleanUsers()
-                    res.status(200).json({message: `Successfully cleaned up users`});
+                    // Setting the batch size greater than 15 may lead to Transaction API error
+                    const returnCountUser = await cleanUsers(startTime, 15)
+                    if (
+                        returnCountUser.deletedUsers === 0 &&
+                        returnCountUser.deletedSites === 0 &&
+                        returnCountUser.deletedAlertMethods === 0 &&
+                        returnCountUser.deletedSiteAlerts === 0 &&
+                        returnCountUser.deletedNotifications === 0) {
+                        loop = false;
+                    }
+                    res.status(200)
+                        .json({
+                            message: `Successfully cleaned up users. Deleted ${returnCountUser.deletedUsers} users, ${returnCountUser.deletedAlertMethods} alertMethods, ${returnCountUser.deletedSites} sites, ${returnCountUser.deletedSiteAlerts} siteAlerts, ${returnCountUser.deletedNotifications} notifications.`,
+                            loop: loop
+                        });
                     break;
                 case 'site':
-                    await cleanSites()
-                    res.status(200).json({message: `Successfully cleaned up users`});
+                    // Setting the batch size greater than 20 may lead to Transaction API error
+                    const returnCountSite = await cleanSites(startTime, 20)
+                    if (
+                        returnCountSite.deletedSites === 0 &&
+                        returnCountSite.deletedSiteAlerts === 0 &&
+                        returnCountSite.deletedNotifications === 0) {
+                        loop = false;
+                    }
+                    res.status(200)
+                        .json({
+                            message: `Successfully cleaned up sites. Deleted ${returnCountSite.deletedSites} sites, ${returnCountSite.deletedSiteAlerts} siteAlerts, ${returnCountSite.deletedNotifications} notifications.`,
+                            loop: loop
+                        });
                     break;
                 case 'alertMethod':
                     const alertMethodDeleted = await cleanAlertMethods()
-                    res.status(200).json({message: `Successfully deleted ${alertMethodDeleted} verification requests`});
+                    if (alertMethodDeleted === 0) {
+                        loop = false
+                    }
+                    res.status(200)
+                        .json({
+                            message: `Successfully deleted ${alertMethodDeleted} alertMethods`,
+                            loop: loop
+                        });
                     break;
-                default: 
+                default:
                     // This should not be reached due to the includes check above
                     throw new Error(`Invalid cleanup option: ${tableToClean}`);
             }
-        }else{
+        } else {
             // Default case: Execute all cleanups if no specific table is specified or if an invalid option is given
             let promises = [];
             promises.push(deleteGeoEventsBatch(startTime));
-            promises.push(cleanup_User_Site_AlertMethod_SiteAlert_and_Notification());
+            promises.push(cleanUsers(startTime, 15));
+            promises.push(cleanSites(startTime, 20));
+            promises.push(cleanAlertMethods());
             promises.push(deleteVerificationRequests());
             // Execute all promises and use TypeScript type assertions
             await Promise.all(promises);
