@@ -95,7 +95,7 @@ async function deleteVerificationRequests() {
     return deletedVerificationRequests.count;
 }
 
-async function cleanUsers(startTime: number, batchSize_siteAlert: number) {
+async function cleanUsers(startTime: number) {
     let continueDeletion = true;
 
     // Counters for each entity
@@ -152,54 +152,35 @@ async function cleanUsers(startTime: number, batchSize_siteAlert: number) {
                 for (const siteAlert of siteAlerts) {
                     siteAlertIds.push(siteAlert.id);
                     notificationIds.push(...siteAlert.notifications.map(n => n.id));
-
-                    if (siteAlertIds.length >= batchSize_siteAlert) {
-                        await prisma.$transaction(async (prisma) => {
-                            await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
-                            await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
-                            await updateOrCreateStats('notifications_deleted', notificationIds.length);
-                            await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
-                        });
-                        countNotifications += notificationIds.length;
-                        countSiteAlerts += siteAlertIds.length;
-                        notificationIds = [];
-                        siteAlertIds = [];
-                    }
                 }
+                if (notificationIds.length > 0) {
+                    await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
+                    await updateOrCreateStats('notifications_deleted', notificationIds.length);
+                    countNotifications += notificationIds.length;
+                }
+                if (siteAlertIds.length > 0) {
+                    await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
+                    await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
+                    countSiteAlerts += siteAlertIds.length;
+                }
+                await prisma.site.delete({ where: { id: siteId } });
+                await updateOrCreateStats('sites_deleted', 1);
+                countSites++;
+
                 if (Date.now() - startTime > MAX_DURATION) {
                     logger("Db-Cleanup Approaching max duration. Exiting user cleanup early.", "info");
                     continueDeletion = false;
                     break;
                 }
             }
-
-            if (siteAlertIds.length > 0) {
-                await prisma.$transaction(async (prisma) => {
-                    await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
-                    await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
-                    await updateOrCreateStats('notifications_deleted', notificationIds.length);
-                    await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
-                });
-                countNotifications += notificationIds.length;
-                countSiteAlerts += siteAlertIds.length;
-            }
-
-            await prisma.$transaction(async (prisma) => {
-                await prisma.site.delete({ where: { id: siteId } });
-                await updateOrCreateStats('sites_deleted', 1);
-            })
-            countSites++;
         }
-        await prisma.$transaction(async (prisma) => {
-            await prisma.user.delete({ where: { id: user.id } });
-            await updateOrCreateStats('users_deleted', 1);
-        })
+        await prisma.user.delete({ where: { id: user.id } });
         countUsers++;
-        const name = user.name || ""
+        await updateOrCreateStats('users_deleted', 1);
+        const name = user.name || "";
         sendAccountDeletionConfirmationEmail(user.email, name);
-        logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info',);
+        logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info');
     }
-    // Logging the counts
     logger(`Deleted ${countUsers} users, ${countSites} sites, ${countAlertMethods} alertMethods, ${countSiteAlerts} siteAlerts, ${countNotifications} notifications`, 'info');
 
     // Returning the counts
@@ -212,7 +193,7 @@ async function cleanUsers(startTime: number, batchSize_siteAlert: number) {
     };
 }
 
-async function cleanSites(startTime: number, batchSize_siteAlert: number) {
+async function cleanSites(startTime: number) {
     let continueDeletion = true;
 
     let total_delCount_site = 0;
@@ -228,8 +209,8 @@ async function cleanSites(startTime: number, batchSize_siteAlert: number) {
     for (const siteId of allSites_toBe_deleted_Ids) {
         if (!continueDeletion) break;
 
-        let notificationIds: string[] = [];
-        let siteAlertIds: string[] = [];
+        let notificationIds = [];
+        let siteAlertIds = [];
 
         // For each site, find all siteAlerts and associated notifications
         while (true) {
@@ -246,23 +227,18 @@ async function cleanSites(startTime: number, batchSize_siteAlert: number) {
             for (const siteAlert of siteAlerts) {
                 siteAlertIds.push(siteAlert.id);
                 notificationIds.push(...siteAlert.notifications.map(n => n.id));
+            }
 
-                // Check if batchSize is reached
-                if (siteAlertIds.length >= batchSize_siteAlert) {
-                    // Delete notifications and siteAlerts in a transaction
-                    await prisma.$transaction(async (prisma) => {
-                        await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
-                        await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
-                        await updateOrCreateStats('notifications_deleted', notificationIds.length);
-                        await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
-                    });
+            if (notificationIds.length > 0) {
+                await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
+                await updateOrCreateStats('notifications_deleted', notificationIds.length);
+                total_delCount_notification += notificationIds.length;
+            }
 
-                    total_delCount_notification += notificationIds.length;
-                    total_delCount_siteAlert += siteAlertIds.length;
-
-                    notificationIds = [];
-                    siteAlertIds = [];
-                }
+            if (siteAlertIds.length > 0) {
+                await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
+                await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
+                total_delCount_siteAlert += siteAlertIds.length;
             }
 
             // Check for timeout
@@ -273,26 +249,10 @@ async function cleanSites(startTime: number, batchSize_siteAlert: number) {
             }
         }
 
-        // Deleting remaining siteAlerts and notifications if any
-        if (siteAlertIds.length > 0) {
-            await prisma.$transaction(async (prisma) => {
-                await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
-                await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
-                await updateOrCreateStats('notifications_deleted', notificationIds.length);
-                await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
-            });
-
-            total_delCount_notification += notificationIds.length;
-            total_delCount_siteAlert += siteAlertIds.length;
-        }
-
-        // Deleting the site and upserting site stats
-        await prisma.$transaction(async (prisma) => {
-            await prisma.site.delete({ where: { id: siteId } });
-            await updateOrCreateStats('sites_deleted', 1);
-        });
-
-        total_delCount_site += 1;
+        // Deleting the site and updating site stats
+        await prisma.site.delete({ where: { id: siteId } });
+        await updateOrCreateStats('sites_deleted', 1);
+        total_delCount_site++;
     }
 
     // Logging deletions
@@ -363,7 +323,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                     break;
                 case 'user':
                     // Setting the batch size greater than 15 may lead to Transaction API error
-                    const returnCountUser = await cleanUsers(startTime, 15)
+                    const returnCountUser = await cleanUsers(startTime)
                     if (
                         returnCountUser.deletedUsers === 0 &&
                         returnCountUser.deletedSites === 0 &&
@@ -380,7 +340,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                     break;
                 case 'site':
                     // Setting the batch size greater than 20 may lead to Transaction API error
-                    const returnCountSite = await cleanSites(startTime, 20)
+                    const returnCountSite = await cleanSites(startTime)
                     if (
                         returnCountSite.deletedSites === 0 &&
                         returnCountSite.deletedSiteAlerts === 0 &&
@@ -412,8 +372,8 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
             // Default case: Execute all cleanups if no specific table is specified or if an invalid option is given
             let promises = [];
             promises.push(deleteGeoEventsBatch(startTime));
-            promises.push(cleanUsers(startTime, 15));
-            promises.push(cleanSites(startTime, 20));
+            promises.push(cleanUsers(startTime));
+            promises.push(cleanSites(startTime));
             promises.push(cleanAlertMethods());
             promises.push(deleteVerificationRequests());
             // Execute all promises and use TypeScript type assertions
@@ -426,7 +386,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     } catch (error) {
         logger(`Something went wrong during cleanup. ${error}`, "error");
         res.status(500).json({
-            message: "Something went wrong during cleanup.",
+            message: `Something went wrong during cleanup. ${error}`,
             status: 500
         });
     }
