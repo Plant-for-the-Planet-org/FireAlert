@@ -307,7 +307,8 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${geoEventsDeleted} geo events`,
-                            loop: loop
+                            loop: loop,
+                            status: 200
                         });
                     break;
                 case 'verificationRequest':
@@ -318,7 +319,8 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${verificationRequestsDeleted} verification requests`,
-                            loop: loop
+                            loop: loop,
+                            status: 200
                         });
                     break;
                 case 'user':
@@ -335,7 +337,8 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                     res.status(200)
                         .json({
                             message: `Successfully cleaned up users. Deleted ${returnCountUser.deletedUsers} users, ${returnCountUser.deletedAlertMethods} alertMethods, ${returnCountUser.deletedSites} sites, ${returnCountUser.deletedSiteAlerts} siteAlerts, ${returnCountUser.deletedNotifications} notifications.`,
-                            loop: loop
+                            loop: loop,
+                            status: 200
                         });
                     break;
                 case 'site':
@@ -350,7 +353,8 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                     res.status(200)
                         .json({
                             message: `Successfully cleaned up sites. Deleted ${returnCountSite.deletedSites} sites, ${returnCountSite.deletedSiteAlerts} siteAlerts, ${returnCountSite.deletedNotifications} notifications.`,
-                            loop: loop
+                            loop: loop,
+                            status: 200
                         });
                     break;
                 case 'alertMethod':
@@ -361,7 +365,8 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${alertMethodDeleted} alertMethods`,
-                            loop: loop
+                            loop: loop,
+                            status: 200
                         });
                     break;
                 default:
