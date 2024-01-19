@@ -14,6 +14,14 @@ export const config = {
 // Set up max duration dynamically to gracefully stop deletion before serverless timeout
 const MAX_DURATION = (config.maxDuration) * 1000 - 20000
 
+function shouldContinueDeletion(startTime: number, type_of_cleanup:string = 'database'): boolean {
+    if (Date.now() - startTime > MAX_DURATION) {
+        logger(`Db-Cleanup Approaching max duration. Exiting ${type_of_cleanup} cleanup early.`, "info");
+        return false;
+    }
+    return true;
+}
+
 // Function to update or create stats data
 async function updateOrCreateStats(metric: string, count: number) {
     await prisma.stats.upsert({
@@ -31,15 +39,9 @@ async function updateOrCreateStats(metric: string, count: number) {
 async function deleteGeoEventsBatch(startTime: number) {
     const batchSize = 1000;
     let totalDeleted = 0; // Variable to keep track of the total deleted count
-
-    while (true) {
-        // Exit the process if serverless maxDuration is approaching
-        const beforeDeletionTime = Date.now();
-        if (beforeDeletionTime - startTime > MAX_DURATION) {
-            logger("Db-Cleanup Approaching max duration. Exiting geoEvent cleanup early.", "info");
-            break;
-        }
-        // Fetch the IDs of the geoEvents to be deleted outside the transaction
+    
+    let continueDeletion = true;
+    while (continueDeletion) {
         const geoEventsToDelete = await prisma.geoEvent.findMany({
             where: {
                 eventDate: {
@@ -67,20 +69,11 @@ async function deleteGeoEventsBatch(startTime: number) {
         // Update the total deleted count
         totalDeleted += deleteCount;
 
-        // Break the loop if less than batchSize records were deleted (no more batches)
-        if (deleteCount < batchSize) {
-            break;
-        }
-
-        // Exit the process if serverless maxDuration is approaching
-        const afterDeletionTime = Date.now();
-        if (afterDeletionTime - startTime > MAX_DURATION) {
-            logger("Db-Cleanup Approaching max duration. Exiting geoEvent cleanup early.", "info");
-            break;
-        }
+        // Watchdog Timer
+        continueDeletion = shouldContinueDeletion(startTime, "GeoEvent");
     }
     logger(`Deleted ${totalDeleted} geo events`, 'info');
-    return totalDeleted; // Return the total number of deleted geoEvents
+    return totalDeleted;
 }
 
 async function deleteVerificationRequests() {
@@ -98,7 +91,6 @@ async function deleteVerificationRequests() {
 async function cleanUsers(startTime: number) {
     let continueDeletion = true;
 
-    // Counters for each entity
     let countUsers = 0;
     let countSites = 0;
     let countAlertMethods = 0;
@@ -122,7 +114,8 @@ async function cleanUsers(startTime: number) {
     });
 
     for (const user of usersToBeDeleted) {
-        if (!continueDeletion) break;
+        continueDeletion = shouldContinueDeletion(startTime, "User");
+        if (!continueDeletion) return { deletedUsers: countUsers, deletedSites: countSites, deletedAlertMethods: countAlertMethods, deletedSiteAlerts: countSiteAlerts, deletedNotifications: countNotifications };
 
         // Delete all alertMethods for the user
         const alertMethodIds = user.alertMethods.map(am => am.id);
@@ -131,48 +124,54 @@ async function cleanUsers(startTime: number) {
             countAlertMethods += alertMethodIds.length;
         }
 
+        continueDeletion = shouldContinueDeletion(startTime, "User");
+        if (!continueDeletion) return { deletedUsers: countUsers, deletedSites: countSites, deletedAlertMethods: countAlertMethods, deletedSiteAlerts: countSiteAlerts, deletedNotifications: countNotifications };
+
         const siteIds = user.sites.map(s => s.id)
 
         for (const siteId of siteIds) {
             let notificationIds: string[] = [];
             let siteAlertIds: string[] = [];
 
-            // For each site, find all siteAlerts and associated notifications
-            while (true) {
-                const siteAlerts = await prisma.siteAlert.findMany({
-                    where: { siteId: siteId },
-                    select: {
-                        id: true,
-                        notifications: { select: { id: true } }
-                    }
-                });
+            const siteAlerts = await prisma.siteAlert.findMany({
+                where: { siteId: siteId },
+                select: {
+                    id: true,
+                    notifications: { select: { id: true } }
+                }
+            });
 
-                if (siteAlerts.length === 0) break;
-
-                for (const siteAlert of siteAlerts) {
-                    siteAlertIds.push(siteAlert.id);
-                    notificationIds.push(...siteAlert.notifications.map(n => n.id));
-                }
-                if (notificationIds.length > 0) {
-                    await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
-                    await updateOrCreateStats('notifications_deleted', notificationIds.length);
-                    countNotifications += notificationIds.length;
-                }
-                if (siteAlertIds.length > 0) {
-                    await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
-                    await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
-                    countSiteAlerts += siteAlertIds.length;
-                }
-                await prisma.site.delete({ where: { id: siteId } });
-                await updateOrCreateStats('sites_deleted', 1);
-                countSites++;
-
-                if (Date.now() - startTime > MAX_DURATION) {
-                    logger("Db-Cleanup Approaching max duration. Exiting user cleanup early.", "info");
-                    continueDeletion = false;
-                    break;
-                }
+            for (const siteAlert of siteAlerts) {
+                siteAlertIds.push(siteAlert.id);
+                notificationIds.push(...siteAlert.notifications.map(n => n.id));
             }
+
+            if (notificationIds.length > 0) {
+                await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
+                await updateOrCreateStats('notifications_deleted', notificationIds.length);
+                countNotifications += notificationIds.length;
+            }
+
+            continueDeletion = shouldContinueDeletion(startTime, "User");
+            if (!continueDeletion) return { deletedUsers: countUsers, deletedSites: countSites, deletedAlertMethods: countAlertMethods, deletedSiteAlerts: countSiteAlerts, deletedNotifications: countNotifications };
+
+
+            if (siteAlertIds.length > 0) {
+                await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
+                await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
+                countSiteAlerts += siteAlertIds.length;
+            }
+
+            continueDeletion = shouldContinueDeletion(startTime, "User");
+            if (!continueDeletion) return { deletedUsers: countUsers, deletedSites: countSites, deletedAlertMethods: countAlertMethods, deletedSiteAlerts: countSiteAlerts, deletedNotifications: countNotifications };
+
+
+            await prisma.site.delete({ where: { id: siteId } });
+            await updateOrCreateStats('sites_deleted', 1);
+            countSites++;
+
+            continueDeletion = shouldContinueDeletion(startTime, "User");
+            if (!continueDeletion) return { deletedUsers: countUsers, deletedSites: countSites, deletedAlertMethods: countAlertMethods, deletedSiteAlerts: countSiteAlerts, deletedNotifications: countNotifications };
         }
         await prisma.user.delete({ where: { id: user.id } });
         countUsers++;
@@ -180,6 +179,9 @@ async function cleanUsers(startTime: number) {
         const name = user.name || "";
         sendAccountDeletionConfirmationEmail(user.email, name);
         logger(`USER DELETED: Sent account deletion confirmation email to ${user.id}`, 'info');
+
+        continueDeletion = shouldContinueDeletion(startTime, "User");
+        if (!continueDeletion) return { deletedUsers: countUsers, deletedSites: countSites, deletedAlertMethods: countAlertMethods, deletedSiteAlerts: countSiteAlerts, deletedNotifications: countNotifications };
     }
     logger(`Deleted ${countUsers} users, ${countSites} sites, ${countAlertMethods} alertMethods, ${countSiteAlerts} siteAlerts, ${countNotifications} notifications`, 'info');
 
@@ -207,52 +209,48 @@ async function cleanSites(startTime: number) {
     })).map(site => site.id);
 
     for (const siteId of allSites_toBe_deleted_Ids) {
-        if (!continueDeletion) break;
-
         let notificationIds = [];
         let siteAlertIds = [];
 
         // For each site, find all siteAlerts and associated notifications
-        while (true) {
-            const siteAlerts = await prisma.siteAlert.findMany({
-                where: { siteId: siteId },
-                select: {
-                    id: true,
-                    notifications: { select: { id: true } }
-                }
-            });
-
-            if (siteAlerts.length === 0) break; // No more siteAlerts for the site
-
-            for (const siteAlert of siteAlerts) {
-                siteAlertIds.push(siteAlert.id);
-                notificationIds.push(...siteAlert.notifications.map(n => n.id));
+        const siteAlerts = await prisma.siteAlert.findMany({
+            where: { siteId: siteId },
+            select: {
+                id: true,
+                notifications: { select: { id: true } }
             }
+        });
 
-            if (notificationIds.length > 0) {
-                await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
-                await updateOrCreateStats('notifications_deleted', notificationIds.length);
-                total_delCount_notification += notificationIds.length;
-            }
-
-            if (siteAlertIds.length > 0) {
-                await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
-                await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
-                total_delCount_siteAlert += siteAlertIds.length;
-            }
-
-            // Check for timeout
-            if (Date.now() - startTime > MAX_DURATION) {
-                logger("Db-Cleanup Approaching max duration. Exiting site cleanup early.", "info");
-                continueDeletion = false;
-                break;
-            }
+        for (const siteAlert of siteAlerts) {
+            siteAlertIds.push(siteAlert.id);
+            notificationIds.push(...siteAlert.notifications.map(n => n.id));
         }
+
+        if (notificationIds.length > 0) {
+            await prisma.notification.deleteMany({ where: { id: { in: notificationIds } } });
+            await updateOrCreateStats('notifications_deleted', notificationIds.length);
+            total_delCount_notification += notificationIds.length;
+        }
+
+        continueDeletion = shouldContinueDeletion(startTime, "Site");
+        if (!continueDeletion) return { deletedSites: total_delCount_site, deletedSiteAlerts: total_delCount_siteAlert, deletedNotifications: total_delCount_notification };
+
+        if (siteAlertIds.length > 0) {
+            await prisma.siteAlert.deleteMany({ where: { id: { in: siteAlertIds } } });
+            await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
+            total_delCount_siteAlert += siteAlertIds.length;
+        }
+
+        continueDeletion = shouldContinueDeletion(startTime, "Site");
+        if (!continueDeletion) return { deletedSites: total_delCount_site, deletedSiteAlerts: total_delCount_siteAlert, deletedNotifications: total_delCount_notification };
 
         // Deleting the site and updating site stats
         await prisma.site.delete({ where: { id: siteId } });
         await updateOrCreateStats('sites_deleted', 1);
         total_delCount_site++;
+
+        continueDeletion = shouldContinueDeletion(startTime, "Site");
+        if (!continueDeletion) return { deletedSites: total_delCount_site, deletedSiteAlerts: total_delCount_siteAlert, deletedNotifications: total_delCount_notification };
     }
 
     // Logging deletions
