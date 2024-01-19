@@ -46,7 +46,7 @@ async function seedSites(totalUsers, batchSize = 500) {
 
 
   for (let siteId = 1; siteId <= totalSites; siteId++) {
-    const shouldDelete = Math.random() < 0.05; // 5% chance of being marked for deletion
+    const shouldDelete = Math.random() < 0.25; // 5% chance of being marked for deletion
     const randomUserId = getRandomNumber(1, totalUsers);
 
     batch.push({

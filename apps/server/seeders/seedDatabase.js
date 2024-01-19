@@ -20,7 +20,7 @@ const { seedSiteAlertsAndNotifications } = require('./seedSiteAlertsAndNotificat
 
 async function seedDatabase(numberOfUsers, numberOfGeoEvents) {
     try {
-        await seedGeoEvents(numberOfGeoEvents);
+        // await seedGeoEvents(numberOfGeoEvents);
         await seedUsers(numberOfUsers);
         await seedSites(numberOfUsers);
         await seedAlertMethods(numberOfUsers);
@@ -31,7 +31,7 @@ async function seedDatabase(numberOfUsers, numberOfGeoEvents) {
     }
 }
 
-seedDatabase(2000, 1500000)
+seedDatabase(500, 150000)
     .then(() => {
         console.log('Database seeded successfully.');
         process.exit(0);

@@ -13,8 +13,8 @@ async function seedUsers(totalUsers, batchSize=500) {
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
 
-    for (let userId = 1; userId <= totalUsers; userId++) {
-        const shouldDelete = Math.random() < 0.05; // 5% chance of being marked for deletion
+    for (let userId = 501; userId <= totalUsers; userId++) {
+        const shouldDelete = Math.random() < 0.25; // 5% chance of being marked for deletion
         batch.push({
                 id: userId.toString(),
                 email: `user${userId}@gmail.com`,
