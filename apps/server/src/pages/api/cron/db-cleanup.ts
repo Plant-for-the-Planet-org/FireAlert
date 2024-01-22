@@ -14,6 +14,10 @@ export const config = {
 // Set up max duration dynamically to gracefully stop deletion before serverless timeout
 const MAX_DURATION = (config.maxDuration) * 1000 - 20000
 
+// Set up a uniform time to be 1 AM for cleanup reference
+const currentDateTimeAt1AM = new Date();
+currentDateTimeAt1AM.setHours(1, 0, 0, 0); // Set time to 1:00 AM of today
+
 function shouldContinueDeletion(startTime: number, type_of_cleanup:string = 'database'): boolean {
     if (Date.now() - startTime > MAX_DURATION) {
         logger(`Db-Cleanup Approaching max duration. Exiting ${type_of_cleanup} cleanup early.`, "info");
@@ -45,7 +49,7 @@ async function deleteGeoEventsBatch(startTime: number) {
         const geoEventsToDelete = await prisma.geoEvent.findMany({
             where: {
                 eventDate: {
-                    lt: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
+                    lt: new Date(currentDateTimeAt1AM.getTime() - 30 * 24 * 60 * 60 * 1000)
                 }
             },
             take: batchSize,
@@ -80,7 +84,7 @@ async function deleteVerificationRequests() {
     const deletedVerificationRequests = await prisma.verificationRequest.deleteMany({
         where: {
             expires: {
-                lt: new Date()
+                lt: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000)
             }
         }
     });
@@ -101,7 +105,7 @@ async function cleanUsers(startTime: number) {
     const usersToBeDeleted = await prisma.user.findMany({
         where: {
             deletedAt: {
-                lt: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
+                lt: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000)
             }
         },
         select: {
@@ -204,7 +208,7 @@ async function cleanSites(startTime: number) {
 
     // Find all sites for deletion
     const allSites_toBe_deleted_Ids = (await prisma.site.findMany({
-        where: {deletedAt: {lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)}},
+        where: {deletedAt: {lte: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000)}},
         select: {id: true}
     })).map(site => site.id);
 
@@ -270,7 +274,7 @@ async function cleanSites(startTime: number) {
 
 async function cleanAlertMethods() {
     const deletedAlertMethods = await prisma.alertMethod.deleteMany({
-        where: {deletedAt: {lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)}},
+        where: {deletedAt: {lte: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000)}},
     });
     logger(`Deleted ${deletedAlertMethods.count} alertMethods`, 'info');
     return deletedAlertMethods.count;
