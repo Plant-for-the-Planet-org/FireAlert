@@ -57,16 +57,17 @@ export const alertRouter = createTRPCRouter({
                                     gte: thirtyDaysAgo,
                                 },
                                 deletedAt: null,
-                            },
-                            orderBy: {
-                                eventDate: 'desc',
-                            },
-                            take: 500
+                            }
                         },
                     }
                 });
-                // Flatten the array of site alerts
-                const alertsForUser = sitesWithAlerts.flatMap(site => site.alerts);
+                // Flatten the array of site alerts and sort by date
+                let alertsForUser = sitesWithAlerts.flatMap(site => site.alerts);
+                alertsForUser.sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime()); // Sort by date in descending order
+
+                // Limit to 500 most recent alerts
+                alertsForUser = alertsForUser.slice(0, 500);
+
                 const returnAlertsForUser = alertsForUser.map((alert) => {
                     const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
                     return {
@@ -91,7 +92,6 @@ export const alertRouter = createTRPCRouter({
                 });
             }
         }),
-
 
     getAlert: publicProcedure
         .input(queryAlertSchema)
