@@ -13,7 +13,7 @@ export const alertRouter = createTRPCRouter({
         .query(async ({ ctx }) => {
             try {
                 const userId = ctx.user!.id;
-                const thirtyDaysAgo = subtractDays(new Date(), 30);
+                const tenDaysAgo = subtractDays(new Date(), 10);
                 const sitesWithAlerts = await ctx.prisma.site.findMany({
                     where: {
                         userId: userId,
@@ -21,7 +21,7 @@ export const alertRouter = createTRPCRouter({
                         alerts: {
                             some: {
                                 eventDate: {
-                                    gte: thirtyDaysAgo,
+                                    gte: tenDaysAgo,
                                 },
                                 deletedAt: null,
                             },
@@ -54,7 +54,7 @@ export const alertRouter = createTRPCRouter({
                             },
                             where: {
                                 eventDate: {
-                                    gte: thirtyDaysAgo,
+                                    gte: tenDaysAgo,
                                 },
                                 deletedAt: null,
                             }
