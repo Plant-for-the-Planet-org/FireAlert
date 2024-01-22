@@ -14,6 +14,10 @@ export const config = {
 // Set up max duration dynamically to gracefully stop deletion before serverless timeout
 const MAX_DURATION = (config.maxDuration) * 1000 - 20000
 
+// Set up a uniform time to be 1 AM for cleanup reference
+const currentDateTimeAt1AM = new Date();
+currentDateTimeAt1AM.setHours(1, 0, 0, 0); // Set time to 1:00 AM of today
+
 function shouldContinueDeletion(startTime: number, type_of_cleanup:string = 'database'): boolean {
     if (Date.now() - startTime > MAX_DURATION) {
         logger(`Db-Cleanup Approaching max duration. Exiting ${type_of_cleanup} cleanup early.`, "info");
@@ -45,7 +49,7 @@ async function deleteGeoEventsBatch(startTime: number) {
         const geoEventsToDelete = await prisma.geoEvent.findMany({
             where: {
                 eventDate: {
-                    lt: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000)
+                    lt: new Date(currentDateTimeAt1AM.getTime() - 30 * 24 * 60 * 60 * 1000)
                 }
             },
             take: batchSize,
@@ -80,7 +84,7 @@ async function deleteVerificationRequests() {
     const deletedVerificationRequests = await prisma.verificationRequest.deleteMany({
         where: {
             expires: {
-                lt: new Date()
+                lt: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000)
             }
         }
     });
@@ -101,7 +105,7 @@ async function cleanUsers(startTime: number) {
     const usersToBeDeleted = await prisma.user.findMany({
         where: {
             deletedAt: {
-                lt: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)
+                lt: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000)
             }
         },
         select: {
@@ -204,7 +208,7 @@ async function cleanSites(startTime: number) {
 
     // Find all sites for deletion
     const allSites_toBe_deleted_Ids = (await prisma.site.findMany({
-        where: {deletedAt: {lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)}},
+        where: {deletedAt: {lte: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000)}},
         select: {id: true}
     })).map(site => site.id);
 
@@ -270,7 +274,7 @@ async function cleanSites(startTime: number) {
 
 async function cleanAlertMethods() {
     const deletedAlertMethods = await prisma.alertMethod.deleteMany({
-        where: {deletedAt: {lte: new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000)}},
+        where: {deletedAt: {lte: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000)}},
     });
     logger(`Deleted ${deletedAlertMethods.count} alertMethods`, 'info');
     return deletedAlertMethods.count;
@@ -292,7 +296,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     const validCleanupOptions = ['geoEvent', 'verificationRequest', 'user', 'site', 'alertMethod'];
     // Extract the 'clean' parameter from the request query
     const tableToClean = req.query['clean'] as string;
-    let loop = true;
+    let isClean = false;
     try {
         if (validCleanupOptions.includes(tableToClean)) {
             // Execute specific cleanup based on the provided option
@@ -300,12 +304,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                 case 'geoEvent':{
                     const geoEventsDeleted = await deleteGeoEventsBatch(startTime)
                     if (geoEventsDeleted == 0) {
-                        loop = false;
+                        isClean = true;
                     }
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${geoEventsDeleted} geo events`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
@@ -313,12 +317,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                 case 'verificationRequest':{
                     const verificationRequestsDeleted = await deleteVerificationRequests()
                     if (verificationRequestsDeleted == 0) {
-                        loop = false;
+                        isClean = true;
                     }
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${verificationRequestsDeleted} verification requests`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
@@ -332,12 +336,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                         returnCountUser.deletedAlertMethods === 0 &&
                         returnCountUser.deletedSiteAlerts === 0 &&
                         returnCountUser.deletedNotifications === 0) {
-                        loop = false;
+                        isClean = true;
                     }
                     res.status(200)
                         .json({
                             message: `Successfully cleaned up users. Deleted ${returnCountUser.deletedUsers} users, ${returnCountUser.deletedAlertMethods} alertMethods, ${returnCountUser.deletedSites} sites, ${returnCountUser.deletedSiteAlerts} siteAlerts, ${returnCountUser.deletedNotifications} notifications.`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
@@ -349,12 +353,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                         returnCountSite.deletedSites === 0 &&
                         returnCountSite.deletedSiteAlerts === 0 &&
                         returnCountSite.deletedNotifications === 0) {
-                        loop = false;
+                        isClean = true;
                     }
                     res.status(200)
                         .json({
                             message: `Successfully cleaned up sites. Deleted ${returnCountSite.deletedSites} sites, ${returnCountSite.deletedSiteAlerts} siteAlerts, ${returnCountSite.deletedNotifications} notifications.`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
@@ -362,12 +366,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                 case 'alertMethod':{
                     const alertMethodDeleted = await cleanAlertMethods()
                     if (alertMethodDeleted === 0) {
-                        loop = false
+                        isClean = true
                     }
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${alertMethodDeleted} alertMethods`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
