@@ -292,7 +292,7 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
     const validCleanupOptions = ['geoEvent', 'verificationRequest', 'user', 'site', 'alertMethod'];
     // Extract the 'clean' parameter from the request query
     const tableToClean = req.query['clean'] as string;
-    let loop = true;
+    let isClean = false;
     try {
         if (validCleanupOptions.includes(tableToClean)) {
             // Execute specific cleanup based on the provided option
@@ -300,12 +300,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                 case 'geoEvent':{
                     const geoEventsDeleted = await deleteGeoEventsBatch(startTime)
                     if (geoEventsDeleted == 0) {
-                        loop = false;
+                        isClean = true;
                     }
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${geoEventsDeleted} geo events`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
@@ -313,12 +313,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                 case 'verificationRequest':{
                     const verificationRequestsDeleted = await deleteVerificationRequests()
                     if (verificationRequestsDeleted == 0) {
-                        loop = false;
+                        isClean = true;
                     }
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${verificationRequestsDeleted} verification requests`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
@@ -332,12 +332,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                         returnCountUser.deletedAlertMethods === 0 &&
                         returnCountUser.deletedSiteAlerts === 0 &&
                         returnCountUser.deletedNotifications === 0) {
-                        loop = false;
+                        isClean = true;
                     }
                     res.status(200)
                         .json({
                             message: `Successfully cleaned up users. Deleted ${returnCountUser.deletedUsers} users, ${returnCountUser.deletedAlertMethods} alertMethods, ${returnCountUser.deletedSites} sites, ${returnCountUser.deletedSiteAlerts} siteAlerts, ${returnCountUser.deletedNotifications} notifications.`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
@@ -349,12 +349,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                         returnCountSite.deletedSites === 0 &&
                         returnCountSite.deletedSiteAlerts === 0 &&
                         returnCountSite.deletedNotifications === 0) {
-                        loop = false;
+                        isClean = true;
                     }
                     res.status(200)
                         .json({
                             message: `Successfully cleaned up sites. Deleted ${returnCountSite.deletedSites} sites, ${returnCountSite.deletedSiteAlerts} siteAlerts, ${returnCountSite.deletedNotifications} notifications.`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
@@ -362,12 +362,12 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                 case 'alertMethod':{
                     const alertMethodDeleted = await cleanAlertMethods()
                     if (alertMethodDeleted === 0) {
-                        loop = false
+                        isClean = true
                     }
                     res.status(200)
                         .json({
                             message: `Successfully deleted ${alertMethodDeleted} alertMethods`,
-                            loop: loop,
+                            isClean: isClean,
                             status: 200
                         });
                     break;
