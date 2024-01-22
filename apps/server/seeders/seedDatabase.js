@@ -20,7 +20,7 @@ const { seedSiteAlertsAndNotifications } = require('./seedSiteAlertsAndNotificat
 
 async function seedDatabase(numberOfUsers, numberOfGeoEvents) {
     try {
-        // await seedGeoEvents(numberOfGeoEvents);
+        await seedGeoEvents(numberOfGeoEvents);
         await seedUsers(numberOfUsers);
         await seedSites(numberOfUsers);
         await seedAlertMethods(numberOfUsers);

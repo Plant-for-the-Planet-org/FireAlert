@@ -38,7 +38,7 @@ async function seedSiteAlertsAndNotifications(totalUsers, siteAlertBatchSize=100
                 notificationBatch.push({
                     id: `${siteId}notification${i}`,
                     alertMethod: "email",
-                    destination: `siteId${siteId}${i}@gmail.com`,
+                    destination: `siteId${siteId}${i}@plant-for-the-planet.org`,
                     siteAlertId: `${siteId}siteAlert${i}`
                 })
             }

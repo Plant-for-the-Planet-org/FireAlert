@@ -17,7 +17,7 @@ async function seedAlertMethods(totalUsers, batchSize=500) {
         const shouldDelete = Math.random() < 0.05; // 25% chance of being marked for deletion
         batch.push({
             id:`${userId}alertMethodEmail0`,
-            destination: `user${userId}email0@gmail.com`,
+            destination: `user${userId}email0@plant-for-the-planet.org`,
             method: "email",
             isEnabled: true,
             isVerified: true,
@@ -35,7 +35,7 @@ async function seedAlertMethods(totalUsers, batchSize=500) {
         })
         batch.push({
             id:`${userId}alertMethodEmail1`,
-            destination: `user${userId}email1@gmail.com`,
+            destination: `user${userId}email1@plant-for-the-planet.org`,
             method: "email",
             isEnabled: true,
             isVerified: true,

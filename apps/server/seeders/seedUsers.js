@@ -17,7 +17,7 @@ async function seedUsers(totalUsers, batchSize=500) {
         const shouldDelete = Math.random() < 0.25; // 5% chance of being marked for deletion
         batch.push({
                 id: userId.toString(),
-                email: `user${userId}@gmail.com`,
+                email: `user${userId}@plant-for-the-planet.org`,
                 emailVerified: true,
                 detectionMethods: JSON.stringify(["MODIS", "VIIRS", "LANDSAT"]),
                 isPlanetRO: false,
