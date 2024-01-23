@@ -382,18 +382,9 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
                 }
             }
         } else {
-            // Default case: Execute all cleanups if no specific table is specified or if an invalid option is given
-            let promises = [];
-            promises.push(deleteGeoEventsBatch(startTime));
-            promises.push(cleanUsers(startTime));
-            promises.push(cleanSites(startTime));
-            promises.push(cleanAlertMethods());
-            promises.push(deleteVerificationRequests());
-            // Execute all promises and use TypeScript type assertions
-            await Promise.all(promises);
-            res.status(200).json({
-                message: "Success! Db is as clean as a whistle!",
-                status: 200
+            res.status(400).json({
+                message: `Invalid cleanup option: ${tableToClean}`,
+                status: 400
             });
         }
     } catch (error) {
