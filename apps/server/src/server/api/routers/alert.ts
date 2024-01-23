@@ -66,7 +66,7 @@ export const alertRouter = createTRPCRouter({
                 alertsForUser.sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime()); // Sort by date in descending order
 
                 // Limit to 500 most recent alerts
-                alertsForUser = alertsForUser.slice(0, 500);
+                alertsForUser = alertsForUser.slice(0, 300);
 
                 const returnAlertsForUser = alertsForUser.map((alert) => {
                     const localTime = getLocalTime(alert.eventDate, alert.latitude.toString(), alert.longitude.toString());
