@@ -14,7 +14,7 @@ import {
   updateAccessToken,
 } from '../redux/slices/login/loginSlice';
 import {CommonStack, SignInStack} from './stack';
-import {clearAll, getData} from '../utils/localStorage';
+import {clearAll, getData, storeData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector, useOneSignal} from '../hooks';
 import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';
 
@@ -81,6 +81,7 @@ export default function AppNavigator() {
                   onSuccess: () => {},
                   onFail: () => {},
                 };
+                storeData('cred', newAccessToken);
                 dispatch(updateAccessToken(newAccessToken?.accessToken));
                 dispatch(getUserDetails(request));
                 dispatch(updateIsLoggedIn(true));
