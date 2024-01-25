@@ -4,7 +4,7 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
-import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
+import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert, SiteCreationParams, createPolygonSitesFromMultiPolygon, MultiPolygonGeometry} from '../../../utils/routers/site'
 import {Prisma, SiteAlert} from "@prisma/client";
 // import {UserPlan} from "../../../Interfaces/AlertMethod";
 
@@ -14,32 +14,6 @@ export const siteRouter = createTRPCRouter({
         .input(createSiteSchema)
         .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
-            // const userPlan = ctx.user!.plan ? ctx.user!.plan as UserPlan : 'basic';
-            // const siteCount = await ctx.prisma.site.count({
-            //     where:{
-            //         userId,
-            //     }
-            // })
-            // if(userPlan === 'basic'){
-            //     if (siteCount >= 20){
-            //         return {
-            //             status: 'error',
-            //             httpStatus: 403,
-            //             code: 'FORBIDDEN',
-            //             message: `You've exceeded the fair site use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
-            //         };
-            //     }
-            // }
-            // if(userPlan === 'custom'){
-            //     if (siteCount >= 50){
-            //         return {
-            //             status: 'error',
-            //             httpStatus: 403,
-            //             code: 'FORBIDDEN',
-            //             message: `You've exceeded the fair site use limits of FireAlert. You cannot create any more sites.`,
-            //         };
-            //     }
-            // }
             try {
                 const origin = 'firealert';
                 const lastUpdated = new Date();
@@ -56,6 +30,24 @@ export const siteRouter = createTRPCRouter({
 
                 if (input.type === 'MultiPolygon'){
                     // Create many Site Polygons For this site
+                    // Convert MultiPolygon to multiple Polygon sites
+                    const siteCreationParams: SiteCreationParams = {
+                        origin: origin,
+                        name: input.name,
+                        radius: radius,
+                        isMonitored: input.isMonitored,
+                        userId: userId,
+                        lastUpdated: lastUpdated,
+                    }
+                    const polygonSitesQueue = createPolygonSitesFromMultiPolygon(siteCreationParams, input.geometry as MultiPolygonGeometry) 
+                    const createPolygonSites = await ctx.prisma.site.createMany({
+                        data: polygonSitesQueue
+                    })
+                    return {
+                        status: 'success',
+                        message: `Created ${createPolygonSites.count} sites`, 
+                        data: createPolygonSites
+                    }
                 }
 
                 const site = await ctx.prisma.site.create({
@@ -271,9 +263,12 @@ export const siteRouter = createTRPCRouter({
                     }
                     data = rest;
                 }
-                // If MultiPolygon then separate it into Polygon
-                if(updatedData.type === 'MultiPolygon'){
-                    // Separate Into Polygons
+                // If user tries to update to MultiPolygon site, then throw errow message
+                if(updatedData.type === 'MultiPolygon' || updatedData.geometry?.type === 'MultiPolygon'){
+                    throw new TRPCError({
+                        code: "UNAUTHORIZED",
+                        message: `Cannot update site to MultiPolygon type`,
+                    });
                 }
                 // Update the site using the modified data object
                 const updatedSite = await ctx.prisma.site.update({

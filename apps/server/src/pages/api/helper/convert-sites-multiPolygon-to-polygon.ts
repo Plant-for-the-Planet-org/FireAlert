@@ -8,6 +8,20 @@ import {bulkEmailUsersRegardingMultiPolygonSites} from "../../../utils/notificat
 import {createPolygonSitesFromMultiPolygon, UserInfo, CreatePolygonSiteData, MultiPolygonGeometry, SiteCreationParams, MultiPolygonInfo} from "../../../utils/routers/site"
 
 // Run this api once on the production db.
+// Logic:
+    // For each MultiPolygonSites
+        // Find the number of polygon that the MultiPolygon has
+        // If sendEmailQueue already has an object with this multiPolygon.userId
+            // Append {name, numberOfPolygons} to just the  sendEmailQueue.multiPolygons
+        // Else
+            // Append {userId, multiPolygons:[{name, numberOfPolygons}]} to sendEmailQueue
+        // Extract Polygons out of the MultiPolygon
+        // for each polygon
+            // Make an object with the origin, type, name, geometry:{type:"Polygon",coordinates:Polygon}, radius, isMonitored, userId, lastUpdated, projectId, remoteId
+            // Append this object to the createSiteQueue
+    // Bulk Create Site using createSiteQueue
+    // For each object in sendEmailQueue, construct message, and then send email
+
 export default async function convertAllMultiPolygonSitesToPolygon(req: NextApiRequest, res: NextApiResponse) {
     // Verify the 'cron_key' in the request headers before proceeding
     if (env.CRON_KEY) {
@@ -47,7 +61,11 @@ export default async function convertAllMultiPolygonSitesToPolygon(req: NextApiR
                 const polygonSites = createPolygonSitesFromMultiPolygon(siteCreationParams, multiPolygonGeometry);
                 createSiteQueue.push(...polygonSites);
                 // Add to sendEmailQueue for each MultiPolygon
-                // Each userId is a unique key
+                // 'userId' serves as a unique identifier for each user.
+                // As users may have multiple MultiPolygon sites, the following code:
+                    // 1. Checks if the user already has an entry in sendEmailQueue.
+                    // 2. If an entry exists, it appends the site's name and polygon count to the user's multiPolygon array.
+                    // 3. If no entry exists, it creates a new entry for the user with the site's details.
                 const userInfo = sendEmailQueue.get(userId) || {
                     email: user.email,
                     name: user.name,
@@ -76,19 +94,7 @@ export default async function convertAllMultiPolygonSitesToPolygon(req: NextApiR
 
         // Send emails to users
         const emailSent = await bulkEmailUsersRegardingMultiPolygonSites(Array.from(sendEmailQueue.values()));
-        
-        // For each MultiPolygonSites
-            // Find the number of polygon that the MultiPolygon has
-            // If sendEmailQueue already has an object with this multiPolygon.userId
-                // Append {name, numberOfPolygons} to just the  sendEmailQueue.multiPolygons
-            // Else
-                // Append {userId, multiPolygons:[{name, numberOfPolygons}]} to sendEmailQueue
-            // Extract Polygons out of the MultiPolygon
-            // for each polygon
-                // Make an object with the origin, type, name, geometry:{type:"Polygon",coordinates:Polygon}, radius, isMonitored, userId, lastUpdated, projectId, remoteId
-                // Append this object to the createSiteQueue
-        // Bulk Create Site using createSiteQueue
-        // For each object in sendEmailQueue, construct message, and then send email
+
         res.status(200).json({
             message: `Successfully created ${transaction.sitesCount} polygon sites from ${transaction.multiPolygonCount} multipolygons for ${transaction.userCount} users. Sent email to ${emailSent.sentCount} users`,
             status: 200,
