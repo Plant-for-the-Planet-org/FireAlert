@@ -6,7 +6,6 @@ import { type GeoEventProvider } from '@prisma/client'
 import { type GeoEventProviderConfig } from '../../../Interfaces/GeoEventProvider'
 import { env } from "../../../env.mjs";
 import processGeoEvents from "../../../../src/Services/GeoEvent/GeoEventHandler";
-import createNotifications from "../../../../src/Services/Notifications/CreateNotifications";
 import createSiteAlerts from "../../../../src/Services/SiteAlert/CreateSiteAlert";
 import { logger } from "../../../../src/server/logger";
 import { type GeoEventProviderClientId } from "../../../Interfaces/GeoEventProvider";
