@@ -36,7 +36,7 @@ BEGIN
             ));
         END LOOP;
 
-        NEW."geometry" = jsonb_set(NEW."geometry", '{detection_geometry}', to_jsonb(detectionGeometryHex));
+        NEW."geometry" = jsonb_set(NEW."geometry", '{properties}', jsonb_build_object('detection_geometry', to_jsonb(detectionGeometryHex)));
 
         -- Calculate detectionGeometry for MultiPolygon as a whole
         NEW."detectionGeometry" = ST_Collect(ARRAY(

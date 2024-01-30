@@ -28,7 +28,7 @@ const createSiteAlerts = async (
         "GeoEvent" e
     CROSS JOIN 
         "Site" s,
-        jsonb_array_elements_text(s."geometry"->'detection_geometry') AS dg_elem
+        jsonb_array_elements_text(s."geometry"->'properties'->'detection_geometry') AS dg_elem
     WHERE
         s."type" = 'MultiPolygon'
         AND s."deletedAt" IS NULL
