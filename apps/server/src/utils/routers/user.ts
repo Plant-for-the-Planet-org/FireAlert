@@ -219,6 +219,7 @@ export async function handleNewUser(bearer_token: string) {
       });
       // Extract the siteIds from the createdSites array
       const siteIds = createdSites.map(site => site.id);
+      // Only Create SiteAlert for the Point or Polygon Sites, OMIT for MultiPolygon Site
       // Don't wait for the executeRaw.
       const siteAlertsCreationQuery = Prisma.sql`
                 INSERT INTO "SiteAlert" (id, "type", "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
@@ -240,6 +241,7 @@ export async function handleNewUser(bearer_token: string) {
                     AND s."deletedAt" IS NULL
                     AND s.id IN (${Prisma.join(siteIds)})
                     AND s."isMonitored" IS TRUE
+                    AND (s.type = 'Point' OR s.type = 'Polygon')
                 WHERE
                     e."isProcessed" = TRUE
                     AND (
@@ -256,8 +258,7 @@ export async function handleNewUser(bearer_token: string) {
                         AND "SiteAlert".latitude = e.latitude
                         AND "SiteAlert"."eventDate" = e."eventDate"
                 )`;
-      // todo: remove the await, change false to true in siteAlert isProcessed
-      await prisma.$executeRaw(siteAlertsCreationQuery);
+      prisma.$executeRaw(siteAlertsCreationQuery);
       const returnedUser = returnUser(createdUser);
       return {
         status: 'success',

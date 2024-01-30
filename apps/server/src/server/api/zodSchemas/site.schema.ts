@@ -12,9 +12,23 @@ const PolygonSchema = z.object({
 });
 
 
+// const MultiPolygonSchema = z.object({
+//     type: z.literal("MultiPolygon"),
+//     coordinates: z.array(z.array(z.union([z.tuple([z.number(), z.number()]), z.tuple([z.number(), z.number(), z.optional(z.number())])])))
+// });
+
 const MultiPolygonSchema = z.object({
     type: z.literal("MultiPolygon"),
-    coordinates: z.array(z.array(z.union([z.tuple([z.number(), z.number()]), z.tuple([z.number(), z.number(), z.optional(z.number())])])))
+    coordinates: z.array(
+        z.array(
+            z.array(
+                z.union([
+                    z.tuple([z.number(), z.number()]),
+                    z.tuple([z.number(), z.number(), z.optional(z.number())])
+                ])
+            )
+        )
+    )
 });
 
 export const createSiteSchema = z.object({
