@@ -1,12 +1,53 @@
+-- Enable PostGIS extension
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- Add trigger to Site to generate detection geometry and determine slices
 CREATE OR REPLACE FUNCTION app_site_detectionGeometry_update() 
 RETURNS TRIGGER AS $$
 DECLARE
     sliceKeys TEXT[];
+    detectionGeometryHex TEXT[];
+    polygon JSONB;
 BEGIN
-    -- Generate detection geometry
-    NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
-    NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
+    IF NEW."type" = 'MultiPolygon' THEN
+        detectionGeometryHex := ARRAY[]::TEXT[];
+
+        FOR polygon IN SELECT jsonb_array_elements(NEW."geometry"->'coordinates')
+        LOOP
+            detectionGeometryHex := array_append(detectionGeometryHex, encode(
+                ST_AsEWKB(
+                    ST_Transform(
+                        ST_Buffer(
+                            ST_Transform(
+                                ST_GeomFromGeoJSON(
+                                    jsonb_build_object(
+                                        'type', 'Polygon',
+                                        'coordinates', polygon
+                                    )::text
+                                ),
+                                3857
+                            ),
+                            NEW."radius"
+                        ),
+                        4326
+                    )
+                ),
+                'hex'
+            ));
+        END LOOP;
+
+        NEW."geometry" = jsonb_set(NEW."geometry", '{properties}', jsonb_build_object('detection_geometry', to_jsonb(detectionGeometryHex)));
+
+        -- Calculate detectionGeometry for MultiPolygon as a whole
+        NEW."detectionGeometry" = ST_Collect(ARRAY(
+        SELECT ST_GeomFromEWKB(decode(dg_elem, 'hex'))
+        FROM jsonb_array_elements_text(NEW."geometry"->'detection_geometry') AS dg_elem
+        ));
+    ELSE
+        -- Handle Point and Polygon as before
+        NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
+        NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
+    END IF;
 
     -- Calculate detection area
     NEW."detectionArea" := ST_Area(
@@ -64,9 +105,6 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE TRIGGER site_update_trigger
 BEFORE INSERT OR UPDATE OF "geometry", "radius", "slices" ON "Site"
 FOR EACH ROW EXECUTE FUNCTION app_site_detectionGeometry_update();
-
--- Enable PostGIS extension
-CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Add trigger to GeoEvent table
 CREATE OR REPLACE FUNCTION handle_geoevent() 
