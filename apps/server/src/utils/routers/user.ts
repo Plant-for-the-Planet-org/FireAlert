@@ -105,7 +105,7 @@ export async function handleNewUser(bearer_token: string) {
   // Auth0 has a bug where email_verified is a sometimes string instead of a boolean
   // Therefore check both string and boolean values
 
-  const email_verified = (typeof userData.email_verified === 'boolean' && userData.email_verified === true) || 
+  const email_verified = (typeof userData.email_verified === 'boolean' && userData.email_verified) || 
                         (typeof userData.email_verified === 'string' && 
                         userData.email_verified.toLowerCase() === 'true');
 
