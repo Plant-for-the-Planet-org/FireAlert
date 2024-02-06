@@ -20,7 +20,7 @@ class WhatsAppNotifier implements Notifier {
     //   return false;
     // }
 
-    const n8n_WebHookURL = env.N8N_WEBHOOK_URL; 
+    const n8n_WhatsApp_SendNode_URL = env.N8N_WHATSAPP_SEND; 
 
     // Construct the payload for the webhook
     const payload = {
@@ -31,7 +31,7 @@ class WhatsAppNotifier implements Notifier {
 
     // Send the notification via the n8n webhook
     try {
-      const response = await fetch(n8n_WebHookURL, {
+      const response = await fetch(n8n_WhatsApp_SendNode_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,8 +42,8 @@ class WhatsAppNotifier implements Notifier {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      logger(`WhatsApp message sent to ${destination}`, 'info');
+      const decodedPhoneNumber: string = decodeURIComponent(destination);
+      logger(`WhatsApp message sent to ${decodedPhoneNumber}`, 'info');
       return true;
     } catch (error) {
       logger(`Failed to send WhatsApp message via webhook. Error: ${error}`, 'error');
