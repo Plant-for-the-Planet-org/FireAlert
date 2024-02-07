@@ -23,18 +23,38 @@ export default async function testWhatsApp(req: NextApiRequest, res: NextApiResp
 
 
 
-    // Create the notification parameters
-    const notificationParameters: NotificationParameters = {
-        message: "Test Message from Fire Alert via WhatsApp",
-        subject: "Test Message", // Although 'subject' might not be used in WhatsApp messages, it's included to match the NotificationParameters structure.
-        url: "http://example.com", // Optional: Include if you want to test sending URLs.
-        id: "unique-id" // Optional: Adjust based on actual requirement, if it's needed for logging or other purposes.
+    // Create the notification parameters for an alert
+    const notificationParameters_alert: NotificationParameters = {
+        message: "Fire detected inside Las Americas 7A",
+        subject: "FireAlert", 
+        url: "https://firealert.plant-for-the-planet.org/alert/ed1cf199-6c3a-4406-bac0-eb5519391e2e", 
+        id: "notificationId",
+        alert:{
+            id: "ed1cf199-6c3a-4406-bac0-eb5519391e2e",
+            type: 'fire',
+            confidence: 'high',
+            source: "TEST",
+            date: new Date(),
+            longitude: 80.45728,
+            latitude: 66.66537,
+            distance: 0,
+            siteId: "siteId1",
+            siteName: "SiteName",
+            data: {},
+        }
+    };
+
+    // Create the notification parameters for an alert
+    const notificationParameters_otp: NotificationParameters = {
+        message: "12345 is your FireAlert one time code.",
+        subject: "FireAlert Verification", 
+        url: "https://firealert.plant-for-the-planet.org/verify/123345alertMethodId/?code=12345", 
     };
 
     try {
         // Use the NotifierRegistry to get the WhatsApp notifier
         const notifier = NotifierRegistry.get('whatsapp');
-        const isDelivered = await notifier.notify(encodedPhoneNumber, notificationParameters);
+        const isDelivered = await notifier.notify(encodedPhoneNumber, notificationParameters_otp);
         
         if (isDelivered) {
             res.status(200).json({

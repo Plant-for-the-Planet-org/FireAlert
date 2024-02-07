@@ -1,8 +1,8 @@
+import {prisma} from '../../../server/db';
+import {logger} from '../../../server/logger';
 import {type NotificationParameters} from '../../../Interfaces/NotificationParameters';
 import type Notifier from '../Notifier';
 import {NOTIFICATION_METHOD} from '../methodConstants';
-import {logger} from '../../../../src/server/logger';
-// import { isPhoneNumberRestricted } from '../../../utils/notification/restrictedSMS';
 import {env} from '../../../env.mjs';
 
 class WhatsAppNotifier implements Notifier {
@@ -10,46 +10,81 @@ class WhatsAppNotifier implements Notifier {
     return [NOTIFICATION_METHOD.WHATSAPP];
   }
 
-  async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-    const {message, url, id} = parameters;
+  async deleteNotificationDisableAndUnverifyWhatsApp(destination: string, notificationId: string): Promise<void> {
+    try {
+      // Delete the notification
+      await prisma.notification.delete({
+        where: {
+          id: notificationId,
+        },
+      });
+      // Unverify and disable the alertMethod
+      await prisma.alertMethod.updateMany({
+        where: {
+          destination: destination,
+          method: NOTIFICATION_METHOD.WHATSAPP,
+        },
+        data: {
+          isVerified: false,
+          isEnabled: false,
+        },
+      });
+      logger(`Notification with ID: ${notificationId} deleted and alertMethod for destination: ${destination} has been unverified and disabled.`, "info");
+    } catch (error) {
+      logger(`Database Error: Couldn't modify the alertMethod or delete the notification: ${error}`, "error");
+    }
+  }
 
-    // // Validate the destination phone number
-    // if (!destination || isPhoneNumberRestricted(destination)) {
-    //   logger(`Invalid or restricted destination phone number: ${destination}`, 'error');
-    //   // Optionally delete the notification or take other actions
-    //   return false;
-    // }
-
-    const n8n_WhatsApp_SendNode_URL = env.N8N_WHATSAPP_SEND; 
-
-    // Construct the payload for the webhook
+  async notify(
+    destination: string,
+    parameters: NotificationParameters,
+  ): Promise<boolean> {
+    const {subject, message, url, alert} = parameters;
+    // logger(`Sending message ${message} to ${destination}`, "info");
+    
+    // construct the payload for Webhook
     const payload = {
-      destination: destination,
+      subject: subject,
       message: message,
-      url: url ? url : ''
+      url: url,
+      alert: alert ? alert : {},
     };
 
-    // Send the notification via the n8n webhook
-    try {
-      const response = await fetch(n8n_WhatsApp_SendNode_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+    const WHATSAPP_ENDPOINT_URL = `${env.WHATSAPP_ENDPOINT_URL}?whatsAppId=${destination}`; 
+    
+    // call WehHook to send the notification
+    const response = await fetch(WHATSAPP_ENDPOINT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      logger(
+        `Failed to send webhook notification. Error: ${response.statusText}  for ${parameters.id}.`,
+        'error',
+      );
+      // Specific status code handling
+      if (response.status === 404) {
+        // Webhook URL Not Found - Token not found
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id);
+      } else if (response.status === 401){
+        // Unauthorized
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id);
+      } else if (response.status === 403){
+        // Forbidden
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id);
+      } else {
+        logger(
+          `Failed to send webhook notification. Something went wrong. Try again in next run.`,
+          'error',
+        );
       }
-      const decodedPhoneNumber: string = decodeURIComponent(destination);
-      logger(`WhatsApp message sent to ${decodedPhoneNumber}`, 'info');
-      return true;
-    } catch (error) {
-      logger(`Failed to send WhatsApp message via webhook. Error: ${error}`, 'error');
-      // TODO: handle specific error codes and potentially disable or modify alert methods
       return false;
     }
+    return true;
   }
 }
 

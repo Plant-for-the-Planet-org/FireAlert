@@ -37,7 +37,7 @@ const server = z.object({
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   CRON_KEY: z.string().optional(),
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
-  N8N_WHATSAPP_SEND: z.string()
+  WHATSAPP_ENDPOINT_URL: z.string()
 });
 
 /**
@@ -77,7 +77,7 @@ const processEnv = {
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   CRON_KEY: process.env.CRON_KEY,
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
-  N8N_WHATSAPP_SEND: process.env.N8N_WHATSAPP_SEND
+  WHATSAPP_ENDPOINT_URL: process.env.WHATSAPP_ENDPOINT_URL
 };
 
 

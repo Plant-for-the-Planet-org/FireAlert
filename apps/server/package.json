@@ -36,6 +36,7 @@
     "csv-parse": "^5.3.9",
     "geo-tz": "^7.0.7",
     "hash-wasm": "^4.9.0",
+    "libphonenumber-js": "^1.10.55",
     "mapbox-gl": "1.13",
     "maplibre-gl": "^3.1.0",
     "next": "^13.5.4",
