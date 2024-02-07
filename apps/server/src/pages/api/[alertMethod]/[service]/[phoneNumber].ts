@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Check if service is a valid string among ['PAUSE', 'STOP']
-    if (!['PAUSE', 'STOP'].includes(service)) {
+    if (!['STOP'].includes(service)) {
         res.status(400).json({
             message: 'Invalid service action provided.',
             status: '400',
@@ -83,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             // Send sms message to whatsapp if disabled and unverified
             if(updateWhatsApp.count > 0){
                 const notificationParameters: NotificationParameters = {
-                    message: `Your FireAlert notifications for ${alertMethod} been stopped as per your request.`,
+                    message: `Your FireAlert notifications for ${alertMethod} been stopped.`,
                     subject: 'FireAlert Notification STOP',
                 };
                 const notifier = NotifierRegistry.get('whatsapp');
