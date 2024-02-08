@@ -23,7 +23,6 @@ import {
 import {logger} from "../../../../src/server/logger";
 import {isPhoneNumberRestricted} from "../../../../src/utils/notification/restrictedSMS";
 import {UserPlan} from "../../../../src/Interfaces/AlertMethod";
-import NotifierRegistry from "src/Services/Notifier/NotifierRegistry";
 
 export const alertMethodRouter = createTRPCRouter({
 
@@ -108,17 +107,6 @@ export const alertMethodRouter = createTRPCRouter({
                     return alertMethod
                 })
                 const returnedAlertMethod = returnAlertMethod(alertMethod)
-                if(method === 'whatsapp'){
-                    // Send a message to user explaining how to stop fire alerts from us
-                    const notifier = NotifierRegistry.get(alertMethod.method);
-                    const message = `You're subscribed to FireAlert notifications. To stop, reply 'STOP' and we'll disable your number. To resume alerts, reverify your number in our app.`;
-                    const subject = 'FireAlert WhatsApp Notifications';
-                    const params = {
-                    message: message,
-                    subject: subject,
-                    };
-                    await notifier.notify(destination, params);
-                }
                 return {
                     status: 'success',
                     message: 'Validation Successful',

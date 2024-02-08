@@ -39,15 +39,11 @@ class WhatsAppNotifier implements Notifier {
     destination: string,
     parameters: NotificationParameters,
   ): Promise<boolean> {
-    const {subject, message, url, alert} = parameters;
     // logger(`Sending message ${message} to ${destination}`, "info");
     
     // construct the payload for Webhook
     const payload = {
-      subject: subject,
-      message: message,
-      url: url,
-      alert: alert ? alert : {},
+      ...parameters
     };
 
     const WHATSAPP_ENDPOINT_URL = `${env.WHATSAPP_ENDPOINT_URL}?whatsAppId=${destination}`; 
@@ -69,13 +65,13 @@ class WhatsAppNotifier implements Notifier {
       // Specific status code handling
       if (response.status === 404) {
         // Webhook URL Not Found - Token not found
-        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id);
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id as string);
       } else if (response.status === 401){
         // Unauthorized
-        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id);
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id as string);
       } else if (response.status === 403){
         // Forbidden
-        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id);
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id as string);
       } else {
         logger(
           `Failed to send webhook notification. Something went wrong. Try again in next run.`,

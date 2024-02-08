@@ -1,4 +1,4 @@
-// Call this api to run this page: http://localhost:3000/api/tests/whatsapp?phoneNumber="encoded-phone-number"
+// Call this api to run this page: http://localhost:3000/api/tests/whatsapp?phoneNumber="E.164-phone-number"
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { logger } from "../../../../src/server/logger";
 import NotifierRegistry from "../../../Services/Notifier/NotifierRegistry";
@@ -29,6 +29,9 @@ export default async function testWhatsApp(req: NextApiRequest, res: NextApiResp
         subject: "FireAlert", 
         url: "https://firealert.plant-for-the-planet.org/alert/ed1cf199-6c3a-4406-bac0-eb5519391e2e", 
         id: "notificationId",
+        authenticationMessage: true,
+        otp: "12345",
+        siteName: 'Las Americas',
         alert:{
             id: "ed1cf199-6c3a-4406-bac0-eb5519391e2e",
             type: 'fire',
@@ -54,7 +57,7 @@ export default async function testWhatsApp(req: NextApiRequest, res: NextApiResp
     try {
         // Use the NotifierRegistry to get the WhatsApp notifier
         const notifier = NotifierRegistry.get('whatsapp');
-        const isDelivered = await notifier.notify(encodedPhoneNumber, notificationParameters_otp);
+        const isDelivered = await notifier.notify(encodedPhoneNumber, notificationParameters_alert);
         
         if (isDelivered) {
             res.status(200).json({

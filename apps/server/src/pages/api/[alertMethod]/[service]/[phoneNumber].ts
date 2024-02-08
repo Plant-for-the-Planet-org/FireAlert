@@ -1,4 +1,5 @@
-// to reach this endpoint call http://localhost:3000/api/{whatsapp}/{STOP}/{phonenumberwithout'+'}
+// to reach this endpoint call http://localhost:3000/api/text-message-callback
+// {whatsapp}/{STOP}/{phonenumberwithout'+'}
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../../../server/db';
 import NotifierRegistry from '../../../../Services/Notifier/NotifierRegistry';
@@ -6,8 +7,12 @@ import { logger } from '../../../../server/logger';
 import { NotificationParameters } from '../../../../Interfaces/NotificationParameters';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
+// Request body:
+    // alertMethodMethod = sms || whatsapp
+    // action = "everything that the user sends us"
+    // destination = phone-number
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    debugger;
     const { alertMethod, service, phoneNumber} = req.query;
     // Check if phoneNumber is a string
     if (typeof phoneNumber !== 'string') {
@@ -35,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Check if service is a valid string among ['PAUSE', 'STOP']
-    if (!['STOP'].includes(service)) {
+    if (!['STOP', 'START'].includes(service)) {
         res.status(400).json({
             message: 'Invalid service action provided.',
             status: '400',
@@ -68,22 +73,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     if (service === 'STOP') {
         try {
-            // Unverify and Disable all alertMethod with that phonenumber
-            // Note: This unverifies and disables both sms and whatsapp for that phonenumber
-            const updateWhatsApp = await prisma.alertMethod.updateMany({
+            // Unverify all alertMethod with that phonenumber
+            const unverifyAlertMethod = await prisma.alertMethod.updateMany({
                 where: {
                     destination: phoneNumberE164,
                     method: alertMethod
                 },
                 data: {
-                    isEnabled: false,
                     isVerified: false,
                 },
             });
             // Send sms message to whatsapp if disabled and unverified
-            if(updateWhatsApp.count > 0){
+            if(unverifyAlertMethod.count > 0){
                 const notificationParameters: NotificationParameters = {
-                    message: `Your FireAlert notifications for ${alertMethod} been stopped.`,
+                    message: `Your FireAlert notifications for ${alertMethod} been stopped, and your whatsapp number has been unverified. If this is an error, please verify your whatsapp number again from our app.`,
                     subject: 'FireAlert Notification STOP',
                 };
                 const notifier = NotifierRegistry.get('whatsapp');
