@@ -5,13 +5,22 @@ import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
 import { logger } from '../../../server/logger';
 import { NotificationParameters } from '../../../Interfaces/NotificationParameters';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
+import {env} from "../../../env.mjs";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         res.status(405).end(`Method ${req.method} Not Allowed`);
         return;
     }
-
+    // Verify the 'cron_key' in the request headers before proceeding
+    if (env.CRON_KEY) {
+        // Verify the 'cron_key' in the request headers
+        const cronKey = req.query['cron_key'];
+        if (!cronKey || cronKey !== env.CRON_KEY) {
+            res.status(403).json({message: "Unauthorized: Invalid Cron Key"});
+            return;
+        }
+    }
     const { alertMethodMethod, action, destination } = req.body;
 
     if (!alertMethodMethod || typeof alertMethodMethod !== 'string') {
