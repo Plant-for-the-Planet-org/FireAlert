@@ -62,19 +62,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
 
             if (unverifyAlertMethod.count > 0) {
-                const notificationParameters: NotificationParameters = {
-                    message: `Your FireAlert notifications for ${alertMethodMethod} have been stopped, and your number has been unverified. If this is an error, please verify your number again from our app.`,
-                    subject: 'FireAlert Notification STOP',
-                };
+                // const notificationParameters: NotificationParameters = {
+                //     message: `Your FireAlert notifications for ${alertMethodMethod} have been stopped, and your number has been unverified. If this is an error, please verify your number again from our app.`,
+                //     subject: 'FireAlert Notification STOP',
+                // };
 
-                const notifier = NotifierRegistry.get(alertMethodMethod);
-                const isDelivered = await notifier.notify(phoneNumberE164, notificationParameters);
+                // const notifier = NotifierRegistry.get(alertMethodMethod);
+                // const isDelivered = await notifier.notify(phoneNumberE164, notificationParameters);
 
-                if (isDelivered) {
-                    res.status(200).json({ message: `Notification sent successfully via ${alertMethodMethod}.`, status: '200' });
-                } else {
-                    res.status(500).json({ message: `Failed to send notification via ${alertMethodMethod}.`, status: '500' });
-                }
+                // if (isDelivered) {
+                //     res.status(200).json({ message: `Notification sent successfully via ${alertMethodMethod}.`, status: '200' });
+                // } else {
+                //     res.status(500).json({ message: `Failed to send notification via ${alertMethodMethod}.`, status: '500' });
+                // }
+                res.status(200).json({ message: `Successfully handled the WhatsApp callback action.`, status: '200' });
             } else {
                 res.status(404).json({ message: `No ${alertMethodMethod} alertMethods associated with that phonenumber`, status: '404' });
             }
