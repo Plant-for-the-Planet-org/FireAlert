@@ -5,7 +5,6 @@ import NotifierRegistry from "../../../Services/Notifier/NotifierRegistry";
 import { NotificationParameters } from "../../../Interfaces/NotificationParameters"; // Adjust this import path if necessary
 
 export default async function testWhatsApp(req: NextApiRequest, res: NextApiResponse) {
-    debugger;
     logger(`Running Test WhatsApp Sender.`, "info");
 
     // Extract the phone number from the query parameters
@@ -45,13 +44,6 @@ export default async function testWhatsApp(req: NextApiRequest, res: NextApiResp
             siteName: "SiteName",
             data: {},
         }
-    };
-
-    // Create the notification parameters for an alert
-    const notificationParameters_otp: NotificationParameters = {
-        message: "12345 is your FireAlert one time code.",
-        subject: "FireAlert Verification", 
-        url: "https://firealert.plant-for-the-planet.org/verify/123345alertMethodId/?code=12345", 
     };
 
     try {

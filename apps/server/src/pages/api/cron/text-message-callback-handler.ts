@@ -1,9 +1,9 @@
 //To reach this endpoint call this URL (POST): http://localhost:3000/api/cron/text-message-callback-handler
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../../server/db';
-import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
+// import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
 import { logger } from '../../../server/logger';
-import { NotificationParameters } from '../../../Interfaces/NotificationParameters';
+// import { NotificationParameters } from '../../../Interfaces/NotificationParameters';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import {env} from "../../../env.mjs";
 
