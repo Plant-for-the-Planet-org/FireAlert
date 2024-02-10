@@ -393,5 +393,8 @@ export default async function dbCleanup(req: NextApiRequest, res: NextApiRespons
             message: `Something went wrong during cleanup. ${error}`,
             status: 500
         });
+    } finally {
+        // Disconnect from the database
+        await prisma.$disconnect();
     }
 }
