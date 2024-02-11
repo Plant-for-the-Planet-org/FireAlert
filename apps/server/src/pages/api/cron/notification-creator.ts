@@ -6,7 +6,6 @@ import { logger } from "../../../../src/server/logger";
 import { env } from "../../../env.mjs";
 
 export default async function notificationsCron(req: NextApiRequest, res: NextApiResponse) {
-    debugger;
     // Verify the 'cron_key' in the request headers before proceeding
     if (env.CRON_KEY) {
         const cronKey = req.query['cron_key'];

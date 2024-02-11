@@ -258,7 +258,7 @@ const createNotifications = async () => {
         }
       });
       totalNotificationsCreated = totalNotificationsCreated + notificationCreateData.length
-    };    
+    }  
   } catch (error) {
     const { status, message } = error as { status: number; message: string };
     CustomError.throw(status, message, 'GeneralError',true);

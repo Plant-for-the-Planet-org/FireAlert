@@ -12,8 +12,8 @@ import {getLocalTime} from '../../../src/utils/date';
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
 const sendNotifications = async (): Promise<boolean> => {
   const take = 10;
-
-  while (true) {
+  let continueProcessing = true;
+  while (continueProcessing) {
     const notifications = await prisma.notification.findMany({
       where: {
         isDelivered: false,
@@ -32,6 +32,7 @@ const sendNotifications = async (): Promise<boolean> => {
     // If no notifications are found, exit the loop
     if (notifications.length === 0) {
       logger(`Nothing to process anymore notification.length = 0`, 'info');
+      continueProcessing = false;
       break;
     }
     logger(`Notifications to be sent: ${notifications.length}`, 'info');
