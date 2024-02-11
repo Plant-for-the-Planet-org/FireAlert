@@ -11,9 +11,9 @@ import {getLocalTime} from '../../../src/utils/date';
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
 const sendNotifications = async (): Promise<boolean> => {
-  const take = 20;
-
-  while (true) {
+  const take = 10;
+  let continueProcessing = true;
+  while (continueProcessing) {
     const notifications = await prisma.notification.findMany({
       where: {
         isDelivered: false,
@@ -32,14 +32,19 @@ const sendNotifications = async (): Promise<boolean> => {
     // If no notifications are found, exit the loop
     if (notifications.length === 0) {
       logger(`Nothing to process anymore notification.length = 0`, 'info');
+      continueProcessing = false;
       break;
     }
     logger(`Notifications to be sent: ${notifications.length}`, 'info');
 
+    const successfulNotificationIds: string[] = [];
+    const failedAlertMethods: { destination: string; method: AlertMethodMethod }[] = [];
+
     await Promise.all(
       notifications.map(async notification => {
         try {
-          const {id, alertMethod, destination, siteAlert} = notification;
+          const {id, destination, siteAlert} = notification;
+          const alertMethod = notification.alertMethod as AlertMethodMethod
           const {
             id: alertId,
             confidence,
@@ -145,33 +150,45 @@ const sendNotifications = async (): Promise<boolean> => {
             notificationParameters,
           );
 
-          // Update notification's isDelivered status and sentAt
           if (isDelivered === true) {
-            await prisma.notification.update({
-              where: {id: id},
-              data: {
-                isDelivered: true,
-                sentAt: new Date(),
-              },
-            });
+            successfulNotificationIds.push(id);
           } else {
-            await prisma.alertMethod.updateMany({
-              where: {
-                destination: destination,
-                method: alertMethod as AlertMethodMethod,
-              },
-              data: {
-                failCount: {
-                  increment: 1,
-                },
-              },
-            });
+            failedAlertMethods.push({ destination, method: alertMethod });
           }
         } catch (error) {
           logger(`Error processing notification ${notification.id}:`, 'error');
         }
-      }),
+      })
     );
+
+    // UpdateMany notification 
+    if (successfulNotificationIds.length > 0) {
+      await prisma.notification.updateMany({
+        where: {
+          id: {
+            in: successfulNotificationIds,
+          },
+        },
+        data: {
+          isDelivered: true,
+          sentAt: new Date(),
+        },
+      });
+    }
+    // Handle failed notifications
+    for (const { destination, method } of failedAlertMethods) {
+      await prisma.alertMethod.updateMany({
+        where: {
+          destination: destination,
+          method: method,
+        },
+        data: {
+          failCount: {
+            increment: 1,
+          },
+        },
+      });
+    }
 
     // skip += take; No need to skip take as we update the notifications to isDelivered = true
     // wait .7 seconds before starting the next round to ensure we aren't hitting any rate limits.
