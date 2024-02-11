@@ -6,6 +6,7 @@ import { logger } from "../../../../src/server/logger";
 import { env } from "../../../env.mjs";
 
 export default async function notificationsCron(req: NextApiRequest, res: NextApiResponse) {
+    debugger;
     // Verify the 'cron_key' in the request headers before proceeding
     if (env.CRON_KEY) {
         const cronKey = req.query['cron_key'];
@@ -15,13 +16,20 @@ export default async function notificationsCron(req: NextApiRequest, res: NextAp
         }
     }
 
-    // Call Create Notifications Service
-    const notificationCount = await createNotifications();
-    logger(`Added ${notificationCount} notifications`, "info");
+    try {
+        // Call Create Notifications Service
+        const notificationCount = await createNotifications();
+        logger(`Added ${notificationCount} notifications`, "info");
 
-    res.status(200).json({
-        message: "Notification-creator cron job executed successfully",
-        notificationCount: notificationCount,
-        status: 200
-    });
+        res.status(200).json({
+            message: "Notification-creator cron job executed successfully",
+            notificationCount: notificationCount,
+            status: 200
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        const message = error.message || 'Internal Server Error';
+
+        return res.status(statusCode).json({ message, status:statusCode });
+    }
 }
