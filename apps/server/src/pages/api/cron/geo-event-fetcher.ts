@@ -124,20 +124,12 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
           logger(`${breadcrumbPrefix} Found ${totalNewGeoEvent} new Geo Events`, "info");
           logger(`${breadcrumbPrefix} Created ${totalEventCount} Geo Events`, "info");
 
-
-          // TODO:
-          // ----------------
-          // Temporarily disabling the eventCount check for SiteAlerts
-          // This helps in creating SiteAlerts for unprocessed geoEvents from past runs, if fetch fails for some reason
-
-          // and then create site Alerts
-
-          //if (eventCount > 0) {
+          if (totalNewGeoEvent > 0) {
           const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
           logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
 
           newSiteAlertCount += alertCount
-          // }
+          }
 
           // Update lastRun value of the provider to the current Date()
           await prisma.geoEventProvider.update({
@@ -154,18 +146,6 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     processedProviders += activeProviders.length;
 
     await Promise.all(promises).catch(error => logger(`Something went wrong before creating notifications. ${error}`, "error"));
-  //} // end of while loop
-
-  // let notificationCount;
-  //if (newSiteAlertCount > 0) {
-
-  // const notificationCount = await createNotifications();
-  // logger(`Added ${notificationCount} notifications for ${newSiteAlertCount} alerts`, "info");
-
-  // }
-  // else {
-  //   logger(`All done. ${newSiteAlertCount} Alerts. No new notifications. Waving Goodbye!`, "info");
-  // }
 
   res.status(200).json({
     message: "Geo-event-fetcher Cron job executed successfully",
