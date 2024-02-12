@@ -124,12 +124,12 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
           logger(`${breadcrumbPrefix} Found ${totalNewGeoEvent} new Geo Events`, "info");
           logger(`${breadcrumbPrefix} Created ${totalEventCount} Geo Events`, "info");
 
-          if (totalNewGeoEvent > 0) {
+          // if (totalNewGeoEvent > 0) {
           const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
           logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
 
           newSiteAlertCount += alertCount
-          }
+          // }
 
           // Update lastRun value of the provider to the current Date()
           await prisma.geoEventProvider.update({
