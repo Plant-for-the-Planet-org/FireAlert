@@ -10,8 +10,9 @@ import {getLocalTime} from '../../../src/utils/date';
 // for each notification, send the notification to the destination
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
-const sendNotifications = async (): Promise<boolean> => {
+const sendNotifications = async (): Promise<number> => {
   const take = 10;
+  let successCount = 0;
   let continueProcessing = true;
   while (continueProcessing) {
     const notifications = await prisma.notification.findMany({
@@ -152,6 +153,7 @@ const sendNotifications = async (): Promise<boolean> => {
 
           if (isDelivered === true) {
             successfulNotificationIds.push(id);
+            successCount++;
           } else {
             failedAlertMethods.push({ destination, method: alertMethod });
           }
@@ -195,7 +197,7 @@ const sendNotifications = async (): Promise<boolean> => {
     // Todo: make this configurable and adjust as needed.
     await new Promise(resolve => setTimeout(resolve, 700));
   }
-  return true;
+  return successCount;
 };
 
 export default sendNotifications;
