@@ -53,7 +53,7 @@ class WhatsAppNotifier implements Notifier {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'authentication_token': env.WHATSAPP_ENDPOINT_AUTH_TOKEN
+        'x-token-api': env.WHATSAPP_ENDPOINT_AUTH_TOKEN
       },
       body: JSON.stringify(payload),
     });
