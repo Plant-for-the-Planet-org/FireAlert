@@ -46,13 +46,14 @@ class WhatsAppNotifier implements Notifier {
       ...parameters
     };
 
-    const WHATSAPP_ENDPOINT_URL = `${env.WHATSAPP_ENDPOINT_URL}?whatsAppId=${destination}`; 
+    const WHATSAPP_ENDPOINT_URL = `${env.WHATSAPP_ENDPOINT_URL}?whatsAppId=${destination}`;  
     
     // call WehHook to send the notification
     const response = await fetch(WHATSAPP_ENDPOINT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'authentication_token': env.WHATSAPP_ENDPOINT_AUTH_TOKEN
       },
       body: JSON.stringify(payload),
     });
