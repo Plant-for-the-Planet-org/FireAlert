@@ -1,10 +1,13 @@
 import type DataRecord from './DataRecord';
 
 export interface NotificationParameters {
-  id: string;
-  message: string;
-  subject: string;
+  id?: string;
+  message?: string;
+  subject?: string;
   url?: string;
+  authenticationMessage?: boolean;
+  otp?: string,
+  siteName?: string,
   alert?: {
     id: string;
     type: string;

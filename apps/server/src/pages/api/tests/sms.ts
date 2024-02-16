@@ -3,9 +3,25 @@ import { type NextApiRequest, type NextApiResponse } from "next";
 import { logger } from "../../../../src/server/logger";
 import NotifierRegistry from "../../../Services/Notifier/NotifierRegistry";
 import { NotificationParameters } from "../../../Interfaces/NotificationParameters"; // Adjust this import path if necessary
+import {env} from "../../../../src/env.mjs";
 
 export default async function testSms(req: NextApiRequest, res: NextApiResponse) {
     logger(`Running Test SMS Sender.`, "info");
+
+    if(env.NODE_ENV !== 'development'){
+        return res.status(401).json({
+            message: "Unauthorized for production. Only use this endpoint for development.",
+            status: 401,
+        });
+    }
+    if (env.CRON_KEY) {
+        // Verify the 'cron_key' in the request headers
+        const cronKey = req.query['cron_key'];
+        if (!cronKey || cronKey !== env.CRON_KEY) {
+            res.status(403).json({message: "Unauthorized: Invalid Cron Key"});
+            return;
+        }
+    }
 
     // Extract the phone number from the query parameters
     const destination = req.query['phoneNumber'] as string;
