@@ -1,4 +1,5 @@
 import {TRPCError} from "@trpc/server";
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import {
     createAlertMethodSchema,
     params,
@@ -222,6 +223,21 @@ export const alertMethodRouter = createTRPCRouter({
                     throw new TRPCError({
                         code: 'BAD_REQUEST',
                         message: `Destination is restricted due to country limitations`,
+                    });
+                }
+            }
+            // If Method is WhatsApp,
+            if (input.method === 'whatsapp') {
+                const phoneNumber = parsePhoneNumberFromString(input.destination);
+
+                if (phoneNumber && phoneNumber.isValid()) {
+                    // If the phone number is valid, update destination to the normalized international format
+                    input.destination = phoneNumber.format('E.164');
+                } else {
+                    // If the phone number is not valid, throw an error
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: `Invalid WhatsApp Phone Number.`,
                     });
                 }
             }

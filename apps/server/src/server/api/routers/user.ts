@@ -1,16 +1,16 @@
-import { TRPCError } from '@trpc/server';
-import { updateUserSchema } from '../zodSchemas/user.schema';
-import { createTRPCRouter, protectedProcedure } from '../trpc';
-import { returnUser, handleNewUser } from '../../../utils/routers/user';
-import { User } from '@prisma/client';
-import { sendAccountDeletionCancellationEmail, sendSoftDeletionEmail } from '../../../utils/notification/userEmails';
-import { ensureAdmin } from '../../../utils/routers/trpc'
+import {TRPCError} from '@trpc/server';
+import {updateUserSchema} from '../zodSchemas/user.schema';
+import {createTRPCRouter, protectedProcedure} from '../trpc';
+import {returnUser, handleNewUser} from '../../../utils/routers/user';
+import {User} from '@prisma/client';
+import {sendAccountDeletionCancellationEmail, sendSoftDeletionEmail} from '../../../utils/notification/userEmails';
+import {ensureAdmin} from '../../../utils/routers/trpc'
 
 export const userRouter = createTRPCRouter({
 
     // profile procedure signs in only clients, but cannot sign in an admin. // However, it logs both client and admin (admin with or without impersonatedUser headers )
     profile: protectedProcedure
-        .query(async ({ ctx }) => {
+        .query(async ({ctx}) => {
             debugger;
             try {
                 // If ctx.user is null, then sign in a new user.
@@ -41,11 +41,30 @@ export const userRouter = createTRPCRouter({
                 const user = ctx.user as User
                 // If user is deleted, send account deletion cancellation email
                 if (user.deletedAt) {
+                    // Un-soft-delete all sites and alertMethods soft-deleted with user soft-deletion
+                    await ctx.prisma.site.updateMany({
+                        where:{
+                            userId: user.id,
+                            deletedAt: user.deletedAt
+                        },
+                        data:{
+                            deletedAt: null
+                        }
+                    })
+                    await ctx.prisma.alertMethod.updateMany({
+                        where:{
+                            userId: user.id,
+                            deletedAt: user.deletedAt
+                        },
+                        data:{
+                            deletedAt: null
+                        }
+                    })
                     await sendAccountDeletionCancellationEmail(user);
                 }
                 // Update lastLogin to current date and set deletedAt to null, then return user
                 const returnedUser = await ctx.prisma.user.update({
-                    where: { sub: ctx.token.sub },
+                    where: {sub: ctx.token.sub},
                     data: {
                         lastLogin: new Date(),
                         deletedAt: null,
@@ -71,7 +90,7 @@ export const userRouter = createTRPCRouter({
         }),
 
     getAllUsers: protectedProcedure
-        .query(async ({ ctx }) => {
+        .query(async ({ctx}) => {
             ensureAdmin(ctx)
             try {
                 const users = await ctx.prisma.user.findMany();
@@ -95,7 +114,7 @@ export const userRouter = createTRPCRouter({
 
     updateUser: protectedProcedure
         .input(updateUserSchema)
-        .mutation(async ({ ctx, input }) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
                 const updatedUser = await ctx.prisma.user.update({
@@ -119,15 +138,16 @@ export const userRouter = createTRPCRouter({
         }),
 
     softDeleteUser: protectedProcedure
-        .mutation(async ({ ctx }) => {
+        .mutation(async ({ctx}) => {
             const userId = ctx.user!.id;
+            const deletionDate = new Date();
             try {
                 const deletedUser = await ctx.prisma.user.update({
                     where: {
                         id: userId,
                     },
                     data: {
-                        deletedAt: new Date(),
+                        deletedAt: deletionDate,
                     },
                 });
                 if (!deletedUser) {
@@ -136,6 +156,22 @@ export const userRouter = createTRPCRouter({
                         message: `Error in deletion process. Cannot delete user`,
                     });
                 } else {
+                    await ctx.prisma.site.updateMany({
+                        where: {
+                            userId: userId
+                        },
+                        data: {
+                            deletedAt: deletionDate
+                        }
+                    })
+                    await ctx.prisma.alertMethod.updateMany({
+                        where: {
+                            userId: userId
+                        },
+                        data: {
+                            deletedAt: deletionDate
+                        }
+                    })
                     // Send Email
                     const emailSent = await sendSoftDeletionEmail(deletedUser);
                     return {
