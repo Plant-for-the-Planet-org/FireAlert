@@ -51,7 +51,7 @@ export const siteRouter = createTRPCRouter({
                 const detectionArea = result[0].area; // Assuming result is an array with the area as its first item
 
                 // Check if the detection area exceeds 1 million hectares (10,000 square kilometers)
-                if (detectionArea > 1e8) {
+                if (detectionArea > 1e10) {
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
                     message: 'Site area exceeds the maximum allowed size of 1 million hectares.',
