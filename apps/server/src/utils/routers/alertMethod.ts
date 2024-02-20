@@ -338,7 +338,7 @@ export const handlePendingVerification = async (
       authenticationMessage: true,
       otp: otp
     }
-    await notifier.notify(alertMethod.destination, params);
+    sendVerificationCode = await notifier.notify(alertMethod.destination, params);
   } else {
     // Use NotifierRegistry to send the verification code
     const notifier = NotifierRegistry.get(alertMethod.method);
