@@ -46,7 +46,7 @@ class SMSNotifier implements Notifier {
     }
     
     // If the destination is a restricted Country, return false, log error.
-    if (isPhoneNumberRestricted(destination)) {
+    if (isPhoneNumberRestricted('sms', destination)) {
       // If destination is a restricted phone number
       // Then, notification was created before FireAlert introduced SMS Restriction
       // Thus, notification must be deleted, so that it is not constantly marked as "not-delivered"

@@ -70,7 +70,7 @@ export const alertMethodRouter = createTRPCRouter({
             const destination = alertMethod.destination
             const method = alertMethod.method
             if(method === 'sms'){
-                if (isPhoneNumberRestricted(destination)) {
+                if (isPhoneNumberRestricted('sms', destination)) {
                     throw new TRPCError({
                         code: 'UNAUTHORIZED',
                         message: `Cannot Verify AlertMethod. ${destination} is restricted due to country limitations.`,
@@ -217,11 +217,22 @@ export const alertMethodRouter = createTRPCRouter({
             // If Method is sms, restrict phone number to only allowed countries
             if(input.method === 'sms'){
                 // Check if the destination falls inside of accepted countries
-                const isDestinationAccepted = !isPhoneNumberRestricted(input.destination);
+                const isDestinationAccepted = !isPhoneNumberRestricted('sms', input.destination);
                 if(isDestinationAccepted === false){
                     throw new TRPCError({
                         code: 'BAD_REQUEST',
-                        message: `Destination is restricted due to country limitations`,
+                        message: `Phone number is restricted due to country limitations.`,
+                    });
+                }
+            }
+            // If Method is whatsapp, restrict phone number to only allowed countries
+            if(input.method === 'whatsapp'){
+                // Check if the destination falls inside of accepted countries
+                const isDestinationAccepted = !isPhoneNumberRestricted('whatsapp', input.destination);
+                if(isDestinationAccepted === false){
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: `Phone number is restricted due to country limitations.`,
                     });
                 }
             }
