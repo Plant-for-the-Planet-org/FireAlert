@@ -4,7 +4,7 @@ import PhoneNoInput from 'react-native-phone-number-input';
 import {CountryCode} from 'react-native-country-picker-modal';
 
 import {Colors, Typography} from '../../styles';
-import {EXCLUDED_COUNTRIES} from '../../constants';
+import {EXCLUDED_COUNTRIES, EXCLUDED_COUNTRIES_WHATSAPP} from '../../constants';
 
 const IS_ANDROID = Platform.OS === 'android';
 
@@ -37,10 +37,13 @@ const PhoneInput = ({
     const countryCode = phoneInput.current?.getCountryCode(value);
     valid(checkValid ? checkValid : false);
     inputValue(formattedValue);
-    if (
-      verificationType === 'Sms' &&
-      EXCLUDED_COUNTRIES.includes(countryCode)
-    ) {
+    if ((
+        verificationType === 'Sms' &&
+        EXCLUDED_COUNTRIES.includes(countryCode)
+        ) || (
+        verificationType === 'Whatsapp' && 
+        EXCLUDED_COUNTRIES_WHATSAPP.includes(countryCode)
+      )) {
       destinationFlag(true);
       return;
     } else {

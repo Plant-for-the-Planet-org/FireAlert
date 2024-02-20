@@ -84,9 +84,12 @@ const Verification = ({navigation, route}) => {
     ) {
       return toast.show('Incorrect Number', {type: 'warning'});
     }
-    if (verificationType === 'Sms' && limitDestination) {
+    if (
+      (verificationType === 'Sms' && limitDestination) ||
+      (verificationType === 'Whatsapp' && limitDestination)
+    ) {
       return toast.show(
-        'Destination is restricted due to country limitations',
+        `Apologies, ${verificationType === 'Sms' ? 'sms' : 'WhatsApp'} services to your region are currently unsupported. Please try adding email instead.`,
         {
           type: 'warning',
         },
