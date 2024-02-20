@@ -11,12 +11,6 @@ const PolygonSchema = z.object({
     coordinates: z.array(z.array(z.union([z.tuple([z.number(), z.number()]), z.tuple([z.number(), z.number(), z.optional(z.number())])])))
 });
 
-
-// const MultiPolygonSchema = z.object({
-//     type: z.literal("MultiPolygon"),
-//     coordinates: z.array(z.array(z.union([z.tuple([z.number(), z.number()]), z.tuple([z.number(), z.number(), z.optional(z.number())])])))
-// });
-
 const MultiPolygonSchema = z.object({
     type: z.literal("MultiPolygon"),
     coordinates: z.array(
