@@ -43,7 +43,7 @@
     "nodemailer": "^6.9.1",
     "pg-promise": "^11.4.3",
     "phone": "^3.1.37",
-    "prisma": "^5.0.0",
+    "prisma": "^5.10.1",
     "react": "^18.2.0",
     "react-cookie": "^4.1.1",
     "react-dom": "^18.2.0",
@@ -65,7 +65,7 @@
     "@typescript-eslint/parser": "^5.53.0",
     "eslint": "^8.34.0",
     "eslint-config-next": "^13.5.4",
-    "prisma": "^5.0.0",
+    "prisma": "^5.10.1",
     "tsconfig": "*",
     "typescript": "^5.0.3"
   },
@@ -73,3 +73,4 @@
     "initVersion": "7.8.0"
   }
 }
+
