@@ -14,32 +14,6 @@ export const siteRouter = createTRPCRouter({
         .input(createSiteSchema)
         .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
-            // const userPlan = ctx.user!.plan ? ctx.user!.plan as UserPlan : 'basic';
-            // const siteCount = await ctx.prisma.site.count({
-            //     where:{
-            //         userId,
-            //     }
-            // })
-            // if(userPlan === 'basic'){
-            //     if (siteCount >= 20){
-            //         return {
-            //             status: 'error',
-            //             httpStatus: 403,
-            //             code: 'FORBIDDEN',
-            //             message: `You've exceeded the fair site use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
-            //         };
-            //     }
-            // }
-            // if(userPlan === 'custom'){
-            //     if (siteCount >= 50){
-            //         return {
-            //             status: 'error',
-            //             httpStatus: 403,
-            //             code: 'FORBIDDEN',
-            //             message: `You've exceeded the fair site use limits of FireAlert. You cannot create any more sites.`,
-            //         };
-            //     }
-            // }
             try {
                 const origin = 'firealert';
                 const lastUpdated = new Date();
@@ -54,6 +28,35 @@ export const siteRouter = createTRPCRouter({
                     radius = input.radius;
                 }
 
+                // Convert geometry to GeoJSON string for PostGIS function
+                const geometryGeoJSON = JSON.stringify(input.geometry);
+
+                // Calculate detection area using PostGIS
+                const result = await ctx.prisma.$queryRaw`SELECT ST_Area(
+                    ST_Transform(
+                        ST_Buffer(
+                        ST_Transform(
+                            ST_SetSRID(
+                            ST_GeomFromGeoJSON(${geometryGeoJSON}::text),
+                            4326
+                            ),
+                            3857
+                        ),
+                        ${input.radius}
+                        ),
+                        3857
+                    )
+                    ) AS area`;
+
+                const detectionArea = result[0].area; // Assuming result is an array with the area as its first item
+
+                // Check if the detection area exceeds 1 million hectares (10,000 square kilometers)
+                if (detectionArea > 1e10) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'Site area exceeds the maximum allowed size of 1 million hectares.',
+                });
+                }
                 const site = await ctx.prisma.site.create({
                     data: {
                         origin: origin,

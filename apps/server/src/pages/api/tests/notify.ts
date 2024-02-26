@@ -1,13 +1,31 @@
 // to execute, point your browser to: http://localhost:3000/api/tests/notify
 
-import {type NextApiResponse} from 'next';
+import {NextApiRequest, type NextApiResponse} from 'next';
 import {PrismaClient} from '@prisma/client';
 import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
 import {logger} from '../../../../src/server/logger';
+import {env} from "../../../../src/env.mjs";
 
 export default async function notify(
-  res: NextApiResponse,
+  req: NextApiRequest,
+  res: NextApiResponse
 ) {
+  
+  if(env.NODE_ENV !== 'development'){
+    return res.status(401).json({
+        message: "Unauthorized for Production. Only use this endpoint for development.",
+        status: 401,
+    });
+  }
+  if (env.CRON_KEY) {
+    // Verify the 'cron_key' in the request headers
+    const cronKey = req.query['cron_key'];
+    if (!cronKey || cronKey !== env.CRON_KEY) {
+        res.status(403).json({message: "Unauthorized: Invalid Cron Key"});
+        return;
+    }
+  }
+
   const prisma = new PrismaClient({
     log: ['query', 'info', 'warn', 'error'],
   });
