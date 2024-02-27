@@ -46,7 +46,7 @@
     "react-native-auth0": "^3.0.1",
     "react-native-config": "^1.5.0",
     "react-native-device-info": "^10.6.0",
-    "react-native-document-picker": "^8.1.4",
+    "react-native-document-picker": "^9.1.1",
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-fs": "^2.20.0",
     "react-native-geolocation-service": "^5.3.1",
