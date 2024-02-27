@@ -88,7 +88,7 @@ const Verification = ({navigation, route}) => {
       (verificationType === 'Sms' && limitDestination)
     ) {
       return toast.show(
-        `Apologies, ${verificationType === 'Sms' ? 'sms' : 'WhatsApp'} services to your region are currently unsupported. Please select a different method.`,
+        `Apologies, sms services to your region are currently unsupported. Please select a different method.`,
         {
           type: 'warning',
         },

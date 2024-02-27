@@ -456,21 +456,21 @@ const Settings = ({navigation}) => {
     });
   };
 
-  const handleGeostationary = val => {
-    let detectionMethods = [...userDetails?.data?.detectionMethods];
-    if (!val) {
-      detectionMethods = detectionMethods.filter(el => el !== 'GEOSTATIONARY');
-    } else {
-      detectionMethods = [...detectionMethods, 'GEOSTATIONARY'];
-    }
-    updateUser.mutate({
-      json: {
-        body: {
-          detectionMethods,
-        },
-      },
-    });
-  };
+  // const handleGeostationary = val => {
+  //   let detectionMethods = [...userDetails?.data?.detectionMethods];
+  //   if (!val) {
+  //     detectionMethods = detectionMethods.filter(el => el !== 'GEOSTATIONARY');
+  //   } else {
+  //     detectionMethods = [...detectionMethods, 'GEOSTATIONARY'];
+  //   }
+  //   updateUser.mutate({
+  //     json: {
+  //       body: {
+  //         detectionMethods,
+  //       },
+  //     },
+  //   });
+  // };
 
   const handleWebhook = () => {
     navigation.navigate('Verification', {
