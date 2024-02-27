@@ -40,7 +40,7 @@
     "mapbox-gl": "1.13",
     "maplibre-gl": "^3.1.0",
     "next": "^13.5.4",
-    "nodemailer": "^6.9.1",
+    "nodemailer": "^6.9.9",
     "pg-promise": "^11.4.3",
     "phone": "^3.1.37",
     "prisma": "^5.10.2",
