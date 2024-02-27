@@ -42,8 +42,8 @@ export default async function testWhatsApp(req: NextApiRequest, res: NextApiResp
         subject: "FireAlert", 
         url: "https://firealert.plant-for-the-planet.org/alert/ed1cf199-6c3a-4406-bac0-eb5519391e2e", 
         id: "notificationId",
-        authenticationMessage: true,
-        otp: "12345",
+        // authenticationMessage: true,
+        // otp: "12345",
         siteName: 'Las Americas',
         alert:{
             id: "ed1cf199-6c3a-4406-bac0-eb5519391e2e",
