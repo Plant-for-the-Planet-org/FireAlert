@@ -61,6 +61,7 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
   DisabledTrashOutlineIcon,
+  WhatsAppIcon
 } from '../../assets/svgs';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
@@ -449,11 +450,11 @@ const Settings = ({navigation}) => {
   };
 
   // ----------------- handle whatsapp, and Geostationary
-  // const handleAddWhatsapp = () => {
-  //   navigation.navigate('Verification', {
-  //     verificationType: 'Whatsapp',
-  //   });
-  // };
+  const handleAddWhatsapp = () => {
+    navigation.navigate('Verification', {
+      verificationType: 'Whatsapp',
+    });
+  };
 
   // const handleGeostationary = val => {
   //   let detectionMethods = [...userDetails?.data?.detectionMethods];
@@ -902,7 +903,7 @@ const Settings = ({navigation}) => {
             )}
           </View>
           {/* whatsapp */}
-          {/* <View style={styles.mySiteNameMainContainer}>
+          <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
@@ -966,7 +967,7 @@ const Settings = ({navigation}) => {
                 ))}
               </View>
             )}
-          </View> */}
+          </View>
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>

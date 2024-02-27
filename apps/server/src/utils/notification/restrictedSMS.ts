@@ -3,7 +3,7 @@
 
 import phone from 'phone';
 
-const restrictedCountryCodes = [
+const restrictedCountryCodesSms = [
     'RU', // Russia
     'TJ', // Tajikistan
     'MG', // Madagascar
@@ -17,8 +17,16 @@ const restrictedCountryCodes = [
     'BZ', // Belize
 ];
 
-export const isPhoneNumberRestricted = (phoneNumber: string) => {
+const restrictedCountryCodesWhatsapp = [
+    'IN', // India
+]
+
+export const isPhoneNumberRestricted = (alertMethodMethod: string, phoneNumber: string) => {
     const phoneResult = phone(phoneNumber);
     const countryCode = phoneResult.countryIso2 as string;
-    return restrictedCountryCodes.includes(countryCode);
+    if(alertMethodMethod === 'sms'){
+        return restrictedCountryCodesSms.includes(countryCode);
+    } else if (alertMethodMethod === 'whatsapp'){
+        return restrictedCountryCodesWhatsapp.includes(countryCode);
+    }
 }

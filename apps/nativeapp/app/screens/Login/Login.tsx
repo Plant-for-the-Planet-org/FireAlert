@@ -46,7 +46,7 @@ const Login = () => {
           prompt: 'login',
           audience: 'urn:plant-for-the-planet',
         },
-        {ephemeralSession: false},
+        {ephemeralSession: false, useLegacyCallbackUrl: true},
       )
       .then(cred => {
         const request = {
