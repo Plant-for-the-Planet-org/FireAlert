@@ -30,7 +30,7 @@ function shouldContinueDeletion(startTime: number, type_of_cleanup:string = 'dat
 async function updateOrCreateStats(metric: string, count: number) {
     await prisma.stats.upsert({
         where: {metric: metric},
-        update: {count: {increment: count}},
+        update: {count: {increment: count}, lastUpdated: new Date()},
         create: {
             metric: metric,
             count: count,
