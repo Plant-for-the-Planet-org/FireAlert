@@ -2,7 +2,7 @@ apply plugin: "com.android.application"
 apply plugin: "com.facebook.react"
 project.ext.envConfigFiles = [
   staging   : ".env.staging",
-  release: ".env.production",
+  release: ".env",
   develop   : ".env",
 ]
 apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
@@ -114,7 +114,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 4
         versionName "1.2"
-        manifestPlaceholders = [auth0Domain: "@string/AUTH0_DOMAIN", auth0Scheme: "${applicationId}"]
+        manifestPlaceholders = [auth0Domain: "accounts.plant-for-the-planet.org", auth0Scheme: "${applicationId}.auth0"]
     }
 
     splits {
@@ -154,7 +154,7 @@ android {
         }
     }
     flavorDimensions "env"
-   
+
     productFlavors {
       staging {
         dimension "env"
