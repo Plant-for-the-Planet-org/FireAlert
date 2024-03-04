@@ -112,8 +112,8 @@ android {
         multiDexEnabled true
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
-        versionName "1.2"
+        versionCode 6
+        versionName "1.3"
         manifestPlaceholders = [auth0Domain: "@string/AUTH0_DOMAIN", auth0Scheme: "${applicationId}"]
     }
 
