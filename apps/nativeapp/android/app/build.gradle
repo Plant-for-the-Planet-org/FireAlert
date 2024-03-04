@@ -114,7 +114,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 4
         versionName "1.2"
-        manifestPlaceholders = [auth0Domain: "accounts.plant-for-the-planet.org", auth0Scheme: "${applicationId}.auth0"]
+        manifestPlaceholders = [auth0Domain: "accounts.plant-for-the-planet.org", auth0Scheme: "${applicationId}"]
     }
 
     splits {
