@@ -37,17 +37,10 @@ BEGIN
         END LOOP;
 
         NEW."geometry" = jsonb_set(NEW."geometry", '{properties}', jsonb_build_object('detection_geometry', to_jsonb(detectionGeometryHex)));
-
-        -- Calculate detectionGeometry for MultiPolygon as a whole
-        NEW."detectionGeometry" = ST_Collect(ARRAY(
-        SELECT ST_GeomFromEWKB(decode(dg_elem, 'hex'))
-        FROM jsonb_array_elements_text(NEW."geometry"->'detection_geometry') AS dg_elem
-        ));
-    ELSE
-        -- Handle Point and Polygon as before
-        NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
-        NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
     END IF;
+
+    NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
+    NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
 
     -- Calculate detection area
     NEW."detectionArea" := ST_Area(
