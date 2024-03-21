@@ -6,23 +6,55 @@
       "properties": {"name": "Slice 10"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, -90], [180, -90], [180, -30], [-180, -30], [-180, -90]]]
+        "coordinates": [[[-180,-90],[180,-90],[180,-30],[-180,-30],[-180,-90]]]
       }
     },
     {
       "type": "Feature",
-      "properties": {"name": "Slice 20"},
+      "properties": {"name": "Slice 21"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, -30], [180, -30], [180, -15], [-180, -15], [-180, -30]]]
+        "coordinates": [[[-180,-30],[-30,-30],[-30,-15],[-180,-15],[-180,-30]]]
       }
     },
     {
       "type": "Feature",
-      "properties": {"name": "Slice 30"},
+      "properties": {"name": "Slice 22"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, -15], [180, -15], [180, 0], [-180, 0], [-180, -15]]]
+        "coordinates": [[[-30,-30],[60,-30],[60,-15],[-30,-15],[-30,-30]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"name": "Slice 23"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[60,-30],[180,-30],[180,-15],[60,-15],[60,-30]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"name": "Slice 31"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-180,-15],[-30,-15],[-30,0],[-180,0],[-180,-15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"name": "Slice 32"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-30,-15],[60,-15],[60,0],[-30,0],[-30,-15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"name": "Slice 33"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[60,-15],[180,-15],[180,0],[60,0],[60,-15]]]
       }
     },
     {
@@ -30,7 +62,7 @@
       "properties": {"name": "Slice 41"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 0], [180, 0], [180, 5], [-180, 5], [-180, 0]]]
+        "coordinates": [[[-180,0],[-30,0],[-30,15],[-180,15],[-180,0]]]
       }
     },
     {
@@ -38,7 +70,7 @@
       "properties": {"name": "Slice 42"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 5], [180, 5], [180, 10], [-180, 10], [-180, 5]]]
+        "coordinates": [[[-30,0],[60,0],[60,15],[-30,15],[-30,0]]]
       }
     },
     {
@@ -46,7 +78,7 @@
       "properties": {"name": "Slice 43"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 10], [180, 10], [180, 15], [-180, 15], [-180, 10]]]
+        "coordinates": [[[60,0],[180,0],[180,15],[60,15],[60,0]]]
       }
     },
     {
@@ -54,7 +86,7 @@
       "properties": {"name": "Slice 51"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 15], [180, 15], [180, 20], [-180, 20], [-180, 15]]]
+        "coordinates": [[[-180,15],[-30,15],[-30,30],[-180,30],[-180,15]]]
       }
     },
     {
@@ -62,7 +94,7 @@
       "properties": {"name": "Slice 52"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 20], [180, 20], [180, 25], [-180, 25], [-180, 20]]]
+        "coordinates": [[[-30,15],[60,15],[60,30],[-30,30],[-30,15]]]
       }
     },
     {
@@ -70,15 +102,31 @@
       "properties": {"name": "Slice 53"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 25], [180, 25], [180, 30], [-180, 30], [-180, 25]]]
+        "coordinates": [[[60,15],[180,15],[180,30],[60,30],[60,15]]]
       }
     },
     {
       "type": "Feature",
-      "properties": {"name": "Slice 60"},
+      "properties": {"name": "Slice 61"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 30], [180, 30], [180, 45], [-180, 45], [-180, 30]]]
+        "coordinates": [[[-180,30],[-30,30],[-30,45],[-180,45],[-180,30]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"name": "Slice 62"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-30,30],[60,30],[60,45],[-30,45],[-30,30]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {"name": "Slice 63"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[60,30],[180,30],[180,45],[60,45],[60,30]]]
       }
     },
     {
@@ -86,7 +134,7 @@
       "properties": {"name": "Slice 70"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 45], [180, 45], [180, 60], [-180, 60], [-180, 45]]]
+        "coordinates": [[[-180,45],[180,45],[180,60],[-180,60],[-180,45]]]
       }
     },
     {
@@ -94,7 +142,7 @@
       "properties": {"name": "Slice 80"},
       "geometry": {
         "type": "Polygon",
-        "coordinates": [[[-180, 60], [180, 60], [180, 90], [-180, 90], [-180, 60]]]
+        "coordinates": [[[-180,60],[180,60],[180,90],[-180,90],[-180,60]]]
       }
     }
   ]
