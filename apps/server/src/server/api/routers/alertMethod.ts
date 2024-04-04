@@ -175,11 +175,27 @@ export const alertMethodRouter = createTRPCRouter({
                 if (isDeviceVerified) {
 
                     // Check if the destination (PlayerID) already exists in the table
+                    // Retrieve alert methods that match the destination or (userId and deviceName)
                     const existingAlertMethods = await ctx.prisma.alertMethod.findMany({
                         where: {
-                            destination: input.destination
+                            OR: [
+                                {destination: input.destination},
+                                // Checks for duplicates by deviceId for all devices (returns duplicate ios devices)
+                                { deviceId: input.deviceId }, 
+                                // Checks for devices with the same name but different deviceId for the same user
+                                // We need NOT on deviceId to prevent selecting ios devices (ios deviceNames are not unique)
+                                // (returns duplicate android devices)
+                                {
+                                    AND: [
+                                        { userId: userId },
+                                        { deviceName: input.deviceName },
+                                        { deviceId: { not: input.deviceId } } 
+                                    ]
+                                }
+                            ]
                         }
                     });
+                    
 
                     // If it does exist and is associated with a different userId, delete it
                     for (const existingAlertMethod of existingAlertMethods) {
