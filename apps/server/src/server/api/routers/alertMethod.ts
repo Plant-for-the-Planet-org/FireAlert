@@ -179,6 +179,7 @@ export const alertMethodRouter = createTRPCRouter({
                     const existingAlertMethods = await ctx.prisma.alertMethod.findMany({
                         where: {
                             OR: [
+                                {destination: input.destination},
                                 // Checks for duplicates by deviceId for all devices (returns duplicate ios devices)
                                 { deviceId: input.deviceId }, 
                                 // Checks for devices with the same name but different deviceId for the same user
