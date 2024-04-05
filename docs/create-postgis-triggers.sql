@@ -37,17 +37,10 @@ BEGIN
         END LOOP;
 
         NEW."geometry" = jsonb_set(NEW."geometry", '{properties}', jsonb_build_object('detection_geometry', to_jsonb(detectionGeometryHex)));
-
-        -- Calculate detectionGeometry for MultiPolygon as a whole
-        NEW."detectionGeometry" = ST_Collect(ARRAY(
-        SELECT ST_GeomFromEWKB(decode(dg_elem, 'hex'))
-        FROM jsonb_array_elements_text(NEW."geometry"->'detection_geometry') AS dg_elem
-        ));
-    ELSE
-        -- Handle Point and Polygon as before
-        NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
-        NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
     END IF;
+
+    NEW."originalGeometry" = ST_Transform(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), 4326);
+    NEW."detectionGeometry" = ST_Transform(ST_Buffer(ST_Transform(ST_GeomFromGeoJSON(NEW."geometry"::text), 3857), NEW."radius"), 4326);
 
     -- Calculate detection area
     NEW."detectionArea" := ST_Area(
@@ -73,14 +66,24 @@ BEGIN
         ST_GeomFromText('POLYGON((' || bbox || '))', 4326) AS slice_geometry
         FROM (
         VALUES
-            ('1', '-180 -90, 180 -90, 180 -30, -180 -30, -180 -90'),
-            ('2', '-180 -30, 180 -30, 180 -15, -180 -15, -180 -30'),
-            ('3', '-180 -15, 180 -15, 180 0, -180 0, -180 -15'),
-            ('4', '-180 0, 180 0, 180 15, -180 15, -180 0'),
-            ('5', '-180 15, 180 15, 180 30, -180 30, -180 15'),
-            ('6', '-180 30, 180 30, 180 45, -180 45, -180 30'),
-            ('7', '-180 45, 180 45, 180 60, -180 60, -180 45'),
-            ('8', '-180 60, 180 60, 180 90, -180 90, -180 60')
+            ('10', '-180 -90, 180 -90, 180 -30, -180 -30, -180 -90'),
+            ('21', '-180 -30, -60 -30, -60 -15, -180 -15, -180 -30'),
+            ('22', '-60 -30, 30 -30, 30 -15, -60 -15, -60 -30'),
+            ('23', '30 -30, 180 -30, 180 -15, 30 -15, 30 -30'),
+            ('31', '-180 -15, -60 -15, -60 0, -180 0, -180 -15'),
+            ('32', '-60 -15, 30 -15, 30 0, -60 0, -60 -15'),
+            ('33', '30 -15, 180 -15, 180 0, 30 0, 30 -15'),
+            ('41', '-180 0, -60 0, -60 15, -180 15, -180 0'),
+            ('42', '-60 0, 30 0, 30 15, -60 15, -60 0'),
+            ('43', '30 0, 180 0, 180 15, 30 15, 30 0'),
+            ('51', '-180 15, -60 15, -60 30, -180 30, -180 15'),
+            ('52', '-60 15, 30 15, 30 30, -60 30, -60 15'),
+            ('53', '30 15, 180 15, 180 30, 30 30, 30 15'),
+            ('61', '-180 30, -60 30, -60 45, -180 45, -180 30'),
+            ('62', '-60 30, 30 30, 30 45, -60 45, -60 30'),
+            ('63', '30 30, 180 30, 180 45, 30 45, 30 30'),
+            ('70', '-180 45, 180 45, 180 60, -180 60, -180 45'),
+            ('80', '-180 60, 180 60, 180 90, -180 90, -180 60')
         ) AS slices(slice_key, bbox)
     )
     SELECT INTO sliceKeys ARRAY_AGG(slice_key) 

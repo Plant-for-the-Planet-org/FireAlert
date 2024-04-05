@@ -71,7 +71,7 @@ export const alertMethodRouter = createTRPCRouter({
             const destination = alertMethod.destination
             const method = alertMethod.method
             if(method === 'sms'){
-                if (isPhoneNumberRestricted(destination)) {
+                if (isPhoneNumberRestricted('sms', destination)) {
                     throw new TRPCError({
                         code: 'UNAUTHORIZED',
                         message: `Cannot Verify AlertMethod. ${destination} is restricted due to country limitations.`,
@@ -175,11 +175,27 @@ export const alertMethodRouter = createTRPCRouter({
                 if (isDeviceVerified) {
 
                     // Check if the destination (PlayerID) already exists in the table
+                    // Retrieve alert methods that match the destination or (userId and deviceName)
                     const existingAlertMethods = await ctx.prisma.alertMethod.findMany({
                         where: {
-                            destination: input.destination
+                            OR: [
+                                {destination: input.destination},
+                                // Checks for duplicates by deviceId for all devices (returns duplicate ios devices)
+                                { deviceId: input.deviceId }, 
+                                // Checks for devices with the same name but different deviceId for the same user
+                                // We need NOT on deviceId to prevent selecting ios devices (ios deviceNames are not unique)
+                                // (returns duplicate android devices)
+                                {
+                                    AND: [
+                                        { userId: userId },
+                                        { deviceName: input.deviceName },
+                                        { deviceId: { not: input.deviceId } } 
+                                    ]
+                                }
+                            ]
                         }
                     });
+                    
 
                     // If it does exist and is associated with a different userId, delete it
                     for (const existingAlertMethod of existingAlertMethods) {
@@ -218,11 +234,22 @@ export const alertMethodRouter = createTRPCRouter({
             // If Method is sms, restrict phone number to only allowed countries
             if(input.method === 'sms'){
                 // Check if the destination falls inside of accepted countries
-                const isDestinationAccepted = !isPhoneNumberRestricted(input.destination);
+                const isDestinationAccepted = !isPhoneNumberRestricted('sms', input.destination);
                 if(isDestinationAccepted === false){
                     throw new TRPCError({
                         code: 'BAD_REQUEST',
-                        message: `Destination is restricted due to country limitations`,
+                        message: `Phone number is restricted due to country limitations.`,
+                    });
+                }
+            }
+            // If Method is whatsapp, restrict phone number to only allowed countries
+            if(input.method === 'whatsapp'){
+                // Check if the destination falls inside of accepted countries
+                const isDestinationAccepted = !isPhoneNumberRestricted('whatsapp', input.destination);
+                if(isDestinationAccepted === false){
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: `Phone number is restricted due to country limitations.`,
                     });
                 }
             }

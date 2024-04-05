@@ -15,8 +15,8 @@ const POINT_RADIUS_ARR = [
   {name: 'Within 1 km', value: 1000},
 ];
 
-// Excluded countries for sms type alert methods
-const EXCLUDED_COUNTRIES = [
+// Disable sms and whatsapp alert methods for some countries
+const DISABLE_SMS_COUNTRY_CODE = [
   'RU',
   'TJ',
   'MG',
@@ -30,4 +30,8 @@ const EXCLUDED_COUNTRIES = [
   'BZ',
 ];
 
-export {WEB_URLS, RADIUS_ARR, POINT_RADIUS_ARR, EXCLUDED_COUNTRIES};
+const DISABLE_WHATSAPP_COUNTRY_CODE = [
+  'IN'
+]
+
+export {WEB_URLS, RADIUS_ARR, POINT_RADIUS_ARR, DISABLE_SMS_COUNTRY_CODE, DISABLE_WHATSAPP_COUNTRY_CODE};

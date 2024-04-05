@@ -8,14 +8,24 @@ The world is divided into eight horizontal slices based on latitude. Each slice 
 
 | Slice Name | Bounding Box     | Description |
 | :--------- | :--------------- | :---------- |
-| Slice 1    | "-180,-90,180,-30" | Covers the Southernmost regions of the world including the majority of Antarctica and parts of Southern South America. |
-| Slice 2    | "-180,-30,180,-15" | Covers parts of Southern South America, South Africa and Australia. |
-| Slice 3    | "-180,-15,180,0"   | Covers parts of South America, Africa and Australia. |
-| Slice 4    | "-180,0,180,15"    | Covers parts of South America, Africa, Asia and northern Australia. |
-| Slice 5    | "-180,15,180,30"   | Covers parts of United States, Europe, Asia, North Africa and the northern tip of Australia. |
-| Slice 6    | "-180,30,180,45"   | Covers parts of United States, Europe, Asia and North Africa. |
-| Slice 7    | "-180,45,180,60"   | Covers Northern parts of United States, Europe, Asia, and the majority of Russia. |
-| Slice 8    | "-180,60,180,90"   | Covers the Northernmost regions of the world including Greenland, Arctic Ocean, and Northern Russia. |
+| Slice 10    | "-180,-90,180,-30" | Covers the Southernmost regions of the world including the majority of Antarctica and parts of Southern South America. |
+| Slice 21    | "-180,-30,-60,-15" | Covers left part of mid-lower South America |
+| Slice 22    | "-60,-30,30,-15" | Covers right part of mid-lower South America, and left part of Lower Africa. |
+| Slice 23    | "30,-30,180,-15" | Covers right part of Lower Africa, and upper part of Australia |
+| Slice 31    | "-180,-15,-60,0"   | Covers left part of Mid-upper South America |
+| Slice 32    | "-60,-15,30,0"   | Covers right part of Mid-upper South America, and left part of lower-mid Africa. |
+| Slice 33    | "30,-15,180,0"   | Covers right part of lower-mid Africa, and Papua New Guinea and parts of Indonesia. |
+| Slice 41    | "-180,0,-60,15"    | Covers left part of Upper South America|
+| Slice 42    | "-60,0,30,15"    | Covers right part of Upper South America and left part of Upper-mid Africa |
+| Slice 43    | "30,0,180,15"    | Covers right part of Upper-mid Africa, and Lower South Asia. |
+| Slice 51    | "-180,15,-60,30"   | Covers Lower North America, containing Mexico and Cuba. |
+| Slice 52    | "-60,15,30,30"   | Covers left part of Upper Africa. |
+| Slice 53    | "30,15,180,30"   | Covers right part of Upper Africa, lower part of middle east, and Upper South Asia |
+| Slice 61    | "-180,30,-60,45"   | Covers Mid North America, covering most of the United States. |
+| Slice 62    | "-60,30,30,45"   | Covers lower western Europe. |
+| Slice 63    | "30,30,180,45"   | Covers upper part of middle east, and middle Asia. |
+| Slice 70    | "-180,45,180,60"   | Covers Northern parts of United States, Europe, Asia, and the majority of Russia. |
+| Slice 80    | "-180,60,180,90"   | Covers the Northernmost regions of the world including Greenland, Arctic Ocean, and Northern Russia. |
 
 With site size limitation of 1 million hectares, a monitored site can belong to max two Geo Slices.
 
