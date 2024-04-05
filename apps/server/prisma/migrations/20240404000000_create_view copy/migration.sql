@@ -13,5 +13,5 @@ FROM
     "SiteAlert"
 WHERE
     "deletedAt" IS NULL
-    AND "eventDate" > CURRENT_TIMESTAMP - INTERVAL '30 days';
+    AND "eventDate" >= CURRENT_DATE - INTERVAL '30 days';
 
