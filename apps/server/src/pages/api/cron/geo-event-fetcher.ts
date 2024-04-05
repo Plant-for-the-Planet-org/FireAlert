@@ -90,17 +90,21 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
     // Loop for each active provider and fetch geoEvents
     const promises = activeProviders.map(async (provider) => {
-      const { config, id: geoEventProviderId, clientId: geoEventProviderClientId, clientApiKey } = provider
+      const { config, id: geoEventProviderId, clientId: geoEventProviderClientId, clientApiKey, lastRun } = provider
+      // For GOES-16, geoEventProviderId is 55, geoEventProviderClientId is GEOSTATIONARY, and clientApiKey is GOES-16
       const parsedConfig: GeoEventProviderConfig = JSON.parse(JSON.stringify(config))
-      const client = parsedConfig.client
+      const client = parsedConfig.client // For GOES-16 = GOES-16
       const geoEventProvider = GeoEventProviderClassRegistry.get(client);
       geoEventProvider.initialize(parsedConfig);
 
       const slice = parsedConfig.slice;
-      const breadcrumbPrefix = `${geoEventProviderClientId} Slice ${slice}:`
+      let breadcrumbPrefix = `${geoEventProviderClientId} Slice ${slice}:`
+      if(geoEventProviderClientId === 'GEOSTATIONARY'){
+        breadcrumbPrefix = `Geostationary Satellite ${clientApiKey}:`
+      }
 
       // First fetch all geoEvents from the provider
-      return await geoEventProvider.getLatestGeoEvents(geoEventProviderClientId, geoEventProviderId, slice, clientApiKey)
+      return await geoEventProvider.getLatestGeoEvents(geoEventProviderClientId, geoEventProviderId, slice, clientApiKey, lastRun)
         .then(async (geoEvents) => {
           // If there are geoEvents, emit an event to find duplicates and persist them
           logger(`${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`, "info");
@@ -115,7 +119,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
             
             // Process each chunk sequentially
             for (const geoEventChunk of geoEventChunks) {
-                const processedGeoEvent = await processGeoEvents(breadcrumbPrefix, geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEventChunk);
+                const processedGeoEvent = await processGeoEvents(geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEventChunk);
                 totalEventCount += processedGeoEvent.geoEventCount;
                 totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
             }

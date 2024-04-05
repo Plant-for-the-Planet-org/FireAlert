@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {nameSchema} from './user.schema';
-
+// All coordinates are in [longitude, latitude] format
 const PointSchema = z.object({
     type: z.literal("Point"),
     coordinates: z.tuple([z.number(), z.number()]),

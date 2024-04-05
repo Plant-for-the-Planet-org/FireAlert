@@ -3,9 +3,8 @@ import { AlertType } from "../../Interfaces/SiteAlert";
 import { type geoEventInterface as GeoEvent } from "../../Interfaces/GeoEvent";
 import { createXXHash3 } from "hash-wasm";
 import { prisma } from '../../server/db';
-import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
+const processGeoEvents = async (geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
   const hasher = await createXXHash3();  // Create the hasher outside the function
   const buildChecksum = (geoEvent: GeoEvent): string => {
     hasher.init();  // Reset the hasher
@@ -85,7 +84,7 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
       geoEventProviderClientId: geoEventProviderClientId,
       geoEventProviderId: geoEventProviderId,
       radius: geoEvent.radius ? geoEvent.radius : 0,
-      slice: slice,
+      slice: geoEventProviderClientId === 'GEOSTATIONARY' ? geoEvent.slice : slice,
       data: geoEvent.data,
     }))
 

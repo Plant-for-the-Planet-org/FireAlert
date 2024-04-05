@@ -1,5 +1,6 @@
 import {type GeoEventProviderClass} from '../../Interfaces/GeoEventProvider';
 import NasaGeoEventProvider from './ProviderClass/NasaGeoEventProviderClass';
+import GOES16GeoEventProvider from './ProviderClass/GOES16GeoEventProviderClass';
 // import additional GeoEvent provider implementations below
 
 const createGeoEventProviderClassRegistry = function (
@@ -31,6 +32,7 @@ const createGeoEventProviderClassRegistry = function (
 
 const GeoEventProviderClassRegistry = createGeoEventProviderClassRegistry([
   new NasaGeoEventProvider(),
+  new GOES16GeoEventProvider()
   // add new alert providers here
 ]);
 
