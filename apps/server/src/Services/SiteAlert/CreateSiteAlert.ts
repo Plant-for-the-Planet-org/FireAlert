@@ -81,13 +81,15 @@ const createSiteAlerts = async (
       `;
   
       const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId}`;
-  
+      // REMOVE after 2nd release
+      const updateGeostationarySiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false AND "detectedBy" = ${geoEventProviderClientId}`;
       // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
       // And, Set all GeoEvents as processed
       const results = await prisma.$transaction([
         prisma.$executeRaw(siteAlertCreationQuery),
         prisma.$executeRaw(updateGeoEventIsProcessedToTrue),
       ]);
+      await prisma.$executeRaw(updateGeostationarySiteAlertIsProcessedToTrue)
       siteAlertsCreatedCount = results[0];
     } catch (error) {
       logger(`Failed to create SiteAlerts. Error: ${error}`, 'error');
