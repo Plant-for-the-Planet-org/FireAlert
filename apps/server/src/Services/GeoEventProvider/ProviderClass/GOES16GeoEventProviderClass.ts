@@ -86,7 +86,7 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                 const twoHoursAgo = new Date(currentDateTime.getTime() - 2 * 3600 * 1000);
                 const fromDateTime = (!lastRunDate || (currentDateTime.getTime() - lastRunDate.getTime()) > 2 * 3600 * 1000) ? twoHoursAgo : lastRunDate;
 
-                const images = ee.ImageCollection("NOAA/GOES/16/FDCF").filterDate('2024-04-18T08:51:15Z', '2024-04-18T09:51:15Z');
+                const images = ee.ImageCollection("NOAA/GOES/16/FDCF").filterDate(fromDateTime, currentDateTime);
 
                 // Fetch and process images here...
                 // The process includes fetching image IDs, processing them to extract fire data, etc.
