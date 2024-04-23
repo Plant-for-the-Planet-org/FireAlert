@@ -20,6 +20,7 @@
     "db:generate": "dotenv -e ../../.env npx prisma generate"
   },
   "dependencies": {
+    "@google/earthengine": "^0.1.396",
     "@logtail/node": "^0.4.0",
     "@planet-sdk/common": "^0.1.11",
     "@prisma/client": "^5.0.0",

@@ -7,16 +7,17 @@ export enum GeoEventProviderClientId {
   VIIRS_NOAA20_NRT = 'VIIRS_NOAA20_NRT',
   VIIRS_SNPP_NRT = 'VIIRS_SNPP_NRT',
   VIIRS_SNPP_SP = 'VIIRS_SNPP_SP',
+  GEOSTATIONARY = 'GEOSTATIONARY'
 }
 
 export enum GeoEventProviderClient {
   FIRMS = 'FIRMS',
+  GOES16 = 'GOES-16'
 }
 
 export interface GeoEventProviderConfig {
   bbox: string;
   slice: string;
-  apiUrl: string;
   client: GeoEventProviderClient; //'FIRMS'
 }
 
@@ -28,6 +29,7 @@ export interface GeoEventProviderClass {
     geoEventProviderId: string,
     slice: string,
     clientApiKey: string,
+    lastRun: Date | null
   ) => Promise<GeoEvent[]>;
 }
 
