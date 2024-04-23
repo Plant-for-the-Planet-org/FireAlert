@@ -55,7 +55,6 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   let newSiteAlertCount = 0;
   let processedProviders = 0;
-
   // while (processedProviders <= limit) {
     const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
         SELECT *
@@ -63,8 +62,8 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
         WHERE "isActive" = true
           AND "fetchFrequency" IS NOT NULL
           AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < (current_timestamp AT TIME ZONE 'UTC')
+        ORDER BY (current_timestamp AT TIME ZONE 'UTC' - "lastRun") DESC
         LIMIT ${limit};
-
     `;
     // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
     // Break the loop if there are no active providers
