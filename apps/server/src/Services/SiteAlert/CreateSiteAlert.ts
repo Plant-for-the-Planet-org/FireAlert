@@ -37,6 +37,11 @@ const createSiteAlerts = async (
           AND (s."stopAlertUntil" IS NULL OR s."stopAlertUntil" < CURRENT_TIMESTAMP)
           AND e."isProcessed" = FALSE
           AND e. "geoEventProviderId" = ${geoEventProviderId}
+          AND EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements_text(s.slices) AS slice_element
+            WHERE slice_element = ANY(string_to_array(${Prisma.raw(`'${slice}'`)}, ',')::text[])
+          )
           AND ST_Within(ST_SetSRID(ST_MakePoint(e.longitude, e.latitude), 4326), ST_GeomFromEWKB(decode(dg_elem, 'hex')))
           AND NOT EXISTS (
               SELECT 1
@@ -70,6 +75,11 @@ const createSiteAlerts = async (
           AND e."isProcessed" = FALSE
           AND e. "geoEventProviderId" = ${geoEventProviderId}
           AND (s.type = 'Polygon' OR s.type = 'Point')
+          AND EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements_text(s.slices) AS slice_element
+            WHERE slice_element = ANY(string_to_array(${Prisma.raw(`'${slice}'`)}, ',')::text[])
+          )
           AND NOT EXISTS (
               SELECT 1
               FROM "SiteAlert"

@@ -45,6 +45,11 @@ const processGeoEvents = async (geoEventProviderClientId: GeoEventProviderClient
     // having the provided providerKey
     const geoEvents = await prisma.geoEvent.findMany({
       select: { id: true },
+      // IMPROVEMENT: this code does not identify duplicate between providers,
+      // It only identifies duplicate within a provider
+      // To identify duplicates between providers, remove geoEventProviderId from the where clause
+      // However, that would increase memory usage, and possibly freeze the process
+      // Identify ways to test for duplication against the entire database. 
       where: { geoEventProviderId: geoEventProviderId, eventDate: { gt: new Date(Date.now() - 30 * 60 * 60 * 1000) }  },
     });
     // Only compare with data from last 26 hrs
