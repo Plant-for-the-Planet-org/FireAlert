@@ -3,9 +3,8 @@ import { AlertType } from "../../Interfaces/SiteAlert";
 import { type geoEventInterface as GeoEvent } from "../../Interfaces/GeoEvent";
 import { createXXHash3 } from "hash-wasm";
 import { prisma } from '../../server/db';
-import { logger } from "../../../src/server/logger";
 
-const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
+const processGeoEvents = async (geoEventProviderClientId: GeoEventProviderClientId, geoEventProviderId: string, slice: string, geoEvents: GeoEvent[]) => {
   const hasher = await createXXHash3();  // Create the hasher outside the function
   const buildChecksum = (geoEvent: GeoEvent): string => {
     hasher.init();  // Reset the hasher
@@ -46,6 +45,11 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
     // having the provided providerKey
     const geoEvents = await prisma.geoEvent.findMany({
       select: { id: true },
+      // IMPROVEMENT: this code does not identify duplicate between providers,
+      // It only identifies duplicate within a provider
+      // To identify duplicates between providers, remove geoEventProviderId from the where clause
+      // However, that would increase memory usage, and possibly freeze the process
+      // Identify ways to test for duplication against the entire database. 
       where: { geoEventProviderId: geoEventProviderId, eventDate: { gt: new Date(Date.now() - 30 * 60 * 60 * 1000) }  },
     });
     // Only compare with data from last 26 hrs
@@ -85,7 +89,7 @@ const processGeoEvents = async (breadcrumbPrefix: string, geoEventProviderClient
       geoEventProviderClientId: geoEventProviderClientId,
       geoEventProviderId: geoEventProviderId,
       radius: geoEvent.radius ? geoEvent.radius : 0,
-      slice: slice,
+      slice: geoEventProviderClientId === 'GEOSTATIONARY' ? geoEvent.slice : slice,
       data: geoEvent.data,
     }))
 

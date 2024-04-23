@@ -11,6 +11,7 @@ import type DataRecord from '../../../Interfaces/DataRecord';
 import { Confidence } from '../../../Interfaces/GeoEvent';
 
 interface NasaGeoEventProviderConfig extends GeoEventProviderConfig {
+    apiUrl: string;
 }
 
 class NasaGeoEventProviderClass implements GeoEventProviderClass {
