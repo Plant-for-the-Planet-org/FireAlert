@@ -8,6 +8,7 @@ import { type geoEventInterface as GeoEvent } from "../../../Interfaces/GeoEvent
 import {Confidence} from '../../../Interfaces/GeoEvent';
 import {determineSlice} from "../../../utils/geometry"
 import ee from '@google/earthengine'
+import {logger} from "../../../server/logger"
 
 type FireDataEntry = [number, number, Date];
 type AllFireData = FireDataEntry[];
@@ -57,16 +58,19 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                         null,
                         () => {
                             console.log('Google Earth Engine authentication successful');
+                            logger(`Google Earth Engine authentication successful`, "info");
                             resolve();
                         },
                         (err) => {
                             console.error('Google Earth Engine initialization error', err);
+                            logger(`Google Earth Engine initialization error`, "error");
                             reject(err);
                         }
                     );
                 },
                 (err) => {
                     console.error('Google Earth Engine authentication error', err);
+                    logger(`Google Earth Engine authentication error`, "error");
                     reject(err);
                 }
             );
@@ -135,12 +139,12 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                                 }
                             });
                         }) as FireDataEntry;
-                
                         // Concatenate the current image's fire data with the master array
                         allFireData = allFireData.concat(fireData);
                     };
                 } catch (error) {
                     console.error("Error fetching fire data:", error);
+                    logger(`Error fetching fire data`, "error");
                 }
 
                 // Normalize the fire data into GeoEvent format
@@ -156,10 +160,10 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                     slice: determineSlice(fireData[1], fireData[0]),
                     data: {'satellite': clientApiKey, 'slice': slice}
                 }));
-
                 resolve(geoEventsData);
             } catch (error) {
                 console.error('Failed to fetch or process GOES-16 data', error);
+                logger(`Failed to fetch or process GOES-16 data`, "error");
                 reject(error);
             }
         });
