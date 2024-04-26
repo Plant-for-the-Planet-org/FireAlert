@@ -1,4 +1,4 @@
-// to execute this handler, access the endpoint:  http://localhost:3000/api/cron/db-cleanup
+// to execute this handler, access the endpoint:  http://localhost:3000/api/public/sitealert
 
 import {type NextApiRequest, type NextApiResponse} from "next";
 import {prisma} from '../../../server/db';
