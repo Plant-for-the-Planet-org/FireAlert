@@ -116,18 +116,11 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                     for (const imageId of array_imagesId) {
                         const image = ee.Image(`${imageId}`)
                         logger(`Image ${i}: ${image}`, "info")
-                        let datetime: Date = new Date()
+                        
                         // Get the datetime information from the image metadata
-                        const datetimeInfo = await ee.Date(image.get('system:time_start')).getInfo().then(date => {
-                            datetime = new Date(date.value)
-                        }).catch(error => {
-                            logger(`Failed to retrieve datetime info: ${error.message}`, "error");
-                            return null; // Handle this condition appropriately
-                        });
-                        // if (datetimeInfo) {
-                        //     datetime = new Date(datetimeInfo.value);
-                        // }
+                        const datetimeInfo = await ee.Date(image.get('system:time_start')).getInfo();
                         logger(`Image ${i} datetimeInfo: ${datetimeInfo}`, "info")
+                        const datetime = new Date(datetimeInfo.value);
                         logger(`Image ${i} datetime: ${datetime}`, "info")
                         
                         
