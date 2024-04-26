@@ -116,13 +116,18 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                     for (const imageId of array_imagesId) {
                         const image = ee.Image(`${imageId}`)
                         logger(`Image ${i}: ${image}`, "info")
-                        i++;
+                        
                         // Get the datetime information from the image metadata
                         const datetimeInfo = await ee.Date(image.get('system:time_start')).getInfo();
+                        logger(`Image ${i} datetimeInfo: ${datetimeInfo}`, "info")
                         const datetime = new Date(datetimeInfo.value);
+                        logger(`Image ${i} datetime: ${datetime}`, "info")
+                        
+                        
                     
 
                         const temperatureImage = image.select('Temp');
+                        logger(`Image ${i} temperatureImage: ${temperatureImage}`, "info")
                         const xMin = -142;  // On station as GOES-E
                         const xMax = xMin + 135;
                         const geometry = ee.Geometry.Rectangle([xMin, -65, xMax, 65], null, true);
@@ -133,21 +138,26 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                             labelProperty: 'temp',
                             maxPixels: 1e10,
                         });
+                        logger(`Image ${i} temperatureVector: ${temperatureVector}`, "info")
                         const fireData = await new Promise((resolve, reject) => {
                             temperatureVector.evaluate((featureCollection) => {
                                 if (featureCollection && featureCollection.features) {
                                     // Map each feature to include datetime in its data
                                     // [long, lat, eventDate]
                                     const fireDataWithTime = featureCollection.features.map(feature => [...feature.geometry.coordinates, datetime]);
+                                    logger(`Image ${i}: fireDataWithTime`, "info")
                                     resolve(fireDataWithTime);
                                 } else {
+                                    logger(`Image ${i}: No features found`, "info")          
                                     reject(new Error("No features found"));
                                 }
                             });
                         }) as FireDataEntry;
-                
+                        logger(`Image ${i} fireData: ${fireData}`, "info")
                         // Concatenate the current image's fire data with the master array
                         allFireData = allFireData.concat(fireData);
+                        logger(`Image ${i} allFireData: ${allFireData}`, "info")
+                        i++;
                     };
                 } catch (error) {
                     console.error("Error fetching fire data:", error);
