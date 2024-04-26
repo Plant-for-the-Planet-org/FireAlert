@@ -161,7 +161,7 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                     };
                 } catch (error) {
                     console.error("Error fetching fire data:", error);
-                    logger(`Error fetching fire data`, "error");
+                    logger(`Error fetching fire data: ${error}`, "error");
                 }
 
                 // Normalize the fire data into GeoEvent format
