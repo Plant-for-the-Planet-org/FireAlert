@@ -8,6 +8,7 @@ import { type geoEventInterface as GeoEvent } from "../../../Interfaces/GeoEvent
 import {Confidence} from '../../../Interfaces/GeoEvent';
 import {determineSlice} from "../../../utils/geometry"
 import ee from '@google/earthengine'
+import {logger} from "../../../server/logger"
 
 type FireDataEntry = [number, number, Date];
 type AllFireData = FireDataEntry[];
@@ -57,16 +58,19 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                         null,
                         () => {
                             console.log('Google Earth Engine authentication successful');
+                            logger(`Google Earth Engine authentication successful`, "info");
                             resolve();
                         },
                         (err) => {
                             console.error('Google Earth Engine initialization error', err);
+                            logger(`Google Earth Engine initialization error`, "error");
                             reject(err);
                         }
                     );
                 },
                 (err) => {
                     console.error('Google Earth Engine authentication error', err);
+                    logger(`Google Earth Engine authentication error`, "error");
                     reject(err);
                 }
             );
@@ -87,10 +91,6 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                 const fromDateTime = (!lastRunDate || (currentDateTime.getTime() - lastRunDate.getTime()) > 2 * 3600 * 1000) ? twoHoursAgo : lastRunDate;
 
                 const images = ee.ImageCollection("NOAA/GOES/16/FDCF").filterDate(fromDateTime, currentDateTime);
-
-                // Fetch and process images here...
-                // The process includes fetching image IDs, processing them to extract fire data, etc.
-                // This is a simplified outline; integrate the logic from your initial example here.
                 const getImagesId = () => {
                     return new Promise((resolve, reject) => {
                         images.evaluate((imageCollection) => {
@@ -98,20 +98,29 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                                 const imagesData = imageCollection.features.map(feature => feature.id);
                                 resolve(imagesData);
                             } else {
+                                logger('No features found in image collection', 'error');
                                 reject(new Error("No features found"));
                             }
                         });
                     });
                 };
+                const getDateTimeInfo = (image) => {
+                    return new Promise((resolve, reject) => {
+                        ee.Date(image.get('system:time_start')).getInfo((info, error) => {
+                            if (error) {
+                                reject(error);
+                                return;
+                            }
+                            resolve(info);
+                        });
+                    });
+                }
                 try {
                     const array_imagesId = await getImagesId() as string[];
                     for (const imageId of array_imagesId) {
                         const image = ee.Image(`${imageId}`)
-                        // Get the datetime information from the image metadata
-                        const datetimeInfo = await ee.Date(image.get('system:time_start')).getInfo();
+                        const datetimeInfo = await getDateTimeInfo(image);
                         const datetime = new Date(datetimeInfo.value);
-                    
-
                         const temperatureImage = image.select('Temp');
                         const xMin = -142;  // On station as GOES-E
                         const xMax = xMin + 135;
@@ -135,12 +144,12 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                                 }
                             });
                         }) as FireDataEntry;
-                
                         // Concatenate the current image's fire data with the master array
                         allFireData = allFireData.concat(fireData);
                     };
                 } catch (error) {
                     console.error("Error fetching fire data:", error);
+                    logger(`Error fetching fire data: ${error}`, "error");
                 }
 
                 // Normalize the fire data into GeoEvent format
@@ -156,10 +165,10 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                     slice: determineSlice(fireData[1], fireData[0]),
                     data: {'satellite': clientApiKey, 'slice': slice}
                 }));
-
                 resolve(geoEventsData);
             } catch (error) {
                 console.error('Failed to fetch or process GOES-16 data', error);
+                logger(`Failed to fetch or process GOES-16 data`, "error");
                 reject(error);
             }
         });
