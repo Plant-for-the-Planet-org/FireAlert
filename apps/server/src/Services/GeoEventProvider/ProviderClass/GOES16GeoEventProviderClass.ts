@@ -58,6 +58,7 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                         null,
                         () => {
                             console.log('Google Earth Engine authentication successful');
+                            logger(`Google Earth Engine authentication successful`, "info");
                             resolve();
                         },
                         (err) => {
@@ -164,7 +165,6 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                     slice: determineSlice(fireData[1], fireData[0]),
                     data: {'satellite': clientApiKey, 'slice': slice}
                 }));
-
                 resolve(geoEventsData);
             } catch (error) {
                 console.error('Failed to fetch or process GOES-16 data', error);
