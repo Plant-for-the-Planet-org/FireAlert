@@ -109,6 +109,17 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                         });
                     });
                 };
+                async function getDateTimeInfo(image) {
+                    return new Promise((resolve, reject) => {
+                        ee.Date(image.get('system:time_start')).getInfo((info, error) => {
+                            if (error) {
+                                reject(error);
+                                return;
+                            }
+                            resolve(info);
+                        });
+                    });
+                }
                 try {
                     const array_imagesId = await getImagesId() as string[];
                     logger(`ImageIds ${array_imagesId}`,"info")
@@ -116,11 +127,9 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                     for (const imageId of array_imagesId) {
                         const image = ee.Image(`${imageId}`)
                         logger(`Image ${i}: ${image}`, "info")
-                        
-                        // Get the datetime information from the image metadata
-                        const datetimeInfo = await ee.Date(image.get('system:time_start')).getInfo();
-                        logger(`Image ${i} datetimeInfo: ${datetimeInfo}`, "info")
+                        const datetimeInfo = await getDateTimeInfo(image);
                         const datetime = new Date(datetimeInfo.value);
+                        logger(`Image ${i} datetimeInfo: ${datetimeInfo}`, "info")
                         logger(`Image ${i} datetime: ${datetime}`, "info")
                         
                         
