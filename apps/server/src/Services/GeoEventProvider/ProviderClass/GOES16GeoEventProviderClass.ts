@@ -58,7 +58,6 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                         null,
                         () => {
                             console.log('Google Earth Engine authentication successful');
-                            logger(`Google Earth Engine authentication successful`, "info");
                             resolve();
                         },
                         (err) => {
@@ -91,7 +90,6 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                 const fromDateTime = (!lastRunDate || (currentDateTime.getTime() - lastRunDate.getTime()) > 2 * 3600 * 1000) ? twoHoursAgo : lastRunDate;
 
                 const images = ee.ImageCollection("NOAA/GOES/16/FDCF").filterDate(fromDateTime, currentDateTime);
-                logger(`Images from imagescollection: ${images}`, "info")
                 // Fetch and process images here...
                 // The process includes fetching image IDs, processing them to extract fire data, etc.
                 // This is a simplified outline; integrate the logic from your initial example here.
@@ -100,7 +98,6 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                         images.evaluate((imageCollection) => {
                             if (imageCollection && imageCollection.features) {
                                 const imagesData = imageCollection.features.map(feature => feature.id);
-                                logger('Successfully retrieved image IDs', 'info');
                                 resolve(imagesData);
                             } else {
                                 logger('No features found in image collection', 'error');
@@ -109,7 +106,7 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                         });
                     });
                 };
-                async function getDateTimeInfo(image) {
+                const getDateTimeInfo = (image) => {
                     return new Promise((resolve, reject) => {
                         ee.Date(image.get('system:time_start')).getInfo((info, error) => {
                             if (error) {
@@ -122,21 +119,11 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                 }
                 try {
                     const array_imagesId = await getImagesId() as string[];
-                    logger(`ImageIds ${array_imagesId}`,"info")
-                    let i = 1
                     for (const imageId of array_imagesId) {
                         const image = ee.Image(`${imageId}`)
-                        logger(`Image ${i}: ${image}`, "info")
                         const datetimeInfo = await getDateTimeInfo(image);
                         const datetime = new Date(datetimeInfo.value);
-                        logger(`Image ${i} datetimeInfo: ${datetimeInfo}`, "info")
-                        logger(`Image ${i} datetime: ${datetime}`, "info")
-                        
-                        
-                    
-
                         const temperatureImage = image.select('Temp');
-                        logger(`Image ${i} temperatureImage: ${temperatureImage}`, "info")
                         const xMin = -142;  // On station as GOES-E
                         const xMax = xMin + 135;
                         const geometry = ee.Geometry.Rectangle([xMin, -65, xMax, 65], null, true);
@@ -147,26 +134,20 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                             labelProperty: 'temp',
                             maxPixels: 1e10,
                         });
-                        logger(`Image ${i} temperatureVector: ${temperatureVector}`, "info")
                         const fireData = await new Promise((resolve, reject) => {
                             temperatureVector.evaluate((featureCollection) => {
                                 if (featureCollection && featureCollection.features) {
                                     // Map each feature to include datetime in its data
                                     // [long, lat, eventDate]
                                     const fireDataWithTime = featureCollection.features.map(feature => [...feature.geometry.coordinates, datetime]);
-                                    logger(`Image ${i}: fireDataWithTime`, "info")
                                     resolve(fireDataWithTime);
                                 } else {
-                                    logger(`Image ${i}: No features found`, "info")          
                                     reject(new Error("No features found"));
                                 }
                             });
                         }) as FireDataEntry;
-                        logger(`Image ${i} fireData: ${fireData}`, "info")
                         // Concatenate the current image's fire data with the master array
                         allFireData = allFireData.concat(fireData);
-                        logger(`Image ${i} allFireData: ${allFireData}`, "info")
-                        i++;
                     };
                 } catch (error) {
                     console.error("Error fetching fire data:", error);
