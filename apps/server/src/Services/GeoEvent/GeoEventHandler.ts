@@ -33,7 +33,6 @@ const processGeoEvents = async (geoEventProviderClientId: GeoEventProviderClient
         newGeoEvents.push(fetchedEvents[i]);
       }
     }
-  
     return newGeoEvents;
   };
   
