@@ -58,6 +58,7 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                         null,
                         () => {
                             console.log('Google Earth Engine authentication successful');
+                            logger(`Google Earth Engine authentication successful`, "info");
                             resolve();
                         },
                         (err) => {
@@ -90,9 +91,6 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                 const fromDateTime = (!lastRunDate || (currentDateTime.getTime() - lastRunDate.getTime()) > 2 * 3600 * 1000) ? twoHoursAgo : lastRunDate;
 
                 const images = ee.ImageCollection("NOAA/GOES/16/FDCF").filterDate(fromDateTime, currentDateTime);
-                // Fetch and process images here...
-                // The process includes fetching image IDs, processing them to extract fire data, etc.
-                // This is a simplified outline; integrate the logic from your initial example here.
                 const getImagesId = () => {
                     return new Promise((resolve, reject) => {
                         images.evaluate((imageCollection) => {
@@ -167,7 +165,6 @@ class GOES16GeoEventProviderClass implements GeoEventProviderClass {
                     slice: determineSlice(fireData[1], fireData[0]),
                     data: {'satellite': clientApiKey, 'slice': slice}
                 }));
-
                 resolve(geoEventsData);
             } catch (error) {
                 console.error('Failed to fetch or process GOES-16 data', error);
