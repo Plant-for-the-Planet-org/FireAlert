@@ -55,6 +55,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   let newSiteAlertCount = 0;
   let processedProviders = 0;
+  const fetchCount = Math.max(5, limit * 2);
   // while (processedProviders <= limit) {
     const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
         SELECT *
@@ -63,8 +64,18 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
           AND "fetchFrequency" IS NOT NULL
           AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < (current_timestamp AT TIME ZONE 'UTC')
         ORDER BY (current_timestamp AT TIME ZONE 'UTC' - "lastRun") DESC
-        LIMIT ${limit};
+        LIMIT ${fetchCount};
     `;
+    function shuffleArray(array: GeoEventProvider[]) {
+      for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]]; // swap elements
+      }
+      return array;
+    }
+    const shuffledProviders = shuffleArray([...activeProviders]);
+    const selectedProviders = shuffledProviders.slice(0, limit);
+
     // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
     // Break the loop if there are no active providers
     
@@ -73,7 +84,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     //   break;
     // }
 
-    logger(`Running Geo Event Fetcher. Taking ${activeProviders.length} eligible providers.`, "info");
+    logger(`Running Geo Event Fetcher. Taking ${selectedProviders.length} eligible providers.`, "info");
 
       // Define Chunk Size for processGeoEvents
     const chunkSize = 2000;
@@ -88,7 +99,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     }
 
     // Loop for each active provider and fetch geoEvents
-    const promises = activeProviders.map(async (provider) => {
+    const promises = selectedProviders.map(async (provider) => {
       const { config, id: geoEventProviderId, clientId: geoEventProviderClientId, clientApiKey, lastRun } = provider
       // For GOES-16, geoEventProviderId is 55, geoEventProviderClientId is GEOSTATIONARY, and clientApiKey is GOES-16
       const parsedConfig: GeoEventProviderConfig = JSON.parse(JSON.stringify(config))
