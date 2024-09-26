@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "eco.pp.firealert",
+      "sha256_cert_fingerprints": [
+        "4C:6B:DB:49:21:09:0A:F3:A8:7D:56:BA:A7:CF:36:04:46:91:57:19:85:84:6D:86:38:58:7F:50:64:FA:4E:74"
+      ]
+    }
+  }
+]
