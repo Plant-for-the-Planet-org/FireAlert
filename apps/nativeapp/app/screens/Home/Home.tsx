@@ -65,7 +65,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from './permissionAlert/locationPermissionAlerts';
+} from './PermissionAlert/LocationPermissionAlerts';
 
 import {trpc} from '../../services/trpc';
 import {useFetchSites} from '../../utils/api';
