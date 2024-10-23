@@ -15,6 +15,7 @@ const restrictedCountryCodesSms = [
     'UZ', // Uzbekistan
     'AF', // Afghanistan
     'BZ', // Belize
+    'KE', //Kenya
 ];
 
 const restrictedCountryCodesWhatsapp = [
