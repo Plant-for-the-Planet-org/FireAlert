@@ -1001,7 +1001,7 @@ PODS:
   - react-native-onesignal (4.5.4):
     - OneSignalXCFramework (= 3.12.10)
     - React (< 1.0.0, >= 0.13.0)
-  - react-native-safe-area-context (4.12.0):
+  - react-native-safe-area-context (4.14.0):
     - React-Core
   - react-native-splash-screen (3.3.0):
     - React-Core
@@ -1242,13 +1242,13 @@ PODS:
     - React-Core
   - RNFS (2.20.0):
     - React-Core
-  - rnmapbox-maps (10.1.32):
+  - rnmapbox-maps (10.1.33):
     - MapboxMaps (~> 10.19.0)
     - React
     - React-Core
-    - rnmapbox-maps/DynamicLibrary (= 10.1.32)
+    - rnmapbox-maps/DynamicLibrary (= 10.1.33)
     - Turf
-  - rnmapbox-maps/DynamicLibrary (10.1.32):
+  - rnmapbox-maps/DynamicLibrary (10.1.33):
     - MapboxMaps (~> 10.19.0)
     - React
     - React-Core
@@ -1564,7 +1564,7 @@ SPEC CHECKSUMS:
   react-native-geolocation-service: 608e1da71a1ac31b4de64d9ef2815f697978c55b
   react-native-netinfo: 48c5f79a84fbc3ba1d28a8b0d04adeda72885fa8
   react-native-onesignal: 8d8f7d5e2cc44239fc0ec72fe9c6d27b939870fc
-  react-native-safe-area-context: 142fade490cbebbe428640b8cbdb09daf17e8191
+  react-native-safe-area-context: 4532f1a0c5d34a46b9324ccaaedcb5582a302b7d
   react-native-splash-screen: 4312f786b13a81b5169ef346d76d33bc0c6dc457
   React-nativeconfig: fa5de9d8f4dbd5917358f8ad3ad1e08762f01dcb
   React-NativeModulesApple: 585d1b78e0597de364d259cb56007052d0bda5e5
@@ -1593,7 +1593,7 @@ SPEC CHECKSUMS:
   RNCClipboard: 2821ac938ef46f736a8de0c8814845dde2dcbdfb
   RNDeviceInfo: 59344c19152c4b2b32283005f9737c5c64b42fba
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
-  rnmapbox-maps: 2a81e5b9e8e034fac6d387c4e22f2634e1b4f603
+  rnmapbox-maps: 334654168efcdc29584a9af1519d890a07a4a28e
   RNScreens: 6b641f232990a9d505a6d139fd18c3c759c9d290
   RNSVG: af3907ac5d4fa26a862b75a16d8f15bc74f2ceda
   SimpleKeychain: f8707c8e97b38c6a6e687b17732afc9bcef06439
