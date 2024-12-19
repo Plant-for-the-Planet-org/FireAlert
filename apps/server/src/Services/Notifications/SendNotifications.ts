@@ -19,6 +19,7 @@ const sendNotifications = async (): Promise<number> => {
       where: {
         isDelivered: false,
         sentAt: null,
+        alertMethod: {notIn: ['sms', 'whatsapp']}
       },
       include: {
         siteAlert: {
@@ -79,18 +80,18 @@ const sendNotifications = async (): Promise<number> => {
           const siteName = site.name ? site.name : '';
 
           const distanceKm = Math.round(distance / 1000);
-          let inout = `${distanceKm} km outside`;
+          let input = `${distanceKm} km outside`;
           if (distance == 0) {
-            inout = `inside`;
+            input = `inside`;
           }
 
           const checkLatLong = `Check ${latitude}, ${longitude} for fires.`;
-          const subject = `Likely fire ${inout} ${siteName} 🔥`;
+          const subject = `Likely fire ${input} ${siteName} 🔥`;
 
-          let message = `Detected ${inout} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
+          let message = `Detected ${input} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
 
           if (distance == 0) {
-            message = `Detected ${inout} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
+            message = `Detected ${input} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
           }
           const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
 
@@ -114,14 +115,14 @@ const sendNotifications = async (): Promise<number> => {
               timeZone: localTimeObject.timeZone,
             });
 
-            message = `<p>A likely fire was detected at ${localEventDate} ${inout} ${siteName} with ${confidence} confidence </p>
-                
+            message = `<p>A likely fire was detected at ${localEventDate} ${input} ${siteName} with ${confidence} confidence </p>
+
                     <p>${checkLatLong}</p>
-                
+
                     <p><a href="https://maps.google.com/?q=${latitude},${longitude}">Open in Google Maps</a></p>
 
                     <p><a href="https://firealert.plant-for-the-planet.org/alert/${alertId}">Open in FireAlert</a></p>
-              
+
                     <p>Best,<br>The FireAlert Team</p>`;
           }
 
@@ -163,7 +164,7 @@ const sendNotifications = async (): Promise<number> => {
       })
     );
 
-    // UpdateMany notification 
+    // UpdateMany notification
     if (successfulNotificationIds.length > 0) {
       await prisma.notification.updateMany({
         where: {
