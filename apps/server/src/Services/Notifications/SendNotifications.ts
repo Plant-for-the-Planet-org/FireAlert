@@ -19,6 +19,7 @@ const sendNotifications = async (): Promise<number> => {
       where: {
         isDelivered: false,
         sentAt: null,
+        alertMethod: {notIn: ['sms', 'whatsapp']}
       },
       include: {
         siteAlert: {
@@ -115,13 +116,13 @@ const sendNotifications = async (): Promise<number> => {
             });
 
             message = `<p>A likely fire was detected at ${localEventDate} ${inout} ${siteName} with ${confidence} confidence </p>
-                
+
                     <p>${checkLatLong}</p>
-                
+
                     <p><a href="https://maps.google.com/?q=${latitude},${longitude}">Open in Google Maps</a></p>
 
                     <p><a href="https://firealert.plant-for-the-planet.org/alert/${alertId}">Open in FireAlert</a></p>
-              
+
                     <p>Best,<br>The FireAlert Team</p>`;
           }
 
@@ -163,7 +164,7 @@ const sendNotifications = async (): Promise<number> => {
       })
     );
 
-    // UpdateMany notification 
+    // UpdateMany notification
     if (successfulNotificationIds.length > 0) {
       await prisma.notification.updateMany({
         where: {
