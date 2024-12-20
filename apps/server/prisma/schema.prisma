@@ -6,7 +6,7 @@ datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_PRISMA_URL")
   directUrl         = env("DATABASE_URL_NON_POOLING")
-  shadowDatabaseUrl = env("DATABASE_URL_NON_POOLINGS_SHADOW")
+  shadowDatabaseUrl = env("DATABASE_URL_NON_POOLING_SHADOW")
 }
 
 model User {
