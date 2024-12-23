@@ -105,3 +105,4 @@ To deploy the applications, follow the specific deployment guides for Next.js an
 
 ### Contributing
 We welcome contributions to the FireAlert project. If you find a bug, have a feature request, or want to submit a pull request, please refer to our contribution guidelines.
+
