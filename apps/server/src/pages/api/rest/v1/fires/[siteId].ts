@@ -1,39 +1,37 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../../../../server/db";
+import { logger } from "../../../../../server/logger";
 
+type ResponseData =
+  | GeoJSON.GeoJSON
+  | {
+      message?: string;
+      error?: object | unknown;
+    };
 
-type ResponseData = {
-  message?: string,
-  fires?: GeoJSON.GeoJSON
-
-  error?: object|unknown
-}
-
-export default async function firesBySiteHandler(req:NextApiRequest, res:NextApiResponse<ResponseData>) {
+export default async function firesBySiteHandler(
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseData>
+) {
   try {
-
     checkAuthorization(req, res);
-    checkMethods(req, res, ['GET']);
+    checkMethods(req, res, ["GET"]);
 
     const siteId = req.query.siteId as string;
-    if(!siteId)
-      return res.status(400).json({ message: 'No siteId provided.' });
+    if (!siteId)
+      return res.status(400).json({ message: "No siteId provided." });
 
-    const foundSite = await prisma.site.findFirst({where: {id: siteId}});
-    if(!foundSite)
-      return res.status(404).json({ message: 'Site not found.' });
+    const foundSite = await prisma.site.findFirst({ where: { id: siteId } });
+    if (!foundSite) return res.status(404).json({ message: "Site not found." });
 
-    let duration = 1;
-    if (req.query.duration && typeof req.query.duration === 'string' && !isNaN(+(req.query.duration))) {
-      duration = +(req.query.duration);
-    }
+    const span = handleParameter_span(req.query.span?.toString());
 
     const alertsForSite = await prisma.siteAlert.findMany({
-      where:{
+      where: {
         siteId: siteId,
         eventDate: {
-          gte: new Date(new Date().getTime() - duration * 24 * 60 * 60 * 1000)
-        }
+          gte: span,
+        },
       },
       select: {
         id: true,
@@ -44,83 +42,105 @@ export default async function firesBySiteHandler(req:NextApiRequest, res:NextApi
         detectedBy: true,
         confidence: true,
         distance: true,
-
-      }
+      },
     });
 
     const fires = generateGeoJson(
-      alertsForSite.map(alert => ({
+      alertsForSite.map((alert) => ({
         id: alert.id,
         eventDate: alert.eventDate,
         type: alert.type,
         detectedBy: alert.detectedBy,
         confidence: alert.confidence,
-        distance: alert.distance
+        distance: alert.distance,
       })),
-      alertsForSite.map(alert => ({
+      alertsForSite.map((alert) => ({
         type: "Point",
-        coordinates: [alert.longitude, alert.latitude]
-      })),
-    )
+        coordinates: [alert.longitude, alert.latitude],
+      }))
+    );
 
     res.setHeader(
-      'Cache-Control',
-      'public, s-maxage=10800, stale-while-revalidate=86400'
+      "Cache-Control",
+      "public, s-maxage=10800, stale-while-revalidate=86400"
     );
-    res.status(200).json({
-      fires
-    })
+    res.status(200).json(fires);
   } catch (error) {
     console.log(error);
-    res.status(400).json({ message: 'Failed!', error })
+    res.status(400).json({ message: "Failed!", error });
   }
 }
 
-
-
-
 // Suggesting these type of utils - We might later need to organise them
-function checkMethods(req: NextApiRequest, res: NextApiResponse, allowedMethods: string[]) {
+function checkMethods(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  allowedMethods: string[]
+) {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   if (!allowedMethods.includes(req.method!)) {
-    return res.status(405).json({message: 'Method Not Allowed'})
+    return res.status(405).json({ message: "Method Not Allowed" });
   }
 }
 
 function checkAuthorization(req: NextApiRequest, res: NextApiResponse) {
   const authorization = req.headers.authorization;
-  const accessToken = authorization?.split(' ')[1];
+  const accessToken = authorization?.split(" ")[1];
   if (!accessToken) {
-    return res.status(401).json({message: 'Unauthorized'})
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   // Some token verification mechanism...
-
 }
 
+export function handleParameter_span(span?: string) {
+  let spanToDate = new Date();
 
-
-export function generateGeoJson(properties: GeoJSON.GeoJsonProperties[] = [], points: GeoJSON.Point[] = []) {
-  const geoJson : GeoJSON.GeoJSON = {
-    type: "FeatureCollection",
-    features: []
+  console.log(span, span?.toLowerCase());
+  switch (span?.toLowerCase()) {
+    case "24h":
+      spanToDate = new Date(spanToDate.getTime() - 1000 * 60 * 60 * 24);
+      break;
+    case "7d":
+      spanToDate = new Date(spanToDate.getTime() - 1000 * 60 * 60 * 24 * 7);
+      break;
+    case "30d":
+      spanToDate = new Date(spanToDate.getTime() - 1000 * 60 * 60 * 24 * 30);
+      break;
+    case "1y":
+      spanToDate = new Date(spanToDate.getTime() - 1000 * 60 * 60 * 24 * 365);
+      break;
+    default:
+      logger("Does not match any possible values, using default 7D", "");
+      spanToDate = new Date(spanToDate.getTime() - 1000 * 60 * 60 * 24 * 7);
   }
 
-  if (!properties.length  || !points.length) {
-    throw new Error("Properties and geometries should have valid values.")
+  return spanToDate;
+}
+
+export function generateGeoJson(
+  properties: GeoJSON.GeoJsonProperties[] = [],
+  points: GeoJSON.Point[] = []
+) {
+  const geoJson: GeoJSON.GeoJSON = {
+    type: "FeatureCollection",
+    features: [],
+  };
+
+  if (!properties.length || !points.length) {
+    // throw new Error("Properties and geometries should have valid values.")
   }
 
   if (properties.length !== points.length) {
-    throw new Error("Properties and geometries length should be equal.")
+    // throw new Error("Properties and geometries length should be equal.")
   }
-
 
   for (let i = 0; i < properties.length; i++) {
     geoJson.features.push({
       type: "Feature",
       properties: properties[i],
-      geometry: points[i]
-    })
+      geometry: points[i],
+    });
   }
 
   return geoJson;
