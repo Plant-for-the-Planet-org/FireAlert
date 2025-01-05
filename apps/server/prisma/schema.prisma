@@ -28,6 +28,8 @@ model User {
     projects         Project[]
     sites            Site[]
     remoteId         String?
+
+    siteRelations SiteRelation[]
 }
 
 model VerificationRequest {
@@ -75,14 +77,17 @@ model Site {
     lastUpdated        DateTime?
     stopAlertUntil     DateTime?
     lastMessageCreated DateTime?
-    userId             String
+    userId             String?
     slices             Json? // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
     detectionGeometry  Unsupported("geometry")?
     originalGeometry   Unsupported("geometry")?
     detectionArea      Float?
     alerts             SiteAlert[]
     project            Project?                 @relation(fields: [projectId], references: [id])
-    user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    kind               SiteKind?                @default(USER_SITE)
+
+    siteRelations SiteRelation[]
 }
 
 model Project {
@@ -158,6 +163,18 @@ model Stats {
     lastUpdated DateTime
 }
 
+model SiteRelation {
+    id        String           @id @default(cuid())
+    createdAt DateTime         @default(now())
+    updatedAt DateTime?        @updatedAt
+    siteId    String
+    userId    String
+    site      Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+    user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role      SiteRelationRole @default(ROLE_ADMIN)
+    isActive  Boolean          @default(true)
+}
+
 enum Role {
     ROLE_CLIENT
     ROLE_ADMIN
@@ -174,4 +191,14 @@ enum AlertConfidence {
     high
     medium
     low
+}
+
+enum SiteKind {
+    USER_SITE
+    PROTECTED_SITE
+}
+
+enum SiteRelationRole {
+    ROLE_ADMIN
+    ROLE_VIEWER
 }
