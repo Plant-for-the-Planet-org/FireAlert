@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "../../../../../server/db";
-import { logger } from "../../../../../server/logger";
+import { prisma } from "../../../../server/db";
+import { logger } from "../../../../server/logger";
 
 type ResponseData =
   | GeoJSON.GeoJSON
