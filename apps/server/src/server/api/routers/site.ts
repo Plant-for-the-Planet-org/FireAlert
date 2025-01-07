@@ -1,5 +1,5 @@
 import {TRPCError} from "@trpc/server";
-import {createSiteSchema, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
+import {createProtectedSiteSchema, createSiteSchema, getSitesWithProjectIdParams, joinProtectedSiteParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -104,6 +104,125 @@ export const siteRouter = createTRPCRouter({
                 });
             }
         }),
+
+    createProtectedSite: protectedProcedure
+        .input(createProtectedSiteSchema)
+        .mutation(async ({ctx, input}) => {
+            const userId = ctx.user!.id;
+            try {
+                const origin = 'firealert';
+                let radius = 0;
+                
+                // radius 0 on Point would generally not return any results
+                // So monitor 1km around the point by default
+                if (input.type === 'Point' && input.radius === 0) {
+                    radius = 1000;
+                } else { radius = input.radius; }
+
+                // Any checks for for SiteRelation.role?
+
+                const site = await ctx.prisma.site.create({
+                    data: {
+                        origin: origin,
+                        type: input.type,
+                        name: input.name,
+                        radius: radius,
+                        kind: 'PROTECTED_SITE',
+                        geometry: input.geometry,
+                        externalId: input.externalId,
+                        lastUpdated: new Date(),
+                        siteRelations: {
+                            create: {
+                                user: { connect: { id: userId, } },
+                                role: 'ROLE_ADMIN',
+                            }
+                        },
+                    },
+                    select: {
+                        id: true,
+                        type: true,
+                        name: true,
+                        radius: true,
+                        geometry: true,
+                        externalId: true,
+                        lastUpdated: true,
+                        project: {
+                            select: { id: true, name: true }
+                        },
+                        siteRelations: {
+                            select: { siteId: true, userId: true, role: true }
+                        }
+                    },
+                });
+
+                return {
+                    status: "success",
+                    data: site,
+                };
+            } catch (error) {
+                console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Something Went Wrong`,
+                });
+            }
+        }),
+    
+    joinProtectedSite: protectedProcedure
+        .input(joinProtectedSiteParams)
+        .mutation(async ({ctx, input}) => {
+            const userId = ctx.user!.id;
+            const siteId = input.siteId;
+            try {
+                
+                // Add Checks?
+                // Site exist? isMonitored? 
+                // Site has atleast One Admin? No two Admin?
+
+                const siteRelation = await ctx.prisma.siteRelation.create({
+                    data: {
+                        role: "ROLE_VIEWER",
+                        userId: userId,
+                        siteId: siteId
+                    },
+                    select: {
+                        siteId: true, userId: true, role: true,
+                        site: {
+                            select: {
+                                id: true,
+                                type: true,
+                                name: true,
+                                radius: true,
+                                geometry: true,
+                                externalId: true,
+                            }
+                        }
+                    }
+                })
+
+                return {
+                    status: 'success',
+                    data: siteRelation,
+                };
+            } catch (error) {
+                console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Something Went Wrong`,
+                });
+            }
+        }),
+
 
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
