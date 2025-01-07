@@ -87,6 +87,7 @@ model Site {
     user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
     kind               SiteKind?                @default(USER_SITE)
 
+    externalId    String?
     siteRelations SiteRelation[]
 }
 
