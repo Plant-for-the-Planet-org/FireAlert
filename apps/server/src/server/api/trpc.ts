@@ -75,9 +75,9 @@ const passCtxToNext = t.middleware(async ({ctx, next}) => {
 
 const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   // Add Sentry Handlera to middleware
-  Sentry.Handlers.trpcMiddleware({
-    attachRpcInput: true,
-  });
+  // Sentry.Handlers.trpcMiddleware({
+  //   attachRpcInput: true,
+  // });
   // Decode the token
   const {decodedToken, access_token} = await decodeToken(ctx);
   // Find the user associated with the token

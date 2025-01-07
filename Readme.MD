@@ -1,4 +1,4 @@
-# FireAlert 
+# FireAlert
 
 The FireAlert app alerts you when heat anomalies are detected by NASA’s FIRMS in your forest. The project consists of a web application built with Next.js and a mobile application built with React Native. It is organized as a Yarn workspace, with the web app located in the `apps/server` directory and the mobile app in the `apps/nativeapp` directory.
 
@@ -105,3 +105,4 @@ To deploy the applications, follow the specific deployment guides for Next.js an
 
 ### Contributing
 We welcome contributions to the FireAlert project. If you find a bug, have a feature request, or want to submit a pull request, please refer to our contribution guidelines.
+
