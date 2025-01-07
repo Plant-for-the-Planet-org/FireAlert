@@ -1,11 +1,11 @@
 import {TRPCError} from "@trpc/server";
-import {createProtectedSiteSchema, createSiteSchema, getSitesWithProjectIdParams, joinProtectedSiteParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
+import {createProtectedSiteSchema, createSiteSchema, getSitesWithProjectIdParams, joinProtectedSiteParams, params, pauseAlertInputSchema, updateProtectedSiteSchema, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
 import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
-import {Prisma, SiteAlert} from "@prisma/client";
+import type {Prisma, SiteAlert} from "@prisma/client";
 // import {UserPlan} from "../../../Interfaces/AlertMethod";
 
 export const siteRouter = createTRPCRouter({
@@ -120,6 +120,7 @@ export const siteRouter = createTRPCRouter({
                 } else { radius = input.radius; }
 
                 // Any checks for for SiteRelation.role?
+                // Any check by externalId?
 
                 const site = await ctx.prisma.site.create({
                     data: {
@@ -418,6 +419,44 @@ export const siteRouter = createTRPCRouter({
                     data: updatedSite,
                 };
 
+            } catch (error) {
+                console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
+                throw new TRPCError({
+                    code: "CONFLICT",
+                    message: `Error Updating Site.`,
+                });
+            }
+        }),
+
+    updateProtectedSite: protectedProcedure
+        .input(updateProtectedSiteSchema)
+        .mutation(async ({ctx, input}) => {
+            const userId = ctx.user!.id;
+            const siteId = input.params.siteId;
+            try {
+                const updatedSite = await ctx.prisma.siteRelation.updateMany({
+                    where: { siteId: siteId, userId: userId },
+                    data: {
+                        isActive: input.body.isActive
+                    },
+                })
+                if(updatedSite.count != 1) { return { status: 'failed' }; }
+
+                const activeSiteRelations = await ctx.prisma.siteRelation.findMany({
+                    where: { siteId: input.params.siteId, isActive:true }
+                })
+                if(activeSiteRelations.length === 0) {
+                    await ctx.prisma.site.update({
+                        where: {id: siteId}, data: {isMonitored: false}
+                    })
+                }
+
+                return { status: 'success' };
             } catch (error) {
                 console.log(error);
                 if (error instanceof TRPCError) {
