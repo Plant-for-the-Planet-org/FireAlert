@@ -14,15 +14,18 @@ export default async function firesBySiteHandler(
   res: NextApiResponse<ResponseData>
 ) {
   try {
-    checkAuthorization(req, res);
+    checkCORS(req, res);
     checkMethods(req, res, ["GET"]);
 
-    const siteId = req.query.siteId as string;
-    if (!siteId)
-      return res.status(400).json({ message: "No siteId provided." });
+    let siteId = req.query.siteId as string;
+    const remoteId = req.query.remoteId as string;
 
-    const foundSite = await prisma.site.findFirst({ where: { id: siteId } });
+    if (!siteId && !remoteId)
+      return res.status(400).json({ message: "No site provided." });
+
+    const foundSite = await prisma.site.findFirst({ where: { OR: [{ id: siteId }, { remoteId: remoteId }] } });
     if (!foundSite) return res.status(404).json({ message: "Site not found." });
+    siteId = foundSite.id
 
     const span = handleParameter_span(req.query.span?.toString());
 
@@ -83,6 +86,17 @@ function checkMethods(
   }
 }
 
+function checkCORS(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE')
+  res.setHeader('Access-Control-Allow-Headers', '*')
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
+}
+
 function checkAuthorization(req: NextApiRequest, res: NextApiResponse) {
   const authorization = req.headers.authorization;
   const accessToken = authorization?.split(" ")[1];
@@ -95,8 +109,6 @@ function checkAuthorization(req: NextApiRequest, res: NextApiResponse) {
 
 export function handleParameter_span(span?: string) {
   let spanToDate = new Date();
-
-  console.log(span, span?.toLowerCase());
   switch (span?.toLowerCase()) {
     case "24h":
       spanToDate = new Date(spanToDate.getTime() - 1000 * 60 * 60 * 24);
@@ -111,7 +123,7 @@ export function handleParameter_span(span?: string) {
       spanToDate = new Date(spanToDate.getTime() - 1000 * 60 * 60 * 24 * 365);
       break;
     default:
-      logger("Does not match any possible values, using default 7D", "");
+      logger("Does not match any possible values, using default 7D", "Log");
       spanToDate = new Date(spanToDate.getTime() - 1000 * 60 * 60 * 24 * 7);
   }
 
