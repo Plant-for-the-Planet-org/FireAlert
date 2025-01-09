@@ -38,7 +38,9 @@ const server = z.object({
   CRON_KEY: z.string().optional(),
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
   WHATSAPP_ENDPOINT_URL: z.string(),
-  WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string()
+  WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string(),
+  NEXT_PUBLIC_PROTECTED_PLANET_ENDPOINT: z.string().optional(),
+  NEXT_PUBLIC_PROTECTED_PLANET_API_KEY: z.string().optional(),
 });
 
 /**
@@ -58,7 +60,7 @@ const client = z.object({
 const processEnv = {
   DATABASE_PRISMA_URL: process.env.DATABASE_PRISMA_URL,
   DATABASE_URL: process.env.DATABASE_URL ? process.env.DATABASE_URL : process.env.DATABASE_PRISMA_URL,
-  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING ? process.env.DATABASE_URL_NON_POOLING : process.env.DATABASE_URL, 
+  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING ? process.env.DATABASE_URL_NON_POOLING : process.env.DATABASE_URL,
   // DATABASE_PRISMA_URL is set by VERCEL POSTGRES and had pooling built in.
   NODE_ENV: process.env.NODE_ENV,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,

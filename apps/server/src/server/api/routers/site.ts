@@ -8,6 +8,9 @@ import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from 
 import type {Prisma, SiteAlert} from "@prisma/client";
 // import {UserPlan} from "../../../Interfaces/AlertMethod";
 
+const pp_api = process.env.NEXT_PUBLIC_PROTECTED_PLANET_ENDPOINT as string;
+const pp_api_key = process.env.NEXT_PUBLIC_PROTECTED_PLANET_API_KEY as string;
+
 export const siteRouter = createTRPCRouter({
 
     createSite: protectedProcedure
@@ -112,30 +115,50 @@ export const siteRouter = createTRPCRouter({
             try {
                 const origin = 'firealert';
                 let radius = 0;
-                
+
                 // radius 0 on Point would generally not return any results
                 // So monitor 1km around the point by default
                 if (input.type === 'Point' && input.radius === 0) {
                     radius = 1000;
                 } else { radius = input.radius; }
 
-                // Any checks for for SiteRelation.role?
                 // Any check by externalId?
-
+                
+                const protectedArea: {name: string, wdpa_id: string, geometry?: GeoJSON.Geometry} = {
+                    name: "", wdpa_id: ""
+                };
+                const qs = new URLSearchParams();
+                qs.append("token", pp_api_key);
+                qs.append("with_geometry", "true");
+                const { externalId } = input;
+                const pp_url = `${pp_api}/protected_areas/${externalId!}?${qs.toString()}`;
+           
+                const res = await fetch(pp_url);
+                if (!res.ok) {
+                throw {error: {res: res}}
+                }
+                const json = await res.json()
+                const data = json?.protected_area;
+                if (data) {
+                    protectedArea.name = data?.name as string;
+                    protectedArea.wdpa_id = data?.wdpa_id?.toString() as string;
+                    protectedArea.geometry = data?.geojson.geometry as GeoJSON.Geometry;
+                }
+                
                 const site = await ctx.prisma.site.create({
                     data: {
                         origin: origin,
                         type: input.type,
-                        name: input.name,
+                        name: protectedArea.name,
                         radius: radius,
                         kind: 'PROTECTED_SITE',
-                        geometry: input.geometry,
-                        externalId: input.externalId,
+                        geometry: protectedArea.geometry as unknown as Prisma.JsonObject,
+                        externalId: protectedArea.wdpa_id,
                         lastUpdated: new Date(),
                         siteRelations: {
                             create: {
                                 user: { connect: { id: userId, } },
-                                role: 'ROLE_ADMIN',
+                                role: 'ROLE_VIEWER',
                             }
                         },
                     },
@@ -173,16 +196,16 @@ export const siteRouter = createTRPCRouter({
                 });
             }
         }),
-    
+
     joinProtectedSite: protectedProcedure
         .input(joinProtectedSiteParams)
         .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             const siteId = input.siteId;
             try {
-                
+
                 // Add Checks?
-                // Site exist? isMonitored? 
+                // Site exist? isMonitored?
                 // Site has atleast One Admin? No two Admin?
 
                 const siteRelation = await ctx.prisma.siteRelation.create({
@@ -231,7 +254,7 @@ export const siteRouter = createTRPCRouter({
             const userId = ctx.user!.id;
             try {
                 // Only returns a list of sites if the user has sites with the inputted projectId, else returns not found.
-                // TODO: test when this returns an empty array, and when it throws an error. 
+                // TODO: test when this returns an empty array, and when it throws an error.
                 const sitesForProject = await ctx.prisma.site.findMany({
                     where: {
                         projectId: input.projectId,
@@ -508,24 +531,24 @@ export const siteRouter = createTRPCRouter({
             try {
                 // Destructure input parameters, including siteId
                 const {siteId, duration, unit} = input;
-            
+
                 // Calculate the time for the stopAlertUntil field based on unit
                 const additionFactor = {
                 minutes: 1000 * 60,
                 hours: 1000 * 60 * 60,
                 days: 1000 * 60 * 60 * 24,
                 };
-            
+
                 // Calculate future date based on current time, duration, and unit
                 const futureDate = new Date(Date.now() + duration * additionFactor[unit]);
-            
+
                 // Update specific site's stopAlertUntil field in the database
                 await ctx.prisma.site.update({
-                    where: { 
-                        id: siteId 
+                    where: {
+                        id: siteId
                     },
-                    data: { 
-                        stopAlertUntil: futureDate 
+                    data: {
+                        stopAlertUntil: futureDate
                     },
                 });
                 // Constructing a readable duration message
@@ -534,9 +557,9 @@ export const siteRouter = createTRPCRouter({
                                     unit === 'days' && duration === 1 ? 'day' : unit;
 
                 // Respond with a success message including pause duration details
-                return { 
-                    status: 'success', 
-                    message: `Alert has been successfully paused for the site for ${duration} ${durationUnit}.` 
+                return {
+                    status: 'success',
+                    message: `Alert has been successfully paused for the site for ${duration} ${durationUnit}.`
                 };
             } catch (error) {
                 throw new TRPCError({
