@@ -903,7 +903,7 @@ const Settings = ({navigation}) => {
             )}
           </View>
           {/* whatsapp */}
-          <View style={styles.mySiteNameMainContainer}>
+          {/* <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
@@ -967,7 +967,7 @@ const Settings = ({navigation}) => {
                 ))}
               </View>
             )}
-          </View>
+          </View> */}
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
