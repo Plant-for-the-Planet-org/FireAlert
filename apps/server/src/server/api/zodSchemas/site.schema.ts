@@ -50,7 +50,8 @@ export const protectedSiteSchema = z.object({
     path: ["geometry.type", "type"],
 });
 export const protectedSiteParams = z.object({
-    siteId: z.string().cuid({message: "Invalid CUID"}),
+    siteId: z.string().cuid({message: "Invalid CUID"}).optional(),
+    externalId: z.string().optional(),
 })
 
 export const createProtectedSiteSchema = protectedSiteSchema;
