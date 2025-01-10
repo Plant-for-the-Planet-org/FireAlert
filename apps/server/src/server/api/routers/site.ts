@@ -123,7 +123,6 @@ export const siteRouter = createTRPCRouter({
                 } else { radius = input.radius; }
 
                 // Any check by externalId?
-                
                 const protectedArea: {name: string, wdpa_id: string, geometry?: GeoJSON.Geometry} = {
                     name: "", wdpa_id: ""
                 };
@@ -132,19 +131,27 @@ export const siteRouter = createTRPCRouter({
                 qs.append("with_geometry", "true");
                 const { externalId } = input;
                 const pp_url = `${pp_api}/protected_areas/${externalId!}?${qs.toString()}`;
-           
+
                 const res = await fetch(pp_url);
                 if (!res.ok) {
-                throw {error: {res: res}}
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Something Went Wrong`,
+                        cause: res,
+                    })
                 }
-                const json = await res.json()
-                const data = json?.protected_area;
+                const data = (await res.json())?.protected_area;
                 if (data) {
                     protectedArea.name = data?.name as string;
                     protectedArea.wdpa_id = data?.wdpa_id?.toString() as string;
                     protectedArea.geometry = data?.geojson.geometry as GeoJSON.Geometry;
+                } else {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: `No protected area found with WDPA ID ${externalId!}.`
+                    })
                 }
-                
+
                 const site = await ctx.prisma.site.create({
                     data: {
                         origin: origin,
@@ -201,12 +208,47 @@ export const siteRouter = createTRPCRouter({
         .input(joinProtectedSiteParams)
         .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
-            const siteId = input.siteId;
+            let siteId = input.siteId;
+            const externalId:string = input.externalId!;
             try {
 
-                // Add Checks?
-                // Site exist? isMonitored?
-                // Site has atleast One Admin? No two Admin?
+                if (externalId) {
+                  const site = await ctx.prisma.site.findFirst({
+                    where: {externalId: externalId},
+                  })
+
+                  if(site)
+                    siteId = site?.id;
+                }
+
+                const foundSiteRelation = await ctx.prisma.siteRelation.findFirst({
+                    where: {
+                        userId: userId,
+                        siteId: siteId,
+                        isActive: true
+                    },
+                    select: {
+                        siteId: true, userId: true, role: true,
+                        site: {
+                            select: {
+                                id: true,
+                                type: true,
+                                name: true,
+                                radius: true,
+                                geometry: true,
+                                externalId: true,
+                            }
+                        }
+                    }
+                })
+
+                if (foundSiteRelation) {
+                    return {
+                        status: 'success',
+                        data: foundSiteRelation,
+                    };
+                }
+
 
                 const siteRelation = await ctx.prisma.siteRelation.create({
                     data: {
