@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../../../server/db";
 import { logger } from "../../../../server/logger";
+import * as process from "node:process";
+
+
 
 type ResponseData =
   | GeoJSON.GeoJSON
@@ -8,6 +11,11 @@ type ResponseData =
       message?: string;
       error?: object | unknown;
     };
+
+let CACHING = true;
+if(process.env.PUBLIC_API_CACHING && process.env.PUBLIC_API_CACHING?.toLowerCase() === "false") {
+  CACHING = false;
+}
 
 export default async function firesBySiteHandler(
   req: NextApiRequest,
@@ -63,12 +71,14 @@ export default async function firesBySiteHandler(
       }))
     );
 
-    res.setHeader(
-      "Cache-Control",
-      "public, max-age=7200 s-maxage=3600, stale-while-revalidate=7200"
-    );
-    res.setHeader("CDN-Cache-Control", "max-age=7200");
-    res.setHeader("Cloudflare-CDN-Cache-Control", "max-age=7200");
+    if(CACHING) {
+      res.setHeader(
+        "Cache-Control",
+        "public, max-age=7200 s-maxage=3600, stale-while-revalidate=7200"
+      );
+      res.setHeader("CDN-Cache-Control", "max-age=7200");
+      res.setHeader("Cloudflare-CDN-Cache-Control", "max-age=7200");
+    }
 
     res.status(200).json(fires);
   } catch (error) {
