@@ -12,7 +12,10 @@ type ResponseData =
       error?: object | unknown;
     };
 
-const CACHING = Boolean(process.env.PUBLIC_API_CACHING?.toLowerCase()) ?? true;
+let CACHING = true;
+if(process.env.PUBLIC_API_CACHING && process.env.PUBLIC_API_CACHING?.toLowerCase() === "false") {
+  CACHING = false;
+}
 
 export default async function firesBySiteHandler(
   req: NextApiRequest,
