@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../../../server/db";
 import { logger } from "../../../../server/logger";
+import * as process from "node:process";
 
 
 
@@ -11,7 +12,7 @@ type ResponseData =
       error?: object | unknown;
     };
 
-const CACHING = false;
+const CACHING = Boolean(process.env.PUBLIC_API_CACHING?.toLowerCase()) ?? true;
 
 export default async function firesBySiteHandler(
   req: NextApiRequest,
