@@ -38,7 +38,12 @@ const server = z.object({
   CRON_KEY: z.string().optional(),
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
   WHATSAPP_ENDPOINT_URL: z.string(),
-  WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string()
+  WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string(),
+  PUBLIC_API_CACHING: z.union([z.literal("true"), z.literal("false")]).optional()
+    .transform((val) => {
+      if (val === undefined) return true; // since it is optional by default caching kept true
+      return val === "true";
+    }),
 });
 
 /**
@@ -58,7 +63,7 @@ const client = z.object({
 const processEnv = {
   DATABASE_PRISMA_URL: process.env.DATABASE_PRISMA_URL,
   DATABASE_URL: process.env.DATABASE_URL ? process.env.DATABASE_URL : process.env.DATABASE_PRISMA_URL,
-  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING ? process.env.DATABASE_URL_NON_POOLING : process.env.DATABASE_URL, 
+  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING ? process.env.DATABASE_URL_NON_POOLING : process.env.DATABASE_URL,
   // DATABASE_PRISMA_URL is set by VERCEL POSTGRES and had pooling built in.
   NODE_ENV: process.env.NODE_ENV,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
@@ -79,7 +84,8 @@ const processEnv = {
   CRON_KEY: process.env.CRON_KEY,
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
   WHATSAPP_ENDPOINT_URL: process.env.WHATSAPP_ENDPOINT_URL,
-  WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN
+  WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
+  PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING
 };
 
 
