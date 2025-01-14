@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../../../server/db";
 import { logger } from "../../../../server/logger";
-import * as process from "node:process";
-
+import { env } from "../../../../env.mjs"
 
 
 type ResponseData =
@@ -12,10 +11,7 @@ type ResponseData =
       error?: object | unknown;
     };
 
-let CACHING = true;
-if(process.env.PUBLIC_API_CACHING && process.env.PUBLIC_API_CACHING?.toLowerCase() === "false") {
-  CACHING = false;
-}
+const CACHING = env.PUBLIC_API_CACHING ?? true;
 
 export default async function firesBySiteHandler(
   req: NextApiRequest,
