@@ -4,7 +4,8 @@ import { logger } from "../../../../server/logger";
 import { env } from "../../../../env.mjs"
 
 
-type ResponseData =
+type ResponseData = 
+  | string
   | GeoJSON.GeoJSON
   | {
       message?: string;
@@ -18,8 +19,18 @@ export default async function firesBySiteHandler(
   res: NextApiResponse<ResponseData>
 ) {
   try {
-    checkCORS(req, res);
-    checkMethods(req, res, ["GET"]);
+    // checkCORS(req, res);
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Headers', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+    
+    // checkMethods(req, res, ["GET"]);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    if (!["OPTIONS", "GET"].includes(req.method!)) {
+      if (req.method === 'OPTIONS') { return res.status(200).send("Ok") }
+      return res.status(405).json({ message: "Method Not Allowed" });
+    }
 
     let siteId = req.query.siteId as string;
     const remoteId = req.query.remoteId as string;
@@ -101,8 +112,7 @@ function checkCORS(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE')
   res.setHeader('Access-Control-Allow-Headers', '*')
   if (req.method === 'OPTIONS') {
-    res.status(200).end()
-    return
+    return res.status(200).send("Ok")
   }
 }
 
