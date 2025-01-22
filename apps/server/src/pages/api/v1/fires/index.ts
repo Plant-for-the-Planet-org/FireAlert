@@ -27,8 +27,8 @@ export default async function firesBySiteHandler(
     
     // checkMethods(req, res, ["GET"]);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    if (!["OPTIONS", "GET"].includes(req.method!)) {
-      if (req.method === 'OPTIONS') { return res.status(200).send("Ok") }
+    if (req.method === 'OPTIONS') { return res.status(200).end() }
+    if (!["GET"].includes(req.method!)) {
       return res.status(405).json({ message: "Method Not Allowed" });
     }
 
