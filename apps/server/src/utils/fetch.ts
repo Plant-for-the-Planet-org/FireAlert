@@ -51,7 +51,7 @@ export const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
 
 export const fetchAllProjectsWithSites = async () => {
   const response = await fetch(
-    `${env.PLANET_API_URL}/app/projects?_scope=extended`,
+    `${env.PLANET_API_URL}/app/projects?_scope=extended&filter[purpose]=trees,conservation`,
   );
   const data = await response.json();
   return data;
