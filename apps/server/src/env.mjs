@@ -39,6 +39,11 @@ const server = z.object({
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
   WHATSAPP_ENDPOINT_URL: z.string(),
   WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string(),
+  PUBLIC_API_CACHING: z.union([z.literal("true"), z.literal("false")]).optional()
+  .transform((val) => {
+    if (val === undefined) return true; // since it is optional by default caching kept true
+    return val === "true";
+  }),
   NEXT_PUBLIC_PROTECTED_PLANET_ENDPOINT: z.string().optional(),
   NEXT_PUBLIC_PROTECTED_PLANET_API_KEY: z.string().optional(),
 });
@@ -81,7 +86,8 @@ const processEnv = {
   CRON_KEY: process.env.CRON_KEY,
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
   WHATSAPP_ENDPOINT_URL: process.env.WHATSAPP_ENDPOINT_URL,
-  WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN
+  WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
+  PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING
 };
 
 
