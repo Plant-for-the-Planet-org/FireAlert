@@ -73,7 +73,7 @@
     "@react-native/metro-config": "0.74.85",
     "@react-native/typescript-config": "0.74.85",
     "@tsconfig/react-native": "^2.0.2",
-    "react-native-codegen":"0.0.7",
+    "react-native-codegen": "0.0.7",
     "@types/react": "^18.2.6",
     "@types/react-test-renderer": "^18.0.0",
     "babel-plugin-module-resolver": "^5.0.0",
