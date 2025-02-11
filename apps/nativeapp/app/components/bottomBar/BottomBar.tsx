@@ -106,6 +106,14 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
         onPressCallback();
       },
     },
+    {
+      svgXML: polygonIcon,
+      title: 'Protected Area',
+      onPress: () => {
+        navigation.navigate('ProtectedAreas');
+        onPressCallback();
+      },
+    },
   ];
 
   return (

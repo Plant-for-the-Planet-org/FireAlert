@@ -6,6 +6,7 @@ import Verification from './Verification/Verification';
 import UploadPolygon from './uploadPolygon/UploadPolygon';
 import CreatePolygon from './CreatePolygon/CreatePolygon';
 import SelectLocation from './selectLocation/SelectLocation';
+import ProtectedAreas from './ProtectedAreas/ProtectedAreas';
 
 export {
   Otp,
@@ -16,4 +17,5 @@ export {
   CreatePolygon,
   UploadPolygon,
   SelectLocation,
+  ProtectedAreas,
 };
