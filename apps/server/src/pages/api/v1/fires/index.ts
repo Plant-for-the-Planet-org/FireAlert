@@ -81,10 +81,10 @@ export default async function firesBySiteHandler(
     if(CACHING) {
       res.setHeader(
         "Cache-Control",
-        "public, max-age=7200 s-maxage=3600, stale-while-revalidate=7200"
+        "public, max-age=1800, s-maxage=86400, stale-while-revalidate=86400"
       );
-      res.setHeader("CDN-Cache-Control", "max-age=7200");
-      res.setHeader("Cloudflare-CDN-Cache-Control", "max-age=7200");
+      res.setHeader("CDN-Cache-Control", "max-age=86400");
+      res.setHeader("Cloudflare-CDN-Cache-Control", "max-age=86400");
     }
 
     res.status(200).json(fires);
