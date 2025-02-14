@@ -27,7 +27,44 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     let deleteCount = 0;
 
     // Fetch projects from PP API
-    const allProjectsPPWebApp: TreeProjectExtended[] = await fetchAllProjectsWithSites();
+    let allProjectsPPWebApp: TreeProjectExtended[] = await fetchAllProjectsWithSites();
+    allProjectsPPWebApp = allProjectsPPWebApp.filter(el => el.allowDonations)
+
+    // Extract unique RO users from projects with allowDonations true.
+    const uniqueUsers = new Map<string, { 
+        remoteId: string; 
+        name: string; 
+        email: string; 
+        isPlanetRO: boolean; 
+    }>();
+    allProjectsPPWebApp.forEach((project) => {
+        if (project.tpo) {
+            if (!uniqueUsers.has(project.tpo.id)) {
+                uniqueUsers.set(project.tpo.id, {
+                remoteId: project.tpo.id,
+                name: "NEW_" + project.tpo.name,
+                email: project.tpo.email,
+                isPlanetRO: true,
+                });
+            }
+        }
+    });
+    logger(`Extracted ${uniqueUsers.size} unique RO users from projects.`, "info");
+
+    // Insert new users into the database if they don't already exist.
+    const usersToCreate = Array.from(uniqueUsers.values());
+    try {
+        const result = await prisma.user.createMany({
+        data: usersToCreate,
+        skipDuplicates: true,
+        });
+        createCount += result.count;
+        logger(`Created ${result.count} new users (or skipped duplicates).`, "info");
+    } catch (error) {
+        logger(`Error creating users: ${error}`, "error");
+        res.status(500).json({ message: "Error creating users", status: 500 });
+        return;
+    }
 
     // Fetch RO Users from the Firealert database and select their ids and remoteIds
     const ROUsers = await prisma.user.findMany({
@@ -107,7 +144,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             // Add the new project to the array for bulk creation
             newProjectData.push({
                 id: projectId,
-                name: projectName,
+                name: "NEW_" + projectName,
                 slug: projectSlug,
                 lastUpdated: new Date(),
                 userId: userId,
@@ -118,7 +155,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             if (sitesFromPP && sitesFromPP.length > 0) {
                 for (const siteFromPP of sitesFromPP) {
                     const { geometry, properties } = siteFromPP;
-                    const { id: remoteId_PP } = properties;
+                    const { id: remoteId_PP, name:siteName } = properties;
                     const siteId_mapped_from_remoteId = map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.get(remoteId_PP)
 
                     // Check if geometry and geometry.type exists
@@ -141,6 +178,8 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                             // Add the new site to the array for bulk creation
                             newSiteData.push({
                                 remoteId: remoteId_PP,
+                                name: "NEW_" + siteName,
+                                origin: "ttc",
                                 type: geometry.type,
                                 geometry: geometry,
                                 radius: 0,
@@ -222,6 +261,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         const deletePromises = [];
 
         // Identify sites in the database that are not present in PP API and dissociate those sites from the projects
+        // While disassociating also turn isMonitored to false
         if (siteIdsInFA_NotInPP.length > 0) {
             deletePromises.push(
                 prisma.site.updateMany({
@@ -232,6 +272,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                     },
                     data: {
                         projectId: null,
+                        isMonitored: false,
                     },
                 }))
             logger(`Soft Deleting ${siteIdsInFA_NotInPP.length} sites not present in the Webapp`, 'info',);
@@ -258,7 +299,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         },
                         data: {
                             lastUpdated: projectLastUpdatedFormPP,
-                            name: projectNameFormPP,
+                            name:  "UPDATE_" + projectNameFormPP,
                             slug: projectSlugFormPP,
                         },
                     })
@@ -290,7 +331,8 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                                 prisma.site.create({
                                     data: {
                                         remoteId: remoteId_fromPP,
-                                        name: siteName,
+                                        name: "NEW_" + siteName,
+                                        origin: 'ttc',
                                         type: geometry.type,
                                         geometry: geometry,
                                         radius: radius,
@@ -308,10 +350,10 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                                         id: siteFromDatabase.id,
                                     },
                                     data: {
+                                        name:  "UPDATE_" + siteName,
                                         type: geometry.type,
                                         geometry: geometry,
                                         radius: radius,
-                                        name: siteName,
                                         lastUpdated: siteLastUpdatedFromPP,
                                     },
                                 })
