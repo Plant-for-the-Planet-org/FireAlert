@@ -8,7 +8,7 @@ import { fetchAllProjectsWithSites } from "../../../../utils/fetch";
 import moment from 'moment';
 import type { Prisma, Project, Site, User } from "@prisma/client";
 import type {  TreeProjectExtended } from '@planet-sdk/common';
-import data from "./projects.json"
+// import data from "./projects.json"
 
 type SyncOps = {
   projects: { created: number; updated: number; deleted: number };
@@ -38,7 +38,7 @@ export default async function syncROs(req: NextApiRequest, res: NextApiResponse)
     //   }
     // }
 
-    const ppProjects = data;
+    // const ppProjects = data;
     // const ppProjects = await fetchPPProjects();
     // const faData = await fetchFA(ppProjects);
     
