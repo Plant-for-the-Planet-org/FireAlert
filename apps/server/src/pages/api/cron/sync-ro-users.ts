@@ -9,7 +9,7 @@ import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
 import moment from 'moment';
-import { Prisma, Project } from "@prisma/client";
+import { Prisma, Project, User } from "@prisma/client";
 import { type TreeProjectExtended } from '@planet-sdk/common'
 
 export default async function syncROUsers(req: NextApiRequest, res: NextApiResponse) {
@@ -31,12 +31,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     allProjectsPPWebApp = allProjectsPPWebApp.filter(el => el.allowDonations)
 
     // Extract unique RO users from projects with allowDonations true.
-    const uniqueUsers = new Map<string, { 
-        remoteId: string; 
-        name: string; 
-        email: string; 
-        isPlanetRO: boolean; 
-    }>();
+    const uniqueUsers = new Map<string, Partial<User>>();
     allProjectsPPWebApp.forEach((project) => {
         if (project.tpo) {
             if (!uniqueUsers.has(project.tpo.id)) {
@@ -45,6 +40,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 name: "NEW_" + project.tpo.name,
                 email: project.tpo.email,
                 isPlanetRO: true,
+                detectionMethods: ["MODIS", "VIIRS", "LANDSAT"]
                 });
             }
         }
@@ -54,15 +50,38 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     // Insert new users into the database if they don't already exist.
     const usersToCreate = Array.from(uniqueUsers.values());
     try {
-        const result = await prisma.user.createMany({
-        data: usersToCreate,
-        skipDuplicates: true,
+        // Extract remoteIds from the usersToCreate list.
+        const remoteIds = usersToCreate.map((user) => user.remoteId);
+
+        // Query the DB for users with these remoteIds.
+        const existingUsers = await prisma.user.findMany({
+            where: { remoteId: { in: remoteIds } },
+            select: { remoteId: true },
         });
-        createCount += result.count;
-        logger(`Created ${result.count} new users (or skipped duplicates).`, "info");
+
+        // Create a Set of the existing remoteIds.
+        const existingRemoteIds = new Set(existingUsers.map((user) => user.remoteId));
+
+        // Filter out users that already exist based on remoteId.
+        const newUsersToCreate = usersToCreate.filter(
+            (user) => !existingRemoteIds.has(user.remoteId)
+        );
+
+        if (newUsersToCreate.length > 0) {
+            const result = await prisma.user.createMany({
+                data: newUsersToCreate,
+            });
+            createCount += result.count;
+            logger(`Created ${result.count} new users.`, "info");
+        } else {
+            logger("No new users to create.", "info");
+        }
     } catch (error) {
         logger(`Error creating users: ${error}`, "error");
-        res.status(500).json({ message: "Error creating users", status: 500 });
+        res.status(500).json({ 
+            message: "Error creating users", 
+            status: 500 
+        });
         return;
     }
 
@@ -384,6 +403,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             results: { created: createCount, updated: updateCount, deleted: deleteCount },
         });
     } catch (error) {
+        console.log(error);
         logger(`Error in transaction: ${error}`, "error");
         res.status(500).json({
             message: "An error occurred while syncing data for RO Users.",

@@ -68,7 +68,7 @@ export default async function syncROs(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-async function fetchPPProjects(): Promise<TreeProjectExtended[]> {
+export async function fetchPPProjects(): Promise<TreeProjectExtended[]> {
   return await fetchAllProjectsWithSites();
 }
 
