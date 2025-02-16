@@ -19,6 +19,7 @@ import {
   uploadIcon,
   polygonIcon,
   locationIcon,
+  protectedAreaIcon,
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {plusIcon} from '../../assets/svgs/plusIcon';
@@ -107,7 +108,7 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
       },
     },
     {
-      svgXML: polygonIcon,
+      svgXML: protectedAreaIcon,
       title: 'Protected Area',
       onPress: () => {
         navigation.navigate('ProtectedAreas');

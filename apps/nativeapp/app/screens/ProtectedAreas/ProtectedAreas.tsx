@@ -4,11 +4,13 @@ import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import {Colors, Typography} from '../../styles';
 import ProtectedAreasSearch from './ProtectedAreasSearch';
+import NoResult from './NoResult';
+import RecentSearches from './RecentSearches';
+import SearchResultItem from './SearchResultItem';
 
 const IS_ANDROID = Platform.OS === 'android';
 
@@ -22,6 +24,13 @@ const ProtectedAreas = () => {
       <View style={[styles.headingContainer, styles.commonPadding]}>
         {/* <Text style={styles.mainHeading}>Protected Areas</Text> */}
         <ProtectedAreasSearch />
+        {/* Remove Unncessary Abstraction */}
+      </View>
+
+      <View style={[styles.bodyContainer, styles.commonPadding]}>
+        {/* <NoResult /> */}
+        <RecentSearches />
+        {/* <SearchResultItem /> */}
       </View>
     </SafeAreaView>
   );
@@ -46,5 +55,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.FONT_WEIGHT_BOLD,
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.TEXT_COLOR,
+  },
+  bodyContainer: {
+    flex: 1,
   },
 });
