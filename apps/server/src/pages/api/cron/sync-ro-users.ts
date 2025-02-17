@@ -3,14 +3,15 @@
 // This cron job runs every day and syncs sites, projects, and profile data for RO users.
 
 
-import { type NextApiRequest, type NextApiResponse } from "next";
+import type { TreeProjectExtended } from '@planet-sdk/common'
+import type { Prisma, Project, User } from "@prisma/client";
+import type { NextApiRequest, NextApiResponse } from "next";
+
 import { prisma } from '../../../server/db'
 import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
 import moment from 'moment';
-import { Prisma, Project, User } from "@prisma/client";
-import { type TreeProjectExtended } from '@planet-sdk/common'
 
 export default async function syncROUsers(req: NextApiRequest, res: NextApiResponse) {
     // Verify the 'cron_key' in the request headers before proceeding
@@ -39,7 +40,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 remoteId: project.tpo.id,
                 name: "NEW_" + project.tpo.name,
                 email: project.tpo.email,
-                isPlanetRO: true,
+                isPlanetRO: project.tpo.id.startsWith("tpo_") ? true : false, 
                 detectionMethods: ["MODIS", "VIIRS", "LANDSAT"]
                 });
             }
