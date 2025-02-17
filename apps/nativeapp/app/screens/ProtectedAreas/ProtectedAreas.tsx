@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   Platform,
   SafeAreaView,
@@ -7,14 +7,27 @@ import {
   View,
 } from 'react-native';
 import {Colors, Typography} from '../../styles';
-import ProtectedAreasSearch from './ProtectedAreasSearch';
 import NoResult from './NoResult';
+import ProtectedAreasSearch from './ProtectedAreasSearch';
 import RecentSearches from './RecentSearches';
-import SearchResultItem from './SearchResultItem';
+import SearchResultItem, {Result} from './SearchResultItem';
 
 const IS_ANDROID = Platform.OS === 'android';
 
 const ProtectedAreas = () => {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Result[]>([]);
+  const [noResults, setNoResults] = useState(false);
+
+  function handleSubmit() {
+    const _result = filterSampleData(query);
+    if (_result.length === 0) {
+      setNoResults(true);
+      return;
+    }
+    setResults(_result);
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
@@ -23,14 +36,24 @@ const ProtectedAreas = () => {
       />
       <View style={[styles.headingContainer, styles.commonPadding]}>
         {/* <Text style={styles.mainHeading}>Protected Areas</Text> */}
-        <ProtectedAreasSearch />
+        <ProtectedAreasSearch
+          value={query}
+          onChangeText={text => {
+            setQuery(text);
+            setResults([]);
+            setNoResults(false);
+          }}
+          onSubmit={input => {
+            handleSubmit();
+          }}
+        />
         {/* Remove Unncessary Abstraction */}
       </View>
 
       <View style={[styles.bodyContainer, styles.commonPadding]}>
-        {/* <NoResult /> */}
-        <RecentSearches />
-        {/* <SearchResultItem /> */}
+        {query.length === 0 && <RecentSearches />}
+        {noResults && <NoResult />}
+        {results.length > 0 && <SearchResultItem results={results} />}
       </View>
     </SafeAreaView>
   );
@@ -60,3 +83,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+function filterSampleData(query: string) {
+  const sampleData = require('./sample.json');
+  return sampleData.filter(item => {
+    return item.name.toLowerCase().includes(query.toLowerCase());
+  });
+}

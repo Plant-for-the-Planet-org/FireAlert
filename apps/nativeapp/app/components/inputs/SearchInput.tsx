@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  type TextInputProps,
 } from 'react-native';
 import React, {useState} from 'react';
 
@@ -14,7 +15,20 @@ import {Colors} from '../../styles';
 const TOP = Platform.OS === 'ios' ? -8.2 : -8.6;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-const SearchInput = props => {
+type Props = TextInputProps & {
+  errors?: boolean;
+  inputStyle?: any;
+  onChangeText: (text: string) => void;
+  containerStyle?: any;
+  label?: string;
+  placeholder?: string;
+  verifier?: boolean;
+  verified?: boolean;
+  isFloat?: boolean;
+  value?: string;
+};
+
+const SearchInput = (props: Props) => {
   const {
     errors,
     inputStyle,
@@ -25,6 +39,7 @@ const SearchInput = props => {
     verifier = false,
     verified = false,
     isFloat = true,
+
     ...restOfProps
   } = props;
   const [isFocused, setIsFocused] = useState(false);

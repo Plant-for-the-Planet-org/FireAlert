@@ -4,16 +4,16 @@ import {SvgXml} from 'react-native-svg';
 import {protectedAreaSearchResultIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 
-export default function SearchResultItem() {
-  const results = [
-    {name: 'Lorem ipsum dolor', country: 'Mexico', area: 5432},
-    {
-      name: 'Lorem ipsum dolor sit amet consectetur adipisicing elit',
-      country: 'Central African Republic',
-      area: 8980,
-    },
-  ];
+export type Result = {
+  name: string;
+  country: string;
+  area?: number;
+};
+type Props = {
+  results: Result[];
+};
 
+export default function SearchResultItem({results}: Props) {
   return (
     <View>
       <ScrollView style={styles.resultsContainer}>
@@ -28,7 +28,7 @@ export default function SearchResultItem() {
                 {r.name}
               </Text>
               <Text style={styles.listItemDescription}>
-                {r.country} · {r.area} mha
+                {r.country} · {r?.area ? `${r.area} mha` : 'Unknown'}
               </Text>
             </View>
           </View>
