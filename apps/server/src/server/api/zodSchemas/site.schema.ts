@@ -53,8 +53,13 @@ export const protectedSiteParams = z.object({
     siteId: z.string().cuid({message: "Invalid CUID"}).optional(),
     externalId: z.string().optional(),
 })
-
-export const createProtectedSiteSchema = protectedSiteSchema;
+export const findProtectedSiteParams = z.object({
+    query: z.string()
+});
+export const createProtectedSiteSchema = z.object({
+    externalId: z.string()
+})
+// export const createProtectedSiteSchema = protectedSiteSchema;
 export const joinProtectedSiteParams = protectedSiteParams;
 export const updateProtectedSiteSchema = z.object({
     params: protectedSiteParams,
