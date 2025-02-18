@@ -1,9 +1,10 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Platform,
   SafeAreaView,
   StatusBar,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import {Colors, Typography} from '../../styles';
@@ -11,21 +12,40 @@ import NoResult from './NoResult';
 import ProtectedAreasSearch from './ProtectedAreasSearch';
 import RecentSearches from './RecentSearches';
 import SearchResultItem, {Result} from './SearchResultItem';
+import {trpc} from '../../services/trpc';
+import {useToast} from 'react-native-toast-notifications';
 
 const IS_ANDROID = Platform.OS === 'android';
 
 const ProtectedAreas = () => {
+  const toast = useToast();
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [noResults, setNoResults] = useState(false);
 
+  const findProtectedSites = trpc.site.findProtectedSites.useMutation({
+    retryDelay: 3000,
+    onSuccess: res => {
+      console.log(res);
+      if (res?.json && res?.json?.status === 'success') {
+        if (res?.json.data.length === 0) {
+          setNoResults(true);
+          return;
+        }
+        setResults(res?.json.data);
+      }
+    },
+  });
+
   function handleSubmit() {
-    const _result = filterSampleData(query);
-    if (_result.length === 0) {
-      setNoResults(true);
-      return;
-    }
-    setResults(_result);
+    findProtectedSites.mutate({json: {query}});
+    // const _result = filterSampleData(query);
+    // if (_result.length === 0) {
+    //   setNoResults(true);
+    //   return;
+    // }
+    // setResults(_result);
   }
 
   return (
@@ -53,6 +73,7 @@ const ProtectedAreas = () => {
       <View style={[styles.bodyContainer, styles.commonPadding]}>
         {query.length === 0 && <RecentSearches />}
         {noResults && <NoResult />}
+        {/* <Text>{JSON.stringify(results, null, 2)}</Text> */}
         {results.length > 0 && <SearchResultItem results={results} />}
       </View>
     </SafeAreaView>

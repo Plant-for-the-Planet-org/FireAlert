@@ -67,7 +67,7 @@ export async function addToRecentSearches(search: string) {
   let searches = (await getData('recentSearches')) as string[];
 
   if (searches) {
-    if (searches.length >= 20) {
+    if (searches.length >= MAX_RECENT_SEARCHES) {
       searches.shift();
     }
     if (searches.includes(search)) {

@@ -1,5 +1,5 @@
 import {TRPCError} from "@trpc/server";
-import {createSiteSchema, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
+import {createSiteSchema, findProtectedSiteParams, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -104,6 +104,28 @@ export const siteRouter = createTRPCRouter({
                 });
             }
         }),
+
+    findProtectedSites: protectedProcedure
+        .input(findProtectedSiteParams)
+        .mutation(async ({ctx, input}) => {
+            return {
+                    status: 'success',
+                    data: [],
+                };
+        }),
+
+    
+    createProtectedSite: protectedProcedure
+        .input(createProtectedSiteSchema)
+        .mutation(async ({ctx, input}) => {
+            return {
+                status: "success",
+                data: {
+                    site: {},
+                    siteRelation: {}
+                },
+            };
+        })
 
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
@@ -243,6 +265,39 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
+    getProtectedSites: protectedProcedure.query(async ({ctx}) => {
+        const userId = ctx.user!.id;
+        try {
+            
+            // const _siteRelation = await ctx.prisma.siteRelation.findMany({
+            //     where: { userId: userId, },
+            //     select: { siteId: true, isActive:true, site: { 
+            //         select: {
+            //             id: true,
+            //             name: true
+            //         }
+            //     } }
+            // })
+      
+            // const sites = _siteRelation.map(el => ({
+            //     ...el.site,
+            //     isActive: el.isActive,
+            // }))
+
+            const sites = [];
+            return {
+                status: 'success',
+                data: sites,
+            };
+        } catch (error) {
+            console.log(error)
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: `${error}`,
+            });
+        }
+    }),
+        
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ctx, input}) => {
