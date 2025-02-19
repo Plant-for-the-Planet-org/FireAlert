@@ -111,7 +111,7 @@ export const siteRouter = createTRPCRouter({
 
     findProtectedSites: protectedProcedure
         .input(findProtectedSiteParams)
-        .query(async ({ctx, input}) => {
+        .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
                 const {query} = input;
@@ -278,7 +278,11 @@ export const siteRouter = createTRPCRouter({
                                 }
                             }
                         })
-                        site = foundSite;
+                        const _site = await ctx.prisma.site.update({
+                            where: {id: foundSite.id},
+                            data: {isMonitored: true},
+                        })
+                        site = _site;
                         siteRelation = _siteRelation
                     }
                 } else {
@@ -340,90 +344,90 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
-    joinProtectedSite: protectedProcedure
-        .input(joinProtectedSiteParams)
-        .mutation(async ({ctx, input}) => {
-            const userId = ctx.user!.id;
-            let siteId = input.siteId;
-            const externalId:string = input.externalId!;
-            try {
+    // joinProtectedSite: protectedProcedure
+    //     .input(joinProtectedSiteParams)
+    //     .mutation(async ({ctx, input}) => {
+    //         const userId = ctx.user!.id;
+    //         let siteId = input.siteId;
+    //         const externalId:string = input.externalId!;
+    //         try {
 
-                if (externalId) {
-                  const site = await ctx.prisma.site.findFirst({
-                    where: {externalId: externalId},
-                  })
+    //             if (externalId) {
+    //               const site = await ctx.prisma.site.findFirst({
+    //                 where: {externalId: externalId},
+    //               })
 
-                  if(site)
-                    siteId = site?.id;
-                }
+    //               if(site)
+    //                 siteId = site?.id;
+    //             }
 
-                const foundSiteRelation = await ctx.prisma.siteRelation.findFirst({
-                    where: {
-                        userId: userId,
-                        siteId: siteId,
-                        isActive: true
-                    },
-                    select: {
-                        siteId: true, userId: true, role: true,
-                        site: {
-                            select: {
-                                id: true,
-                                type: true,
-                                name: true,
-                                radius: true,
-                                geometry: true,
-                                externalId: true,
-                            }
-                        }
-                    }
-                })
+    //             const foundSiteRelation = await ctx.prisma.siteRelation.findFirst({
+    //                 where: {
+    //                     userId: userId,
+    //                     siteId: siteId,
+    //                     isActive: true
+    //                 },
+    //                 select: {
+    //                     siteId: true, userId: true, role: true,
+    //                     site: {
+    //                         select: {
+    //                             id: true,
+    //                             type: true,
+    //                             name: true,
+    //                             radius: true,
+    //                             geometry: true,
+    //                             externalId: true,
+    //                         }
+    //                     }
+    //                 }
+    //             })
 
-                if (foundSiteRelation) {
-                    return {
-                        status: 'success',
-                        data: foundSiteRelation,
-                    };
-                }
+    //             if (foundSiteRelation) {
+    //                 return {
+    //                     status: 'success',
+    //                     data: foundSiteRelation,
+    //                 };
+    //             }
 
 
-                const siteRelation = await ctx.prisma.siteRelation.create({
-                    data: {
-                        role: "ROLE_VIEWER",
-                        userId: userId,
-                        siteId: siteId
-                    },
-                    select: {
-                        siteId: true, userId: true, role: true,
-                        site: {
-                            select: {
-                                id: true,
-                                type: true,
-                                name: true,
-                                radius: true,
-                                geometry: true,
-                                externalId: true,
-                            }
-                        }
-                    }
-                })
+    //             const siteRelation = await ctx.prisma.siteRelation.create({
+    //                 data: {
+    //                     role: "ROLE_VIEWER",
+    //                     userId: userId,
+    //                     siteId: siteId
+    //                 },
+    //                 select: {
+    //                     siteId: true, userId: true, role: true,
+    //                     site: {
+    //                         select: {
+    //                             id: true,
+    //                             type: true,
+    //                             name: true,
+    //                             radius: true,
+    //                             geometry: true,
+    //                             externalId: true,
+    //                         }
+    //                     }
+    //                 }
+    //             })
 
-                return {
-                    status: 'success',
-                    data: siteRelation,
-                };
-            } catch (error) {
-                console.log(error);
-                if (error instanceof TRPCError) {
-                    // if the error is already a TRPCError, just re-throw it
-                    throw error;
-                }
-                // if it's a different type of error, throw a new TRPCError
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: `Something Went Wrong`,
-                });
-            }
-        }),
+    //             return {
+    //                 status: 'success',
+    //                 data: siteRelation,
+    //             };
+    //         } catch (error) {
+    //             console.log(error);
+    //             if (error instanceof TRPCError) {
+    //                 // if the error is already a TRPCError, just re-throw it
+    //                 throw error;
+    //             }
+    //             // if it's a different type of error, throw a new TRPCError
+    //             throw new TRPCError({
+    //                 code: "INTERNAL_SERVER_ERROR",
+    //                 message: `Something Went Wrong`,
+    //             });
+    //         }
+    //     }),
 
 
     getSitesForProject: protectedProcedure
@@ -509,6 +513,43 @@ export const siteRouter = createTRPCRouter({
                 });
             }
         }),
+
+    getProtectedSites: protectedProcedure.query(async ({ctx}) => {
+        const userId = ctx.user!.id;
+        try {
+            // console.log(userId)
+            const _siteRelation = await ctx.prisma.siteRelation.findMany({
+                where: { userId: userId, },
+                select: { siteId: true, isActive:true, site: { 
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                        isMonitored: true,
+                        userId: true,
+                        remoteId: true,
+                        project: true,
+                        geometry: true,
+                    }
+                } }
+            })
+      
+            const sites = _siteRelation.map(el => ({
+                ...el.site,
+                isActive: el.isActive,
+            }))
+            return {
+                status: 'success',
+                data: sites,
+            };
+        } catch (error) {
+            console.log(error)
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: `${error}`,
+            });
+        }
+    }),
 
     getSite: protectedProcedure
         .input(params)
