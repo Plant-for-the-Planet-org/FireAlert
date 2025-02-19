@@ -37,12 +37,22 @@ export const createSiteSchema = z.object({
     path: ["geometry.type", "type"],
 });
 
+export const protectedSiteParams = z.object({
+    siteId: z.string().cuid({message: "Invalid CUID"}).optional(),
+    externalId: z.string().optional(),
+})
 export const findProtectedSiteParams = z.object({
     query: z.string()
 });
 export const createProtectedSiteSchema = z.object({
     externalId: z.string()
 })
+export const updateProtectedSiteSchema = z.object({
+    params: protectedSiteParams,
+    body: z.object({
+        isActive: z.boolean().optional(),
+    })
+});
 
 export const params = z.object({
     siteId: z.string().cuid({message: "Invalid CUID"}),

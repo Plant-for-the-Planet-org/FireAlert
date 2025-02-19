@@ -1,11 +1,12 @@
+import type {Prisma, SiteAlert} from "@prisma/client"; 
+
 import {TRPCError} from "@trpc/server";
-import {createSiteSchema, findProtectedSiteParams, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
+import {createProtectedSiteSchema, createSiteSchema, findProtectedSiteParams, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateProtectedSiteSchema, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
 import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
-import {Prisma, SiteAlert} from "@prisma/client";
 // import {UserPlan} from "../../../Interfaces/AlertMethod";
 
 export const siteRouter = createTRPCRouter({
@@ -125,7 +126,7 @@ export const siteRouter = createTRPCRouter({
                     siteRelation: {}
                 },
             };
-        })
+        }),
 
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
@@ -366,6 +367,12 @@ export const siteRouter = createTRPCRouter({
                     message: `Error Updating Site.`,
                 });
             }
+        }),
+    
+    updateProtectedSite: protectedProcedure
+        .input(updateProtectedSiteSchema)
+        .mutation(async ({ctx, input}) => {
+            return { status: 'success' };
         }),
 
     triggerTestAlert: protectedProcedure
