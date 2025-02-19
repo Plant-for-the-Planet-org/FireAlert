@@ -4,7 +4,10 @@ module.exports = {
     [
       'module-resolver',
       {
-        root: ['.'],
+        root: ['./'],
+        alias: {
+          '@nativeapp': './apps/nativeapp',
+        },
         extensions: [
           '.js',
           '.jsx',

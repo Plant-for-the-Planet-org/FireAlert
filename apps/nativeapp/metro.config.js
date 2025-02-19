@@ -19,6 +19,7 @@ const config = {
     path.resolve(__dirname, '../../node_modules'),
   ],
   resolver: {
+    sourceExts: ['jsx', 'js', 'ts', 'tsx'],
     nodeModulesPaths: [
       path.resolve(__dirname, 'node_modules'),
       path.resolve(__dirname, '../../node_modules'),
