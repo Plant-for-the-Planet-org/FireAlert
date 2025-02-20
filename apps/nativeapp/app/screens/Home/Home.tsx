@@ -80,6 +80,7 @@ import { highlightWave } from '../../assets/animation/lottie';
 import { BottomBarContext } from '../../global/reducers/bottomBar';
 import { POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS } from '../../constants';
 import { MapLayerContext, useMapLayers } from '../../global/reducers/mapLayers';
+import FireRiskLayer from './FireRiskLayer';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -107,7 +108,7 @@ const images: Record<CompassImage, ImageSourcePropType> = {
 
 const Home = ({ navigation, route }) => {
   const siteInfo = route?.params;
-  const { state } = useMapLayers(MapLayerContext);
+  const { state } = useMapLayers();
   const { clearSession, clearCredentials, error } = useAuth0()
 
   const { selected, setSelected, selectedSiteBar, passMapInfo } =
@@ -727,6 +728,7 @@ const Home = ({ navigation, route }) => {
             setIsCameraRefVisible(!!el);
           }}
         />
+        <FireRiskLayer/>
         {location && (
           <MapboxGL.UserLocation
             showsUserHeadingIndicator
@@ -806,7 +808,7 @@ const Home = ({ navigation, route }) => {
         testID="layer">
         {userDetails?.data?.image ? (
           <Image
-            source={{ uri: userDetails?.data?.image }}
+            source={{uri: userDetails?.data?.image}}
             style={styles.userAvatar}
           />
         ) : (
@@ -844,7 +846,7 @@ const Home = ({ navigation, route }) => {
                   source={{
                     uri: userDetails?.data?.image,
                   }}
-                  style={[styles.userAvatar, { width: 81, height: 81 }]}
+                  style={[styles.userAvatar, {width: 81, height: 81}]}
                 />
               ) : (
                 <UserPlaceholder width={81} height={81} />
@@ -872,7 +874,7 @@ const Home = ({ navigation, route }) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDelAccount}
-            style={[styles.btn, { marginBottom: 16 }]}>
+            style={[styles.btn, {marginBottom: 16}]}>
             <TrashSolidIcon width={20} height={20} />
             <Text style={styles.siteActionPfText}>Delete Account</Text>
           </TouchableOpacity>
@@ -916,7 +918,7 @@ const Home = ({ navigation, route }) => {
           <View
             style={[
               styles.alertLocInfoCon,
-              { marginTop: 30, justifyContent: 'space-between' },
+              {marginTop: 30, justifyContent: 'space-between'},
             ]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
@@ -927,7 +929,7 @@ const Home = ({ navigation, route }) => {
                   <Text style={styles.satelliteLocText}>PROJECT</Text>
                   <Text style={styles.alertLocText}>
                     {selectedAlert?.site?.project?.name}{' '}
-                    <Text style={{ fontSize: Typography.FONT_SIZE_12 }}>
+                    <Text style={{fontSize: Typography.FONT_SIZE_12}}>
                       {selectedAlert?.site?.name}
                     </Text>
                   </Text>
@@ -944,7 +946,7 @@ const Home = ({ navigation, route }) => {
           </View>
           <View style={styles.separator} />
           <View
-            style={[styles.alertLocInfoCon, { justifyContent: 'space-between' }]}>
+            style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
                 <LocationPinIcon />
@@ -971,10 +973,10 @@ const Home = ({ navigation, route }) => {
               <RadarIcon />
             </View>
             <View style={styles.satelliteInfo}>
-              <Text style={[styles.alertLocText, { width: SCREEN_WIDTH / 1.3 }]}>
+              <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
                 Search for the fire within a{' '}
                 <Text
-                  style={[styles.confidenceVal, { textTransform: 'lowercase' }]}>
+                  style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
                   {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
                   km
                 </Text>{' '}
@@ -985,7 +987,7 @@ const Home = ({ navigation, route }) => {
           <TouchableOpacity
             onPress={handleGoogleRedirect}
             style={styles.simpleBtn}>
-            <Text style={[styles.siteActionText, { marginLeft: 0 }]}>
+            <Text style={[styles.siteActionText, {marginLeft: 0}]}>
               Open in Google Maps
             </Text>
           </TouchableOpacity>
@@ -1023,8 +1025,8 @@ const Home = ({ navigation, route }) => {
             onPress={() =>
               updateSite.mutate({
                 json: {
-                  params: { siteId: selectedSite?.site?.id },
-                  body: { isMonitored: !selectedSite?.site?.isMonitored },
+                  params: {siteId: selectedSite?.site?.id},
+                  body: {isMonitored: !selectedSite?.site?.isMonitored},
                 },
               })
             }
@@ -1085,18 +1087,18 @@ const Home = ({ navigation, route }) => {
       {/* profile edit modal */}
       <Modal visible={profileEditModal} animationType={'slide'} transparent>
         <KeyboardAvoidingView
-          {...(Platform.OS === 'ios' ? { behavior: 'padding' } : {})}
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
           <TouchableOpacity
             onPress={handleCloseProfileModal}
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, { paddingHorizontal: 16 }]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Edit Your Name
           </Text>
           <View
-            style={[styles.siteModalStyle, { justifyContent: 'space-between' }]}>
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
             <FloatingInput
               autoFocus
               isFloat={false}
@@ -1116,7 +1118,7 @@ const Home = ({ navigation, route }) => {
       {/* site edit modal */}
       <Modal visible={siteNameModalVisible} animationType={'slide'} transparent>
         <KeyboardAvoidingView
-          {...(Platform.OS === 'ios' ? { behavior: 'padding' } : {})}
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
           <Toast ref={modalToast} offsetBottom={100} duration={2000} />
           <TouchableOpacity
@@ -1124,11 +1126,11 @@ const Home = ({ navigation, route }) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, { paddingHorizontal: 16 }]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Enter Site Name
           </Text>
           <View
-            style={[styles.siteModalStyle, { justifyContent: 'space-between' }]}>
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
             <View>
               <FloatingInput
                 autoFocus

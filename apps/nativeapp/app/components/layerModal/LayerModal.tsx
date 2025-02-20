@@ -23,10 +23,15 @@ const layers = [
   {title: 'Outdoors', value: 'Outdoors'},
   {title: 'Satellite', value: 'Satellite'},
   {title: 'Satellite & Streets', value: 'SatelliteStreet'},
+  {
+    title: 'Current Fire Risk',
+    value: 'FireRisk',
+    additionalLayers: ['FireRisk'],
+  },
 ];
 
 const LayerModal = ({visible, onRequestClose = () => {}}: ILayerModalProps) => {
-  const {state, dispatch} = useMapLayers(MapLayerContext);
+  const {state, dispatch} = useMapLayers();
 
   const selectMapLayer = item => {
     dispatch({type: SELECT_MAP_LAYER, payload: item});

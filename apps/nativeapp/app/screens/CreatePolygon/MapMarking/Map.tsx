@@ -69,7 +69,7 @@ export default function Map({
 }: IMapProps) {
   let shouldRenderShape =
     geoJSON.features[activePolygonIndex].geometry.coordinates.length > 1;
-  const {state} = useMapLayers(MapLayerContext);
+  const {state} = useMapLayers();
 
   return (
     <View style={styles.container}>
@@ -92,6 +92,7 @@ export default function Map({
             setIsCameraRefVisible(!!el);
           }}
         />
+
         <MapboxGL.Images images={images} />
         <Markers geoJSON={geoJSON} type={'LineString'} />
         {shouldRenderShape && (
