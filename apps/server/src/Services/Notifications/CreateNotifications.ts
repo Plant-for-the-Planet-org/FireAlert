@@ -233,12 +233,37 @@ const createNotifications = async () => {
                   }
                 }
               }
+            },
+            siteRelations: {
+              select: {
+                user: {
+                  select: {
+                    alertMethods: {
+                      select: {
+                        method: true,     
+                        destination: true,
+                        isEnabled: true,
+                        isVerified: true
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
       },
       orderBy: [{ siteId: 'asc' }, { eventDate: 'asc' }]
     });
+  
+    unprocessedAlerts.forEach((el) => {
+      if (!el.site.user) { // site.user would be null for protected-sites
+        el.site.user = {};
+        // siteRelation may have multiple user, flatmap all user's alertMethods & adding to user.alertMethods so further functionality can detect further
+        el.site.user.alertMethods = el.site.siteRelations.flatMap(sr => sr.user.alertMethods)
+      }
+    })
+
     const siteAlertsInChunks = createNestedChunksForUnprocessedSiteAlerts(unprocessedAlerts, 30)
     for (const siteAlertChunk of siteAlertsInChunks) {
       const {processedSiteAlerts, notificationCreateData, sitesToBeUpdated} = await processSiteAlertChunk(siteAlertChunk)

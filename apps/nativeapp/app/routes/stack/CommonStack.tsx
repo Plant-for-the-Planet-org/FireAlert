@@ -8,7 +8,7 @@ import {
   UploadPolygon,
   SelectLocation,
 } from '../../screens';
-import BottomTab from '../bottomTab/bottomTab';
+import BottomTab from '../bottomTab/BottomTab';
 
 const screenOptions = {headerShown: false};
 const Stack = createNativeStackNavigator();

@@ -1,11 +1,11 @@
-import Home from './home/home';
-import Login from './login/login';
-import Otp from './verification/otp';
-import Settings from './settings/settings';
-import Verification from './verification/verification';
-import UploadPolygon from './uploadPolygon/uploadPolygon';
-import CreatePolygon from './createPolygon/createPolygon';
-import SelectLocation from './selectLocation/selectLocation';
+import Home from './Home/Home';
+import Login from './Login/Login';
+import Otp from './Verification/Otp';
+import Settings from './Settings/Settings';
+import Verification from './Verification/Verification';
+import UploadPolygon from './uploadPolygon/UploadPolygon';
+import CreatePolygon from './CreatePolygon/CreatePolygon';
+import SelectLocation from './selectLocation/SelectLocation';
 
 export {
   Otp,
