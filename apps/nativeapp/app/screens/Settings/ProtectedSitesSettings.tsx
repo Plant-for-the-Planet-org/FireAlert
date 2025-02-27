@@ -55,8 +55,24 @@ export default function ProtectedSitesSettings({
           ['site', 'getProtectedSites'],
           {input: ['site', 'getProtectedSites'], type: 'query'},
         ],
-        _prev => {},
+        oldData => {
+          return oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
+            : null;
+        },
       );
+      const loadingArr = radiusLoaderArr.filter(
+        el => el !== res?.json?.data?.id,
+      );
+      setRadiusLoaderArr(loadingArr);
       toast.show('Success', {type: 'success'});
     },
   });
@@ -70,7 +86,6 @@ export default function ProtectedSitesSettings({
       <View style={settingsStyles.mySitesHead}>
         <Text style={settingsStyles.mainHeading}>Protected Sites</Text>
       </View>
-      {/* <Text>{JSON.stringify(protectedSites, null, 2)}</Text> */}
       {protectedSites?.json?.data?.length > 0 ? (
         protectedSites?.json?.data
           ?.filter(site => site?.project === null)

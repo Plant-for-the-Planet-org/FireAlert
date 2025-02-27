@@ -22,9 +22,9 @@ type Props = {
   results: Result[];
 };
 
-export default function SearchResultItem({results}: Props) {
+export default function SearchResultItems({results}: Props) {
   const toast = useToast();
-  // const {navigate} = useNavigation();
+  const {navigate} = useNavigation();
 
   const modalToast = useRef();
 
@@ -34,7 +34,10 @@ export default function SearchResultItem({results}: Props) {
       console.log(res);
       if (res?.json && res?.json?.status === 'success') {
         console.log(res.json.data);
-        toast.show('Success', {type: 'success'});
+        setTimeout(() => {
+          toast.show('Success', {type: 'success'});
+          navigate('Home');
+        }, 500);
         // navigate("")
       }
     },

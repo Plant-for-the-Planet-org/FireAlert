@@ -11,7 +11,7 @@ import {Colors, Typography} from '../../styles';
 import NoResult from './NoResult';
 import ProtectedAreasSearch from './ProtectedAreasSearch';
 import RecentSearches from './RecentSearches';
-import SearchResultItem, {Result} from './SearchResultItem';
+import SearchResultItems, {Result} from './SearchResultItem';
 import {trpc} from '../../services/trpc';
 import {useToast} from 'react-native-toast-notifications';
 
@@ -74,7 +74,7 @@ const ProtectedAreas = () => {
         {query.length === 0 && <RecentSearches />}
         {noResults && <NoResult />}
         {/* <Text>{JSON.stringify(results, null, 2)}</Text> */}
-        {results.length > 0 && <SearchResultItem results={results} />}
+        {results.length > 0 && <SearchResultItems results={results} />}
       </View>
     </SafeAreaView>
   );

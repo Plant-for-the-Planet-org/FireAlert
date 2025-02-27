@@ -39,7 +39,6 @@ const SearchInput = (props: Props) => {
     verifier = false,
     verified = false,
     isFloat = true,
-
     ...restOfProps
   } = props;
   const [isFocused, setIsFocused] = useState(false);
@@ -95,7 +94,8 @@ export default SearchInput;
 
 const styles = StyleSheet.create({
   container: {
-    width: SCREEN_WIDTH - 32,
+    // width: SCREEN_WIDTH - 32,
+    width: '100%',
     borderWidth: 2,
     borderRadius: 12,
     paddingHorizontal: 18,
