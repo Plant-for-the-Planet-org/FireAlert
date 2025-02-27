@@ -681,13 +681,14 @@ export const siteRouter = createTRPCRouter({
             const userId = ctx.user!.id;
             const siteId = input.params.siteId;
             try {
-                const updatedSite = await ctx.prisma.siteRelation.updateMany({
+                const updatedSiteRelation = await ctx.prisma.siteRelation.updateMany({
                     where: { siteId: siteId, userId: userId },
                     data: {
                         isActive: input.body.isActive
                     },
                 })
-                if(updatedSite.count != 1) { return { status: 'failed' }; }
+
+                if(updatedSiteRelation.count != 1) { return { status: 'failed' }; }
 
                 const activeSiteRelations = await ctx.prisma.siteRelation.findMany({
                     where: { siteId: input.params.siteId, isActive:true }
@@ -698,7 +699,28 @@ export const siteRouter = createTRPCRouter({
                     })
                 }
 
-                return { status: 'success' };
+                const _siteRelation = await ctx.prisma.siteRelation.findFirst({
+                    where: { siteId: siteId, userId: userId },
+                    select: { siteId: true, isActive:true, site: { 
+                        select: {
+                            id: true,
+                            name: true,
+                            type: true,
+                            isMonitored: true,
+                            userId: true,
+                            remoteId: true,
+                            project: true,
+                            geometry: true,
+                        }
+                    }}
+                })
+
+                const updatedSite = {
+                    ..._siteRelation?.site,
+                    isActive: _siteRelation?.isActive,
+                }
+
+                return { status: 'success', data: updatedSite};
             } catch (error) {
                 console.log(error);
                 if (error instanceof TRPCError) {
