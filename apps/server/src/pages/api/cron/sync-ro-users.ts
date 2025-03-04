@@ -280,7 +280,6 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         const deletePromises = [];
 
         // Identify sites in the database that are not present in PP API and dissociate those sites from the projects
-        // While dissociating also turn isMonitored to false
         if (siteIdsInFA_NotInPP.length > 0) {
             deletePromises.push(
                 prisma.site.updateMany({
@@ -291,7 +290,6 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                     },
                     data: {
                         projectId: null,
-                        isMonitored: false,
                     },
                 }))
             logger(`Soft Deleting ${siteIdsInFA_NotInPP.length} sites not present in the Webapp`, 'info',);
