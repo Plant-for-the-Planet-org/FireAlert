@@ -37,7 +37,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             if (!uniqueUsers.has(project.tpo.id)) {
                 uniqueUsers.set(project.tpo.id, {
                 remoteId: project.tpo.id,
-                name: "NEW_" + project.tpo.name,
+                name: project.tpo.name,
                 email: project.tpo.email,
                 isPlanetRO: true,
                 detectionMethods: ["MODIS", "VIIRS", "LANDSAT"]
@@ -163,7 +163,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             // Add the new project to the array for bulk creation
             newProjectData.push({
                 id: projectId,
-                name: "NEW_" + projectName,
+                name: projectName,
                 slug: projectSlug,
                 lastUpdated: new Date(),
                 userId: userId,
@@ -197,7 +197,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                             // Add the new site to the array for bulk creation
                             newSiteData.push({
                                 remoteId: remoteId_PP,
-                                name: "NEW_" + siteName,
+                                name: siteName,
                                 origin: "ttc",
                                 type: geometry.type,
                                 geometry: geometry,
@@ -316,7 +316,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         },
                         data: {
                             lastUpdated: projectLastUpdatedFormPP,
-                            name:  "UPDATE_" + projectNameFormPP,
+                            name:  projectNameFormPP,
                             slug: projectSlugFormPP,
                         },
                     })
@@ -348,7 +348,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                                 prisma.site.create({
                                     data: {
                                         remoteId: remoteId_fromPP,
-                                        name: "NEW_" + siteName,
+                                        name: siteName,
                                         origin: 'ttc',
                                         type: geometry.type,
                                         geometry: geometry,
@@ -367,7 +367,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                                         id: siteFromDatabase.id,
                                     },
                                     data: {
-                                        name:  "UPDATE_" + siteName,
+                                        name:  siteName,
                                         type: geometry.type,
                                         geometry: geometry,
                                         radius: radius,
