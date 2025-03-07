@@ -82,7 +82,7 @@ class SMSNotifier implements Notifier {
         logger(`Failed to send SMS. Error code: ${error.code}`, "error");
 
         // Error codes for which alertMethods should be disabled
-        const disableCodes = [21610, 30005, 21408, 21211];
+        const disableCodes = [21610, 21612, 30005, 21408, 21211];
 
         // Error codes for which the error should just be logged
         const logErrorCodes = [30008, 30007, 30006, 30003];
