@@ -68,11 +68,30 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         );
 
         if (newUsersToCreate.length > 0) {
-            const result = await prisma.user.createMany({
-                data: newUsersToCreate,
-            });
-            createCount += result.count;
-            logger(`Created ${result.count} new users.`, "info");
+            // const result = await prisma.user.createMany({
+            //     data: newUsersToCreate,
+            // });
+            
+            const result = await prisma.$transaction(
+                newUsersToCreate.map(userData => 
+                    prisma.user.create({
+                        data: {
+                            ...userData,
+                            alertMethods: {
+                                create: {
+                                    method: "email",
+                                    destination: userData.email,
+                                    isVerified: true,
+                                    isEnabled: false,
+                                }
+                            }
+                        }
+                    })
+                )
+            );
+
+            createCount += result.length;
+            logger(`Created ${result.length} new users.`, "info");
         } else {
             logger("No new users to create.", "info");
         }
