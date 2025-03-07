@@ -19,7 +19,8 @@ const sendNotifications = async (): Promise<number> => {
       where: {
         isDelivered: false,
         sentAt: null,
-        alertMethod: {notIn: ['sms', 'whatsapp']}
+        // alertMethod: {notIn: ['sms', 'whatsapp']}
+        alertMethod: {notIn: ['whatsapp']}
       },
       include: {
         siteAlert: {
