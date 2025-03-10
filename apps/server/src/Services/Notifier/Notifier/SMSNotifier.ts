@@ -6,6 +6,7 @@ import twilio from 'twilio';
 import {env} from '../../../env.mjs';
 import {logger} from "../../../../src/server/logger";
 import {prisma} from "../../../server/db";
+import { sendToSlack } from "./utils";
 
 class SMSNotifier implements Notifier {
 
@@ -80,6 +81,9 @@ class SMSNotifier implements Notifier {
       .catch(async (error) => {
         // General logging for all failed attempts
         logger(`Failed to send SMS. Error code: ${error.code}`, "error");
+
+        const errorString = `Twilio Error: ${error.code} ${error.message}`;
+        sendToSlack(errorString);
 
         // Error codes for which alertMethods should be disabled
         const disableCodes = [21610, 21612, 30005, 21408, 21211];
