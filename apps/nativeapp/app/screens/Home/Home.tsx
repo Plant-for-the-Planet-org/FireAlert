@@ -81,6 +81,7 @@ import { BottomBarContext } from '../../global/reducers/bottomBar';
 import { POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS } from '../../constants';
 import { MapLayerContext, useMapLayers } from '../../global/reducers/mapLayers';
 import FireRiskLayer from './FireRiskLayer';
+import FireRiskInfo from '../Settings/FireRiskInfo';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -1020,6 +1021,7 @@ const Home = ({ navigation, route }) => {
               <PencilIcon />
             </TouchableOpacity>
           </View>
+          <FireRiskInfo siteId={siteId!} />
           <TouchableOpacity
             disabled={updateSite?.isLoading}
             onPress={() =>

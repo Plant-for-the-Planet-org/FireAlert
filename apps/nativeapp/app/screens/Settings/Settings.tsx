@@ -74,6 +74,7 @@ import {extractCountryCode} from '../../utils/countryCodeFilter';
 // import {updateUserDetails} from '../../redux/slices/login/loginSlice';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
+import FireRiskInfo from './FireRiskInfo';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -1343,10 +1344,12 @@ const Settings = ({navigation}) => {
                 </TouchableOpacity>
               )}
             </View>
+            <FireRiskInfo siteId={siteId!} />
             <TouchableOpacity
               onPress={_handleViewMap(selectedSiteInfo)}
               style={styles.btn}>
               <MapOutlineIcon />
+
               <Text style={styles.siteActionText}>View on Map</Text>
             </TouchableOpacity>
             {selectedSiteInfo?.project === null && (
