@@ -1,12 +1,12 @@
 PODS:
-  - A0Auth0 (2.17.4):
-    - Auth0 (= 2.3.2)
-    - JWTDecode (= 3.0.1)
+  - A0Auth0 (3.1.0):
+    - Auth0 (= 2.5.0)
+    - JWTDecode (= 3.1.0)
     - React-Core
-    - SimpleKeychain (= 1.0.1)
-  - Auth0 (2.3.2):
-    - JWTDecode (~> 3.0)
-    - SimpleKeychain (~> 1.0)
+    - SimpleKeychain (= 1.1.0)
+  - Auth0 (2.5.0):
+    - JWTDecode (~> 3.1)
+    - SimpleKeychain (~> 1.1)
   - boost (1.76.0)
   - BVLinearGradient (2.7.3):
     - React-Core
@@ -82,7 +82,7 @@ PODS:
     - FlipperKit/FlipperKitNetworkPlugin
   - fmt (6.2.1)
   - glog (0.3.5)
-  - JWTDecode (3.0.1)
+  - JWTDecode (3.1.0)
   - libevent (2.1.12)
   - lottie-ios (4.2.0)
   - lottie-react-native (6.0.0-rc.7):
@@ -441,11 +441,11 @@ PODS:
     - React-RCTImage
   - RNSVG (13.9.0):
     - React-Core
-  - SimpleKeychain (1.0.1)
-  - SocketRocket (0.6.0)
+  - SimpleKeychain (1.1.0)
+  - SocketRocket (0.6.1)
   - SRSRadialGradient (1.1.2):
     - React
-  - Turf (2.6.1)
+  - Turf (2.8.0)
   - Yoga (1.14.0)
   - YogaKit (1.18.1):
     - Yoga (~> 1.14)
@@ -661,8 +661,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  A0Auth0: 5ae918d2f043395f83ac26d6eb85b249bcb54634
-  Auth0: 64da28fdc5cd499aa516dc4bfd0ace8efae2c1da
+  A0Auth0: d6fa13c9daf99f5fb17a412837ea37f8db38a562
+  Auth0: 72f19ad566fdf57f07bf37f828afd0c1570769a5
   boost: 57d2868c099736d80fcd648bf211b4431e51a558
   BVLinearGradient: fbe308a1d19a8133f69e033abc85d8008644f5e3
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
@@ -680,7 +680,7 @@ SPEC CHECKSUMS:
   FlipperKit: 0674bb0e923016a5296838ae2aa9a10e7efc6b91
   fmt: ff9d55029c625d3757ed641535fd4a75fedc7ce9
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
-  JWTDecode: 2eed97c2fa46ccaf3049a787004eedf0be474a87
+  JWTDecode: 3eaab1e06b6f4dcbdd6716aff09ba4c2104ca8b7
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   lottie-ios: 809ecf2d460ed650a6aed7aa88b2ec45fab4779c
   lottie-react-native: a7341509cbc0bf01dff9889d1f7e17e8e745cf9e
@@ -731,13 +731,13 @@ SPEC CHECKSUMS:
   rnmapbox-maps: 3e48c433d2165dbb5cf277f277d58a4c50bbbd05
   RNScreens: 68fd1060f57dd1023880bf4c05d74784b5392789
   RNSVG: 53c661b76829783cdaf9b7a57258f3d3b4c28315
-  SimpleKeychain: 130211269f88f038d7dc5254cf0b1b9ce978c398
-  SocketRocket: fccef3f9c5cedea1353a9ef6ada904fde10d6608
+  SimpleKeychain: f8707c8e97b38c6a6e687b17732afc9bcef06439
+  SocketRocket: f32cd54efbe0f095c4d7594881e52619cfe80b17
   SRSRadialGradient: f88dfa41215854bfb721dfe926bd9bf09338a602
-  Turf: 469ce2c3d22e5e8e4818d5a3b254699a5c89efa4
+  Turf: aa2ede4298009639d10db36aba1a7ebaad072a5e
   Yoga: 921eb014669cf9c718ada68b08d362517d564e0c
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
 
-PODFILE CHECKSUM: 11ec416dbddd07f960bbf1f1bf517643b1a8ff2c
+PODFILE CHECKSUM: 2c09c5ee0bf38237d63fc2449d3005d3ddf9b654
 
-COCOAPODS: 1.11.3
+COCOAPODS: 1.14.3
