@@ -152,12 +152,11 @@ model Notification {
 }
 
 model Stats {
-    id           String   @id @default(cuid())
-    metric       String   @unique
-    count        Int
-    lastUpdated  DateTime 
+    id          String   @id @default(cuid())
+    metric      String   @unique
+    count       Int
+    lastUpdated DateTime
 }
-
 
 enum Role {
     ROLE_CLIENT

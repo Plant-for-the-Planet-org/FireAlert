@@ -26,6 +26,22 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     let updateCount = 0;
     let deleteCount = 0;
 
+    const createCounts = {
+        users: 0,
+        projects: 0,
+        sites: 0
+    }
+    const updateCounts = {   
+        users: 0, 
+        projects: 0,
+        sites: 0,
+    }
+    const deleteCounts = {
+        users: 0,
+        projects: 0,
+        sites: 0,
+    }
+
     // Fetch projects from PP API
     let allProjectsPPWebApp: TreeProjectExtended[] = await fetchAllProjectsWithSites();
     allProjectsPPWebApp = allProjectsPPWebApp.filter(el => el.allowDonations)
@@ -91,6 +107,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             );
 
             createCount += result.length;
+            createCounts.users += createCounts.users;
             logger(`Created ${result.length} new users.`, "info");
         } else {
             logger("No new users to create.", "info");
@@ -241,11 +258,16 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         const createdSites = await prisma.site.createMany({
             data: newSiteData,
         });
+
         // Await all update promises
         const updateResults = await Promise.all(updateSitePromises);
 
         createCount = createCount + createdProjects.count + createdSites.count
         updateCount = updateCount + updateResults.length
+
+        createCounts.projects += createdProjects.count;
+        createCounts.sites += createdSites.count;
+        updateCounts.sites += updateResults.length;
     }
 
 
@@ -311,7 +333,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         projectId: null,
                     },
                 }))
-            logger(`Soft Deleting ${siteIdsInFA_NotInPP.length} sites not present in the Webapp`, 'info',);
+            logger(`Soft Deleting or disassociating ${siteIdsInFA_NotInPP.length} sites not present in the Webapp`, 'info',);
         }
 
         // For each project in PP API, identify sites in the database that need to be updated or created
@@ -404,20 +426,36 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         }
 
         // Execute all promises
+        // createPromises only handles site creates
         const createResults = await Promise.all(createPromises);
+        // updatePromises handles site & project updates
         const updateResults = await Promise.all(updatePromises);
+        // deletePromises only handles site disassociations
         const deleteResults = await Promise.all(deletePromises);
 
-        createCount = createCount + createResults.length; // Number of created items
-        updateCount = updateCount + updateResults.length; // Number of updated items
-        deleteCount = deleteCount + deleteResults.length; // Number of deleted items
+        createCount += createResults.length; // Number of created items
+        updateCount += updateResults.length; // Number of updated items
+        deleteCount += deleteResults.length; // Number of deleted items
+
+        createCounts.sites += createResults.length;
+        const _updatedProjects = updateResults.filter(el => el?.slug);
+        updateCounts.projects += _updatedProjects.length;
+        updateCounts.sites += updateResults.length - _updatedProjects.length;
+        deleteCounts.sites += deleteResults.length;
 
         logger(`Created ${createCount} items. Updated ${updateCount} items. Deleted ${deleteCount} items.`, 'info',);
+
+        logger(`Created ${createCounts.users} users. Updated ${updateCounts.users} users. Deleted ${deleteCounts.users} users.`, 'info',);
+        logger(`Created ${createCounts.projects} projects. Updated ${updateCounts.projects} projects.`, 'info',);
+        logger(`Created ${createCounts.sites} sites. Updated ${updateCounts.sites} sites. Deleted ${deleteCounts.sites} sites.`, 'info',);
 
         res.status(200).json({
             message: "Success! Data has been synced for RO Users!",
             status: 200,
-            results: { created: createCount, updated: updateCount, deleted: deleteCount },
+            results: { 
+                created: createCount, updated: updateCount, deleted: deleteCount, 
+                createCounts, updateCounts, deleteCounts
+            },
         });
     } catch (error) {
         console.log(error);
