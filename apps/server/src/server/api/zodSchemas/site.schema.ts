@@ -43,7 +43,7 @@ export const protectedSiteSchema = z.object({
     name: nameSchema.optional(),
     geometry: z.union([PointSchema, PolygonSchema, MultiPolygonSchema]),
     radius: z.number().optional().default(0),
-    externalId: z.string().optional(),
+    remoteId: z.string().optional(),
     isActive: z.boolean().optional(),
 }).refine((obj) => obj.type === obj.geometry.type, {
     message: "geometry type does not match the specified type",
@@ -51,13 +51,13 @@ export const protectedSiteSchema = z.object({
 });
 export const protectedSiteParams = z.object({
     siteId: z.string().cuid({message: "Invalid CUID"}).optional(),
-    externalId: z.string().optional(),
+    remoteId: z.string().optional(),
 })
 export const findProtectedSiteParams = z.object({
     query: z.string()
 });
 export const createProtectedSiteSchema = z.object({
-    externalId: z.string()
+    remoteId: z.string()
 })
 // export const createProtectedSiteSchema = protectedSiteSchema;
 export const joinProtectedSiteParams = protectedSiteParams;

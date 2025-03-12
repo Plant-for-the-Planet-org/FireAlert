@@ -160,9 +160,9 @@ export const siteRouter = createTRPCRouter({
         .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
-                const {externalId} = input
+                const {remoteId} = input
 
-                const origin = 'firealert';
+                
 
                 // radius 0 on Point would generally not return any results
                 // So monitor 1km around the point by default
@@ -170,7 +170,7 @@ export const siteRouter = createTRPCRouter({
                 //     radius = 1000;
                 // } else { radius = input.radius; }
 
-                const ppSite = getByExternalId(externalId)
+                const ppSite = getByExternalId(remoteId)
 
                 // Any check by externalId?
                 // const protectedArea: {name: string, wdpa_id: string, geometry?: GeoJSON.Geometry} = {
@@ -240,12 +240,12 @@ export const siteRouter = createTRPCRouter({
                 if(!ppSite) {
                     throw new TRPCError({
                         code: "NOT_FOUND",
-                        message: `No protected area found with WDPA ID ${externalId}.`
+                        message: `No protected area found with WDPA ID ${remoteId}.`
                     })
                 } 
                     
                 const foundSite = await ctx.prisma.site.findFirst({
-                    where: {externalId: externalId},
+                    where: {remoteId: remoteId},
                 })
 
                 let site: Partial<Site>, siteRelation: Partial<SiteRelation>;
@@ -259,9 +259,9 @@ export const siteRouter = createTRPCRouter({
                     } else {
                         const _siteRelation = await ctx.prisma.siteRelation.create({
                             data: {
-                                    role: "ROLE_VIEWER",
-                                    userId: userId,
-                                    siteId: foundSite.id,
+                                role: "ROLE_VIEWER",
+                                userId: userId,
+                                siteId: foundSite.id,
                                 isActive: true
                             },
                             select: {
@@ -273,7 +273,8 @@ export const siteRouter = createTRPCRouter({
                                         name: true,
                                         radius: true,
                                         geometry: true,
-                                        externalId: true,
+                                        origin: true,
+                                        remoteId: true,
                                     }
                                 }
                             }
@@ -288,13 +289,13 @@ export const siteRouter = createTRPCRouter({
                 } else {
                     const _site = await ctx.prisma.site.create({
                         data: {
-                            origin: origin,
+                            origin: 'protectedplanet',
                             type: 'Polygon',
                             name: ppSite.name,
                             radius: 0,
                             kind: 'PROTECTED_SITE',
                             geometry: ppSite.geometry as unknown as Prisma.JsonObject,
-                            externalId: ppSite.externalId,
+                            remoteId: ppSite.externalId,
                             lastUpdated: new Date(),
                             siteRelations: {
                                 create: {
@@ -309,7 +310,8 @@ export const siteRouter = createTRPCRouter({
                             name: true,
                             radius: true,
                             geometry: true,
-                            externalId: true,
+                            origin: true,
+                            remoteId: true,
                             lastUpdated: true,
                             project: {
                                 select: { id: true, name: true }
@@ -527,6 +529,7 @@ export const siteRouter = createTRPCRouter({
                         type: true,
                         isMonitored: true,
                         userId: true,
+                        origin: true,
                         remoteId: true,
                         project: true,
                         geometry: true,
@@ -693,9 +696,14 @@ export const siteRouter = createTRPCRouter({
                 const activeSiteRelations = await ctx.prisma.siteRelation.findMany({
                     where: { siteId: input.params.siteId, isActive:true }
                 })
+                
                 if(activeSiteRelations.length === 0) {
                     await ctx.prisma.site.update({
                         where: {id: siteId}, data: {isMonitored: false}
+                    })
+                } else {
+                    await ctx.prisma.site.update({
+                        where: {id: siteId}, data: {isMonitored: true}
                     })
                 }
 
@@ -708,6 +716,7 @@ export const siteRouter = createTRPCRouter({
                             type: true,
                             isMonitored: true,
                             userId: true,
+                            origin: true,
                             remoteId: true,
                             project: true,
                             geometry: true,

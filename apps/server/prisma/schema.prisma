@@ -67,7 +67,7 @@ model Site {
     id                 String                   @id @default(cuid())
     remoteId           String?
     name               String?
-    origin             String                   @default("firealert")
+    origin             SiteOrigin               @default(firealert)
     type               SiteType
     geometry           Json
     radius             Int                      @default(0)
@@ -87,7 +87,6 @@ model Site {
     user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
     kind               SiteKind?                @default(USER_SITE)
 
-    externalId    String?
     siteRelations SiteRelation[]
 }
 
@@ -180,6 +179,12 @@ enum Role {
     ROLE_CLIENT
     ROLE_ADMIN
     ROLE_SUPPORT
+}
+
+enum SiteOrigin {
+    firealert
+    ttc
+    protectedplanet
 }
 
 enum SiteType {
