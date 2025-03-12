@@ -12,6 +12,9 @@ import moment from 'moment';
 import { Prisma, Project, User } from "@prisma/client";
 import { type TreeProjectExtended } from '@planet-sdk/common'
 
+
+const thumbnailPrefix = 'https://cdn.plant-for-the-planet.org/media/cache/profile/thumb/';
+
 export default async function syncROUsers(req: NextApiRequest, res: NextApiResponse) {
     // Verify the 'cron_key' in the request headers before proceeding
     if (env.CRON_KEY) {
@@ -56,6 +59,8 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 name: project.tpo.name,
                 email: project.tpo.email,
                 isPlanetRO: true,
+                image: project.tpo.image ? `${thumbnailPrefix}${project.tpo.image}` : undefined,
+                isVerified: true,
                 detectionMethods: ["MODIS", "VIIRS", "LANDSAT"]
                 });
             }
