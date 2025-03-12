@@ -40,10 +40,12 @@ const server = z.object({
   WHATSAPP_ENDPOINT_URL: z.string(),
   WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string(),
   PUBLIC_API_CACHING: z.union([z.literal("true"), z.literal("false")]).optional()
-    .transform((val) => {
-      if (val === undefined) return true; // since it is optional by default caching kept true
-      return val === "true";
-    }),
+  .transform((val) => {
+    if (val === undefined) return true; // since it is optional by default caching kept true
+    return val === "true";
+  }),
+  NEXT_PUBLIC_PROTECTED_PLANET_ENDPOINT: z.string().optional(),
+  NEXT_PUBLIC_PROTECTED_PLANET_API_KEY: z.string().optional(),
 });
 
 /**

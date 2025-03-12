@@ -1,12 +1,16 @@
 import {TRPCError} from "@trpc/server";
-import {createSiteSchema, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
+import {createProtectedSiteSchema, createSiteSchema, findProtectedSiteParams, getSitesWithProjectIdParams, joinProtectedSiteParams, params, pauseAlertInputSchema, updateProtectedSiteSchema, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
 import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
-import {Prisma, SiteAlert} from "@prisma/client";
+import type {Prisma, Site, SiteAlert, SiteRelation} from "@prisma/client";
+import { filterByName, getByExternalId } from "./sample-utils";
 // import {UserPlan} from "../../../Interfaces/AlertMethod";
+
+const pp_api = process.env.NEXT_PUBLIC_PROTECTED_PLANET_ENDPOINT as string;
+const pp_api_key = process.env.NEXT_PUBLIC_PROTECTED_PLANET_API_KEY as string;
 
 export const siteRouter = createTRPCRouter({
 
@@ -105,13 +109,336 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
+    findProtectedSites: protectedProcedure
+        .input(findProtectedSiteParams)
+        .mutation(async ({ctx, input}) => {
+            const userId = ctx.user!.id;
+            try {
+                const {query} = input;
+                const results = filterByName(query)
+                
+                // const sites = await ctx.prisma.site.findMany({
+                //     where: {
+                //         userId: userId,
+                //         deletedAt: null,
+                //         kind: 'PROTECTED_SITE',
+                //     },
+                //     select: {
+                //         id: true,
+                //         name: true,
+                //         type: true,
+                //         radius: true,
+                //         isMonitored: true,
+                //         lastUpdated: true,
+                //         userId: true,
+                //         remoteId: true,
+                //         project: {
+                //             select: {
+                //                 id: true,
+                //                 name: true
+                //             }
+                //         },
+                //         geometry: true,
+                //     }
+                // })
+
+                return {
+                    status: 'success',
+                    data: results,
+                };
+            } catch (error) {
+                console.log(error)
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: `${error}`,
+                });
+            }
+        }),
+
+    createProtectedSite: protectedProcedure
+        .input(createProtectedSiteSchema)
+        .mutation(async ({ctx, input}) => {
+            const userId = ctx.user!.id;
+            try {
+                const {remoteId} = input
+
+                
+
+                // radius 0 on Point would generally not return any results
+                // So monitor 1km around the point by default
+                // if (input.type === 'Point' && input.radius === 0) {
+                //     radius = 1000;
+                // } else { radius = input.radius; }
+
+                const ppSite = getByExternalId(remoteId)
+
+                // Any check by externalId?
+                // const protectedArea: {name: string, wdpa_id: string, geometry?: GeoJSON.Geometry} = {
+                //     name: "", wdpa_id: ""
+                // };
+                // const qs = new URLSearchParams();
+                // qs.append("token", pp_api_key);
+                // qs.append("with_geometry", "true");
+                // const { externalId } = input;
+                // const pp_url = `${pp_api}/protected_areas/${externalId!}?${qs.toString()}`;
+
+                // const res = await fetch(pp_url);
+                // if (!res.ok) {
+                //     throw new TRPCError({
+                //         code: 'INTERNAL_SERVER_ERROR',
+                //         message: `Something Went Wrong`,
+                //         cause: res,
+                //     })
+                // }
+
+                // const data = (await res.json())?.protected_area;
+                // if (data) {
+                //     protectedArea.name = data?.name as string;
+                //     protectedArea.wdpa_id = data?.wdpa_id?.toString() as string;
+                //     protectedArea.geometry = data?.geojson.geometry as GeoJSON.Geometry;
+                // } else {
+                //     throw new TRPCError({
+                //         code: "NOT_FOUND",
+                //         message: `No protected area found with WDPA ID ${externalId!}.`
+                //     })
+                // }
+
+                // const site = await ctx.prisma.site.create({
+                //     data: {
+                //         origin: origin,
+                //         type: input.type,
+                //         name: protectedArea.name,
+                //         radius: radius,
+                //         kind: 'PROTECTED_SITE',
+                //         geometry: protectedArea.geometry as unknown as Prisma.JsonObject,
+                //         externalId: protectedArea.wdpa_id,
+                //         lastUpdated: new Date(),
+                //         siteRelations: {
+                //             create: {
+                //                 user: { connect: { id: userId, } },
+                //                 role: 'ROLE_VIEWER',
+                //             }
+                //         },
+                //     },
+                //     select: {
+                //         id: true,
+                //         type: true,
+                //         name: true,
+                //         radius: true,
+                //         geometry: true,
+                //         externalId: true,
+                //         lastUpdated: true,
+                //         project: {
+                //             select: { id: true, name: true }
+                //         },
+                //         siteRelations: {
+                //             select: { siteId: true, userId: true, role: true }
+                //         }
+                //     },
+                // });
+
+                if(!ppSite) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: `No protected area found with WDPA ID ${remoteId}.`
+                    })
+                } 
+                    
+                const foundSite = await ctx.prisma.site.findFirst({
+                    where: {remoteId: remoteId},
+                })
+
+                let site: Partial<Site>, siteRelation: Partial<SiteRelation>;
+                if(foundSite) {
+                    const _foundSiteRelation = await ctx.prisma.siteRelation.findFirst({
+                        where: { userId: userId, siteId: foundSite.id },
+                    })
+                    if (_foundSiteRelation) {
+                        site = foundSite;
+                        siteRelation = _foundSiteRelation
+                    } else {
+                        const _siteRelation = await ctx.prisma.siteRelation.create({
+                            data: {
+                                role: "ROLE_VIEWER",
+                                userId: userId,
+                                siteId: foundSite.id,
+                                isActive: true
+                            },
+                            select: {
+                                siteId: true, userId: true, role: true,
+                                site: {
+                                    select: {
+                                        id: true,
+                                        type: true,
+                                        name: true,
+                                        radius: true,
+                                        geometry: true,
+                                        origin: true,
+                                        remoteId: true,
+                                    }
+                                }
+                            }
+                        })
+                        const _site = await ctx.prisma.site.update({
+                            where: {id: foundSite.id},
+                            data: {isMonitored: true},
+                        })
+                        site = _site;
+                        siteRelation = _siteRelation
+                    }
+                } else {
+                    const _site = await ctx.prisma.site.create({
+                        data: {
+                            origin: 'protectedplanet',
+                            type: 'Polygon',
+                            name: ppSite.name,
+                            radius: 0,
+                            kind: 'PROTECTED_SITE',
+                            geometry: ppSite.geometry as unknown as Prisma.JsonObject,
+                            remoteId: ppSite.externalId,
+                            lastUpdated: new Date(),
+                            siteRelations: {
+                                create: {
+                                    user: { connect: { id: userId, } },
+                                    role: 'ROLE_VIEWER',
+                                }
+                            },
+                        },
+                        select: {
+                            id: true,
+                            type: true,
+                            name: true,
+                            radius: true,
+                            geometry: true,
+                            origin: true,
+                            remoteId: true,
+                            lastUpdated: true,
+                            project: {
+                                select: { id: true, name: true }
+                            },
+                            siteRelations: {
+                                select: { siteId: true, userId: true, role: true }
+                            }
+                        },
+                    });
+                    site = _site;
+                    siteRelation = _site.siteRelations
+                }
+
+                return {
+                    status: "success",
+                    data: {
+                        site,
+                        siteRelation
+                    },
+                };
+            } catch (error) {
+                console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Something Went Wrong`,
+                });
+            }
+        }),
+
+    // joinProtectedSite: protectedProcedure
+    //     .input(joinProtectedSiteParams)
+    //     .mutation(async ({ctx, input}) => {
+    //         const userId = ctx.user!.id;
+    //         let siteId = input.siteId;
+    //         const externalId:string = input.externalId!;
+    //         try {
+
+    //             if (externalId) {
+    //               const site = await ctx.prisma.site.findFirst({
+    //                 where: {externalId: externalId},
+    //               })
+
+    //               if(site)
+    //                 siteId = site?.id;
+    //             }
+
+    //             const foundSiteRelation = await ctx.prisma.siteRelation.findFirst({
+    //                 where: {
+    //                     userId: userId,
+    //                     siteId: siteId,
+    //                     isActive: true
+    //                 },
+    //                 select: {
+    //                     siteId: true, userId: true, role: true,
+    //                     site: {
+    //                         select: {
+    //                             id: true,
+    //                             type: true,
+    //                             name: true,
+    //                             radius: true,
+    //                             geometry: true,
+    //                             externalId: true,
+    //                         }
+    //                     }
+    //                 }
+    //             })
+
+    //             if (foundSiteRelation) {
+    //                 return {
+    //                     status: 'success',
+    //                     data: foundSiteRelation,
+    //                 };
+    //             }
+
+
+    //             const siteRelation = await ctx.prisma.siteRelation.create({
+    //                 data: {
+    //                     role: "ROLE_VIEWER",
+    //                     userId: userId,
+    //                     siteId: siteId
+    //                 },
+    //                 select: {
+    //                     siteId: true, userId: true, role: true,
+    //                     site: {
+    //                         select: {
+    //                             id: true,
+    //                             type: true,
+    //                             name: true,
+    //                             radius: true,
+    //                             geometry: true,
+    //                             externalId: true,
+    //                         }
+    //                     }
+    //                 }
+    //             })
+
+    //             return {
+    //                 status: 'success',
+    //                 data: siteRelation,
+    //             };
+    //         } catch (error) {
+    //             console.log(error);
+    //             if (error instanceof TRPCError) {
+    //                 // if the error is already a TRPCError, just re-throw it
+    //                 throw error;
+    //             }
+    //             // if it's a different type of error, throw a new TRPCError
+    //             throw new TRPCError({
+    //                 code: "INTERNAL_SERVER_ERROR",
+    //                 message: `Something Went Wrong`,
+    //             });
+    //         }
+    //     }),
+
+
     getSitesForProject: protectedProcedure
         .input(getSitesWithProjectIdParams)
         .query(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
                 // Only returns a list of sites if the user has sites with the inputted projectId, else returns not found.
-                // TODO: test when this returns an empty array, and when it throws an error. 
+                // TODO: test when this returns an empty array, and when it throws an error.
                 const sitesForProject = await ctx.prisma.site.findMany({
                     where: {
                         projectId: input.projectId,
@@ -188,6 +515,44 @@ export const siteRouter = createTRPCRouter({
                 });
             }
         }),
+
+    getProtectedSites: protectedProcedure.query(async ({ctx}) => {
+        const userId = ctx.user!.id;
+        try {
+            // console.log(userId)
+            const _siteRelation = await ctx.prisma.siteRelation.findMany({
+                where: { userId: userId, },
+                select: { siteId: true, isActive:true, site: { 
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                        isMonitored: true,
+                        userId: true,
+                        origin: true,
+                        remoteId: true,
+                        project: true,
+                        geometry: true,
+                    }
+                } }
+            })
+      
+            const sites = _siteRelation.map(el => ({
+                ...el.site,
+                isActive: el.isActive,
+            }))
+            return {
+                status: 'success',
+                data: sites,
+            };
+        } catch (error) {
+            console.log(error)
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: `${error}`,
+            });
+        }
+    }),
 
     getSite: protectedProcedure
         .input(params)
@@ -313,6 +678,72 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
+    updateProtectedSite: protectedProcedure
+        .input(updateProtectedSiteSchema)
+        .mutation(async ({ctx, input}) => {
+            const userId = ctx.user!.id;
+            const siteId = input.params.siteId;
+            try {
+                const updatedSiteRelation = await ctx.prisma.siteRelation.updateMany({
+                    where: { siteId: siteId, userId: userId },
+                    data: {
+                        isActive: input.body.isActive
+                    },
+                })
+
+                if(updatedSiteRelation.count != 1) { return { status: 'failed' }; }
+
+                const activeSiteRelations = await ctx.prisma.siteRelation.findMany({
+                    where: { siteId: input.params.siteId, isActive:true }
+                })
+                
+                if(activeSiteRelations.length === 0) {
+                    await ctx.prisma.site.update({
+                        where: {id: siteId}, data: {isMonitored: false}
+                    })
+                } else {
+                    await ctx.prisma.site.update({
+                        where: {id: siteId}, data: {isMonitored: true}
+                    })
+                }
+
+                const _siteRelation = await ctx.prisma.siteRelation.findFirst({
+                    where: { siteId: siteId, userId: userId },
+                    select: { siteId: true, isActive:true, site: { 
+                        select: {
+                            id: true,
+                            name: true,
+                            type: true,
+                            isMonitored: true,
+                            userId: true,
+                            origin: true,
+                            remoteId: true,
+                            project: true,
+                            geometry: true,
+                        }
+                    }}
+                })
+
+                const updatedSite = {
+                    ..._siteRelation?.site,
+                    isActive: _siteRelation?.isActive,
+                }
+
+                return { status: 'success', data: updatedSite};
+            } catch (error) {
+                console.log(error);
+                if (error instanceof TRPCError) {
+                    // if the error is already a TRPCError, just re-throw it
+                    throw error;
+                }
+                // if it's a different type of error, throw a new TRPCError
+                throw new TRPCError({
+                    code: "CONFLICT",
+                    message: `Error Updating Site.`,
+                });
+            }
+        }),
+
     triggerTestAlert: protectedProcedure
         .input(params)
         .query(async ({ctx, input}) => {
@@ -350,24 +781,24 @@ export const siteRouter = createTRPCRouter({
             try {
                 // Destructure input parameters, including siteId
                 const {siteId, duration, unit} = input;
-            
+
                 // Calculate the time for the stopAlertUntil field based on unit
                 const additionFactor = {
                 minutes: 1000 * 60,
                 hours: 1000 * 60 * 60,
                 days: 1000 * 60 * 60 * 24,
                 };
-            
+
                 // Calculate future date based on current time, duration, and unit
                 const futureDate = new Date(Date.now() + duration * additionFactor[unit]);
-            
+
                 // Update specific site's stopAlertUntil field in the database
                 await ctx.prisma.site.update({
-                    where: { 
-                        id: siteId 
+                    where: {
+                        id: siteId
                     },
-                    data: { 
-                        stopAlertUntil: futureDate 
+                    data: {
+                        stopAlertUntil: futureDate
                     },
                 });
                 // Constructing a readable duration message
@@ -376,9 +807,9 @@ export const siteRouter = createTRPCRouter({
                                     unit === 'days' && duration === 1 ? 'day' : unit;
 
                 // Respond with a success message including pause duration details
-                return { 
-                    status: 'success', 
-                    message: `Alert has been successfully paused for the site for ${duration} ${durationUnit}.` 
+                return {
+                    status: 'success',
+                    message: `Alert has been successfully paused for the site for ${duration} ${durationUnit}.`
                 };
             } catch (error) {
                 throw new TRPCError({
