@@ -1,3 +1,5 @@
+import { logger } from "../../../server/logger";
+
 const slackSiteNotifications = process.env.SLACK_KEY_SITE_NOTIFICATIONS!;
 if(!slackSiteNotifications) {
   console.log("Slack site-notifications disabled."); 
@@ -24,5 +26,8 @@ export function sendToSlack(message: string) {
   )
     .then((response) => response.text())
     .then((result) => console.log(result))
-    .catch((error) => console.error(error));
+    .catch((error) => {
+      logger(`Error sending message to Slack: ${error?.message}`, "error");
+      
+    });
 }
