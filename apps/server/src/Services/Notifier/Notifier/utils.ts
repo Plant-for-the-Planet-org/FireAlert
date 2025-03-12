@@ -1,5 +1,5 @@
 const slackSiteNotifications = process.env.SLACK_KEY_SITE_NOTIFICATIONS!;
-if(slackSiteNotifications) {
+if(!slackSiteNotifications) {
   console.log("Slack site-notifications disabled."); 
 }
 
