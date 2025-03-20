@@ -112,7 +112,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             );
 
             createCount += result.length;
-            createCounts.users += createCounts.users;
+            createCounts.users += result.length;
             logger(`Created ${result.length} new users.`, "info");
         } else {
             logger("No new users to create.", "info");
