@@ -9,9 +9,12 @@ import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
 import moment from 'moment';
-import { Prisma, Project, User } from "@prisma/client";
+import type { Prisma, Project, User } from "@prisma/client";
 import { type TreeProjectExtended } from '@planet-sdk/common'
 
+export const config = {
+  maxDuration: 300,
+};
 
 const thumbnailPrefix = 'https://cdn.plant-for-the-planet.org/media/cache/profile/thumb/';
 
