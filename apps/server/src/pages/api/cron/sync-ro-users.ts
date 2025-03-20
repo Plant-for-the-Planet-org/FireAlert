@@ -9,8 +9,11 @@ import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
 import moment from 'moment';
-import { Prisma, Project } from "@prisma/client";
+import { Prisma, Project, User } from "@prisma/client";
 import { type TreeProjectExtended } from '@planet-sdk/common'
+
+
+const thumbnailPrefix = 'https://cdn.plant-for-the-planet.org/media/cache/profile/thumb/';
 
 export default async function syncROUsers(req: NextApiRequest, res: NextApiResponse) {
     // Verify the 'cron_key' in the request headers before proceeding
@@ -26,8 +29,102 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     let updateCount = 0;
     let deleteCount = 0;
 
+    const createCounts = {
+        users: 0,
+        projects: 0,
+        sites: 0
+    }
+    const updateCounts = {   
+        users: 0, 
+        projects: 0,
+        sites: 0,
+    }
+    const deleteCounts = {
+        users: 0,
+        projects: 0,
+        sites: 0,
+    }
+
     // Fetch projects from PP API
-    const allProjectsPPWebApp: TreeProjectExtended[] = await fetchAllProjectsWithSites();
+    let allProjectsPPWebApp: TreeProjectExtended[] = await fetchAllProjectsWithSites();
+    allProjectsPPWebApp = allProjectsPPWebApp.filter(el => el.allowDonations)
+
+    // Extract unique RO users from projects with allowDonations true.
+    const uniqueUsers = new Map<string, Partial<User>>();
+    allProjectsPPWebApp.forEach((project) => {
+        if (project.tpo) {
+            if (!uniqueUsers.has(project.tpo.id)) {
+                uniqueUsers.set(project.tpo.id, {
+                remoteId: project.tpo.id,
+                name: project.tpo.name,
+                email: project.tpo.email,
+                isPlanetRO: true,
+                image: project.tpo.image ? `${thumbnailPrefix}${project.tpo.image}` : undefined,
+                isVerified: true,
+                detectionMethods: ["MODIS", "VIIRS", "LANDSAT"]
+                });
+            }
+        }
+    });
+    logger(`Extracted ${uniqueUsers.size} unique RO users from projects.`, "info");
+
+    // Insert new users into the database if they don't already exist.
+    const usersToCreate = Array.from(uniqueUsers.values());
+    try {
+        // Extract remoteIds from the usersToCreate list.
+        const remoteIds = usersToCreate.map((user) => user.remoteId);
+
+        // Query the DB for users with these remoteIds.
+        const existingUsers = await prisma.user.findMany({
+            where: { remoteId: { in: remoteIds } },
+            select: { remoteId: true },
+        });
+
+        // Create a Set of the existing remoteIds.
+        const existingRemoteIds = new Set(existingUsers.map((user) => user.remoteId));
+
+        // Filter out users that already exist based on remoteId.
+        const newUsersToCreate = usersToCreate.filter(
+            (user) => !existingRemoteIds.has(user.remoteId)
+        );
+
+        if (newUsersToCreate.length > 0) {
+            // const result = await prisma.user.createMany({
+            //     data: newUsersToCreate,
+            // });
+            
+            const result = await prisma.$transaction(
+                newUsersToCreate.map(userData => 
+                    prisma.user.create({
+                        data: {
+                            ...userData,
+                            alertMethods: {
+                                create: {
+                                    method: "email",
+                                    destination: userData.email,
+                                    isVerified: true,
+                                    isEnabled: false,
+                                }
+                            }
+                        }
+                    })
+                )
+            );
+
+            createCount += result.length;
+            createCounts.users += result.length;
+            logger(`Created ${result.length} new users.`, "info");
+        } else {
+            logger("No new users to create.", "info");
+        }
+    } catch (error) {
+        logger(`Error creating users: ${error}`, "error");
+        res.status(500).json({ 
+            message: "Error creating users", 
+            status: 500 
+        });
+        return;
+    }
 
     // Fetch RO Users from the Firealert database and select their ids and remoteIds
     const ROUsers = await prisma.user.findMany({
@@ -118,7 +215,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             if (sitesFromPP && sitesFromPP.length > 0) {
                 for (const siteFromPP of sitesFromPP) {
                     const { geometry, properties } = siteFromPP;
-                    const { id: remoteId_PP } = properties;
+                    const { id: remoteId_PP, name:siteName } = properties;
                     const siteId_mapped_from_remoteId = map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.get(remoteId_PP)
 
                     // Check if geometry and geometry.type exists
@@ -141,6 +238,8 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                             // Add the new site to the array for bulk creation
                             newSiteData.push({
                                 remoteId: remoteId_PP,
+                                name: siteName,
+                                origin: "ttc",
                                 type: geometry.type,
                                 geometry: geometry,
                                 radius: 0,
@@ -164,11 +263,16 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         const createdSites = await prisma.site.createMany({
             data: newSiteData,
         });
+
         // Await all update promises
         const updateResults = await Promise.all(updateSitePromises);
 
         createCount = createCount + createdProjects.count + createdSites.count
         updateCount = updateCount + updateResults.length
+
+        createCounts.projects += createdProjects.count;
+        createCounts.sites += createdSites.count;
+        updateCounts.sites += updateResults.length;
     }
 
 
@@ -234,7 +338,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         projectId: null,
                     },
                 }))
-            logger(`Soft Deleting ${siteIdsInFA_NotInPP.length} sites not present in the Webapp`, 'info',);
+            logger(`Soft Deleting or disassociating ${siteIdsInFA_NotInPP.length} sites not present in the Webapp`, 'info',);
         }
 
         // For each project in PP API, identify sites in the database that need to be updated or created
@@ -258,7 +362,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         },
                         data: {
                             lastUpdated: projectLastUpdatedFormPP,
-                            name: projectNameFormPP,
+                            name:  projectNameFormPP,
                             slug: projectSlugFormPP,
                         },
                     })
@@ -291,6 +395,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                                     data: {
                                         remoteId: remoteId_fromPP,
                                         name: siteName,
+                                        origin: 'ttc',
                                         type: geometry.type,
                                         geometry: geometry,
                                         radius: radius,
@@ -308,10 +413,10 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                                         id: siteFromDatabase.id,
                                     },
                                     data: {
+                                        name:  siteName,
                                         type: geometry.type,
                                         geometry: geometry,
                                         radius: radius,
-                                        name: siteName,
                                         lastUpdated: siteLastUpdatedFromPP,
                                     },
                                 })
@@ -326,22 +431,39 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         }
 
         // Execute all promises
+        // createPromises only handles site creates
         const createResults = await Promise.all(createPromises);
+        // updatePromises handles site & project updates
         const updateResults = await Promise.all(updatePromises);
+        // deletePromises only handles site disassociations
         const deleteResults = await Promise.all(deletePromises);
 
-        createCount = createCount + createResults.length; // Number of created items
-        updateCount = updateCount + updateResults.length; // Number of updated items
-        deleteCount = deleteCount + deleteResults.length; // Number of deleted items
+        createCount += createResults.length; // Number of created items
+        updateCount += updateResults.length; // Number of updated items
+        deleteCount += deleteResults.length; // Number of deleted items
+
+        createCounts.sites += createResults.length;
+        const _updatedProjects = updateResults.filter(el => el?.slug);
+        updateCounts.projects += _updatedProjects.length;
+        updateCounts.sites += updateResults.length - _updatedProjects.length;
+        deleteCounts.sites += deleteResults.length;
 
         logger(`Created ${createCount} items. Updated ${updateCount} items. Deleted ${deleteCount} items.`, 'info',);
+
+        logger(`Created ${createCounts.users} users. Updated ${updateCounts.users} users. Deleted ${deleteCounts.users} users.`, 'info',);
+        logger(`Created ${createCounts.projects} projects. Updated ${updateCounts.projects} projects.`, 'info',);
+        logger(`Created ${createCounts.sites} sites. Updated ${updateCounts.sites} sites. Deleted ${deleteCounts.sites} sites.`, 'info',);
 
         res.status(200).json({
             message: "Success! Data has been synced for RO Users!",
             status: 200,
-            results: { created: createCount, updated: updateCount, deleted: deleteCount },
+            results: { 
+                created: createCount, updated: updateCount, deleted: deleteCount, 
+                createCounts, updateCounts, deleteCounts
+            },
         });
     } catch (error) {
+        console.log(error);
         logger(`Error in transaction: ${error}`, "error");
         res.status(500).json({
             message: "An error occurred while syncing data for RO Users.",
