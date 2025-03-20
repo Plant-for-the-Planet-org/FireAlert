@@ -179,6 +179,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
 
     const sitesThatAreOrWereOnceRemote = await prisma.site.findMany({
         where: {
+            origin: 'ttc',
             userId: {
                 in: userIdList,
             },
@@ -242,7 +243,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                             newSiteData.push({
                                 remoteId: remoteId_PP,
                                 name: siteName,
-                                origin: "ttc",
+                                origin: 'ttc',
                                 type: geometry.type,
                                 geometry: geometry,
                                 radius: 0,
@@ -283,6 +284,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     // Only sites of public projects should be fetched.
     const sitesFA = await prisma.site.findMany({
         where: {
+            origin: 'ttc',
             projectId: {
                 in: projectsPP.map((project) => project.id),
             },
