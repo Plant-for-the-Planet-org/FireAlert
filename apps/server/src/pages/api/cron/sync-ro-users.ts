@@ -9,9 +9,12 @@ import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
 import moment from 'moment';
-import { Prisma, Project, User } from "@prisma/client";
+import type { Prisma, Project, User } from "@prisma/client";
 import { type TreeProjectExtended } from '@planet-sdk/common'
 
+export const config = {
+  maxDuration: 300,
+};
 
 const thumbnailPrefix = 'https://cdn.plant-for-the-planet.org/media/cache/profile/thumb/';
 
@@ -176,6 +179,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
 
     const sitesThatAreOrWereOnceRemote = await prisma.site.findMany({
         where: {
+            origin: 'ttc',
             userId: {
                 in: userIdList,
             },
@@ -239,7 +243,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                             newSiteData.push({
                                 remoteId: remoteId_PP,
                                 name: siteName,
-                                origin: "ttc",
+                                origin: 'ttc',
                                 type: geometry.type,
                                 geometry: geometry,
                                 radius: 0,
@@ -280,6 +284,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
     // Only sites of public projects should be fetched.
     const sitesFA = await prisma.site.findMany({
         where: {
+            origin: 'ttc',
             projectId: {
                 in: projectsPP.map((project) => project.id),
             },
