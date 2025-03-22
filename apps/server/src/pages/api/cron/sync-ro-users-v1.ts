@@ -6,8 +6,8 @@
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { prisma } from '../../../server/db'
 import { env } from "../../../env.mjs";
-import { logger } from "../../../../src/server/logger";
-import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
+import { logger } from "../../../server/logger";
+import { fetchAllProjectsWithSites } from "../../../utils/fetch";
 import moment from 'moment';
 import type { Prisma, Project, User } from "@prisma/client";
 import { type TreeProjectExtended } from '@planet-sdk/common'
@@ -95,46 +95,28 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             );
 
             if (newUsersToCreate.length > 0) {
-                // Note: We can't use createMany for users since we need to create related alert methods
-                // We'll first create users with createMany, then add the alert methods separately
-                await prisma.$transaction(async (prismaClient) => {
-                    // Create users in bulk
-                    const userResult = await prismaClient.user.createMany({
-                        data: newUsersToCreate,
-                    });
-                    
-                    // Fetch the newly created users to get their IDs
-                    const createdUsers = await prismaClient.user.findMany({
-                        where: {
-                            remoteId: {
-                                in: newUsersToCreate.map(user => user.remoteId)
+                // User creation in transaction (already using transaction)
+                const result = await prisma.$transaction(
+                    newUsersToCreate.map(userData => 
+                        prisma.user.create({
+                            data: {
+                                ...userData,
+                                alertMethods: {
+                                    create: {
+                                        method: "email",
+                                        destination: userData.email,
+                                        isVerified: true,
+                                        isEnabled: false,
+                                    }
+                                }
                             }
-                        },
-                        select: {
-                            id: true,
-                            email: true
-                        }
-                    });
-                    
-                    // Create alert methods for each user in bulk
-                    if (createdUsers.length > 0) {
-                        const alertMethodsData = createdUsers.map(user => ({
-                            method: "email",
-                            destination: user.email,
-                            isVerified: true,
-                            isEnabled: false,
-                            userId: user.id
-                        }));
-                        
-                        await prismaClient.alertMethod.createMany({
-                            data: alertMethodsData
-                        });
-                    }
-                    
-                    createCount += userResult.count;
-                    createCounts.users += userResult.count;
-                    logger(`Created ${userResult.count} new users.`, "info");
-                });
+                        })
+                    )
+                );
+
+                createCount += result.length;
+                createCounts.users += result.length;
+                logger(`Created ${result.length} new users.`, "info");
             } else {
                 logger("No new users to create.", "info");
             }
@@ -215,8 +197,8 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             // Prepare the projects and sites data for bulk creation
             const newProjectData: Project[] = [];
             const newSiteData: Prisma.SiteCreateManyInput[] = [];
-            // Prepare sites to update using updateMany (group by common fields)
-            const sitesToUpdate = [];
+            // Prepare an array of promises for site updates
+            const updateSitePromises = [];
 
             for (const projectPP of projectsInPP_not_in_FA) {
                 const { id: projectId, name: projectName, slug: projectSlug, sites: sitesFromPP } = projectPP;
@@ -244,12 +226,18 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         if (geometry && geometry.type) {
                             // If site already existed before and was soft deleted from webapp, link that site with its corresponding project
                             if (ids_sitesThatAreOrWereOnceRemote.includes(siteId_mapped_from_remoteId)) {
-                                // Add to sites to update list
-                                sitesToUpdate.push({
-                                    id: siteId_mapped_from_remoteId,
-                                    projectId: projectId,
-                                    deletedAt: null
-                                });
+                                // Prepare the site for bulk update, during update make the projectId null, and deletedAt as null.
+                                updateSitePromises.push(
+                                    prisma.site.update({
+                                        where: {
+                                            id: siteId_mapped_from_remoteId
+                                        },
+                                        data: {
+                                            projectId: projectId,
+                                            deletedAt: null
+                                        }
+                                    })
+                                );
                             } else {
                                 // Add the new site to the array for bulk creation
                                 newSiteData.push({
@@ -274,55 +262,30 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
 
             // Use transaction for new projects and sites creation
             await prisma.$transaction(async (prismaClient) => {
-                // Create projects in bulk
+                // Add the new projects
                 const createdProjects = await prismaClient.project.createMany({
                     data: newProjectData,
                 });
                 
-                // Create sites in bulk
+                // Add the new sites
                 const createdSites = await prismaClient.site.createMany({
                     data: newSiteData,
                 });
                 
-                // Group update operations by identical update data to reduce the number of queries
-                // Group sites by projectId
-                const sitesByProjectId = {};
-                sitesToUpdate.forEach(site => {
-                    const key = `${site.projectId}-${site.deletedAt === null ? 'null' : site.deletedAt}`;
-                    if (!sitesByProjectId[key]) {
-                        sitesByProjectId[key] = {
-                            ids: [],
-                            projectId: site.projectId,
-                            deletedAt: site.deletedAt
-                        };
-                    }
-                    sitesByProjectId[key].ids.push(site.id);
-                });
+                // Execute all site update promises in transaction
+                const updateResults = await Promise.all(
+                    updateSitePromises.map(updatePromise => 
+                        // Replace prisma with prismaClient
+                        prismaClient.site.update(updatePromise._getPayload())
+                    )
+                );
                 
-                // Execute updateMany for each group
-                let totalSitesUpdated = 0;
-                for (const key in sitesByProjectId) {
-                    const group = sitesByProjectId[key];
-                    const updateResult = await prismaClient.site.updateMany({
-                        where: {
-                            id: {
-                                in: group.ids
-                            }
-                        },
-                        data: {
-                            projectId: group.projectId,
-                            deletedAt: group.deletedAt
-                        }
-                    });
-                    totalSitesUpdated += updateResult.count;
-                }
-                
-                createCount += createdProjects.count + createdSites.count;
-                updateCount += totalSitesUpdated;
+                createCount = createCount + createdProjects.count + createdSites.count;
+                updateCount = updateCount + updateResults.length;
 
                 createCounts.projects += createdProjects.count;
                 createCounts.sites += createdSites.count;
-                updateCounts.sites += totalSitesUpdated;
+                updateCounts.sites += updateResults.length;
             });
         }
 
@@ -369,13 +332,12 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
 
         const siteIdsInFA_NotInPP = sitesFA.filter(site => remoteIdsInFA_NotInPP.includes(site.remoteId as string)).map(site => site.id);
 
-        // Prepare bulk operations for final transaction
+        // Prepare operations in transaction
         await prisma.$transaction(async (prismaClient) => {
-            // Group data for bulk operations
-            const sitesToCreate = [];
-            const projectUpdates = {}; // Group by update data
-            const siteUpdates = {}; // Group by update data
-            
+            const createPromises = [];
+            const updatePromises = [];
+            let sitesDisassociated = 0;
+
             // Identify sites in the database that are not present in PP API and dissociate those sites from the projects
             if (siteIdsInFA_NotInPP.length > 0) {
                 const deleteResult = await prismaClient.site.updateMany({
@@ -388,12 +350,11 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         projectId: null,
                     },
                 });
-                deleteCount += deleteResult.count;
-                deleteCounts.sites += deleteResult.count;
-                logger(`Soft Deleting or disassociating ${deleteResult.count} sites not present in the Webapp`, 'info');
+                sitesDisassociated = deleteResult.count;
+                logger(`Soft Deleting or disassociating ${sitesDisassociated} sites not present in the Webapp`, 'info');
             }
 
-            // For each project in PP API, identify sites that need to be updated or created
+            // For each project in PP API, identify sites in the database that need to be updated or created
             for (const projectPP of projectsPP) {
                 const {
                     sites: sitesFromPPProject,
@@ -402,27 +363,23 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                     name: projectNameFormPP,
                     slug: projectSlugFormPP,
                 } = projectPP;
-                
-                const projectLastUpdatedFormPP = moment(projectLastUpdated, 'YYYY-MM-DD HH:mm:ss').toDate();
+                const projectLastUpdatedFormPP = moment(projectLastUpdated, 'YYYY-MM-DD HH:mm:ss').toDate(); // Convert to Date object
                 const projectFromDatabase = newProjectsFA.find((project) => project.id === projectId);
 
-                // If the project has been updated in the PP API, prepare for bulk update
-                if (projectFromDatabase?.lastUpdated?.getTime() !== projectLastUpdatedFormPP.getTime()) {
-                    // Create update entry keyed by the combination of values to update
-                    const updateKey = `${projectLastUpdatedFormPP.getTime()}-${projectNameFormPP}-${projectSlugFormPP}`;
-                    
-                    if (!projectUpdates[updateKey]) {
-                        projectUpdates[updateKey] = {
-                            ids: [],
+                // If the project has been updated in the PP API, update the project and its sites in the database
+                if (projectFromDatabase!.lastUpdated?.getTime() !== projectLastUpdatedFormPP.getTime()) {
+                    updatePromises.push(
+                        prismaClient.project.update({
+                            where: {
+                                id: projectId,
+                            },
                             data: {
                                 lastUpdated: projectLastUpdatedFormPP,
                                 name: projectNameFormPP,
                                 slug: projectSlugFormPP,
-                            }
-                        };
-                    }
-                    
-                    projectUpdates[updateKey].ids.push(projectId);
+                            },
+                        })
+                    );
                 }
 
                 const tpoId = projectPP.tpo.id;
@@ -440,45 +397,43 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                             const siteId_in_FADatabase = map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.get(remoteId_fromPP)
                             const radius = 0;
                             let siteFromDatabase;
-                            
                             // Check if the site is already in database
                             if (siteId_in_FADatabase) {
                                 siteFromDatabase = sitesFA.find((site) => site.id === siteId_in_FADatabase);
                             }
-                            
                             // If the site does not exist in the database, create a new site
                             if (!siteFromDatabase) {
-                                sitesToCreate.push({
-                                    remoteId: remoteId_fromPP,
-                                    name: siteName,
-                                    origin: 'ttc',
-                                    type: geometry.type,
-                                    geometry: geometry,
-                                    radius: radius,
-                                    userId: userId,
-                                    projectId: projectId,
-                                    lastUpdated: new Date(),
-                                });
-                            } 
-                            // else if the site exists in the FA database, and has been updated in the webapp, update the site
-                            else if (siteFromDatabase.lastUpdated?.getTime() !== siteLastUpdatedFromPP.getTime()) {
-                                // Group sites by common update criteria
-                                const updateKey = `${siteName}-${geometry.type}-${JSON.stringify(geometry)}-${radius}-${siteLastUpdatedFromPP.getTime()}`;
-                                
-                                if (!siteUpdates[updateKey]) {
-                                    siteUpdates[updateKey] = {
-                                        ids: [],
+                                createPromises.push(
+                                    prismaClient.site.create({
+                                        data: {
+                                            remoteId: remoteId_fromPP,
+                                            name: siteName,
+                                            origin: 'ttc',
+                                            type: geometry.type,
+                                            geometry: geometry,
+                                            radius: radius,
+                                            userId: userId,
+                                            projectId: projectId,
+                                            lastUpdated: new Date(),
+                                        },
+                                    })
+                                );
+                            // else if the site exists in the FA database, and has been updated in the webapp, update the site in the database
+                            } else if (siteFromDatabase.lastUpdated?.getTime() !== siteLastUpdatedFromPP.getTime()) {
+                                updatePromises.push(
+                                    prismaClient.site.update({
+                                        where: {
+                                            id: siteFromDatabase.id,
+                                        },
                                         data: {
                                             name: siteName,
                                             type: geometry.type,
                                             geometry: geometry,
                                             radius: radius,
                                             lastUpdated: siteLastUpdatedFromPP,
-                                        }
-                                    };
-                                }
-                                
-                                siteUpdates[updateKey].ids.push(siteFromDatabase.id);
+                                        },
+                                    })
+                                );
                             }
                         } else {
                             // Handle the case where geometry or type is null
@@ -488,51 +443,19 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 }
             }
 
-            // Execute bulk operations
-            let projectsUpdatedCount = 0;
-            let sitesUpdatedCount = 0;
-            
-            // Create sites in bulk if any
-            if (sitesToCreate.length > 0) {
-                const createdSites = await prismaClient.site.createMany({
-                    data: sitesToCreate
-                });
-                createCount += createdSites.count;
-                createCounts.sites += createdSites.count;
-            }
-            
-            // Execute bulk project updates
-            for (const key in projectUpdates) {
-                const group = projectUpdates[key];
-                const result = await prismaClient.project.updateMany({
-                    where: {
-                        id: {
-                            in: group.ids
-                        }
-                    },
-                    data: group.data
-                });
-                projectsUpdatedCount += result.count;
-            }
-            
-            // Execute bulk site updates
-            for (const key in siteUpdates) {
-                const group = siteUpdates[key];
-                const result = await prismaClient.site.updateMany({
-                    where: {
-                        id: {
-                            in: group.ids
-                        }
-                    },
-                    data: group.data
-                });
-                sitesUpdatedCount += result.count;
-            }
-            
-            // Update counts
-            updateCount += projectsUpdatedCount + sitesUpdatedCount;
-            updateCounts.projects += projectsUpdatedCount;
-            updateCounts.sites += sitesUpdatedCount;
+            // Execute all promises
+            const createResults = await Promise.all(createPromises);
+            const updateResults = await Promise.all(updatePromises);
+
+            createCount += createResults.length; // Number of created items
+            updateCount += updateResults.length; // Number of updated items
+            deleteCount += sitesDisassociated; // Number of deleted items
+
+            createCounts.sites += createResults.length;
+            const _updatedProjects = updateResults.filter(el => el?.slug);
+            updateCounts.projects += _updatedProjects.length;
+            updateCounts.sites += updateResults.length - _updatedProjects.length;
+            deleteCounts.sites += sitesDisassociated;
         });
 
         logger(`Created ${createCount} items. Updated ${updateCount} items. Deleted ${deleteCount} items.`, 'info');

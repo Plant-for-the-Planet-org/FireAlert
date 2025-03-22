@@ -6,8 +6,8 @@
 import { type NextApiRequest, type NextApiResponse } from "next";
 import { prisma } from '../../../server/db'
 import { env } from "../../../env.mjs";
-import { logger } from "../../../../src/server/logger";
-import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
+import { logger } from "../../../server/logger";
+import { fetchAllProjectsWithSites } from "../../../utils/fetch";
 import moment from 'moment';
 import type { Prisma, Project, User } from "@prisma/client";
 import { type TreeProjectExtended } from '@planet-sdk/common'
