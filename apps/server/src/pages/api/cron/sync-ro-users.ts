@@ -323,6 +323,8 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 createCounts.projects += createdProjects.count;
                 createCounts.sites += createdSites.count;
                 updateCounts.sites += totalSitesUpdated;
+            }, {
+                timeout: 30000 // 30 seconds instead of the default 5
             });
         }
 
@@ -533,6 +535,8 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             updateCount += projectsUpdatedCount + sitesUpdatedCount;
             updateCounts.projects += projectsUpdatedCount;
             updateCounts.sites += sitesUpdatedCount;
+        }, {
+            timeout: 30000 // 30 seconds instead of the default 5
         });
 
         logger(`Created ${createCount} items. Updated ${updateCount} items. Deleted ${deleteCount} items.`, 'info');
