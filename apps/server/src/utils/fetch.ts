@@ -1,5 +1,5 @@
 import {env} from '../env.mjs';
-import {type BaseProjectExtended, type BaseUser} from '@planet-sdk/common';
+import {type TreeProjectExtended, type BaseUser} from '@planet-sdk/common';
 
 interface PlanetUser {
   id: string;
@@ -49,11 +49,11 @@ export const fetchProjectsWithSitesForUser = async (bearer_token: string) => {
   return data;
 };
 
-export const fetchAllProjectsWithSites = async () => {
+export const fetchAllProjectsWithSites = async ():Promise<TreeProjectExtended[]> => {
   const response = await fetch(
       `${env.PLANET_API_URL}/app/projects?_scope=extended&filter[purpose]=trees,conservation`,
     );
-  const data = await response.json();
+  const data = (await response.json()) as TreeProjectExtended[];
   return data;
 };
 

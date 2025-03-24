@@ -9,8 +9,7 @@ import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
 import moment from 'moment';
-import type { Prisma, Project, User } from "@prisma/client";
-import { type TreeProjectExtended } from '@planet-sdk/common'
+import type { Prisma } from "@prisma/client";
 
 // https://vercel.com/docs/functions/configuring-functions
 export const config = {
@@ -18,7 +17,7 @@ export const config = {
   memory: 1769
 };
 
-const thumbnailPrefix = 'https://cdn.plant-for-the-planet.org/media/cache/profile/thumb/';
+const THUMBNAIL_PREFIX = 'https://cdn.plant-for-the-planet.org/media/cache/profile/thumb/';
 const BATCH_SIZE = 500;
 
 
@@ -54,22 +53,22 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
 
     try {
         // Fetch projects from PP API
-        let allProjectsPPWebApp: TreeProjectExtended[] = await fetchAllProjectsWithSites();
+        let allProjectsPPWebApp = await fetchAllProjectsWithSites();
         allProjectsPPWebApp = allProjectsPPWebApp.filter(el => el.allowDonations)
 
         // Extract unique RO users from projects with allowDonations true.
-        const uniqueUsers = new Map<string, Partial<User>>();
+        const uniqueUsers = new Map<string, Prisma.UserCreateManyInput>();
         allProjectsPPWebApp.forEach((project) => {
             if (project.tpo) {
                 if (!uniqueUsers.has(project.tpo.id)) {
                     uniqueUsers.set(project.tpo.id, {
-                    remoteId: project.tpo.id,
-                    name: project.tpo.name,
-                    email: project.tpo.email,
-                    isPlanetRO: true,
-                    image: project.tpo.image ? `${thumbnailPrefix}${project.tpo.image}` : undefined,
-                    isVerified: true,
-                    detectionMethods: ["MODIS", "VIIRS", "LANDSAT"]
+                        remoteId: project.tpo.id,
+                        name: project.tpo.name,
+                        email: project.tpo.email,
+                        isPlanetRO: true,
+                        image: project.tpo.image ? `${THUMBNAIL_PREFIX}${project.tpo.image}` : null,
+                        isVerified: true,
+                        detectionMethods: ["MODIS", "VIIRS", "LANDSAT"]
                     });
                 }
             }
@@ -80,7 +79,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         const usersToCreate = Array.from(uniqueUsers.values());
         try {
             // Extract remoteIds from the usersToCreate list.
-            const remoteIds = usersToCreate.map((user) => user.remoteId);
+            const remoteIds = usersToCreate.map((user) => user.remoteId) as string[];
 
             // Query the DB for users with these remoteIds.
             const existingUsers = await prisma.user.findMany({
@@ -93,7 +92,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
 
             // Filter out users that already exist based on remoteId.
             const newUsersToCreate = usersToCreate.filter(
-                (user) => !existingRemoteIds.has(user.remoteId)
+                (user) => !existingRemoteIds.has(user.remoteId!)
             );
 
             if (newUsersToCreate.length > 0) {
@@ -106,9 +105,8 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                     
                     // Fetch the newly created users to get their IDs
                     const createdUsers = await prismaClient.user.findMany({
-                        where: {
-                            remoteId: {
-                                in: newUsersToCreate.map(user => user.remoteId)
+                        where: { remoteId: {
+                                in: newUsersToCreate.map(user => user.remoteId) as string[]
                             }
                         },
                         select: {
@@ -160,18 +158,18 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         });
 
         // Create a map to associate remoteId with userId
-        const map_userRemoteId_to_userId = new Map();
+        const map_userRemoteId_to_userId = new Map<string, string>();
         ROUsers.forEach(user => {
-            map_userRemoteId_to_userId.set(user.remoteId, user.id);
+            map_userRemoteId_to_userId.set(user.remoteId!, user.id);
         });
 
-        // Filter projects from PP API to include only those related to RO users
+        // Filter projects from PP API to include those related to RO users
         const userRemoteIdList = ROUsers.map(user => user.remoteId);
         const projectsPP1 = allProjectsPPWebApp.filter(projectPP =>
             userRemoteIdList.includes(projectPP.tpo.id)
         );
 
-        // Fetch all projects for the RO users from the Firealert database
+        // Fetch all projects for the RO users from the FA database
         const userIdList = ROUsers.map(user => user.id);
         const projectsFA = await prisma.project.findMany({
             where: {
@@ -181,7 +179,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             }
         });
 
-        // Filter projects from the pp web api, depending on the project.id
+        // Filter projects from the PP API to include those exists on RO users of FA database
         const projectsIdsFA = projectsFA.map((project) => project.id);
         const projectsPP2 = allProjectsPPWebApp.filter(projectPP =>
             projectsIdsFA.includes(projectPP.id)
@@ -206,15 +204,15 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         });
 
         const ids_sitesThatAreOrWereOnceRemote = sitesThatAreOrWereOnceRemote.map(site => site.id)
-        const map_ids_sitesThatAreOrWereOnceRemote_to_remoteId = new Map();
+        const map_ids_sitesThatAreOrWereOnceRemote_to_remoteId = new Map<string, string>();
         sitesThatAreOrWereOnceRemote.forEach(site => {
-            map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.set(site.remoteId, site.id);
+            map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.set(site.remoteId!, site.id);
         });
 
         // Add those projects to the database, and all the sites inside of it.
         if (projectsInPP_not_in_FA.length > 0) {
             // Prepare the projects and sites data for bulk creation
-            const newProjectData: Project[] = [];
+            const newProjectData: Prisma.ProjectCreateManyInput[] = [];
             const newSiteData: Prisma.SiteCreateManyInput[] = [];
             // Prepare sites to update using updateMany (group by common fields)
             const sitesToUpdate = [];
@@ -230,7 +228,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                     name: projectName,
                     slug: projectSlug,
                     lastUpdated: new Date(),
-                    userId: userId,
+                    userId: userId!,
                 });
 
                 // If sitesFromPP is not undefined, and its length is greater than 0, 
@@ -244,7 +242,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         // Check if geometry and geometry.type exists
                         if (geometry && geometry.type) {
                             // If site already existed before and was soft deleted from webapp, link that site with its corresponding project
-                            if (ids_sitesThatAreOrWereOnceRemote.includes(siteId_mapped_from_remoteId)) {
+                            if (ids_sitesThatAreOrWereOnceRemote.includes(siteId_mapped_from_remoteId!)) {
                                 // Add to sites to update list
                                 sitesToUpdate.push({
                                     id: siteId_mapped_from_remoteId,
@@ -262,7 +260,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                                     radius: 0,
                                     projectId: projectId,
                                     lastUpdated: new Date(),
-                                    userId: userId,
+                                    userId: userId!,
                                 });
                             }
                         } else {
@@ -292,7 +290,13 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             
             // Group update operations by identical update data to reduce the number of queries
             // Group sites by projectId
-            const sitesByProjectId = {};
+            const sitesByProjectId:{
+                [key: string]: {
+                    ids: string[],
+                    projectId: string,
+                    deletedAt: Date | null
+                }
+            } = {};
             sitesToUpdate.forEach(site => {
                 const key = `${site.projectId}-${site.deletedAt === null ? 'null' : site.deletedAt}`;
                 if (!sitesByProjectId[key]) {
@@ -302,7 +306,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                         deletedAt: site.deletedAt
                     };
                 }
-                sitesByProjectId[key].ids.push(site.id);
+                sitesByProjectId[key].ids.push(site.id!);
             });
             
             // Execute updateMany for each group - no transaction needed
@@ -397,9 +401,30 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
         }
 
         // Prepare bulk operations for updates
-        const sitesToCreate = [];
-        const projectUpdates = {}; // Group by update data
-        const siteUpdates = {}; // Group by update data
+        const sitesToCreate:Prisma.SiteCreateManyInput[] = [];
+        const projectUpdates: {
+            [key: string]: {
+                ids: string[];
+                data: {
+                    lastUpdated: Date;
+                    name: string;
+                    slug: string;
+                }
+            }
+        } = {}; // Group by update data
+        const siteUpdates: {
+            [key: string]: {
+                ids: string[],
+                // data: {
+                //     name: string,
+                //     type: string,
+                //     geometry: any,
+                //     radius: number,
+                //     lastUpdated: Date,
+                // }
+                data: Prisma.SiteUpdateManyMutationInput
+            }
+        } = {}; // Group by update data
         
         // For each project in PP API, identify sites that need to be updated or created
         for (const projectPP of projectsPP) {
@@ -463,7 +488,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                                 type: geometry.type,
                                 geometry: geometry,
                                 radius: radius,
-                                userId: userId,
+                                userId: userId!,
                                 projectId: projectId,
                                 lastUpdated: new Date(),
                             });
