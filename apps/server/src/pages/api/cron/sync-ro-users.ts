@@ -97,8 +97,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
             );
 
             if (newUsersToCreate.length > 0) {
-                // Note: We can't use createMany for users since we need to create related alert methods
-                // We'll first create users with createMany, then add the alert methods separately
+                // This transaction is necessary because we need atomicity between user creation and alert method creation
                 await prisma.$transaction(async (prismaClient) => {
                     // Create users in bulk
                     const userResult = await prismaClient.user.createMany({
@@ -274,87 +273,63 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 }
             }
 
-            // Use transaction for new projects and sites creation
-            await prisma.$transaction(async (prismaClient) => {
-                // Process projects in a single batch (usually fewer than sites)
-                await prismaClient.project.createMany({
-                    data: newProjectData,
-                });
-                createCount += newProjectData.length;
-                createCounts.projects += newProjectData.length;
-                
-                // Process sites in batches
-                for (let i = 0; i < newSiteData.length; i += BATCH_SIZE) {
-                    const siteBatch = newSiteData.slice(i, i + BATCH_SIZE);
-                    const createdSites = await prismaClient.site.createMany({
-                        data: siteBatch,
-                    });
-                    createCount += createdSites.count;
-                    createCounts.sites += createdSites.count;
-                }
-                
-                // Group update operations by identical update data to reduce the number of queries
-                // Group sites by projectId
-                const sitesByProjectId = {};
-                sitesToUpdate.forEach(site => {
-                    const key = `${site.projectId}-${site.deletedAt === null ? 'null' : site.deletedAt}`;
-                    if (!sitesByProjectId[key]) {
-                        sitesByProjectId[key] = {
-                            ids: [],
-                            projectId: site.projectId,
-                            deletedAt: site.deletedAt
-                        };
-                    }
-                    sitesByProjectId[key].ids.push(site.id);
-                });
-                
-                // Execute updateMany for each group
-                let totalSitesUpdated = 0;
-                for (const key in sitesByProjectId) {
-                    const group = sitesByProjectId[key];
-                    
-                    // const updateResult = await prismaClient.site.updateMany({
-                    //     where: {
-                    //         id: {
-                    //             in: group.ids
-                    //         }
-                    //     },
-                    //     data: {
-                    //         projectId: group.projectId,
-                    //         deletedAt: group.deletedAt
-                    //     }
-                    // });
-                    // totalSitesUpdated += updateResult.count;
-
-                    // Process each group in batches
-                    for (let i = 0; i < group.ids.length; i += BATCH_SIZE) {
-                        const idsBatch = group.ids.slice(i, i + BATCH_SIZE);
-                        const updateResult = await prismaClient.site.updateMany({
-                            where: {
-                                id: {
-                                    in: idsBatch
-                                }
-                            },
-                            data: {
-                                projectId: group.projectId,
-                                deletedAt: group.deletedAt
-                            }
-                        });
-                        totalSitesUpdated += updateResult.count;
-                    }
-                }
-                
-                // createCount += createdProjects.count + createdSites.count;
-                // updateCount += totalSitesUpdated;
-                updateCount += totalSitesUpdated;
-                updateCounts.sites += totalSitesUpdated;
-
-                // createCounts.projects += createdProjects.count;
-                // createCounts.sites += createdSites.count;
-                // updateCounts.sites += totalSitesUpdated;
-            }, {
-                timeout: 60000 
+            // Create projects in bulk - no transaction needed
+            await prisma.project.createMany({
+                data: newProjectData,
             });
+            createCount += newProjectData.length;
+            createCounts.projects += newProjectData.length;
+            
+            // Process sites in batches - no transaction needed
+            for (let i = 0; i < newSiteData.length; i += BATCH_SIZE) {
+                const siteBatch = newSiteData.slice(i, i + BATCH_SIZE);
+                const createdSites = await prisma.site.createMany({
+                    data: siteBatch,
+                });
+                createCount += createdSites.count;
+                createCounts.sites += createdSites.count;
+            }
+            
+            // Group update operations by identical update data to reduce the number of queries
+            // Group sites by projectId
+            const sitesByProjectId = {};
+            sitesToUpdate.forEach(site => {
+                const key = `${site.projectId}-${site.deletedAt === null ? 'null' : site.deletedAt}`;
+                if (!sitesByProjectId[key]) {
+                    sitesByProjectId[key] = {
+                        ids: [],
+                        projectId: site.projectId,
+                        deletedAt: site.deletedAt
+                    };
+                }
+                sitesByProjectId[key].ids.push(site.id);
+            });
+            
+            // Execute updateMany for each group - no transaction needed
+            let totalSitesUpdated = 0;
+            for (const key in sitesByProjectId) {
+                const group = sitesByProjectId[key];
+                
+                // Process each group in batches
+                for (let i = 0; i < group.ids.length; i += BATCH_SIZE) {
+                    const idsBatch = group.ids.slice(i, i + BATCH_SIZE);
+                    const updateResult = await prisma.site.updateMany({
+                        where: {
+                            id: {
+                                in: idsBatch
+                            }
+                        },
+                        data: {
+                            projectId: group.projectId,
+                            deletedAt: group.deletedAt
+                        }
+                    });
+                    totalSitesUpdated += updateResult.count;
+                }
+            }
+            
+            updateCount += totalSitesUpdated;
+            updateCounts.sites += totalSitesUpdated;
         }
 
         // Fetch all sites from the database for the projects in projectsPP
@@ -400,210 +375,178 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
 
         const siteIdsInFA_NotInPP = sitesFA.filter(site => remoteIdsInFA_NotInPP.includes(site.remoteId as string)).map(site => site.id);
 
-        // Prepare bulk operations for final transaction
-        await prisma.$transaction(async (prismaClient) => {
-            // Group data for bulk operations
-            const sitesToCreate = [];
-            const projectUpdates = {}; // Group by update data
-            const siteUpdates = {}; // Group by update data
-            
-            // Identify sites in the database that are not present in PP API and dissociate those sites from the projects
-            if (siteIdsInFA_NotInPP.length > 0) {
-                // const deleteResult = await prismaClient.site.updateMany({
-                //     where: {
-                //         id: {
-                //             in: siteIdsInFA_NotInPP,
-                //         },
-                //     },
-                //     data: {
-                //         projectId: null,
-                //     },
-                // });
-                // deleteCount += deleteResult.count;
-                // deleteCounts.sites += deleteResult.count;
-                for (let i = 0; i < siteIdsInFA_NotInPP.length; i += BATCH_SIZE) {
-                    const idsBatch = siteIdsInFA_NotInPP.slice(i, i + BATCH_SIZE);
-                    const deleteResult = await prismaClient.site.updateMany({
-                        where: {
-                            id: {
-                                in: idsBatch,
-                            },
-                        },
-                        data: {
-                            projectId: null,
-                        },
-                    });
-                    deleteCount += deleteResult.count;
-                    deleteCounts.sites += deleteResult.count;
-                }
-                logger(`Soft Deleting or disassociating ${deleteCount} sites not present in the Webapp`, 'info');
-            }
-
-            // For each project in PP API, identify sites that need to be updated or created
-            for (const projectPP of projectsPP) {
-                const {
-                    sites: sitesFromPPProject,
-                    id: projectId,
-                    lastUpdated: projectLastUpdated,
-                    name: projectNameFormPP,
-                    slug: projectSlugFormPP,
-                } = projectPP;
-                
-                const projectLastUpdatedFormPP = moment(projectLastUpdated, 'YYYY-MM-DD HH:mm:ss').toDate();
-                const projectFromDatabase = newProjectsFA.find((project) => project.id === projectId);
-
-                // If the project has been updated in the PP API, prepare for bulk update
-                if (projectFromDatabase?.lastUpdated?.getTime() !== projectLastUpdatedFormPP.getTime()) {
-                    // Create update entry keyed by the combination of values to update
-                    const updateKey = `${projectLastUpdatedFormPP.getTime()}-${projectNameFormPP}-${projectSlugFormPP}`;
-                    
-                    if (!projectUpdates[updateKey]) {
-                        projectUpdates[updateKey] = {
-                            ids: [],
-                            data: {
-                                lastUpdated: projectLastUpdatedFormPP,
-                                name: projectNameFormPP,
-                                slug: projectSlugFormPP,
-                            }
-                        };
-                    }
-                    
-                    projectUpdates[updateKey].ids.push(projectId);
-                }
-
-                const tpoId = projectPP.tpo.id;
-                const userId = map_userRemoteId_to_userId.get(tpoId);
-
-                // If the project has sites
-                if (sitesFromPPProject && sitesFromPPProject.length > 0) {
-                    for (const siteFromPP of sitesFromPPProject) {
-                        const { geometry, properties } = siteFromPP;
-                        const { id: remoteId_fromPP, lastUpdated: siteLastUpdated, name: siteName } = properties;
-                        const siteLastUpdatedFromPP = moment(siteLastUpdated.date.split('.')[0], 'YYYY-MM-DD HH:mm:ss').utc().toDate();
-
-                        // Check if the site is valid
-                        if (geometry && geometry.type) {
-                            const siteId_in_FADatabase = map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.get(remoteId_fromPP)
-                            const radius = 0;
-                            let siteFromDatabase;
-                            
-                            // Check if the site is already in database
-                            if (siteId_in_FADatabase) {
-                                siteFromDatabase = sitesFA.find((site) => site.id === siteId_in_FADatabase);
-                            }
-                            
-                            // If the site does not exist in the database, create a new site
-                            if (!siteFromDatabase) {
-                                sitesToCreate.push({
-                                    remoteId: remoteId_fromPP,
-                                    name: siteName,
-                                    origin: 'ttc',
-                                    type: geometry.type,
-                                    geometry: geometry,
-                                    radius: radius,
-                                    userId: userId,
-                                    projectId: projectId,
-                                    lastUpdated: new Date(),
-                                });
-                            } 
-                            // else if the site exists in the FA database, and has been updated in the webapp, update the site
-                            else if (siteFromDatabase.lastUpdated?.getTime() !== siteLastUpdatedFromPP.getTime()) {
-                                // Group sites by common update criteria
-                                const updateKey = `${siteName}-${geometry.type}-${JSON.stringify(geometry)}-${radius}-${siteLastUpdatedFromPP.getTime()}`;
-                                
-                                if (!siteUpdates[updateKey]) {
-                                    siteUpdates[updateKey] = {
-                                        ids: [],
-                                        data: {
-                                            name: siteName,
-                                            type: geometry.type,
-                                            geometry: geometry,
-                                            radius: radius,
-                                            lastUpdated: siteLastUpdatedFromPP,
-                                        }
-                                    };
-                                }
-                                
-                                siteUpdates[updateKey].ids.push(siteFromDatabase.id);
-                            }
-                        } else {
-                            // Handle the case where geometry or type is null
-                            logger(`Skipping site with id ${remoteId_fromPP} due to null geometry or type.`, 'info');
-                        }
-                    }
-                }
-            }
-
-            // Execute bulk operations
-            let projectsUpdatedCount = 0;
-            let sitesUpdatedCount = 0;
-            
-            // Create sites in bulk if any
-            if (sitesToCreate.length > 0) {
-                // const createdSites = await prismaClient.site.createMany({
-                //     data: sitesToCreate
-                // });
-                // createCount += createdSites.count;
-                // createCounts.sites += createdSites.count;
-                // Create new sites in batches
-                for (let i = 0; i < sitesToCreate.length; i += BATCH_SIZE) {
-                    const siteBatch = sitesToCreate.slice(i, i + BATCH_SIZE);
-                    const createdSites = await prismaClient.site.createMany({
-                        data: siteBatch
-                    });
-                    createCount += createdSites.count;
-                    createCounts.sites += createdSites.count;
-                }
-            }
-            
-            // Execute bulk project updates
-            for (const key in projectUpdates) {
-                const group = projectUpdates[key];
-                const result = await prismaClient.project.updateMany({
+        // Identify sites in the database that are not present in PP API and dissociate those sites from the projects
+        if (siteIdsInFA_NotInPP.length > 0) {
+            // Process site disassociation in batches - no transaction needed
+            for (let i = 0; i < siteIdsInFA_NotInPP.length; i += BATCH_SIZE) {
+                const idsBatch = siteIdsInFA_NotInPP.slice(i, i + BATCH_SIZE);
+                const deleteResult = await prisma.site.updateMany({
                     where: {
                         id: {
-                            in: group.ids
+                            in: idsBatch,
+                        },
+                    },
+                    data: {
+                        projectId: null,
+                    },
+                });
+                deleteCount += deleteResult.count;
+                deleteCounts.sites += deleteResult.count;
+            }
+            logger(`Soft Deleting or disassociating ${deleteCount} sites not present in the Webapp`, 'info');
+        }
+
+        // Prepare bulk operations for updates
+        const sitesToCreate = [];
+        const projectUpdates = {}; // Group by update data
+        const siteUpdates = {}; // Group by update data
+        
+        // For each project in PP API, identify sites that need to be updated or created
+        for (const projectPP of projectsPP) {
+            const {
+                sites: sitesFromPPProject,
+                id: projectId,
+                lastUpdated: projectLastUpdated,
+                name: projectNameFormPP,
+                slug: projectSlugFormPP,
+            } = projectPP;
+            
+            const projectLastUpdatedFormPP = moment(projectLastUpdated, 'YYYY-MM-DD HH:mm:ss').toDate();
+            const projectFromDatabase = newProjectsFA.find((project) => project.id === projectId);
+
+            // If the project has been updated in the PP API, prepare for bulk update
+            if (projectFromDatabase?.lastUpdated?.getTime() !== projectLastUpdatedFormPP.getTime()) {
+                // Create update entry keyed by the combination of values to update
+                const updateKey = `${projectLastUpdatedFormPP.getTime()}-${projectNameFormPP}-${projectSlugFormPP}`;
+                
+                if (!projectUpdates[updateKey]) {
+                    projectUpdates[updateKey] = {
+                        ids: [],
+                        data: {
+                            lastUpdated: projectLastUpdatedFormPP,
+                            name: projectNameFormPP,
+                            slug: projectSlugFormPP,
+                        }
+                    };
+                }
+                
+                projectUpdates[updateKey].ids.push(projectId);
+            }
+
+            const tpoId = projectPP.tpo.id;
+            const userId = map_userRemoteId_to_userId.get(tpoId);
+
+            // If the project has sites
+            if (sitesFromPPProject && sitesFromPPProject.length > 0) {
+                for (const siteFromPP of sitesFromPPProject) {
+                    const { geometry, properties } = siteFromPP;
+                    const { id: remoteId_fromPP, lastUpdated: siteLastUpdated, name: siteName } = properties;
+                    const siteLastUpdatedFromPP = moment(siteLastUpdated.date.split('.')[0], 'YYYY-MM-DD HH:mm:ss').utc().toDate();
+
+                    // Check if the site is valid
+                    if (geometry && geometry.type) {
+                        const siteId_in_FADatabase = map_ids_sitesThatAreOrWereOnceRemote_to_remoteId.get(remoteId_fromPP)
+                        const radius = 0;
+                        let siteFromDatabase;
+                        
+                        // Check if the site is already in database
+                        if (siteId_in_FADatabase) {
+                            siteFromDatabase = sitesFA.find((site) => site.id === siteId_in_FADatabase);
+                        }
+                        
+                        // If the site does not exist in the database, create a new site
+                        if (!siteFromDatabase) {
+                            sitesToCreate.push({
+                                remoteId: remoteId_fromPP,
+                                name: siteName,
+                                origin: 'ttc',
+                                type: geometry.type,
+                                geometry: geometry,
+                                radius: radius,
+                                userId: userId,
+                                projectId: projectId,
+                                lastUpdated: new Date(),
+                            });
+                        } 
+                        // else if the site exists in the FA database, and has been updated in the webapp, update the site
+                        else if (siteFromDatabase.lastUpdated?.getTime() !== siteLastUpdatedFromPP.getTime()) {
+                            // Group sites by common update criteria
+                            const updateKey = `${siteName}-${geometry.type}-${JSON.stringify(geometry)}-${radius}-${siteLastUpdatedFromPP.getTime()}`;
+                            
+                            if (!siteUpdates[updateKey]) {
+                                siteUpdates[updateKey] = {
+                                    ids: [],
+                                    data: {
+                                        name: siteName,
+                                        type: geometry.type,
+                                        geometry: geometry,
+                                        radius: radius,
+                                        lastUpdated: siteLastUpdatedFromPP,
+                                    }
+                                };
+                            }
+                            
+                            siteUpdates[updateKey].ids.push(siteFromDatabase.id);
+                        }
+                    } else {
+                        // Handle the case where geometry or type is null
+                        logger(`Skipping site with id ${remoteId_fromPP} due to null geometry or type.`, 'info');
+                    }
+                }
+            }
+        }
+
+        // Execute bulk operations - no transactions needed
+        let projectsUpdatedCount = 0;
+        
+        // Create sites in bulk if any - no transaction needed
+        if (sitesToCreate.length > 0) {
+            // Create new sites in batches
+            for (let i = 0; i < sitesToCreate.length; i += BATCH_SIZE) {
+                const siteBatch = sitesToCreate.slice(i, i + BATCH_SIZE);
+                const createdSites = await prisma.site.createMany({
+                    data: siteBatch
+                });
+                createCount += createdSites.count;
+                createCounts.sites += createdSites.count;
+            }
+        }
+        
+        // Execute bulk project updates - no transaction needed
+        for (const key in projectUpdates) {
+            const group = projectUpdates[key];
+            const result = await prisma.project.updateMany({
+                where: {
+                    id: {
+                        in: group.ids
+                    }
+                },
+                data: group.data
+            });
+            projectsUpdatedCount += result.count;
+        }
+        
+        // Execute bulk site updates - no transaction needed
+        for (const key in siteUpdates) {
+            const group = siteUpdates[key];
+            for (let i = 0; i < group.ids.length; i += BATCH_SIZE) {
+                const idsBatch = group.ids.slice(i, i + BATCH_SIZE);
+                const result = await prisma.site.updateMany({
+                    where: {
+                        id: {
+                            in: idsBatch
                         }
                     },
                     data: group.data
                 });
-                projectsUpdatedCount += result.count;
+                updateCount += result.count;
+                updateCounts.sites += result.count;
             }
-            
-            // Execute bulk site updates
-            for (const key in siteUpdates) {
-                const group = siteUpdates[key];
-                // const result = await prismaClient.site.updateMany({
-                //     where: {
-                //         id: {
-                //             in: group.ids
-                //         }
-                //     },
-                //     data: group.data
-                // });
-                // sitesUpdatedCount += result.count;
-                for (let i = 0; i < group.ids.length; i += BATCH_SIZE) {
-                    const idsBatch = group.ids.slice(i, i + BATCH_SIZE);
-                    const result = await prisma.site.updateMany({
-                        where: {
-                            id: {
-                                in: idsBatch
-                            }
-                        },
-                        data: group.data
-                    });
-                    updateCount += result.count;
-                    updateCounts.sites += result.count;
-                }
-            }
-            
-            // Update counts
-            updateCount += projectsUpdatedCount + sitesUpdatedCount;
-            updateCounts.projects += projectsUpdatedCount;
-            updateCounts.sites += sitesUpdatedCount;
-        }, {
-            timeout: 60000 
-        });
+        }
+        
+        // Update counts
+        updateCount += projectsUpdatedCount;
+        updateCounts.projects += projectsUpdatedCount;
 
         logger(`Created ${createCount} items. Updated ${updateCount} items. Deleted ${deleteCount} items.`, 'info');
 
