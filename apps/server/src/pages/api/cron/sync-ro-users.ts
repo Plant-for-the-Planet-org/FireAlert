@@ -397,7 +397,7 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
                 deleteCount += deleteResult.count;
                 deleteCounts.sites += deleteResult.count;
             }
-            logger(`Soft Deleting or disassociating ${deleteCount} sites not present in the Webapp`, 'info');
+            logger(`Disassociating ${deleteCount} sites not present in the Webapp`, 'info');
         }
 
         // Prepare bulk operations for updates
@@ -575,9 +575,9 @@ export default async function syncROUsers(req: NextApiRequest, res: NextApiRespo
 
         logger(`Created ${createCount} items. Updated ${updateCount} items. Deleted ${deleteCount} items.`, 'info');
 
-        logger(`Created ${createCounts.users} users. Updated ${updateCounts.users} users. Deleted ${deleteCounts.users} users.`, 'info');
+        logger(`Created ${createCounts.users} users.`, 'info');
         logger(`Created ${createCounts.projects} projects. Updated ${updateCounts.projects} projects.`, 'info');
-        logger(`Created ${createCounts.sites} sites. Updated ${updateCounts.sites} sites. Deleted ${deleteCounts.sites} sites.`, 'info');
+        logger(`Created ${createCounts.sites} sites. Updated ${updateCounts.sites} sites. Disassociated ${deleteCounts.sites} sites.`, 'info');
 
         res.status(200).json({
             message: "Success! Data has been synced for RO Users!",
