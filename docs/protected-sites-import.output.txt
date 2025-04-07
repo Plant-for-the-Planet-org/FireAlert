@@ -1,0 +1,90 @@
+plant-for-the-planet/ProtectedPlanet/Scripts 
+❯ bash protected-sites-import.sh
+[INFO] Starting ProtectedPlanet PostGIS Integration & FireAlert Sync
+[INFO] Checking for required tools...
+[SUCCESS] shp2pgsql is installed
+[SUCCESS] pg_dump is installed
+[SUCCESS] pg_restore is installed
+[SUCCESS] psql is installed
+[INFO] Creating temporary directory...
+[SUCCESS] Created temporary directory: /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp
+[INFO] Preparing to download dataset from https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_WDOECM_Apr2025_Public_AF_shp.zip...
+[INFO] No existing dataset found. Proceeding with download.
+[INFO] Using wget to download dataset...
+/Users/rupamkairi/Projects/pl 100%[=================================================>]  57.03M  3.28MB/s    in 17s     
+[SUCCESS] Dataset downloaded to /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/protected_planet_20250407182325.zip
+[INFO] Extracting /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/protected_planet_20250407182325.zip to /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/extracted...
+[INFO] Checking for nested zip files...
+[INFO] Extracting nested zip: WDPA_WDOECM_Apr2025_Public_AF_shp_2.zip
+[INFO] Extracting nested zip: WDPA_WDOECM_Apr2025_Public_AF_shp_1.zip
+[INFO] Extracting nested zip: WDPA_WDOECM_Apr2025_Public_AF_shp_0.zip
+[SUCCESS] All archives extracted
+[INFO] Finding shapefiles...
+[SUCCESS] Found 3 shapefiles
+[INFO] Processing polygon shapefiles from /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/shapefiles.txt...
+[INFO] Processing polygon shapefile: WDPA_WDOECM_Apr2025_Public_AF_shp-polygons
+[INFO] Processing polygon shapefile: WDPA_WDOECM_Apr2025_Public_AF_shp-polygons
+[INFO] Processing polygon shapefile: WDPA_WDOECM_Apr2025_Public_AF_shp-polygons
+[SUCCESS] Combined SQL file created: /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql
+[INFO] SQL file created but not imported. You can find it at:
+[INFO] /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql
+[WARNING] Using PRODUCTION environment
+Enter the FireAlert production PostgreSQL database URL: postgresql://postgres:password@localhost:5432/postgres
+[SUCCESS] Database URL validated
+[INFO] Creating database backup...
+[SUCCESS] Backup created: /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/firealert_backup_20250407_182350.dump
+[INFO] Importing data from /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql into database...
+SET
+SET
+BEGIN
+CREATE TABLE
+ALTER TABLE
+                        addgeometrycolumn                        
+-----------------------------------------------------------------
+ public.protected_areas.geom SRID:4326 TYPE:MULTIPOLYGON DIMS:2 
+(1 row)
+
+CREATE INDEX
+COMMIT
+ANALYZE
+SET
+SET
+BEGIN
+psql:/Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql:73: ERROR:  relation "protected_areas" already exists
+psql:/Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql:74: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:/Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql:75: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:/Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql:76: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+ANALYZE
+SET
+SET
+BEGIN
+psql:/Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql:112: ERROR:  relation "protected_areas" already exists
+psql:/Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql:113: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:/Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql:114: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:/Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/ProtectedPlanet.sql:115: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+ANALYZE
+SET
+SET
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+...
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+CREATE INDEX
+COMMIT
+ANALYZE
+[SUCCESS] Data successfully imported into the database
+Clean up temporary files? (y/n): y
+[INFO] Cleaning up temporary files...
+[SUCCESS] Extracted files cleaned up
+[SUCCESS] Temporary files cleaned up
+[INFO] Database backup preserved at: /Users/rupamkairi/Projects/plant-for-the-planet/ProtectedPlanet/Scripts/tmp/firealert_backup_20250407_182350.dump
+[SUCCESS] ProtectedPlanet integration completed successfully
