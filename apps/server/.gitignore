@@ -46,3 +46,5 @@ check.ts
 .sentryclirc
 
 .turbo
+# Sentry Config File
+.env.sentry-build-plugin
