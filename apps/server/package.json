@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "postinstall": "npx prisma generate",
-    "build": "yarn db:deploy && dotenv -e ../../.env next build",
+    "build": "yarn db:deploy && next build",
     "dev": "dotenv -e ../../.env next dev",
     "lint": "dotenv -e ../../.env next lint",
     "start": "dotenv -e ../../.env next start",
@@ -14,11 +14,16 @@
     "db:pull": "dotenv -e ../../.env npx prisma db pull",
     "db:deploy": "dotenv -e ../../.env npx prisma migrate deploy",
     "db:reset": "dotenv -e ../../.env npx prisma migrate reset",
-    "db:generate": "dotenv -e ../../.env npx prisma generate"
+    "db:generate": "dotenv -e ../../.env npx prisma generate",
+    "cf-preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf-upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@google/earthengine": "^0.1.396",
     "@logtail/node": "^0.4.0",
+    "@opennextjs/cloudflare": "^1.0.0-beta.2",
     "@planet-sdk/common": "^0.1.11",
     "@prisma/client": "^6.6.0",
     "@sentry/nextjs": "^9.12.0",
@@ -64,7 +69,8 @@
     "eslint-config-next": "^13.5.4",
     "prisma": "^6.6.0",
     "tsconfig": "*",
-    "typescript": "^5.0.3"
+    "typescript": "^5.0.3",
+    "wrangler": "^4.10.0"
   },
   "ct3aMetadata": {
     "initVersion": "7.8.0"

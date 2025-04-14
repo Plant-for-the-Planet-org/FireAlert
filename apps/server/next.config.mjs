@@ -1,4 +1,6 @@
-import {withSentryConfig} from '@sentry/nextjs';
+import * as Sentry from '@sentry/nextjs';
+import {initOpenNextCloudflareForDev} from '@opennextjs/cloudflare';
+
 /**
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.
  * This is especially useful for Docker builds.
@@ -35,7 +37,7 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(
+const nextConfigWithSentry = Sentry.withSentryConfig(
   nextConfig,
   {
     org: 'plant-for-the-planet',
@@ -60,3 +62,7 @@ export default withSentryConfig(
     disableLogger: true,
   },
 );
+
+export default nextConfigWithSentry;
+
+initOpenNextCloudflareForDev();
