@@ -10,26 +10,25 @@ datasource db {
 }
 
 model User {
-    id               String        @id @default(cuid())
-    sub              String?       @unique
+    id               String         @id @default(cuid())
+    sub              String?        @unique
     name             String?
-    email            String        @unique
-    emailVerified    Boolean       @default(false)
+    email            String         @unique
+    emailVerified    Boolean        @default(false)
     detectionMethods Json // ["MODIS","VIIRS","LANDSAT","GEOSTATIONARY"]
     isPlanetRO       Boolean?
-    plan             String        @default("basic") //"basic" or "custom"
     image            String?
     deletedAt        DateTime?
     isVerified       Boolean?
     lastLogin        DateTime?
-    signupDate       DateTime      @default(now())
-    roles            Role          @default(ROLE_CLIENT)
+    signupDate       DateTime       @default(now())
+    roles            Role           @default(ROLE_CLIENT)
+    remoteId         String?
+    plan             String         @default("basic")
     alertMethods     AlertMethod[]
     projects         Project[]
     sites            Site[]
-    remoteId         String?
-
-    siteRelations SiteRelation[]
+    siteRelations    SiteRelation[]
 }
 
 model VerificationRequest {
@@ -75,19 +74,18 @@ model Site {
     deletedAt          DateTime?
     projectId          String?
     lastUpdated        DateTime?
-    stopAlertUntil     DateTime?
-    lastMessageCreated DateTime?
     userId             String?
     slices             Json? // Will be something like ["1","2"] or ["3"] or ["1"] or ["7","8"]
     detectionGeometry  Unsupported("geometry")?
     originalGeometry   Unsupported("geometry")?
     detectionArea      Float?
-    alerts             SiteAlert[]
+    stopAlertUntil     DateTime?
+    lastMessageCreated DateTime?
+    kind               SiteKind?                @default(USER_SITE)
     project            Project?                 @relation(fields: [projectId], references: [id])
     user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    kind               SiteKind?                @default(USER_SITE)
-
-    siteRelations SiteRelation[]
+    alerts             SiteAlert[]
+    siteRelations      SiteRelation[]
 }
 
 model Project {
@@ -132,8 +130,6 @@ model GeoEvent {
 model SiteAlert {
     id            String          @id @default(cuid())
     siteId        String
-    site          Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
-    notifications Notification[]
     type          String //Fire
     latitude      Float
     longitude     Float
@@ -144,16 +140,18 @@ model SiteAlert {
     deletedAt     DateTime?
     distance      Int
     data          Json?
+    notifications Notification[]
+    site          Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
     id          String    @id @default(cuid())
     siteAlertId String
-    siteAlert   SiteAlert @relation(fields: [siteAlertId], references: [id], onDelete: Cascade)
     alertMethod String
     destination String
     sentAt      DateTime?
     isDelivered Boolean   @default(false)
+    siteAlert   SiteAlert @relation(fields: [siteAlertId], references: [id], onDelete: Cascade)
 }
 
 model Stats {
@@ -169,10 +167,50 @@ model SiteRelation {
     updatedAt DateTime?        @updatedAt
     siteId    String
     userId    String
-    site      Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
-    user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
     role      SiteRelationRole @default(ROLE_ADMIN)
     isActive  Boolean          @default(true)
+    site      Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+    user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model protectedarea {
+    gid        Int                      @id @default(autoincrement())
+    wdpaid     Decimal?                 @db.Decimal
+    wdpa_pid   String?                  @db.VarChar(52)
+    pa_def     String?                  @db.VarChar(20)
+    name       String?                  @db.VarChar(254)
+    orig_name  String?                  @db.VarChar(254)
+    desig      String?                  @db.VarChar(254)
+    desig_eng  String?                  @db.VarChar(254)
+    desig_type String?                  @db.VarChar(20)
+    iucn_cat   String?                  @db.VarChar(20)
+    int_crit   String?                  @db.VarChar(100)
+    marine     String?                  @db.VarChar(20)
+    rep_m_area Decimal?                 @db.Decimal
+    gis_m_area Decimal?                 @db.Decimal
+    rep_area   Decimal?                 @db.Decimal
+    gis_area   Decimal?                 @db.Decimal
+    no_take    String?                  @db.VarChar(50)
+    no_tk_area Decimal?                 @db.Decimal
+    status     String?                  @db.VarChar(100)
+    status_yr  Int?
+    gov_type   String?                  @db.VarChar(254)
+    own_type   String?                  @db.VarChar(254)
+    mang_auth  String?                  @db.VarChar(254)
+    mang_plan  String?                  @db.VarChar(254)
+    verif      String?                  @db.VarChar(20)
+    metadataid Int?
+    sub_loc    String?                  @db.VarChar(100)
+    parent_iso String?                  @db.VarChar(50)
+    iso3       String?                  @db.VarChar(50)
+    supp_info  String?                  @db.VarChar(254)
+    cons_obj   String?                  @db.VarChar(100)
+    geom       Unsupported("geometry")?
+    // @@index([geom], map: "protectedarea_geom_idx2", type: Gist)
+    // @@index([geom], map: "protectedarea_geom_idx3", type: Gist)
+
+    @@index([geom], type: Gist)
+    @@index([geom], map: "protectedarea_geom_idx1", type: Gist)
 }
 
 enum Role {
