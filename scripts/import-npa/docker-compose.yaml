@@ -1,0 +1,20 @@
+services:
+  natural_protected_areas:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Use host networking so that "localhost" in the script reaches your host's PostgreSQL
+    network_mode: "host"
+    # Mount the tmp and logs directories for debugging and inspection
+    volumes:
+      - ./tmp:/app/tmp
+      - ./logs:/app/logs
+    # Pass command-line arguments to your script
+    # command:
+    #   [
+    #     "--env",
+    #     "development",
+    #   ]
+    # Keep the container interactive for debugging
+    tty: true
+    stdin_open: true
