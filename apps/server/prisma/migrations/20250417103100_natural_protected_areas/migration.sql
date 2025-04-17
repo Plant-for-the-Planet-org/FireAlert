@@ -6,7 +6,8 @@ CREATE TYPE "SiteRelationRole" AS ENUM ('ROLE_ADMIN', 'ROLE_VIEWER');
 
 -- AlterTable
 ALTER TABLE "Site" ADD COLUMN     "kind" "SiteKind" DEFAULT 'USER_SITE',
-ALTER COLUMN "userId" DROP NOT NULL;
+ALTER COLUMN "userId" DROP NOT NULL,
+ALTER COLUMN "detectionArea" DROP DEFAULT;
 
 -- CreateTable
 CREATE TABLE "SiteRelation" (
