@@ -6,11 +6,6 @@ import {
 } from "../trpc";
 import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
 import type {Prisma, Site, SiteAlert, SiteRelation} from "@prisma/client";
-import { filterByName, getByExternalId } from "./sample-utils";
-// import {UserPlan} from "../../../Interfaces/AlertMethod";
-
-const pp_api = process.env.NEXT_PUBLIC_PROTECTED_PLANET_ENDPOINT as string;
-const pp_api_key = process.env.NEXT_PUBLIC_PROTECTED_PLANET_API_KEY as string;
 
 export const siteRouter = createTRPCRouter({
 
@@ -115,7 +110,19 @@ export const siteRouter = createTRPCRouter({
             const userId = ctx.user!.id;
             try {
                 const {query} = input;
-                const results = filterByName(query)
+                
+                // const results = null;
+                const results = await ctx.prisma.protectedarea.findMany({
+                    where: {name: {contains: query, mode: 'insensitive'}},
+                    select: {
+                        name: true,
+                        wdpaid: true,
+                        wdpa_pid: true,
+                        // geom: true,
+                    }
+                });
+
+                
                 
                 // const sites = await ctx.prisma.site.findMany({
                 //     where: {
@@ -160,95 +167,43 @@ export const siteRouter = createTRPCRouter({
         .mutation(async ({ctx, input}) => {
             const userId = ctx.user!.id;
             try {
-                const {externalId} = input
+                const {remoteId} = input
 
-                const origin = 'firealert';
+                const origin = 'protectedarea';
 
-                // radius 0 on Point would generally not return any results
-                // So monitor 1km around the point by default
-                // if (input.type === 'Point' && input.radius === 0) {
-                //     radius = 1000;
-                // } else { radius = input.radius; }
+                const _pa = await ctx.prisma.protectedarea.findFirst({
+                    where: { OR: [{wdpaid: +remoteId}, {wdpa_pid: remoteId}]},
+                    select: {wdpaid: true, wdpa_pid: true, name: true},
+                });
 
-                const ppSite = getByExternalId(externalId)
+                let geometry;
+                if(remoteId === _pa?.wdpa_pid) {
+                    geometry = await ctx.prisma.$queryRaw`
+                        SELECT ST_AsGeoJSON(ST_ForcePolygonCCW(ST_Union(geom))) AS geometry
+                        FROM protectedarea
+                        WHERE wdpa_pid = ${remoteId}
+                        GROUP BY wdpa_pid;`
+                } else {
+                    geometry = await ctx.prisma.$queryRaw`
+                        SELECT ST_AsGeoJSON(ST_ForcePolygonCCW(ST_Union(geom))) AS geometry
+                        FROM protectedarea
+                        WHERE wdpapid = ${+remoteId}
+                        GROUP BY wdpapid;`
+                }
 
-                // Any check by externalId?
-                // const protectedArea: {name: string, wdpa_id: string, geometry?: GeoJSON.Geometry} = {
-                //     name: "", wdpa_id: ""
-                // };
-                // const qs = new URLSearchParams();
-                // qs.append("token", pp_api_key);
-                // qs.append("with_geometry", "true");
-                // const { externalId } = input;
-                // const pp_url = `${pp_api}/protected_areas/${externalId!}?${qs.toString()}`;
-
-                // const res = await fetch(pp_url);
-                // if (!res.ok) {
-                //     throw new TRPCError({
-                //         code: 'INTERNAL_SERVER_ERROR',
-                //         message: `Something Went Wrong`,
-                //         cause: res,
-                //     })
-                // }
-
-                // const data = (await res.json())?.protected_area;
-                // if (data) {
-                //     protectedArea.name = data?.name as string;
-                //     protectedArea.wdpa_id = data?.wdpa_id?.toString() as string;
-                //     protectedArea.geometry = data?.geojson.geometry as GeoJSON.Geometry;
-                // } else {
-                //     throw new TRPCError({
-                //         code: "NOT_FOUND",
-                //         message: `No protected area found with WDPA ID ${externalId!}.`
-                //     })
-                // }
-
-                // const site = await ctx.prisma.site.create({
-                //     data: {
-                //         origin: origin,
-                //         type: input.type,
-                //         name: protectedArea.name,
-                //         radius: radius,
-                //         kind: 'PROTECTED_SITE',
-                //         geometry: protectedArea.geometry as unknown as Prisma.JsonObject,
-                //         externalId: protectedArea.wdpa_id,
-                //         lastUpdated: new Date(),
-                //         siteRelations: {
-                //             create: {
-                //                 user: { connect: { id: userId, } },
-                //                 role: 'ROLE_VIEWER',
-                //             }
-                //         },
-                //     },
-                //     select: {
-                //         id: true,
-                //         type: true,
-                //         name: true,
-                //         radius: true,
-                //         geometry: true,
-                //         externalId: true,
-                //         lastUpdated: true,
-                //         project: {
-                //             select: { id: true, name: true }
-                //         },
-                //         siteRelations: {
-                //             select: { siteId: true, userId: true, role: true }
-                //         }
-                //     },
-                // });
-
-                if(!ppSite) {
-                    throw new TRPCError({
-                        code: "NOT_FOUND",
-                        message: `No protected area found with WDPA ID ${externalId}.`
-                    })
-                } 
+                const protectedArea = {
+                    name: _pa?.name,
+                    wdpaid: _pa?.wdpaid,
+                    wdpa_pid: _pa?.wdpa_pid,
+                    geometry: JSON.parse(geometry[0]?.geometry)
+                }
                     
                 const foundSite = await ctx.prisma.site.findFirst({
-                    where: {externalId: externalId},
+                    where: {remoteId: remoteId},
                 })
 
                 let site: Partial<Site>, siteRelation: Partial<SiteRelation>;
+
                 if(foundSite) {
                     const _foundSiteRelation = await ctx.prisma.siteRelation.findFirst({
                         where: { userId: userId, siteId: foundSite.id },
@@ -273,7 +228,7 @@ export const siteRouter = createTRPCRouter({
                                         name: true,
                                         radius: true,
                                         geometry: true,
-                                        externalId: true,
+                                        remoteId: true,
                                     }
                                 }
                             }
@@ -290,11 +245,11 @@ export const siteRouter = createTRPCRouter({
                         data: {
                             origin: origin,
                             type: 'Polygon',
-                            name: ppSite.name,
+                            name: protectedArea.name,
                             radius: 0,
                             kind: 'PROTECTED_SITE',
-                            geometry: ppSite.geometry as unknown as Prisma.JsonObject,
-                            externalId: ppSite.externalId,
+                            geometry: protectedArea.geometry as unknown as Prisma.JsonObject,
+                            remoteId: protectedArea.wdpa_pid,
                             lastUpdated: new Date(),
                             siteRelations: {
                                 create: {
@@ -309,7 +264,7 @@ export const siteRouter = createTRPCRouter({
                             name: true,
                             radius: true,
                             geometry: true,
-                            externalId: true,
+                            remoteId: true,
                             lastUpdated: true,
                             project: {
                                 select: { id: true, name: true }
@@ -325,18 +280,13 @@ export const siteRouter = createTRPCRouter({
 
                 return {
                     status: "success",
-                    data: {
-                        site,
-                        siteRelation
-                    },
+                    data: { site, siteRelation },
                 };
             } catch (error) {
-                console.log(error);
                 if (error instanceof TRPCError) {
-                    // if the error is already a TRPCError, just re-throw it
                     throw error;
                 }
-                // if it's a different type of error, throw a new TRPCError
+                
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
                     message: `Something Went Wrong`,
@@ -693,11 +643,15 @@ export const siteRouter = createTRPCRouter({
                 const activeSiteRelations = await ctx.prisma.siteRelation.findMany({
                     where: { siteId: input.params.siteId, isActive:true }
                 })
-                if(activeSiteRelations.length === 0) {
                     await ctx.prisma.site.update({
-                        where: {id: siteId}, data: {isMonitored: false}
+                        where: {id: siteId}, 
+                        data: {
+                            isMonitored: activeSiteRelations.length === 0 
+                                ? false 
+                                : input.body.isActive
+                        }
                     })
-                }
+
 
                 const _siteRelation = await ctx.prisma.siteRelation.findFirst({
                     where: { siteId: siteId, userId: userId },

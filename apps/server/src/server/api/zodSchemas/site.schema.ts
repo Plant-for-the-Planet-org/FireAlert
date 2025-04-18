@@ -57,7 +57,7 @@ export const findProtectedSiteParams = z.object({
     query: z.string()
 });
 export const createProtectedSiteSchema = z.object({
-    externalId: z.string()
+    remoteId: z.string()
 })
 // export const createProtectedSiteSchema = protectedSiteSchema;
 export const joinProtectedSiteParams = protectedSiteParams;

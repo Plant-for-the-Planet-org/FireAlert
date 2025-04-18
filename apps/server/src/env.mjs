@@ -44,8 +44,6 @@ const server = z.object({
       if (val === undefined) return true; // since it is optional by default caching kept true
       return val === "true";
     }),
-  NEXT_PUBLIC_PROTECTED_PLANET_ENDPOINT: z.string().optional(),
-  NEXT_PUBLIC_PROTECTED_PLANET_API_KEY: z.string().optional(),
 });
 
 /**
