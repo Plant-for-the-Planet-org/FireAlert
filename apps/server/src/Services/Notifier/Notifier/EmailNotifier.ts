@@ -28,7 +28,7 @@ class EmailNotifier implements Notifier {
     return [NOTIFICATION_METHOD.EMAIL];
   }
 
-  notify(
+  async notify(
     destination: string,
     parameters: NotificationParameters,
   ): Promise<boolean> {
@@ -67,7 +67,7 @@ class EmailNotifier implements Notifier {
 
     // Send the email
     return new Promise((resolve, reject) => {
-      transporter.sendMail(mailOptions, (err) => {
+      transporter.sendMail(mailOptions, err => {
         if (err) {
           logger(`Error sending email: ${err}`, 'error');
           reject(false);

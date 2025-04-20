@@ -1,15 +1,14 @@
-import {type NotificationParameters} from "../../../Interfaces/NotificationParameters";
-import type Notifier from "../Notifier";
-import {NOTIFICATION_METHOD} from "../methodConstants";
-import {isPhoneNumberRestricted} from "../../../utils/notification/restrictedSMS"
+import {type NotificationParameters} from '../../../Interfaces/NotificationParameters';
+import type Notifier from '../Notifier';
+import {NOTIFICATION_METHOD} from '../methodConstants';
+import {isPhoneNumberRestricted} from '../../../utils/notification/restrictedSMS';
 import twilio from 'twilio';
 import {env} from '../../../env.mjs';
-import {logger} from "../../../../src/server/logger";
-import {prisma} from "../../../server/db";
-import { sendToSlack } from "./utils";
+import {logger} from '../../../../src/server/logger';
+import {prisma} from '../../../server/db';
+import {sendToSlack} from './utils';
 
 class SMSNotifier implements Notifier {
-
   getSupportedMethods(): Array<string> {
     return [NOTIFICATION_METHOD.SMS];
   }
@@ -19,43 +18,55 @@ class SMSNotifier implements Notifier {
       const result = await prisma.alertMethod.updateMany({
         where: {
           destination: destination,
-          method: NOTIFICATION_METHOD.SMS
+          method: NOTIFICATION_METHOD.SMS,
         },
         data: {
-          isEnabled: false
-        }
+          isEnabled: false,
+        },
       });
 
       if (result.count > 0) {
-        logger(`Disabled alertMethod for destination: ${destination}`, "info");
+        logger(`Disabled alertMethod for destination: ${destination}`, 'info');
       } else {
-        logger(`No alertMethod found for destination: ${destination}`, "info");
+        logger(`No alertMethod found for destination: ${destination}`, 'info');
       }
     } catch (dbError) {
-      logger(`Database Error when disabling alertMethod for destination: ${destination}.`, "error");
+      logger(
+        `Database Error when disabling alertMethod for destination: ${destination}.`,
+        'error',
+      );
     }
   }
 
-
-  async notify(destination: string, parameters: NotificationParameters): Promise<boolean> {
-    const { message, url, id } = parameters;
+  async notify(
+    destination: string,
+    parameters: NotificationParameters,
+  ): Promise<boolean> {
+    const {message, url, id} = parameters;
 
     // if env.TWILIO_ACCOUNT_SID or env.TWILIO_AUTH_TOKEN or env.TWILIO_PHONE_NUMBER is not set return promise with false
-    if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_PHONE_NUMBER) {
-      logger(`Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`, "error");
+    if (
+      !env.TWILIO_ACCOUNT_SID ||
+      !env.TWILIO_AUTH_TOKEN ||
+      !env.TWILIO_PHONE_NUMBER
+    ) {
+      logger(
+        `Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`,
+        'error',
+      );
       return Promise.resolve(false);
     }
-    
+
     // If the destination is a restricted Country, return false, log error.
     if (isPhoneNumberRestricted('sms', destination)) {
       // If destination is a restricted phone number
       // Then, notification was created before FireAlert introduced SMS Restriction
       // Thus, notification must be deleted, so that it is not constantly marked as "not-delivered"
       await prisma.notification.delete({
-        where:{
-          id: id
-        }
-      })
+        where: {
+          id: id,
+        },
+      });
       // Resolve the promise with false ensures that notifier function stops for this notification
       return Promise.resolve(false);
     }
@@ -78,9 +89,9 @@ class SMSNotifier implements Notifier {
       .then(() => {
         return true;
       })
-      .catch(async (error) => {
+      .catch(async error => {
         // General logging for all failed attempts
-        logger(`Failed to send SMS. Error code: ${error.code}`, "error");
+        logger(`Failed to send SMS. Error code: ${error.code}`, 'error');
 
         const errorString = `Twilio Error: ${error.code} ${error.message}`;
         sendToSlack(errorString);
@@ -93,13 +104,19 @@ class SMSNotifier implements Notifier {
 
         if (disableCodes.includes(error.code)) {
           // Log a more detailed message for these error codes
-          logger(`${error}. Disabling AlertMethods associated with this Phone Number`, "error");
+          logger(
+            `${error}. Disabling AlertMethods associated with this Phone Number`,
+            'error',
+          );
 
           // Disable corresponding alertMethods
-          await this.disableAlertMethodsForDestination(destination);
+          // await this.disableAlertMethodsForDestination(destination);
         } else if (logErrorCodes.includes(error.code)) {
           // Additional detailed logging for just logging error codes
-          logger(`${error.message}. Error while sending SMS to ${destination}.`, "error");
+          logger(
+            `${error.message}. Error while sending SMS to ${destination}.`,
+            'error',
+          );
         }
 
         return false;

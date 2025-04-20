@@ -20,7 +20,7 @@ const sendNotifications = async (): Promise<number> => {
         isDelivered: false,
         sentAt: null,
         // alertMethod: {notIn: ['sms', 'whatsapp']}
-        alertMethod: {notIn: ['whatsapp']}
+        alertMethod: {notIn: ['whatsapp']},
       },
       include: {
         siteAlert: {
@@ -41,13 +41,16 @@ const sendNotifications = async (): Promise<number> => {
     logger(`Notifications to be sent: ${notifications.length}`, 'info');
 
     const successfulNotificationIds: string[] = [];
-    const failedAlertMethods: { destination: string; method: AlertMethodMethod }[] = [];
+    const failedAlertMethods: {
+      destination: string;
+      method: AlertMethodMethod;
+    }[] = [];
 
     await Promise.all(
       notifications.map(async notification => {
         try {
           const {id, destination, siteAlert} = notification;
-          const alertMethod = notification.alertMethod as AlertMethodMethod
+          const alertMethod = notification.alertMethod as AlertMethodMethod;
           const {
             id: alertId,
             confidence,
@@ -60,6 +63,8 @@ const sendNotifications = async (): Promise<number> => {
             eventDate,
             site,
           } = siteAlert;
+          const siteId = site.id;
+          const userId = site.userId;
 
           // if distance = 0 then the fire is inside the site's original geometry
           // if distance > 0 then the fire is outside the site's original geometry
@@ -145,9 +150,14 @@ const sendNotifications = async (): Promise<number> => {
               siteName: siteName,
               data: data as DataRecord,
             },
+            site: {id: siteId},
+            user: {id: userId!},
           };
           const notifier = NotifierRegistry.get(alertMethod);
 
+          // console.log(destination, notificationParameters);
+
+          // const isDelivered = true;
           const isDelivered = await notifier.notify(
             destination,
             notificationParameters,
@@ -157,15 +167,17 @@ const sendNotifications = async (): Promise<number> => {
             successfulNotificationIds.push(id);
             successCount++;
           } else {
-            failedAlertMethods.push({ destination, method: alertMethod });
+            failedAlertMethods.push({destination, method: alertMethod});
           }
         } catch (error) {
+          console.log(error);
           logger(`Error processing notification ${notification.id}:`, 'error');
+          return;
         }
-      })
+      }),
     );
 
-    // UpdateMany notification 
+    // UpdateMany notification
     if (successfulNotificationIds.length > 0) {
       await prisma.notification.updateMany({
         where: {
@@ -179,8 +191,9 @@ const sendNotifications = async (): Promise<number> => {
         },
       });
     }
+
     // Handle failed notifications
-    for (const { destination, method } of failedAlertMethods) {
+    for (const {destination, method} of failedAlertMethods) {
       await prisma.alertMethod.updateMany({
         where: {
           destination: destination,
