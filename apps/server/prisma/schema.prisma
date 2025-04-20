@@ -81,7 +81,6 @@ model Site {
     detectionArea      Float?
     stopAlertUntil     DateTime?
     lastMessageCreated DateTime?
-    kind               SiteKind?                @default(USER_SITE)
     project            Project?                 @relation(fields: [projectId], references: [id])
     user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
     alerts             SiteAlert[]
