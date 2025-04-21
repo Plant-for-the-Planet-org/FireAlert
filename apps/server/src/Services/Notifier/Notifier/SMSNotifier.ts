@@ -83,6 +83,7 @@ class SMSNotifier implements Notifier {
     const accountSid = env.TWILIO_ACCOUNT_SID;
     const authToken = env.TWILIO_AUTH_TOKEN;
     const phoneNumber = env.TWILIO_PHONE_NUMBER;
+    const statusCallback = env.TWILIO_STATUS_CALLBACK_URL;
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message
@@ -93,6 +94,7 @@ class SMSNotifier implements Notifier {
         body: messageBody,
         from: phoneNumber,
         to: destination,
+        statusCallback,
       })
       .then(async value => {
         const {sid, status, errorCode, errorMessage} = value;
