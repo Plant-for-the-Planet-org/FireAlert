@@ -178,30 +178,16 @@ const sendNotifications = async (): Promise<number> => {
     // UpdateMany notification
     if (successfulNotificationIds.length > 0) {
       await prisma.notification.updateMany({
-        where: {
-          id: {
-            in: successfulNotificationIds,
-          },
-        },
-        data: {
-          isDelivered: true,
-          sentAt: new Date(),
-        },
+        where: {id: {in: successfulNotificationIds}},
+        data: {isDelivered: true, sentAt: new Date()},
       });
     }
 
     // Handle failed notifications
     for (const {destination, method} of failedAlertMethods) {
       await prisma.alertMethod.updateMany({
-        where: {
-          destination: destination,
-          method: method,
-        },
-        data: {
-          failCount: {
-            increment: 1,
-          },
-        },
+        where: {destination: destination, method: method},
+        data: {failCount: {increment: 1}},
       });
     }
 

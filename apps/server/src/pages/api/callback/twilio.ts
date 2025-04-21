@@ -27,6 +27,16 @@ export default async function webhookHandler(
       const messageStatus = params.get('MessageStatus');
 
       logger(`Status of message ${messageSid!} is ${messageStatus!}`, `info`);
+
+      let isDelivered = true;
+      if (
+        messageStatus === 'failed' ||
+        messageStatus === 'undelivered' ||
+        messageStatus === 'canceled'
+      ) {
+        isDelivered = false;
+      }
+
       await prisma.$executeRawUnsafe(
         `
         UPDATE "Notification"
@@ -36,9 +46,11 @@ export default async function webhookHandler(
           to_jsonb($1::text),
           true
         )
-        WHERE metadata->>'sid' = $2;
+        "isDelivered" = $2
+        WHERE metadata->>'sid' = $3;
         `,
         messageStatus,
+        isDelivered,
         messageSid,
       );
 
