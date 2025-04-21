@@ -8,6 +8,30 @@ import {logger} from '../../../../src/server/logger';
 import {prisma} from '../../../server/db';
 import {sendToSlack} from './utils';
 
+interface TwilioError {
+  code: number;
+  status: number | string;
+  message: string;
+  [key: string]: any;
+}
+
+export function verifyTwilioEnvironment() {
+  // if env.TWILIO_ACCOUNT_SID or env.TWILIO_AUTH_TOKEN or env.TWILIO_PHONE_NUMBER is not set return promise with false
+  if (
+    !env.TWILIO_ACCOUNT_SID ||
+    !env.TWILIO_AUTH_TOKEN ||
+    !env.TWILIO_PHONE_NUMBER
+  ) {
+    logger(
+      `Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`,
+      'error',
+    );
+    return false;
+  }
+
+  return true;
+}
+
 class SMSNotifier implements Notifier {
   getSupportedMethods(): Array<string> {
     return [NOTIFICATION_METHOD.SMS];
@@ -16,19 +40,14 @@ class SMSNotifier implements Notifier {
   async disableAlertMethodsForDestination(destination: string): Promise<void> {
     try {
       const result = await prisma.alertMethod.updateMany({
-        where: {
-          destination: destination,
-          method: NOTIFICATION_METHOD.SMS,
-        },
-        data: {
-          isEnabled: false,
-        },
+        where: {destination: destination, method: NOTIFICATION_METHOD.SMS},
+        data: {isEnabled: false, failCount: {increment: 1}},
       });
 
       if (result.count > 0) {
         logger(`Disabled alertMethod for destination: ${destination}`, 'info');
       } else {
-        logger(`No alertMethod found for destination: ${destination}`, 'info');
+        logger(`No AlertMethod found for destination: ${destination}`, 'info');
       }
     } catch (dbError) {
       logger(
@@ -44,29 +63,18 @@ class SMSNotifier implements Notifier {
   ): Promise<boolean> {
     const {message, url, id} = parameters;
 
-    // if env.TWILIO_ACCOUNT_SID or env.TWILIO_AUTH_TOKEN or env.TWILIO_PHONE_NUMBER is not set return promise with false
-    if (
-      !env.TWILIO_ACCOUNT_SID ||
-      !env.TWILIO_AUTH_TOKEN ||
-      !env.TWILIO_PHONE_NUMBER
-    ) {
-      logger(
-        `Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`,
-        'error',
-      );
+    if (!verifyTwilioEnvironment()) {
       return Promise.resolve(false);
     }
 
     // If the destination is a restricted Country, return false, log error.
     if (isPhoneNumberRestricted('sms', destination)) {
+      logger(`destination ${destination}`, 'info');
       // If destination is a restricted phone number
       // Then, notification was created before FireAlert introduced SMS Restriction
       // Thus, notification must be deleted, so that it is not constantly marked as "not-delivered"
-      await prisma.notification.delete({
-        where: {
-          id: id,
-        },
-      });
+      await prisma.notification.delete({where: {id: id}});
+
       // Resolve the promise with false ensures that notifier function stops for this notification
       return Promise.resolve(false);
     }
@@ -86,15 +94,35 @@ class SMSNotifier implements Notifier {
         from: phoneNumber,
         to: destination,
       })
-      .then(() => {
+      .then(async value => {
+        const {sid, status, errorCode, errorMessage} = value;
+        logger(`Twilio message status ${status}`, 'info');
+
+        const logString = `Twilio Log: ${errorCode} ${errorMessage}`;
+        sendToSlack(logString);
+
+        // update Notification.metadata with sid & status. Do not set these but append the JSON object with these keys.
+        const updateJson = JSON.stringify({sid: sid, status: status});
+        await prisma.$executeRawUnsafe(
+          `
+            UPDATE "Notification"
+            SET metadata = COALESCE(metadata, '{}'::jsonb) || $1::jsonb
+            WHERE id = $2;
+          `,
+          updateJson,
+          id,
+        );
+
         return true;
       })
-      .catch(async error => {
-        // General logging for all failed attempts
-        logger(`Failed to send SMS. Error code: ${error.code}`, 'error');
+      .catch(async (error: TwilioError) => {
+        const {code, status, message} = error;
 
-        const errorString = `Twilio Error: ${error.code} ${error.message}`;
-        sendToSlack(errorString);
+        // General logging for all failed attempts
+        logger(`Failed to send SMS. Error code: ${code}`, 'error');
+
+        const logString = `Twilio Error: ${code} ${message}`;
+        sendToSlack(logString);
 
         // Error codes for which alertMethods should be disabled
         const disableCodes = [21610, 21612, 30005, 21408, 21211];
@@ -102,22 +130,32 @@ class SMSNotifier implements Notifier {
         // Error codes for which the error should just be logged
         const logErrorCodes = [30008, 30007, 30006, 30003];
 
-        if (disableCodes.includes(error.code)) {
-          // Log a more detailed message for these error codes
+        if (disableCodes.includes(code)) {
           logger(
-            `${error}. Disabling AlertMethods associated with this Phone Number`,
+            `${message}. Disabling AlertMethods associated with this Phone Number`,
             'error',
           );
 
           // Disable corresponding alertMethods
-          // await this.disableAlertMethodsForDestination(destination);
-        } else if (logErrorCodes.includes(error.code)) {
+          await this.disableAlertMethodsForDestination(destination);
+        } else if (logErrorCodes.includes(code)) {
           // Additional detailed logging for just logging error codes
           logger(
-            `${error.message}. Error while sending SMS to ${destination}.`,
+            `${message}. Error while sending SMS to ${destination}.`,
             'error',
           );
         }
+
+        const updateJson = JSON.stringify({status: status});
+        await prisma.$executeRawUnsafe(
+          `
+            UPDATE "Notification"
+            SET metadata = COALESCE(metadata, '{}'::jsonb) || $1::jsonb
+            WHERE id = $2;
+          `,
+          updateJson,
+          id,
+        );
 
         return false;
       });

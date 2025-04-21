@@ -155,9 +155,6 @@ const sendNotifications = async (): Promise<number> => {
           };
           const notifier = NotifierRegistry.get(alertMethod);
 
-          // console.log(destination, notificationParameters);
-
-          // const isDelivered = true;
           const isDelivered = await notifier.notify(
             destination,
             notificationParameters,
@@ -172,6 +169,7 @@ const sendNotifications = async (): Promise<number> => {
         } catch (error) {
           console.log(error);
           logger(`Error processing notification ${notification.id}:`, 'error');
+          // process.exit();
           return;
         }
       }),
