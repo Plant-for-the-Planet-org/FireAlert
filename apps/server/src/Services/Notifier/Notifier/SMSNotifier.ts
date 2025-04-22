@@ -105,15 +105,11 @@ class SMSNotifier implements Notifier {
 
         // update Notification.metadata with sid & status. Do not set these but append the JSON object with these keys.
         const updateJson = JSON.stringify({sid: sid, status: status});
-        await prisma.$executeRawUnsafe(
-          `
-            UPDATE "Notification"
-            SET metadata = COALESCE(metadata, '{}'::jsonb) || $1::jsonb
-            WHERE id = $2;
-          `,
-          updateJson,
-          id,
-        );
+        await prisma.$executeRaw`
+          UPDATE "Notification"
+          SET metadata = COALESCE(metadata, '{}'::jsonb) || ${updateJson}::jsonb
+          WHERE id = ${id};
+        `;
 
         return true;
       })
@@ -149,15 +145,11 @@ class SMSNotifier implements Notifier {
         }
 
         const updateJson = JSON.stringify({status: status});
-        await prisma.$executeRawUnsafe(
-          `
-            UPDATE "Notification"
-            SET metadata = COALESCE(metadata, '{}'::jsonb) || $1::jsonb
-            WHERE id = $2;
-          `,
-          updateJson,
-          id,
-        );
+        await prisma.$executeRaw`
+          UPDATE "Notification"
+          SET metadata = COALESCE(metadata, '{}'::jsonb) || ${updateJson}::jsonb
+          WHERE id = ${id};
+        `;
 
         return false;
       });

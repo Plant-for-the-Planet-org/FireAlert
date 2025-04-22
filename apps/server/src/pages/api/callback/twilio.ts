@@ -1,6 +1,8 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 import {logger} from '../../../server/logger';
 import {prisma} from '../../../server/db';
+import twilio from 'twilio';
+import {env} from '../../../env.mjs';
 
 export const config = {
   api: {bodyParser: false},
@@ -26,6 +28,12 @@ export default async function webhookHandler(
       const messageSid = params.get('MessageSid');
       const messageStatus = params.get('MessageStatus');
 
+      const accountSid = env.TWILIO_ACCOUNT_SID;
+      const authToken = env.TWILIO_AUTH_TOKEN;
+      const client = twilio(accountSid, authToken);
+
+      client.validationRequests(req);
+
       logger(`Status of message ${messageSid!} is ${messageStatus!}`, `info`);
 
       let isDelivered = true;
@@ -37,22 +45,18 @@ export default async function webhookHandler(
         isDelivered = false;
       }
 
-      await prisma.$executeRawUnsafe(
-        `
+      await prisma.$executeRaw`
         UPDATE "Notification"
-        SET metadata = jsonb_set(
-          metadata,
-          '{status}',
-          to_jsonb($1::text),
-          true
-        )
-        "isDelivered" = $2
-        WHERE metadata->>'sid' = $3;
-        `,
-        messageStatus,
-        isDelivered,
-        messageSid,
-      );
+        SET
+          metadata = jsonb_set(
+            metadata,
+            '{status}',
+            to_jsonb(${messageStatus}::text),
+            true
+          ),
+          "isDelivered" = ${isDelivered}
+        WHERE metadata->>'sid' = ${messageSid};
+      `;
 
       return res.status(200).end();
     }
