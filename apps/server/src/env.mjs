@@ -8,7 +8,7 @@ const server = z.object({
   DATABASE_URL: z.string().url().optional(),
   DATABASE_PRISMA_URL: z.string().url(),
   DATABASE_URL_NON_POOLING: z.string().url(),
-  DATABASE_URL_NON_POOLING_SHADOW: z.string().url(),
+  DATABASE_URL_NON_POOLING_SHADOW: z.string().url().optional(),
   NODE_ENV: z.enum(["development", "test", "production"]),
   NEXTAUTH_SECRET:
     process.env.NODE_ENV === "production"
