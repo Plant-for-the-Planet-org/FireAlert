@@ -1,7 +1,4 @@
 -- CreateEnum
-CREATE TYPE "SiteKind" AS ENUM ('USER_SITE', 'PROTECTED_SITE');
-
--- CreateEnum
 CREATE TYPE "SiteRelationRole" AS ENUM ('ROLE_ADMIN', 'ROLE_VIEWER');
 
 -- AlterTable
@@ -22,7 +19,7 @@ CREATE TABLE "SiteRelation" (
 );
 
 -- CreateTable
-CREATE TABLE "protectedarea" (
+CREATE TABLE "ProtectedArea" (
     "gid" SERIAL NOT NULL,
     "wdpaid" DECIMAL,
     "wdpa_pid" VARCHAR(52),
@@ -56,14 +53,14 @@ CREATE TABLE "protectedarea" (
     "cons_obj" VARCHAR(100),
     "geom" geometry,
 
-    CONSTRAINT "protectedarea_pkey" PRIMARY KEY ("gid")
+    CONSTRAINT "ProtectedArea_pkey" PRIMARY KEY ("gid")
 );
 
 -- CreateIndex
-CREATE INDEX "protectedarea_geom_idx" ON "protectedarea" USING GIST ("geom");
+CREATE INDEX "ProtectedArea_geom_idx" ON "ProtectedArea" USING GIST ("geom");
 
 -- CreateIndex
-CREATE INDEX "protectedarea_geom_idx1" ON "protectedarea" USING GIST ("geom");
+CREATE INDEX "ProtectedArea_geom_idx1" ON "ProtectedArea" USING GIST ("geom");
 
 -- AddForeignKey
 ALTER TABLE "SiteRelation" ADD CONSTRAINT "SiteRelation_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE CASCADE ON UPDATE CASCADE;

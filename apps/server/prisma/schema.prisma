@@ -172,7 +172,7 @@ model SiteRelation {
     user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model protectedarea {
+model ProtectedArea {
     gid        Int                      @id @default(autoincrement())
     wdpaid     Decimal?                 @db.Decimal
     wdpa_pid   String?                  @db.VarChar(52)
@@ -228,11 +228,6 @@ enum AlertConfidence {
     high
     medium
     low
-}
-
-enum SiteKind {
-    USER_SITE
-    PROTECTED_SITE
 }
 
 enum SiteRelationRole {
