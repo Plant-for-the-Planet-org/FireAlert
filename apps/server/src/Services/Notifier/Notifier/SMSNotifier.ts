@@ -100,8 +100,10 @@ class SMSNotifier implements Notifier {
         const {sid, status, errorCode, errorMessage} = value;
         logger(`Twilio message status ${status}`, 'info');
 
-        const logString = `Twilio Log: ${errorCode} ${errorMessage}`;
-        sendToSlack(logString);
+        if (errorCode || errorMessage) {
+          const logString = `Twilio Log: ${errorCode} ${errorMessage}`;
+          sendToSlack(logString);
+        }
 
         // update Notification.metadata with sid & status. Do not set these but append the JSON object with these keys.
         const updateJson = JSON.stringify({sid: sid, status: status});
