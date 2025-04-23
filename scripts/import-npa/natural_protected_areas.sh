@@ -276,7 +276,7 @@ get_firealert_db_url() {
   fi
   
   print_message success "Database URL validated"
-  echo "$db_url"
+  # echo "$db_url"
 }
 
 # Parse database URL components
