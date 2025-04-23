@@ -235,11 +235,11 @@ convert_shapefiles_to_sql() {
     print_message info "Processing polygon shapefile: $shapefile_name"
     
     # Schema preservation conversion
-    shp2pgsql -I -s 4326 -g geom -p "$polygon_file" "ProtectedArea" > "${TEMP_DIR}/temp_schema.sql" 2>/dev/null
+    shp2pgsql -k -I -s 4326 -g geom -p "$polygon_file" "ProtectedArea" > "${TEMP_DIR}/temp_schema.sql" 2>/dev/null
     cat "${TEMP_DIR}/temp_schema.sql" >> "$schema_polygons"
     
     # Data-only conversion
-    shp2pgsql -I -s 4326 -g geom -a "$polygon_file" "ProtectedArea" > "${TEMP_DIR}/temp_data.sql" 2>/dev/null
+    shp2pgsql -k -I -s 4326 -g geom -a "$polygon_file" "ProtectedArea" > "${TEMP_DIR}/temp_data.sql" 2>/dev/null
     cat "${TEMP_DIR}/temp_data.sql" >> "$polygons"
   done < "$polygons_list"
   
