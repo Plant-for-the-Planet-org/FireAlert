@@ -6,7 +6,6 @@ import twilio from 'twilio';
 import {env} from '../../../env.mjs';
 import {logger} from '../../../../src/server/logger';
 import {prisma} from '../../../server/db';
-import {sendToSlack} from './utils';
 
 interface TwilioError {
   code: number;
@@ -87,7 +86,7 @@ class SMSNotifier implements Notifier {
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message
-    const messageBody = `${message} ${url ? url : ''}`;
+    const messageBody = `${message!} ${url ? url : ''}`;
 
     return client.messages
       .create({
@@ -102,7 +101,7 @@ class SMSNotifier implements Notifier {
 
         if (errorCode || errorMessage) {
           const logString = `Twilio Log: ${errorCode} ${errorMessage}`;
-          sendToSlack(logString);
+          logger(logString, 'error');
         }
 
         // update Notification.metadata with sid & status. Do not set these but append the JSON object with these keys.
@@ -122,7 +121,10 @@ class SMSNotifier implements Notifier {
         logger(`Failed to send SMS. Error code: ${code}`, 'error');
 
         const logString = `Twilio Error: ${code} ${message}`;
-        sendToSlack(logString);
+        logger(logString, 'error');
+
+        // https://www.twilio.com/docs/api/errors
+        // https://www.twilio.com/docs/api/errors/<ERROR_CODE>
 
         // Error codes for which alertMethods should be disabled
         const disableCodes = [21610, 21612, 30005, 21408, 21211];

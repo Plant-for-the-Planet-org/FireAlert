@@ -54,18 +54,43 @@ export default async function webhookHandler(
         isDelivered = false;
       }
 
-      await prisma.$executeRaw`
-        UPDATE "Notification"
-        SET
-          metadata = jsonb_set(
-            metadata,
-            '{status}',
-            to_jsonb(${messageStatus}::text),
-            true
-          ),
-          "isDelivered" = ${isDelivered}
-        WHERE metadata->>'sid' = ${messageSid};
-      `;
+      // await prisma.$executeRaw`
+      //   UPDATE "Notification"
+      //   SET
+      //     metadata = jsonb_set(
+      //       metadata,
+      //       '{status}',
+      //       to_jsonb(${messageStatus}::text),
+      //       true
+      //     ),
+      //     "isDelivered" = ${isDelivered}
+      //   WHERE metadata->>'sid' = ${messageSid};
+      // `;
+
+      const notification = await prisma.notification.findUnique({
+        where: {
+          metadata: {
+            path: ['sid'],
+            equals: messageSid,
+          },
+        },
+        select: {id: true, metadata: true},
+      });
+
+      const notificationId = notification?.id;
+      const existingMetadata = notification?.metadata || {};
+
+      await prisma.notification.update({
+        where: {id: notificationId},
+        data: {
+          metadata: {
+            ...existingMetadata,
+            sid: messageSid,
+            status: messageStatus,
+          },
+          isDelivered: isDelivered,
+        },
+      });
 
       return res.status(200).end();
     }

@@ -16,9 +16,9 @@ const restrictedCountryCodesSms = [
   'AF', // Afghanistan
   'BZ', // Belize
   'KE', //Kenya
-  //   New contries to add such as USA or Canada since twilio's policy changes.
-  'US',
-  'CA',
+  // //   New contries to add such as USA or Canada since twilio's policy changes. https://www.twilio.com/docs/messaging/compliance/a2p-10dlc
+  // 'US',
+  // 'CA',
 ];
 
 const restrictedCountryCodesWhatsapp = [
