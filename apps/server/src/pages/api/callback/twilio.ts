@@ -1,7 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 import {logger} from '../../../server/logger';
 import {prisma} from '../../../server/db';
-import twilio from 'twilio';
+import {validateRequest} from 'twilio';
 import {env} from '../../../env.mjs';
 
 export const config = {
@@ -22,19 +22,28 @@ export default async function webhookHandler(
   res: NextApiResponse,
 ) {
   try {
+    const authToken = env.TWILIO_AUTH_TOKEN;
+    const twilioSignature = req.headers['x-twilio-signature'] as string;
+    const protocol = (req.headers['x-forwarded-proto'] as string) || 'https';
+    const host = (req.headers['x-forwarded-host'] ||
+      req.headers.host) as string;
+    const url = `${protocol}://${host}${req.url!}`;
+
     if (req.method === 'POST') {
       const rawBody = await getRawBody(req);
-      const params = new URLSearchParams(rawBody);
-      const messageSid = params.get('MessageSid');
-      const messageStatus = params.get('MessageStatus');
+      const params = Object.fromEntries(new URLSearchParams(rawBody));
 
-      const accountSid = env.TWILIO_ACCOUNT_SID;
-      const authToken = env.TWILIO_AUTH_TOKEN;
-      const client = twilio(accountSid, authToken);
+      const isValid = validateRequest(authToken, twilioSignature, url, params);
+      if (!isValid) {
+        return res
+          .status(403)
+          .json({status: 403, message: 'Invalid Twilio signature'});
+      }
 
-      client.validationRequests(req);
+      const messageSid = params['MessageSid'];
+      const messageStatus = params['MessageStatus'];
 
-      logger(`Status of message ${messageSid!} is ${messageStatus!}`, `info`);
+      logger(`Status of message ${messageSid} is ${messageStatus}`, `info`);
 
       let isDelivered = true;
       if (
