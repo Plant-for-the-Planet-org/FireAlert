@@ -13,14 +13,14 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 # Default values
-DATASET_URL=""
+#DATASET_URL=""
 ENVIRONMENT="production"
 TEMP_DIR="$(pwd)/tmp"
 OUTPUT_SQL="${TEMP_DIR}/natural_protected_areas.sql"
 BACKUP_PATH=""
 IS_PRODUCTION=true
 EXTRACT_DIR="${TEMP_DIR}/extracted"
-DATABASE_URL=""
+#DATABASE_URL=""
 
 # Print a formatted message
 print_message() {
