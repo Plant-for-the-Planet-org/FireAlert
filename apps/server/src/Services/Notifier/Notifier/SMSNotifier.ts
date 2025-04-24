@@ -90,11 +90,8 @@ class SMSNotifier implements Notifier {
     if (!statusCallback && options?.req) {
       const host = (options.req.headers['x-forwarded-host'] ||
         options.req.headers.host) as string;
-      const baseUrl = `https://${host}`;
-      statusCallback = `${baseUrl}/api/callback/twilio`;
+      statusCallback = `https://${host}/api/callback/twilio`;
     }
-
-    logger(`Status Callback URL: ${statusCallback}`, 'info');
 
     const client = twilio(accountSid, authToken);
 

@@ -67,7 +67,7 @@ export default async function webhookHandler(
       //   WHERE metadata->>'sid' = ${messageSid};
       // `;
 
-      const notification = await prisma.notification.findUnique({
+      const notification = await prisma.notification.findFirst({
         where: {
           metadata: {
             path: ['sid'],

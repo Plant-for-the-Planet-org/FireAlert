@@ -169,9 +169,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             failedAlertMethods.push({destination, method: alertMethod});
           }
         } catch (error) {
-          console.log(error);
           logger(`Error processing notification ${notification.id}:`, 'error');
-          // process.exit();
           return;
         }
       }),
