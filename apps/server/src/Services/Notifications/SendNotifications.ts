@@ -1,7 +1,8 @@
 import {type AlertMethodMethod} from '../../Interfaces/AlertMethod';
-import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {type NotificationParameters} from '../../Interfaces/NotificationParameters';
+import type {AdditionalOptions} from '../../Interfaces/AdditionalOptions';
 import type DataRecord from '../../Interfaces/DataRecord';
+import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';
 import {getLocalTime} from '../../../src/utils/date';
@@ -10,7 +11,7 @@ import {getLocalTime} from '../../../src/utils/date';
 // for each notification, send the notification to the destination
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
-const sendNotifications = async (): Promise<number> => {
+const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
   const take = 10;
   let successCount = 0;
   let continueProcessing = true;
@@ -63,8 +64,8 @@ const sendNotifications = async (): Promise<number> => {
             eventDate,
             site,
           } = siteAlert;
-          const siteId = site.id;
-          const userId = site.userId;
+          // const siteId = site.id;
+          // const userId = site.userId;
 
           // if distance = 0 then the fire is inside the site's original geometry
           // if distance > 0 then the fire is outside the site's original geometry
@@ -150,14 +151,15 @@ const sendNotifications = async (): Promise<number> => {
               siteName: siteName,
               data: data as DataRecord,
             },
-            site: {id: siteId},
-            user: {id: userId!},
+            // site: {id: siteId},
+            // user: {id: userId!},
           };
           const notifier = NotifierRegistry.get(alertMethod);
 
           const isDelivered = await notifier.notify(
             destination,
             notificationParameters,
+            {req},
           );
 
           if (isDelivered === true) {

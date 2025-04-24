@@ -4,25 +4,25 @@ import {NextApiRequest, type NextApiResponse} from 'next';
 import {PrismaClient} from '@prisma/client';
 import NotifierRegistry from '../../../Services/Notifier/NotifierRegistry';
 import {logger} from '../../../../src/server/logger';
-import {env} from "../../../../src/env.mjs";
+import {env} from '../../../../src/env.mjs';
 
 export default async function notify(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
-  
-  if(env.NODE_ENV !== 'development'){
+  if (env.NODE_ENV !== 'development') {
     return res.status(401).json({
-        message: "Unauthorized for Production. Only use this endpoint for development.",
-        status: 401,
+      message:
+        'Unauthorized for Production. Only use this endpoint for development.',
+      status: 401,
     });
   }
   if (env.CRON_KEY) {
     // Verify the 'cron_key' in the request headers
     const cronKey = req.query['cron_key'];
     if (!cronKey || cronKey !== env.CRON_KEY) {
-        res.status(403).json({message: "Unauthorized: Invalid Cron Key"});
-        return;
+      res.status(403).json({message: 'Unauthorized: Invalid Cron Key'});
+      return;
     }
   }
 
@@ -44,12 +44,11 @@ export default async function notify(
 
     await Promise.all(
       notifications.map(async notification => {
-        const {id, alertMethod, destination, siteAlert} =
-          notification;
+        const {id, alertMethod, destination, siteAlert} = notification;
         const {confidence, type, longitude, latitude} = siteAlert;
 
         const notifier = NotifierRegistry.get(alertMethod);
-        const isDelivered = notifier.notify(
+        const isDelivered = await notifier.notify(
           destination,
           `${type} at [${longitude},${latitude}] with ${confidence} confidence`,
         );

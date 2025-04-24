@@ -31,7 +31,7 @@ const server = z.object({
   TWILIO_AUTH_TOKEN: z.string(),
   TWILIO_PHONE_NUMBER: z.string(),
   TWILIO_WHATSAPP_NUMBER: z.string().optional(),
-  TWILIO_STATUS_CALLBACK_URL: z.string(),
+  TWILIO_STATUS_CALLBACK_URL: z.string().optional(),
   SMTP_URL: z.string().url(),
   EMAIL_FROM: z.string(),
   PLANET_API_URL: z.string(),

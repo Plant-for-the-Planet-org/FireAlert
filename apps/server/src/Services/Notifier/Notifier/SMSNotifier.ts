@@ -1,4 +1,5 @@
 import {type NotificationParameters} from '../../../Interfaces/NotificationParameters';
+import type {AdditionalOptions} from '../../../Interfaces/AdditionalOptions';
 import type Notifier from '../Notifier';
 import {NOTIFICATION_METHOD} from '../methodConstants';
 import {isPhoneNumberRestricted} from '../../../utils/notification/restrictedSMS';
@@ -6,6 +7,7 @@ import twilio from 'twilio';
 import {env} from '../../../env.mjs';
 import {logger} from '../../../../src/server/logger';
 import {prisma} from '../../../server/db';
+import {headers} from 'next/headers';
 
 interface TwilioError {
   code: number;
@@ -59,6 +61,7 @@ class SMSNotifier implements Notifier {
   async notify(
     destination: string,
     parameters: NotificationParameters,
+    options?: AdditionalOptions,
   ): Promise<boolean> {
     const {message, url, id} = parameters;
 
@@ -82,7 +85,17 @@ class SMSNotifier implements Notifier {
     const accountSid = env.TWILIO_ACCOUNT_SID;
     const authToken = env.TWILIO_AUTH_TOKEN;
     const phoneNumber = env.TWILIO_PHONE_NUMBER;
-    const statusCallback = env.TWILIO_STATUS_CALLBACK_URL;
+
+    let statusCallback = env.TWILIO_STATUS_CALLBACK_URL ?? '';
+    if (!statusCallback && options?.req) {
+      const host = (options.req.headers['x-forwarded-host'] ||
+        options.req.headers.host) as string;
+      const baseUrl = `https://${host}`;
+      statusCallback = `${baseUrl}/api/callback/twilio`;
+    }
+
+    logger(`Status Callback URL: ${statusCallback}`, 'info');
+
     const client = twilio(accountSid, authToken);
 
     // Define message body and send message
