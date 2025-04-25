@@ -6,7 +6,7 @@ import { z } from "zod";
  */
 const server = z.object({
   DATABASE_URL: z.string().url().optional(),
-  DATABASE_PRISMA_URL: z.string().url(),
+  DATABASE_PRISMA_URL: process.env.VERCEL ? z.string().url() : z.string().url().optional(),
   DATABASE_URL_NON_POOLING: z.string().url(),
   NODE_ENV: z.enum(["development", "test", "production"]),
   NEXTAUTH_SECRET:
