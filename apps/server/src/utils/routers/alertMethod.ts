@@ -16,6 +16,7 @@ import {env} from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import {prisma} from '../../server/db';
 import {sendEmailVerificationCode} from '../notification/userEmails';
+import {logger} from '../../../../src/server/logger';
 
 export const limitSpecificAlertMethodPerUser = async ({
   ctx,
@@ -295,6 +296,12 @@ export interface VerificationResponse {
 export const deviceVerification = async (
   destination: string,
 ): Promise<boolean> => {
+  // Check if OneSignal is configured
+  if (!env.ONESIGNAL_APP_ID || !env.ONESIGNAL_REST_API_KEY) {
+    logger(`Push notifications are disabled: OneSignal is not configured`, 'warn');
+    return false;
+  }
+
   // check if the playerID exists in Onesignal
   // if yes, set the alertMethod.isVerified to true
   // else return error
