@@ -38,7 +38,7 @@ const server = z.object({
   // SMTP configuration for email notifications. If not provided, email notifications will be disabled.
   SMTP_URL: z.string().url().optional(),
   // Email sender address. Required only if SMTP_URL is configured.
-  EMAIL_FROM: z.string().optional(),
+  EMAIL_FROM: z.string().default("FireAlert by Plant-for-the-Planet <firealert@plant-for-the-planet.org>"),
   
   // Plant-for-the-Planet API URL. Defaults to the main application URL if not provided.
   PLANET_API_URL: z.string().default("https://app.plant-for-the-planet.org"),
