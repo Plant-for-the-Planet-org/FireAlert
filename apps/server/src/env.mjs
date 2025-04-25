@@ -27,11 +27,15 @@ const server = z.object({
   NEXT_PUBLIC_AUTH0_DOMAIN: z.string(),
   ONESIGNAL_APP_ID: z.string(),
   ONESIGNAL_REST_API_KEY: z.string(),
-  TWILIO_ACCOUNT_SID: z.string(),
-  TWILIO_AUTH_TOKEN: z.string(),
-  TWILIO_PHONE_NUMBER: z.string(),
+  // If you want to use Twilio, you need to set the following variables
+  // On Development App can be run without Twilio
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_PHONE_NUMBER: z.string().optional(),
   TWILIO_WHATSAPP_NUMBER: z.string().optional(),
-  SMTP_URL: z.string().url(),
+  
+  // SMTP configuration for email notifications. If not provided, email notifications will be disabled.
+  SMTP_URL: z.string().url().optional(),
   EMAIL_FROM: z.string(),
   PLANET_API_URL: z.string(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
