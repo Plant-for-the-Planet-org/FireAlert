@@ -1,5 +1,7 @@
-# Build stage
-FROM node:18-alpine AS builder
+FROM node:18-alpine
+
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
@@ -17,22 +19,13 @@ COPY . .
 # Build the application
 RUN yarn workspace @firealert/server build
 
-# Production stage
-FROM node:18-alpine AS runner
-
-WORKDIR /app
-
-# Copy necessary files from builder
-COPY --from=builder /app/apps/server/next.config.mjs ./
-COPY --from=builder /app/apps/server/public ./public
-COPY --from=builder /app/apps/server/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/server/node_modules ./apps/server/node_modules
-COPY --from=builder /app/packages ./packages
-
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
 # Expose the port
 EXPOSE 3000
