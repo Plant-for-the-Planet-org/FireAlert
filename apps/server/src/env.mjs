@@ -39,7 +39,9 @@ const server = z.object({
   SMTP_URL: z.string().url().optional(),
   // Email sender address. Required only if SMTP_URL is configured.
   EMAIL_FROM: z.string().optional(),
-  PLANET_API_URL: z.string(),
+  
+  // Plant-for-the-Planet API URL. Defaults to the main application URL if not provided.
+  PLANET_API_URL: z.string().default("https://app.plant-for-the-planet.org"),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   CRON_KEY: z.string().optional(),
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
