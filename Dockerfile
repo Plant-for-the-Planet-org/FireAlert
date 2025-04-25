@@ -2,6 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install OpenSSL and other required dependencies
+RUN apk add --no-cache openssl openssl-dev
+
 # Copy package files
 COPY package.json yarn.lock ./
 COPY apps/server/package.json ./apps/server/
