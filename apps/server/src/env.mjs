@@ -25,8 +25,9 @@ const server = z.object({
   NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string(),
   NEXT_PUBLIC_AUTH0_ISSUER: z.string(),
   NEXT_PUBLIC_AUTH0_DOMAIN: z.string(),
-  ONESIGNAL_APP_ID: z.string(),
-  ONESIGNAL_REST_API_KEY: z.string(),
+  // OneSignal configuration for push notifications. If not provided, push notifications will be disabled.
+  ONESIGNAL_APP_ID: z.string().optional(),
+  ONESIGNAL_REST_API_KEY: z.string().optional(),
   // If you want to use Twilio, you need to set the following variables
   // On Development App can be run without Twilio
   TWILIO_ACCOUNT_SID: z.string().optional(),
