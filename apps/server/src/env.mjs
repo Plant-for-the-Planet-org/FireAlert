@@ -48,9 +48,10 @@ const server = z.object({
   // WhatsApp configuration. If not provided, WhatsApp notifications will be disabled.
   WHATSAPP_ENDPOINT_URL: z.string().optional(),
   WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string().optional(),
+  // API caching configuration. Enabled by default in production, disabled in development.
   PUBLIC_API_CACHING: z.union([z.literal("true"), z.literal("false")]).optional()
     .transform((val) => {
-      if (val === undefined) return true; // since it is optional by default caching kept true
+      if (val === undefined) return process.env.NODE_ENV === "production";
       return val === "true";
     }),
 });
