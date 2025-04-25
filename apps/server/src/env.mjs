@@ -45,8 +45,9 @@ const server = z.object({
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   CRON_KEY: z.string().optional(),
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
-  WHATSAPP_ENDPOINT_URL: z.string(),
-  WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string(),
+  // WhatsApp configuration. If not provided, WhatsApp notifications will be disabled.
+  WHATSAPP_ENDPOINT_URL: z.string().optional(),
+  WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string().optional(),
   PUBLIC_API_CACHING: z.union([z.literal("true"), z.literal("false")]).optional()
     .transform((val) => {
       if (val === undefined) return true; // since it is optional by default caching kept true
