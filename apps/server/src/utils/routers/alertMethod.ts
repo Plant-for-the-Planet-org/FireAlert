@@ -16,7 +16,7 @@ import {env} from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import {prisma} from '../../server/db';
 import {sendEmailVerificationCode} from '../notification/userEmails';
-import {logger} from '../../../../src/server/logger';
+import {logger} from '../../server/logger';
 
 export const limitSpecificAlertMethodPerUser = async ({
   ctx,
