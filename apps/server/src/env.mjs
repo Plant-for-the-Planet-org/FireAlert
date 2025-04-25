@@ -37,7 +37,8 @@ const server = z.object({
   
   // SMTP configuration for email notifications. If not provided, email notifications will be disabled.
   SMTP_URL: z.string().url().optional(),
-  EMAIL_FROM: z.string(),
+  // Email sender address. Required only if SMTP_URL is configured.
+  EMAIL_FROM: z.string().optional(),
   PLANET_API_URL: z.string(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   CRON_KEY: z.string().optional(),
