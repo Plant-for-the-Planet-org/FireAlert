@@ -7,6 +7,7 @@ import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';
 import {getLocalTime} from '../../../src/utils/date';
 
+const MAX_RETRIES = 3;
 // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
 // for each notification, send the notification to the destination
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
@@ -15,9 +16,11 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
   const take = 10;
   let successCount = 0;
   let continueProcessing = true;
+  let retries = 0;
   while (continueProcessing) {
     const notifications = await prisma.notification.findMany({
       where: {
+        isSkipped: false,
         isDelivered: false,
         sentAt: null,
         // alertMethod: {notIn: ['sms', 'whatsapp']}
@@ -189,6 +192,25 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
         where: {destination: destination, method: method},
         data: {failCount: {increment: 1}},
       });
+    }
+
+    retries += 1;
+    if (retries >= MAX_RETRIES) {
+      const unsuccessfulNotifications = notifications.filter(
+        ({id}) => !successfulNotificationIds.includes(id),
+      );
+
+      const unsuccessfulNotificationIds = unsuccessfulNotifications.map(
+        ({id}) => id,
+      );
+      console.log(unsuccessfulNotificationIds);
+      await prisma.notification.updateMany({
+        where: {id: {in: unsuccessfulNotificationIds}},
+        data: {isSkipped: true, isDelivered: false, sentAt: null},
+      });
+
+      continueProcessing = false;
+      break;
     }
 
     // skip += take; No need to skip take as we update the notifications to isDelivered = true
