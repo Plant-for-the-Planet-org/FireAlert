@@ -149,6 +149,7 @@ model Notification {
     destination String
     sentAt      DateTime?
     isDelivered Boolean   @default(false)
+    isSkipped   Boolean   @default(false)
     metadata    Json?
 }
 
