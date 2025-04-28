@@ -6,6 +6,8 @@ import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';
 import {getLocalTime} from '../../../src/utils/date';
+import SMSNotifier from '../Notifier/Notifier/SMSNotifier';
+import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 
 const MAX_RETRIES = 3;
 // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
@@ -203,11 +205,18 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
       const unsuccessfulNotificationIds = unsuccessfulNotifications.map(
         ({id}) => id,
       );
-      console.log(unsuccessfulNotificationIds);
+
       await prisma.notification.updateMany({
         where: {id: {in: unsuccessfulNotificationIds}},
         data: {isSkipped: true, isDelivered: false, sentAt: null},
       });
+
+      const smsNotifier = new SMSNotifier();
+      unsuccessfulNotifications
+        .filter(el => el.alertMethod === NOTIFICATION_METHOD.SMS)
+        .map(async el => {
+          await smsNotifier.disableAlertMethodsForDestination(el.destination);
+        });
 
       continueProcessing = false;
       break;
