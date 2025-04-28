@@ -174,8 +174,12 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             failedAlertMethods.push({destination, method: alertMethod});
           }
         } catch (error) {
-          logger(`Error processing notification ${notification.id}:`, 'error');
-          return;
+          logger(
+            `Error processing notification ${notification.id}: ${
+              (error as Error)?.message
+            }`,
+            'error',
+          );
         }
       }),
     );
@@ -212,11 +216,13 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
       });
 
       const smsNotifier = new SMSNotifier();
-      unsuccessfulNotifications
-        .filter(el => el.alertMethod === NOTIFICATION_METHOD.SMS)
-        .map(async el => {
-          await smsNotifier.disableAlertMethodsForDestination(el.destination);
-        });
+      await Promise.all(
+        unsuccessfulNotifications
+          .filter(el => el.alertMethod === NOTIFICATION_METHOD.SMS)
+          .map(async el => {
+            await smsNotifier.disableAlertMethodsForDestination(el.destination);
+          }),
+      );
 
       continueProcessing = false;
       break;
