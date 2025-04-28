@@ -45,9 +45,13 @@ const sendSoftDeletionEmail = async (user: User): Promise<boolean> => {
   const params: NotificationParameters = {
     message: `<p>Dear ${getName(user)},</p>
   
-      <p>We have received a request to delete your FireAlert account. As part of our commitment to your data privacy, we will initiate the deletion process for your account, marking it for permanent deletion in 7 days.</p>
+      <p>We have received a request to delete your FireAlert account. As part of our commitment to your data privacy, we will initiate the deletion process for your account, marking it for permanent deletion in 14 days.</p>
   
-      <p>However, if you've changed your mind or if this action was not initiated by you, you can restore your account simply by logging in within these 7 days. Upon successful login, your account will be automatically recovered.</p>
+      <p>However, if you've changed your mind or if this action was not initiated by you, you can restore your account simply by logging in within these 14 days. Upon successful login, your account will be automatically recovered.</p>
+
+      <p>Remember, you're always welcome back at FireAlert. If you ever decide to return, we'd be more than happy to serve you again.</p>
+      
+      <p>If you have any feedback or suggestions for us, or if there was anything you were unsatisfied with, we'd love to hear from you. We are constantly working to improve our services, and your input is greatly valued.</p>
   
       <p>If you have any issues logging in or if you need any help, please do not hesitate to contact us at <a href="mailto:firealert@plant-for-the-planet.org">firealert@plant-for-the-planet.org</a>.</p>
   
@@ -58,28 +62,28 @@ const sendSoftDeletionEmail = async (user: User): Promise<boolean> => {
 };
 
 // Send email to user when user's account is deleted
-const sendAccountDeletionConfirmationEmail = async (
-  email: string,
-  name: string
-): Promise<boolean> => {
-  const params: NotificationParameters = {
-    message: `<p>Dear ${name},</p>
-  
-      <p>We're writing to confirm that your FireAlert account has been successfully deleted. We're sad to see you go.</p>
-      
-      <p>Remember, you're always welcome back at FireAlert. If you ever decide to return, we'd be more than happy to serve you again.</p>
-      
-      <p>If you have any feedback or suggestions for us, or if there was anything you were unsatisfied with, we'd love to hear from you. We are constantly working to improve our services, and your input is greatly valued.</p>
-  
-      <p>You can reach us anytime at <a href="mailto:firealert@plant-for-the-planet.org">firealert@plant-for-the-planet.org</a>.</p>
-  
-      <p>Thank you for having been a part of FireAlert. We wish you all the best.</p>
-  
-      <p>Best,<br>The FireAlert Team</p>`,
-    subject: 'FireAlert Account Deletion Confirmation',
-  };
-  return await sendEmail(email, params);
-};
+// const sendAccountDeletionConfirmationEmail = async (
+//   email: string,
+//   name: string
+// ): Promise<boolean> => {
+//   const params: NotificationParameters = {
+//     message: `<p>Dear ${name},</p>
+//   
+//       <p>We're writing to confirm that your FireAlert account has been successfully deleted. We're sad to see you go.</p>
+//       
+//       <p>Remember, you're always welcome back at FireAlert. If you ever decide to return, we'd be more than happy to serve you again.</p>
+//       
+//       <p>If you have any feedback or suggestions for us, or if there was anything you were unsatisfied with, we'd love to hear from you. We are constantly working to improve our services, and your input is greatly valued.</p>
+//   
+//       <p>You can reach us anytime at <a href="mailto:firealert@plant-for-the-planet.org">firealert@plant-for-the-planet.org</a>.</p>
+//   
+//       <p>Thank you for having been a part of FireAlert. We wish you all the best.</p>
+//   
+//       <p>Best,<br>The FireAlert Team</p>`,
+//     subject: 'FireAlert Account Deletion Confirmation',
+//   };
+//   return await sendEmail(email, params);
+// };
 
 // Send email to user when user cancels account deletion because of Login
 const sendAccountDeletionCancellationEmail = async (
@@ -128,7 +132,7 @@ const sendEmailVerificationCode = async (
 export {
   sendWelcomeEmail,
   sendSoftDeletionEmail,
-  sendAccountDeletionConfirmationEmail,
+  // sendAccountDeletionConfirmationEmail, // Commented out as functionality is now in soft deletion email
   sendEmailVerificationCode,
   sendAccountDeletionCancellationEmail,
 };

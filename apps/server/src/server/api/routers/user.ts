@@ -175,7 +175,7 @@ export const userRouter = createTRPCRouter({
                     const emailSent = await sendSoftDeletionEmail(deletedUser);
                     return {
                         status: 'Success',
-                        message: `User ${deletedUser.id} will be permanently deleted in 7 days. ${emailSent ? 'Successfully sent email' : ''}`,
+                        message: `User ${deletedUser.id} will be permanently deleted in 14 days. ${emailSent ? 'Successfully sent email' : ''}`,
                         data: null
                     };
                 }
