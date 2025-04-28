@@ -51,6 +51,7 @@ export default async function notify(
         const isDelivered = await notifier.notify(
           destination,
           `${type} at [${longitude},${latitude}] with ${confidence} confidence`,
+          {req},
         );
 
         if (isDelivered) {
