@@ -9,7 +9,7 @@ import {getLocalTime} from '../../../src/utils/date';
 import SMSNotifier from '../Notifier/Notifier/SMSNotifier';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 0;
 // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
 // for each notification, send the notification to the destination
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
