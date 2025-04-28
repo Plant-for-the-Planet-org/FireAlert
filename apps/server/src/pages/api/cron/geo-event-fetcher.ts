@@ -16,6 +16,7 @@ import { type geoEventInterface as GeoEvent } from "../../../Interfaces/GeoEvent
 // 300s is the maximum allowed duration for Vercel pro plans
 export const config = {
   maxDuration: 300,
+  memory: 1769,
 };
 
 // TODO: Run this cron every 5 minutes
