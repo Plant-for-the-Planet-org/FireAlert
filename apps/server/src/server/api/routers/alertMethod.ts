@@ -23,6 +23,7 @@ import {
 import {logger} from "../../../../src/server/logger";
 import {isPhoneNumberRestricted} from "../../../../src/utils/notification/restrictedSMS";
 import {UserPlan} from "../../../../src/Interfaces/AlertMethod";
+import {env} from "../../../../src/env.mjs";
 
 export const alertMethodRouter = createTRPCRouter({
 
@@ -233,6 +234,14 @@ export const alertMethodRouter = createTRPCRouter({
             }
             // If Method is sms, restrict phone number to only allowed countries
             if(input.method === 'sms'){
+                // Check if Twilio is configured
+                if (!env.TWILIO_AUTH_TOKEN) {
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: 'SMS notifications are disabled: TWILIO_AUTH_TOKEN is not configured',
+                    });
+                }
+
                 // Check if the destination falls inside of accepted countries
                 const isDestinationAccepted = !isPhoneNumberRestricted('sms', input.destination);
                 if(isDestinationAccepted === false){

@@ -35,11 +35,12 @@ class EmailNotifier implements Notifier {
   ): Promise<boolean> {
     const {message, subject} = parameters;
 
-    // if env.SMTP_URL is not set return promise with false
+    // Check if SMTP is configured
     if (!env.SMTP_URL) {
-      logger(`Error sending email: SMTP_URL is not set`, 'error');
+      logger(`Email notifications are disabled: SMTP_URL is not configured`, 'warn');
       return Promise.resolve(false);
     }
+
     // Establish a transporter using SMTP settings
     // Be aware that AWS SES may assign passwords that include special characters such as "+", "/", "=", etc., which are not in line with URL standards
     // To accommodate these characters for env.SMTP_URL, encode them using encodeURIComponent() and then decode them prior to supplying to nodemailer

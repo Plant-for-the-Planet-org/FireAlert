@@ -6,46 +6,42 @@ import {z} from 'zod';
  */
 const server = z.object({
   DATABASE_URL: z.string().url().optional(),
-  DATABASE_PRISMA_URL: z.string().url(),
+  DATABASE_PRISMA_URL: process.env.VERCEL ? z.string().url() : z.string().url().optional(),
   DATABASE_URL_NON_POOLING: z.string().url(),
-  NODE_ENV: z.enum(['development', 'test', 'production']),
-  NEXTAUTH_SECRET:
-    process.env.NODE_ENV === 'production'
-      ? z.string().min(1)
-      : z.string().min(1).optional(),
-  NEXTAUTH_URL: z.preprocess(
-    // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
-    // Since NextAuth.js automatically uses the VERCEL_URL if present.
-    str => process.env.VERCEL_URL ?? str,
-    // VERCEL_URL doesn't include `https` so it cant be validated as a URL
-    process.env.VERCEL ? z.string().min(1) : z.string().url(),
-  ),
-  // Add `.min(1) on ID and SECRET if you want to make sure they're not empty
+  NODE_ENV: z.enum(["development", "test", "production"]),
 
   NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string(),
   NEXT_PUBLIC_AUTH0_ISSUER: z.string(),
   NEXT_PUBLIC_AUTH0_DOMAIN: z.string(),
-  ONESIGNAL_APP_ID: z.string(),
-  ONESIGNAL_REST_API_KEY: z.string(),
-  TWILIO_ACCOUNT_SID: z.string(),
-  TWILIO_AUTH_TOKEN: z.string(),
-  TWILIO_PHONE_NUMBER: z.string(),
+  // OneSignal configuration for push notifications. If not provided, push notifications will be disabled.
+  ONESIGNAL_APP_ID: z.string().optional(),
+  ONESIGNAL_REST_API_KEY: z.string().optional(),
+  // If you want to use Twilio, you need to set the following variables
+  // On Development App can be run without Twilio
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_PHONE_NUMBER: z.string().optional(),
   TWILIO_WHATSAPP_NUMBER: z.string().optional(),
-  TWILIO_STATUS_CALLBACK_URL: z.string().optional(),
-  SMTP_URL: z.string().url(),
-  EMAIL_FROM: z.string(),
-  PLANET_API_URL: z.string(),
+  
+  // SMTP configuration for email notifications. If not provided, email notifications will be disabled.
+  SMTP_URL: z.string().url().optional(),
+  // Email sender address. Required only if SMTP_URL is configured.
+  EMAIL_FROM: z.string().default("FireAlert by Plant-for-the-Planet <firealert@plant-for-the-planet.org>"),
+  
+  // Plant-for-the-Planet API URL. Defaults to the main application URL if not provided.
+  PLANET_API_URL: z.string().default("https://app.plant-for-the-planet.org"),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   CRON_KEY: z.string().optional(),
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
-  WHATSAPP_ENDPOINT_URL: z.string(),
-  WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string(),
-  PUBLIC_API_CACHING: z
-    .union([z.literal('true'), z.literal('false')])
-    .optional()
-    .transform(val => {
-      if (val === undefined) return true; // since it is optional by default caching kept true
-      return val === 'true';
+  // WhatsApp configuration. If not provided, WhatsApp notifications will be disabled.
+  WHATSAPP_ENDPOINT_URL: z.string().optional(),
+  WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string().optional(),
+  // API caching configuration. Enabled by default in production, disabled in development.
+  PUBLIC_API_CACHING: z.union([z.literal("true"), z.literal("false")]).optional()
+    .transform((val) => {
+      if (val === undefined) return process.env.NODE_ENV === "production";
+      return val === "true";
+
     }),
 });
 

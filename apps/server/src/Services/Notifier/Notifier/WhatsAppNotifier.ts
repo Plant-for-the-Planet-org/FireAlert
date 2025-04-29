@@ -49,7 +49,12 @@ class WhatsAppNotifier implements Notifier {
     destination: string,
     parameters: NotificationParameters,
   ): Promise<boolean> {
-    // logger(`Sending message ${message} to ${destination}`, "info");
+    // Check if WhatsApp configuration is provided
+    if (!env.WHATSAPP_ENDPOINT_URL || !env.WHATSAPP_ENDPOINT_AUTH_TOKEN) {
+      logger('WhatsApp notifications are disabled because WHATSAPP_ENDPOINT_URL or WHATSAPP_ENDPOINT_AUTH_TOKEN is not configured', 'warn');
+      return false;
+    }
+
 
     // construct the payload for Webhook
     const payload = {

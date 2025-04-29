@@ -16,23 +16,6 @@ interface TwilioError {
   [key: string]: any;
 }
 
-export function verifyTwilioEnvironment() {
-  // if env.TWILIO_ACCOUNT_SID or env.TWILIO_AUTH_TOKEN or env.TWILIO_PHONE_NUMBER is not set return promise with false
-  if (
-    !env.TWILIO_ACCOUNT_SID ||
-    !env.TWILIO_AUTH_TOKEN ||
-    !env.TWILIO_PHONE_NUMBER
-  ) {
-    logger(
-      `Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER is not set`,
-      'error',
-    );
-    return false;
-  }
-
-  return true;
-}
-
 class SMSNotifier implements Notifier {
   getSupportedMethods(): Array<string> {
     return [NOTIFICATION_METHOD.SMS];
@@ -65,8 +48,21 @@ class SMSNotifier implements Notifier {
   ): Promise<boolean> {
     const {message, url, id} = parameters;
 
-    if (!verifyTwilioEnvironment()) {
+    // Check if Twilio is configured
+    if (!env.TWILIO_AUTH_TOKEN) {
+      logger(
+        `SMS notifications are disabled: TWILIO_AUTH_TOKEN is not configured`,
+        'warn',
+      );
       return Promise.resolve(false);
+    }
+
+    // if env.TWILIO_ACCOUNT_SID or env.TWILIO_PHONE_NUMBER is not set return promise with false
+    if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_PHONE_NUMBER) {
+      logger(
+        `Error sending SMS: TWILIO_ACCOUNT_SID or TWILIO_PHONE_NUMBER is not set`,
+        'error',
+      );
     }
 
     // If the destination is a restricted Country, return false, log error.
