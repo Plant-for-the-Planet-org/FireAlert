@@ -1,4 +1,4 @@
-import { z } from "zod";
+import {z} from 'zod';
 
 /**
  * Specify your server-side environment variables schema here. This way you can ensure the app isn't
@@ -8,15 +8,15 @@ const server = z.object({
   DATABASE_URL: z.string().url().optional(),
   DATABASE_PRISMA_URL: z.string().url(),
   DATABASE_URL_NON_POOLING: z.string().url(),
-  NODE_ENV: z.enum(["development", "test", "production"]),
+  NODE_ENV: z.enum(['development', 'test', 'production']),
   NEXTAUTH_SECRET:
-    process.env.NODE_ENV === "production"
+    process.env.NODE_ENV === 'production'
       ? z.string().min(1)
       : z.string().min(1).optional(),
   NEXTAUTH_URL: z.preprocess(
     // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
     // Since NextAuth.js automatically uses the VERCEL_URL if present.
-    (str) => process.env.VERCEL_URL ?? str,
+    str => process.env.VERCEL_URL ?? str,
     // VERCEL_URL doesn't include `https` so it cant be validated as a URL
     process.env.VERCEL ? z.string().min(1) : z.string().url(),
   ),
@@ -31,6 +31,7 @@ const server = z.object({
   TWILIO_AUTH_TOKEN: z.string(),
   TWILIO_PHONE_NUMBER: z.string(),
   TWILIO_WHATSAPP_NUMBER: z.string().optional(),
+  TWILIO_STATUS_CALLBACK_URL: z.string().optional(),
   SMTP_URL: z.string().url(),
   EMAIL_FROM: z.string(),
   PLANET_API_URL: z.string(),
@@ -39,10 +40,12 @@ const server = z.object({
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
   WHATSAPP_ENDPOINT_URL: z.string(),
   WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string(),
-  PUBLIC_API_CACHING: z.union([z.literal("true"), z.literal("false")]).optional()
-    .transform((val) => {
+  PUBLIC_API_CACHING: z
+    .union([z.literal('true'), z.literal('false')])
+    .optional()
+    .transform(val => {
       if (val === undefined) return true; // since it is optional by default caching kept true
-      return val === "true";
+      return val === 'true';
     }),
 });
 
@@ -62,8 +65,12 @@ const client = z.object({
  */
 const processEnv = {
   DATABASE_PRISMA_URL: process.env.DATABASE_PRISMA_URL,
-  DATABASE_URL: process.env.DATABASE_URL ? process.env.DATABASE_URL : process.env.DATABASE_PRISMA_URL,
-  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING ? process.env.DATABASE_URL_NON_POOLING : process.env.DATABASE_URL,
+  DATABASE_URL: process.env.DATABASE_URL
+    ? process.env.DATABASE_URL
+    : process.env.DATABASE_PRISMA_URL,
+  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING
+    ? process.env.DATABASE_URL_NON_POOLING
+    : process.env.DATABASE_URL,
   // DATABASE_PRISMA_URL is set by VERCEL POSTGRES and had pooling built in.
   NODE_ENV: process.env.NODE_ENV,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
@@ -77,17 +84,18 @@ const processEnv = {
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
   TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
+  TWILIO_STATUS_CALLBACK_URL: process.env.TWILIO_STATUS_CALLBACK_URL,
   SMTP_URL: process.env.SMTP_URL,
   EMAIL_FROM: process.env.EMAIL_FROM,
   PLANET_API_URL: process.env.PLANET_API_URL,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   CRON_KEY: process.env.CRON_KEY,
-  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
+  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN:
+    process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
   WHATSAPP_ENDPOINT_URL: process.env.WHATSAPP_ENDPOINT_URL,
   WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
-  PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING
+  PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING,
 };
-
 
 // Don't touch the part below
 // --------------------------
@@ -101,7 +109,7 @@ const merged = server.merge(client);
 let env = /** @type {MergedOutput} */ (process.env);
 
 if (!!process.env.SKIP_ENV_VALIDATION == false) {
-  const isServer = typeof window === "undefined";
+  const isServer = typeof window === 'undefined';
 
   const parsed = /** @type {MergedSafeParseReturn} */ (
     isServer
@@ -111,21 +119,21 @@ if (!!process.env.SKIP_ENV_VALIDATION == false) {
 
   if (parsed.success === false) {
     console.error(
-      "❌ Invalid environment variables:",
+      '❌ Invalid environment variables:',
       parsed.error.flatten().fieldErrors,
     );
-    throw new Error("Invalid environment variables");
+    throw new Error('Invalid environment variables');
   }
 
   env = new Proxy(parsed.data, {
     get(target, prop) {
-      if (typeof prop !== "string") return undefined;
+      if (typeof prop !== 'string') return undefined;
       // Throw a descriptive error if a server-side env var is accessed on the client
       // Otherwise it would just be returning `undefined` and be annoying to debug
-      if (!isServer && !prop.startsWith("NEXT_PUBLIC_"))
+      if (!isServer && !prop.startsWith('NEXT_PUBLIC_'))
         throw new Error(
-          process.env.NODE_ENV === "production"
-            ? "❌ Attempted to access a server-side environment variable on the client"
+          process.env.NODE_ENV === 'production'
+            ? '❌ Attempted to access a server-side environment variable on the client'
             : `❌ Attempted to access server-side environment variable '${prop}' on the client`,
         );
       return target[/** @type {keyof typeof target} */ (prop)];
@@ -133,4 +141,4 @@ if (!!process.env.SKIP_ENV_VALIDATION == false) {
   });
 }
 
-export { env };
+export {env};

@@ -4,13 +4,17 @@ import {NOTIFICATION_METHOD} from '../methodConstants';
 import {env} from '../../../env.mjs';
 import {logger} from '../../../server/logger';
 import {prisma} from '../../../server/db';
+import {handleFailedNotification as genericFailedNotificationHandler} from '../handleFailedNotification';
 
 class DeviceNotifier implements Notifier {
   getSupportedMethods(): Array<string> {
     return [NOTIFICATION_METHOD.DEVICE];
   }
 
-  async deleteNotificationAndDevice(destination: string, notificationId: string): Promise<void> {
+  async deleteNotificationAndDevice(
+    destination: string,
+    notificationId: string,
+  ): Promise<void> {
     try {
       // Delete the notification
       await prisma.notification.delete({
@@ -23,11 +27,17 @@ class DeviceNotifier implements Notifier {
         where: {
           destination: destination,
           method: NOTIFICATION_METHOD.DEVICE,
-        }
+        },
       });
-      logger(`Notification with ID: ${notificationId} deleted and alertMethod for destination: ${destination} has been unverified and disabled.`, "info");
+      logger(
+        `Notification with ID: ${notificationId} deleted and alertMethod for destination: ${destination} has been unverified and disabled.`,
+        'info',
+      );
     } catch (error) {
-      logger(`Database Error: Couldn't modify the alertMethod or delete the notification: ${error}`, "error");
+      logger(
+        `Database Error: Couldn't modify the alertMethod or delete the notification: ${error}`,
+        'error',
+      );
     }
   }
 
@@ -62,21 +72,29 @@ class DeviceNotifier implements Notifier {
       },
       body: JSON.stringify(payload),
     });
-    console.log(response);
+    // console.log(response);
     if (!response.ok) {
       logger(
         `Failed to send device notification. Error: ${response.statusText} for ${parameters.id}`,
         'error',
       );
+
+      await this.handleFailedNotification({
+        destination: destination,
+        method: NOTIFICATION_METHOD.DEVICE,
+      });
+
       // If device not found
-      if(response.status === 404){
-        await this.deleteNotificationAndDevice(destination, parameters.id)
-      }
+      // if (response.status === 404) {
+      //   await this.deleteNotificationAndDevice(destination, parameters.id);
+      // }
       return false;
     }
 
     return true;
   }
+
+  handleFailedNotification = genericFailedNotificationHandler;
 }
 
 export default DeviceNotifier;
