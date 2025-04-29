@@ -10,6 +10,7 @@ export type HandleFailedNotificationOptions = {
   method: AlertMethodMethod | string;
 };
 
+// Maximum allowed failures before disabling each notification method
 const MAX_FAIL_COUNT = {
   [NOTIFICATION_METHOD.SMS]: 3,
   [NOTIFICATION_METHOD.DEVICE]: 3,
@@ -24,6 +25,7 @@ export async function handleFailedNotification(
   const {destination, method} = opts;
 
   try {
+    // Find the failing alert method in database
     const failingAM = await prisma.alertMethod.findFirst({
       where: {destination, method},
     });
@@ -35,10 +37,12 @@ export async function handleFailedNotification(
 
     let isEnabled = true;
 
+    // Disable the alert method if it exceeds maximum failure threshold
     if (failingAM.failCount >= MAX_FAIL_COUNT[method] - 1) {
       isEnabled = false;
     }
 
+    // Update failure count and enabled status
     await prisma.alertMethod.updateMany({
       where: {destination, method},
       data: {isEnabled, failCount: {increment: 1}},
@@ -46,6 +50,7 @@ export async function handleFailedNotification(
 
     if (!isEnabled) {
       logger(`Disabled alertMethod for destination: ${destination}`, 'info');
+      // For SMS, DEVICE, and WHATSAPP, try to find a fallback email method
       if (
         [
           NOTIFICATION_METHOD.SMS,
@@ -68,6 +73,7 @@ export async function handleFailedNotification(
           );
           return;
         }
+        // Notify user about disabled alert method via email
         await notifyDisabledAlertMethods(
           fallbackAM?.destination ?? destination,
           failingAM,
@@ -88,11 +94,13 @@ export async function handleFailedNotification(
   }
 }
 
+// Helper function to send email notification when an alert method is disabled
 export async function notifyDisabledAlertMethods(
   destination: string,
   failingMethod: AlertMethod,
 ) {
   try {
+    // Get a user-friendly name for the failing destination
     const failingDestination =
       failingMethod?.method === NOTIFICATION_METHOD.DEVICE
         ? failingMethod.deviceName ??

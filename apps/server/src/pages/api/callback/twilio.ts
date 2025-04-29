@@ -103,6 +103,8 @@ export default async function webhookHandler(
         }
       } catch (error) {
         // Empty catch to non-blocking execution.
+        const e = error as Error;
+        logger(`Error while handling twilio webhook ${e.message}`, 'error');
       }
 
       return res.status(200).end();
