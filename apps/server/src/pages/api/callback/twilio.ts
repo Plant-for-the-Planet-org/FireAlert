@@ -3,6 +3,8 @@ import {logger} from '../../../server/logger';
 import {prisma} from '../../../server/db';
 import {validateRequest} from 'twilio';
 import {env} from '../../../env.mjs';
+import SMSNotifier from '../../../Services/Notifier/Notifier/SMSNotifier';
+import {NOTIFICATION_METHOD} from '../../../Services/Notifier/methodConstants';
 
 export const config = {
   api: {bodyParser: false},
@@ -68,13 +70,12 @@ export default async function webhookHandler(
       // `;
 
       const notification = await prisma.notification.findFirst({
-        where: {
-          metadata: {
-            path: ['sid'],
-            equals: messageSid,
-          },
+        where: {metadata: {path: ['sid'], equals: messageSid}},
+        select: {
+          id: true,
+          destination: true,
+          metadata: true,
         },
-        select: {id: true, metadata: true},
       });
 
       const notificationId = notification?.id;
@@ -91,6 +92,18 @@ export default async function webhookHandler(
           isDelivered: isDelivered,
         },
       });
+
+      try {
+        if (!isDelivered) {
+          const smsNotifier = new SMSNotifier();
+          await smsNotifier.handleFailedNotification({
+            destination: notification?.destination ?? '',
+            method: NOTIFICATION_METHOD.SMS,
+          });
+        }
+      } catch (error) {
+        // Empty catch to non-blocking execution.
+      }
 
       return res.status(200).end();
     }

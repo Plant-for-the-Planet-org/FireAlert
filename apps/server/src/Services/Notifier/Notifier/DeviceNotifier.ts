@@ -4,6 +4,7 @@ import {NOTIFICATION_METHOD} from '../methodConstants';
 import {env} from '../../../env.mjs';
 import {logger} from '../../../server/logger';
 import {prisma} from '../../../server/db';
+import {handleFailedNotification as genericFailedNotificationHandler} from '../handleFailedNotification';
 
 class DeviceNotifier implements Notifier {
   getSupportedMethods(): Array<string> {
@@ -77,15 +78,23 @@ class DeviceNotifier implements Notifier {
         `Failed to send device notification. Error: ${response.statusText} for ${parameters.id}`,
         'error',
       );
+
+      await this.handleFailedNotification({
+        destination: destination,
+        method: NOTIFICATION_METHOD.DEVICE,
+      });
+
       // If device not found
-      if (response.status === 404) {
-        await this.deleteNotificationAndDevice(destination, parameters.id);
-      }
+      // if (response.status === 404) {
+      //   await this.deleteNotificationAndDevice(destination, parameters.id);
+      // }
       return false;
     }
 
     return true;
   }
+
+  handleFailedNotification = genericFailedNotificationHandler;
 }
 
 export default DeviceNotifier;

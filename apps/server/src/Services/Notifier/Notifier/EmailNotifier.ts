@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import {emailTemplateString} from '../../../utils/notification/emailTemplateString';
 import {env} from '../../../env.mjs';
 import {logger} from '../../../../src/server/logger';
+import {handleFailedNotification as genericFailedNotificationHandler} from '../handleFailedNotification';
 
 // Define Email Template
 interface TemplateData {
@@ -70,6 +71,12 @@ class EmailNotifier implements Notifier {
       transporter.sendMail(mailOptions, err => {
         if (err) {
           logger(`Error sending email: ${err}`, 'error');
+
+          this.handleFailedNotification({
+            destination: destination,
+            method: NOTIFICATION_METHOD.EMAIL,
+          });
+
           reject(false);
         } else {
           // logger(`Message sent: ${info.response}`, "info");
@@ -78,6 +85,8 @@ class EmailNotifier implements Notifier {
       });
     });
   }
+
+  handleFailedNotification = genericFailedNotificationHandler;
 }
 
 export default EmailNotifier;

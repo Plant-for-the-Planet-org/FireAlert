@@ -47,6 +47,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     logger(`Notifications to be sent: ${notifications.length}`, 'info');
 
     const successfulNotificationIds: string[] = [];
+    const successfulDestinations: string[] = [];
     const failedAlertMethods: {
       destination: string;
       method: AlertMethodMethod;
@@ -169,6 +170,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
           if (isDelivered === true) {
             successfulNotificationIds.push(id);
+            successfulDestinations.push(destination);
             successCount++;
           } else {
             failedAlertMethods.push({destination, method: alertMethod});
@@ -190,13 +192,9 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
         where: {id: {in: successfulNotificationIds}},
         data: {isDelivered: true, sentAt: new Date()},
       });
-    }
-
-    // Handle failed notifications
-    for (const {destination, method} of failedAlertMethods) {
       await prisma.alertMethod.updateMany({
-        where: {destination: destination, method: method},
-        data: {failCount: {increment: 1}},
+        where: {destination: {in: successfulDestinations}},
+        data: {failCount: 0},
       });
     }
 
@@ -214,15 +212,6 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
         where: {id: {in: unsuccessfulNotificationIds}},
         data: {isSkipped: true, isDelivered: false, sentAt: null},
       });
-
-      const smsNotifier = new SMSNotifier();
-      await Promise.all(
-        unsuccessfulNotifications
-          .filter(el => el.alertMethod === NOTIFICATION_METHOD.SMS)
-          .map(async el => {
-            await smsNotifier.disableAlertMethodsForDestination(el.destination);
-          }),
-      );
 
       continueProcessing = false;
       break;

@@ -7,7 +7,7 @@ import twilio from 'twilio';
 import {env} from '../../../env.mjs';
 import {logger} from '../../../../src/server/logger';
 import {prisma} from '../../../server/db';
-import {headers} from 'next/headers';
+import {handleFailedNotification as genericFailedNotificationHandler} from '../handleFailedNotification';
 
 interface TwilioError {
   code: number;
@@ -86,7 +86,7 @@ class SMSNotifier implements Notifier {
     const authToken = env.TWILIO_AUTH_TOKEN;
     const phoneNumber = env.TWILIO_PHONE_NUMBER;
 
-    let statusCallback = env.TWILIO_STATUS_CALLBACK_URL ?? '';
+    let statusCallback = env?.TWILIO_STATUS_CALLBACK_URL ?? '';
     if (!statusCallback && options?.req) {
       const host = (options.req.headers['x-forwarded-host'] ||
         options.req.headers.host) as string;
@@ -128,9 +128,9 @@ class SMSNotifier implements Notifier {
         const {code, status, message} = error;
 
         // General logging for all failed attempts
-        logger(`Failed to send SMS. Error code: ${code}`, 'error');
+        // logger(`Failed to send SMS. Error code: ${code}`, 'error');
 
-        const logString = `Twilio Error: ${code} ${message}`;
+        const logString = `Twilio Error: ${code} ${message}, while sending SMS to ${destination}`;
         logger(logString, 'error');
 
         // https://www.twilio.com/docs/api/errors
@@ -142,21 +142,24 @@ class SMSNotifier implements Notifier {
         // Error codes for which the error should just be logged
         const logErrorCodes = [30008, 30007, 30006, 30003];
 
-        if (disableCodes.includes(code)) {
-          logger(
-            `${message}. Disabling AlertMethods associated with this Phone Number`,
-            'error',
-          );
+        // if (disableCodes.includes(code)) {
+        //   // logger(
+        //   //   `${message}. Disabling AlertMethods associated with this Phone Number`,
+        //   //   'error',
+        //   // );
 
-          // Disable corresponding alertMethods
-          await this.disableAlertMethodsForDestination(destination);
-        } else if (logErrorCodes.includes(code)) {
-          // Additional detailed logging for just logging error codes
-          logger(
-            `${message}. Error while sending SMS to ${destination}.`,
-            'error',
-          );
-        }
+        //   // await this.disableAlertMethodsForDestination(destination);
+        // } else if (logErrorCodes.includes(code)) {
+        //   // logger(
+        //   //   `${message}. Error while sending SMS to ${destination}.`,
+        //   //   'error',
+        //   // );
+        // }
+
+        await this.handleFailedNotification({
+          destination: destination,
+          method: NOTIFICATION_METHOD.SMS,
+        });
 
         const updateJson = JSON.stringify({status: status});
         await prisma.$executeRaw`
@@ -168,6 +171,8 @@ class SMSNotifier implements Notifier {
         return false;
       });
   }
+
+  handleFailedNotification = genericFailedNotificationHandler;
 }
 
 export default SMSNotifier;
