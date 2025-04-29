@@ -1,4 +1,4 @@
-import { z } from "zod";
+import {z} from 'zod';
 
 /**
  * Specify your server-side environment variables schema here. This way you can ensure the app isn't
@@ -9,6 +9,7 @@ const server = z.object({
   DATABASE_PRISMA_URL: process.env.VERCEL ? z.string().url() : z.string().url().optional(),
   DATABASE_URL_NON_POOLING: z.string().url(),
   NODE_ENV: z.enum(["development", "test", "production"]),
+
   NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string(),
   NEXT_PUBLIC_AUTH0_ISSUER: z.string(),
   NEXT_PUBLIC_AUTH0_DOMAIN: z.string(),
@@ -40,6 +41,7 @@ const server = z.object({
     .transform((val) => {
       if (val === undefined) return process.env.NODE_ENV === "production";
       return val === "true";
+
     }),
 });
 
@@ -59,8 +61,12 @@ const client = z.object({
  */
 const processEnv = {
   DATABASE_PRISMA_URL: process.env.DATABASE_PRISMA_URL,
-  DATABASE_URL: process.env.DATABASE_URL ? process.env.DATABASE_URL : process.env.DATABASE_PRISMA_URL,
-  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING ? process.env.DATABASE_URL_NON_POOLING : process.env.DATABASE_URL,
+  DATABASE_URL: process.env.DATABASE_URL
+    ? process.env.DATABASE_URL
+    : process.env.DATABASE_PRISMA_URL,
+  DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING
+    ? process.env.DATABASE_URL_NON_POOLING
+    : process.env.DATABASE_URL,
   // DATABASE_PRISMA_URL is set by VERCEL POSTGRES and had pooling built in.
   NODE_ENV: process.env.NODE_ENV,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
@@ -74,17 +80,18 @@ const processEnv = {
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
   TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
+  TWILIO_STATUS_CALLBACK_URL: process.env.TWILIO_STATUS_CALLBACK_URL,
   SMTP_URL: process.env.SMTP_URL,
   EMAIL_FROM: process.env.EMAIL_FROM,
   PLANET_API_URL: process.env.PLANET_API_URL,
   NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   CRON_KEY: process.env.CRON_KEY,
-  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
+  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN:
+    process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
   WHATSAPP_ENDPOINT_URL: process.env.WHATSAPP_ENDPOINT_URL,
   WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
-  PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING
+  PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING,
 };
-
 
 // Don't touch the part below
 // --------------------------
@@ -98,7 +105,7 @@ const merged = server.merge(client);
 let env = /** @type {MergedOutput} */ (process.env);
 
 if (!!process.env.SKIP_ENV_VALIDATION == false) {
-  const isServer = typeof window === "undefined";
+  const isServer = typeof window === 'undefined';
 
   const parsed = /** @type {MergedSafeParseReturn} */ (
     isServer
@@ -108,21 +115,21 @@ if (!!process.env.SKIP_ENV_VALIDATION == false) {
 
   if (parsed.success === false) {
     console.error(
-      "❌ Invalid environment variables:",
+      '❌ Invalid environment variables:',
       parsed.error.flatten().fieldErrors,
     );
-    throw new Error("Invalid environment variables");
+    throw new Error('Invalid environment variables');
   }
 
   env = new Proxy(parsed.data, {
     get(target, prop) {
-      if (typeof prop !== "string") return undefined;
+      if (typeof prop !== 'string') return undefined;
       // Throw a descriptive error if a server-side env var is accessed on the client
       // Otherwise it would just be returning `undefined` and be annoying to debug
-      if (!isServer && !prop.startsWith("NEXT_PUBLIC_"))
+      if (!isServer && !prop.startsWith('NEXT_PUBLIC_'))
         throw new Error(
-          process.env.NODE_ENV === "production"
-            ? "❌ Attempted to access a server-side environment variable on the client"
+          process.env.NODE_ENV === 'production'
+            ? '❌ Attempted to access a server-side environment variable on the client'
             : `❌ Attempted to access server-side environment variable '${prop}' on the client`,
         );
       return target[/** @type {keyof typeof target} */ (prop)];
@@ -130,4 +137,4 @@ if (!!process.env.SKIP_ENV_VALIDATION == false) {
   });
 }
 
-export { env };
+export {env};

@@ -4,13 +4,17 @@ import {type NotificationParameters} from '../../../Interfaces/NotificationParam
 import type Notifier from '../Notifier';
 import {NOTIFICATION_METHOD} from '../methodConstants';
 import {env} from '../../../env.mjs';
+import {handleFailedNotification as genericFailedNotificationHandler} from '../handleFailedNotification';
 
 class WhatsAppNotifier implements Notifier {
   getSupportedMethods(): Array<string> {
     return [NOTIFICATION_METHOD.WHATSAPP];
   }
 
-  async deleteNotificationDisableAndUnverifyWhatsApp(destination: string, notificationId: string): Promise<void> {
+  async deleteNotificationDisableAndUnverifyWhatsApp(
+    destination: string,
+    notificationId: string,
+  ): Promise<void> {
     try {
       // Delete the notification
       await prisma.notification.delete({
@@ -29,9 +33,15 @@ class WhatsAppNotifier implements Notifier {
           isEnabled: false,
         },
       });
-      logger(`Notification with ID: ${notificationId} deleted and alertMethod for destination: ${destination} has been unverified and disabled.`, "info");
+      logger(
+        `Notification with ID: ${notificationId} deleted and alertMethod for destination: ${destination} has been unverified and disabled.`,
+        'info',
+      );
     } catch (error) {
-      logger(`Database Error: Couldn't modify the alertMethod or delete the notification: ${error}`, "error");
+      logger(
+        `Database Error: Couldn't modify the alertMethod or delete the notification: ${error}`,
+        'error',
+      );
     }
   }
 
@@ -45,19 +55,20 @@ class WhatsAppNotifier implements Notifier {
       return false;
     }
 
+
     // construct the payload for Webhook
     const payload = {
-      ...parameters
+      ...parameters,
     };
 
-    const WHATSAPP_ENDPOINT_URL = `${env.WHATSAPP_ENDPOINT_URL}?whatsAppId=${destination}`;  
-    
+    const WHATSAPP_ENDPOINT_URL = `${env.WHATSAPP_ENDPOINT_URL}?whatsAppId=${destination}`;
+
     // call WehHook to send the notification
     const response = await fetch(WHATSAPP_ENDPOINT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-token-api': env.WHATSAPP_ENDPOINT_AUTH_TOKEN
+        'x-token-api': env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
       },
       body: JSON.stringify(payload),
     });
@@ -70,23 +81,40 @@ class WhatsAppNotifier implements Notifier {
       // Specific status code handling
       if (response.status === 404) {
         // Webhook URL Not Found - Token not found
-        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id as string);
-      } else if (response.status === 401){
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(
+          destination,
+          parameters.id as string,
+        );
+      } else if (response.status === 401) {
         // Unauthorized
-        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id as string);
-      } else if (response.status === 403){
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(
+          destination,
+          parameters.id as string,
+        );
+      } else if (response.status === 403) {
         // Forbidden
-        await this.deleteNotificationDisableAndUnverifyWhatsApp(destination, parameters.id as string);
+        await this.deleteNotificationDisableAndUnverifyWhatsApp(
+          destination,
+          parameters.id as string,
+        );
       } else {
         logger(
           `Failed to send webhook notification. Something went wrong. Try again in next run.`,
           'error',
         );
       }
+
+      // await this.handleFailedNotification({
+      //   destination: destination,
+      //   method: NOTIFICATION_METHOD.WHATSAPP,
+      // });
+
       return false;
     }
     return true;
   }
+
+  handleFailedNotification = genericFailedNotificationHandler;
 }
 
 export default WhatsAppNotifier;
