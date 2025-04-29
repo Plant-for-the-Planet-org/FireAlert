@@ -30,7 +30,7 @@ export interface GeoEventProviderClass {
     slice: string,
     clientApiKey: string,
     lastRun: Date | null
-  ) => Promise<GeoEvent[]>;
+  ) => Promise<{events: GeoEvent[], error?: {message: string, status?: number}}>;
 }
 
 export interface GeoEventProviderConfigGeneral {

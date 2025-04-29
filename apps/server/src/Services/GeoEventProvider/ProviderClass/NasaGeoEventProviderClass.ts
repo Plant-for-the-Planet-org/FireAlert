@@ -9,6 +9,7 @@ import { parse } from 'csv-parse'
 import { AlertType } from "../../../Interfaces/SiteAlert";
 import type DataRecord from '../../../Interfaces/DataRecord';
 import { Confidence } from '../../../Interfaces/GeoEvent';
+import { logger } from '../../../../src/server/logger';
 
 interface NasaGeoEventProviderConfig extends GeoEventProviderConfig {
     apiUrl: string;
@@ -30,7 +31,7 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
         this.config = config;
     }
 
-    async getLatestGeoEvents(geoEventProviderClientId: string, geoEventProviderId: string, slice: string, clientApiKey: string): Promise<GeoEvent[]> {
+    async getLatestGeoEvents(geoEventProviderClientId: string, geoEventProviderId: string, slice: string, clientApiKey: string): Promise<{events: GeoEvent[], error?: {message: string, status?: number}}> {
         const normalize = (record: DataRecord, source: string): GeoEvent => {
             const longitude = parseFloat(record.longitude);
             const latitude = parseFloat(record.latitude);
@@ -91,12 +92,19 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
             };
         }
 
-        return new Promise<GeoEvent[]>(async (resolve, reject) => {
+        return new Promise<{events: GeoEvent[], error?: {message: string, status?: number}}>(async (resolve) => {
             try {
                 const url = this.getUrl(clientApiKey, geoEventProviderClientId as GeoEventProviderClientId);
                 const response = await fetch(url);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    resolve({
+                        events: [],
+                        error: {
+                            message: `Error fetching from ${geoEventProviderClientId}: Status ${response.status}`,
+                            status: response.status
+                        }
+                    });
+                    return;
                 }
                 const csv = await response.text();
 
@@ -114,13 +122,23 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
                         }
                     })
                     .on("end", () => {
-                        resolve(records)
+                        resolve({events: records})
                     })
                     .on("error", error => {
-                        reject(new Error("Error parsing CSV file: " + error.message))
+                        resolve({
+                            events: [],
+                            error: {
+                                message: `Error parsing CSV from ${geoEventProviderClientId}: ${error.message}`
+                            }
+                        });
                     });
             } catch (error) {
-                reject(error);
+                resolve({
+                    events: [],
+                    error: {
+                        message: `Error fetching from ${geoEventProviderClientId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+                    }
+                });
             }
         });
     }

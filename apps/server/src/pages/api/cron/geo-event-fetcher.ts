@@ -56,6 +56,19 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
   let newSiteAlertCount = 0;
   let processedProviders = 0;
   const fetchCount = limit;
+  const providerMetrics: Array<{
+    providerName: string,
+    slice: string,
+    geoEvents: {
+      total: number,
+      new: number,
+      created: number
+    },
+    error?: {
+      message: string,
+      status?: number
+    }
+  }> = [];
   // while (processedProviders <= limit) {
     const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
         SELECT *
@@ -113,50 +126,83 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
         breadcrumbPrefix = `Geostationary Satellite ${clientApiKey}:`
       }
 
-      // First fetch all geoEvents from the provider
-      return await geoEventProvider.getLatestGeoEvents(geoEventProviderClientId, geoEventProviderId, slice, clientApiKey, lastRun)
-        .then(async (geoEvents) => {
-          // If there are geoEvents, emit an event to find duplicates and persist them
-          logger(`${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`, "info");
+      let geoEvents: GeoEvent[] = [];
+      let totalEventCount = 0;
+      let totalNewGeoEvent = 0;
+      let error: Error | undefined;
+      // Result type matches the return type from getLatestGeoEvents which includes both events and potential error information
+      let result: { events: GeoEvent[]; error?: { message: string; status?: number } } | undefined;
+
+      try {
+        // First fetch all geoEvents from the provider
+        // The result contains both the events array and any error information from the provider
+        result = await geoEventProvider.getLatestGeoEvents(geoEventProviderClientId, geoEventProviderId, slice, clientApiKey, lastRun);
+        
+        // Ensure we have a valid result and events array
+        if (!result || !result.events) {
+          throw new Error('No valid events data received from provider');
+        }
+        
+        geoEvents = result.events;
+        
+        // If there are geoEvents, emit an event to find duplicates and persist them
+        logger(`${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`, "info");
+        
+        if (geoEvents && geoEvents.length > 0) {
+          // Split geoEvents into smaller chunks
+          const geoEventChunks = chunkArray(geoEvents, chunkSize);
           
-
-          let totalEventCount = 0;
-          let totalNewGeoEvent = 0;
-
-          if (geoEvents.length > 0) {
-            // Split geoEvents into smaller chunks
-            const geoEventChunks = chunkArray(geoEvents, chunkSize);
+          // Process each chunk sequentially
+          for (const geoEventChunk of geoEventChunks) {
+            if (!geoEventChunk || geoEventChunk.length === 0) continue;
             
-            // Process each chunk sequentially
-            for (const geoEventChunk of geoEventChunks) {
-                const processedGeoEvent = await processGeoEvents(geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEventChunk);
-                totalEventCount += processedGeoEvent.geoEventCount;
-                totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
-            }
+            const processedGeoEvent = await processGeoEvents(geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEventChunk);
+            totalEventCount += processedGeoEvent.geoEventCount;
+            totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
           }
+        }
 
-          logger(`${breadcrumbPrefix} Found ${totalNewGeoEvent} new Geo Events`, "info");
-          logger(`${breadcrumbPrefix} Created ${totalEventCount} Geo Events`, "info");
+        logger(`${breadcrumbPrefix} Found ${totalNewGeoEvent} new Geo Events`, "info");
+        logger(`${breadcrumbPrefix} Created ${totalEventCount} Geo Events`, "info");
 
-          // if (totalNewGeoEvent > 0) {
-          const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
-          logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
+        // if (totalNewGeoEvent > 0) {
+        const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
+        logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
 
-          newSiteAlertCount += alertCount
-          // }
+        newSiteAlertCount += alertCount
+        // }
 
-          // Update lastRun value of the provider to the current Date()
-          await prisma.geoEventProvider.update({
-            where: {
-              id: provider.id
-            },
-            data: {
-              lastRun: new Date().toISOString()
-            },
-          });
+        // Update lastRun value of the provider to the current Date()
+        await prisma.geoEventProvider.update({
+          where: {
+            id: provider.id
+          },
+          data: {
+            lastRun: new Date().toISOString()
+          },
         });
+      } catch (err) {
+        error = err as Error;
+        logger(`${breadcrumbPrefix} Processing failed: ${error.message}`, "error");
+      }
 
-    })
+      // Add provider metrics
+      const providerName = provider.name || geoEventProviderClientId;
+      providerMetrics.push({
+        providerName: providerName,
+        slice: slice,
+        geoEvents: {
+          total: geoEvents.length,
+          new: totalNewGeoEvent,
+          created: totalEventCount
+        },
+        // Include error information from either the provider response or the caught error
+        error: result?.error || error ? {
+          message: (result?.error?.message || error?.message) || 'Unknown error',
+          status: result?.error?.status
+        } : undefined
+      });
+    });
     processedProviders += activeProviders.length;
 
     await Promise.all(promises).catch(error => logger(`Something went wrong before creating notifications. ${error}`, "error"));
@@ -166,6 +212,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     alertsCreated: newSiteAlertCount,
     // notificationCount: notificationCount,
     processedProviders: processedProviders,
-    status: 200
+    status: 200,
+    data: providerMetrics
   });
 }
