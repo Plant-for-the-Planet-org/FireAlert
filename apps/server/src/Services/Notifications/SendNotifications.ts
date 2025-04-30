@@ -1,20 +1,29 @@
-import {type AlertMethodMethod} from '../../Interfaces/AlertMethod';
-import {type NotificationParameters} from '../../Interfaces/NotificationParameters';
 import type {AdditionalOptions} from '../../Interfaces/AdditionalOptions';
+import {type AlertMethodMethod} from '../../Interfaces/AlertMethod';
 import type DataRecord from '../../Interfaces/DataRecord';
-import NotifierRegistry from '../Notifier/NotifierRegistry';
+import {type NotificationParameters} from '../../Interfaces/NotificationParameters';
+import {getLocalTime} from '../../../src/utils/date';
+import {env} from '../../env.mjs';
 import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';
-import {getLocalTime} from '../../../src/utils/date';
-import SMSNotifier from '../Notifier/Notifier/SMSNotifier';
+import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 
 const MAX_RETRIES = 0;
+const ALERT_SMS_DISABLED = env.ALERT_SMS_DISABLED;
+const ALERT_WHATSAPP_DISABLED = env.ALERT_WHATSAPP_DISABLED;
+
 // get all undelivered Notifications and using relation from SiteAlert, get the data on Site
 // for each notification, send the notification to the destination
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
 const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
+  const alertMethodsExclusionList = [];
+  if (ALERT_SMS_DISABLED)
+    alertMethodsExclusionList.push(NOTIFICATION_METHOD.SMS);
+  if (ALERT_WHATSAPP_DISABLED)
+    alertMethodsExclusionList.push(NOTIFICATION_METHOD.WHATSAPP);
+
   const take = 10;
   let successCount = 0;
   let continueProcessing = true;
@@ -25,8 +34,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
         isSkipped: false,
         isDelivered: false,
         sentAt: null,
-        // alertMethod: {notIn: ['sms', 'whatsapp']}
-        alertMethod: {notIn: ['whatsapp']},
+        alertMethod: {notIn: alertMethodsExclusionList},
       },
       include: {
         siteAlert: {

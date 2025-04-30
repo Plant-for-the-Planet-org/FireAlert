@@ -1,14 +1,28 @@
 import {z} from 'zod';
 
+const coerceBooleanWithDefault = defaultValue =>
+  z
+    .preprocess(raw => {
+      if (typeof raw === 'string') {
+        // explicit check for "false" (case-insensitive) → false; everything else truthy → true
+        return raw.toLowerCase() === 'false' ? false : true;
+      }
+      // if undefined (env not set), fall back to the default
+      return defaultValue;
+    }, z.boolean()) // now our schema is a boolean type
+    .default(defaultValue); // defaultValue must match z.boolean()
+
 /**
  * Specify your server-side environment variables schema here. This way you can ensure the app isn't
  * built with invalid env vars.
  */
 const server = z.object({
   DATABASE_URL: z.string().url().optional(),
-  DATABASE_PRISMA_URL: process.env.VERCEL ? z.string().url() : z.string().url().optional(),
+  DATABASE_PRISMA_URL: process.env.VERCEL
+    ? z.string().url()
+    : z.string().url().optional(),
   DATABASE_URL_NON_POOLING: z.string().url(),
-  NODE_ENV: z.enum(["development", "test", "production"]),
+  NODE_ENV: z.enum(['development', 'test', 'production']),
 
   NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string(),
   NEXT_PUBLIC_AUTH0_ISSUER: z.string(),
@@ -22,26 +36,37 @@ const server = z.object({
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_PHONE_NUMBER: z.string().optional(),
   TWILIO_WHATSAPP_NUMBER: z.string().optional(),
-  
+
   // SMTP configuration for email notifications. If not provided, email notifications will be disabled.
   SMTP_URL: z.string().url().optional(),
   // Email sender address. Required only if SMTP_URL is configured.
-  EMAIL_FROM: z.string().default("FireAlert by Plant-for-the-Planet <firealert@plant-for-the-planet.org>"),
-  
+  EMAIL_FROM: z
+    .string()
+    .default(
+      'FireAlert by Plant-for-the-Planet <firealert@plant-for-the-planet.org>',
+    ),
+
   // Plant-for-the-Planet API URL. Defaults to the main application URL if not provided.
-  PLANET_API_URL: z.string().default("https://app.plant-for-the-planet.org"),
+  PLANET_API_URL: z.string().default('https://app.plant-for-the-planet.org'),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
   CRON_KEY: z.string().optional(),
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
+
   // WhatsApp configuration. If not provided, WhatsApp notifications will be disabled.
   WHATSAPP_ENDPOINT_URL: z.string().optional(),
   WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string().optional(),
-  // API caching configuration. Enabled by default in production, disabled in development.
-  PUBLIC_API_CACHING: z.union([z.literal("true"), z.literal("false")]).optional()
-    .transform((val) => {
-      if (val === undefined) return process.env.NODE_ENV === "production";
-      return val === "true";
 
+  // Default is true (unless set "false") that means SMS/Whatsapp will be disabled
+  ALERT_SMS_DISABLED: coerceBooleanWithDefault(true),
+  ALERT_WHATSAPP_DISABLED: coerceBooleanWithDefault(true),
+
+  // API caching configuration. Enabled by default in production, disabled in development.
+  PUBLIC_API_CACHING: z
+    .union([z.literal('true'), z.literal('false')])
+    .optional()
+    .transform(val => {
+      if (val === undefined) return process.env.NODE_ENV === 'production';
+      return val === 'true';
     }),
 });
 
@@ -90,6 +115,8 @@ const processEnv = {
     process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
   WHATSAPP_ENDPOINT_URL: process.env.WHATSAPP_ENDPOINT_URL,
   WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
+  ALERT_SMS_DISABLED: process.env.ALERT_SMS_DISABLED,
+  ALERT_WHATSAPP_DISABLED: process.env.ALERT_WHATSAPP_DISABLED,
   PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING,
 };
 
