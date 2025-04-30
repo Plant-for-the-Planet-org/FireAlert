@@ -51,6 +51,12 @@ class DeviceNotifier implements Notifier {
   ): Promise<boolean> {
     const {message, subject, url, alert} = parameters;
 
+    // Check if OneSignal is configured
+    if (!env.ONESIGNAL_APP_ID || !env.ONESIGNAL_REST_API_KEY) {
+      logger(`Push notifications are disabled: OneSignal is not configured`, 'warn');
+      return Promise.resolve(false);
+    }
+
     // logger(`Sending message ${message} to ${destination}`, "info");
 
     // construct the payload for the OneSignal API
