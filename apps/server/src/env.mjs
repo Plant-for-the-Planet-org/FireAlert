@@ -1,5 +1,17 @@
 import {z} from 'zod';
 
+const coerceBooleanWithDefault = defaultValue =>
+  z
+    .preprocess(raw => {
+      if (typeof raw === 'string') {
+        // explicit check for "false" (case-insensitive) → false; everything else truthy → true
+        return raw.toLowerCase() === 'false' ? false : true;
+      }
+      // if undefined (env not set), fall back to the default
+      return defaultValue;
+    }, z.boolean()) // now our schema is a boolean type
+    .default(defaultValue); // defaultValue must match z.boolean()
+
 /**
  * Specify your server-side environment variables schema here. This way you can ensure the app isn't
  * built with invalid env vars.
@@ -40,6 +52,10 @@ const server = z.object({
   NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().optional(),
   WHATSAPP_ENDPOINT_URL: z.string(),
   WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string(),
+
+  ALERT_SMS_DISABLED: coerceBooleanWithDefault(true),
+  ALERT_WHATSAPP_DISABLED: coerceBooleanWithDefault(true),
+
   PUBLIC_API_CACHING: z
     .union([z.literal('true'), z.literal('false')])
     .optional()
@@ -94,6 +110,8 @@ const processEnv = {
     process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
   WHATSAPP_ENDPOINT_URL: process.env.WHATSAPP_ENDPOINT_URL,
   WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
+  ALERT_SMS_DISABLED: process.env.ALERT_SMS_DISABLED,
+  ALERT_WHATSAPP_DISABLED: process.env.ALERT_WHATSAPP_DISABLED,
   PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING,
 };
 
