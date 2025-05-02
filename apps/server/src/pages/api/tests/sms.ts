@@ -14,6 +14,15 @@ export default async function testSms(req: NextApiRequest, res: NextApiResponse)
             status: 401,
         });
     }
+
+    // Check if Twilio is configured
+    if (!env.TWILIO_AUTH_TOKEN) {
+        return res.status(400).json({
+            message: "SMS notifications are disabled: TWILIO_AUTH_TOKEN is not configured",
+            status: 400,
+        });
+    }
+
     if (env.CRON_KEY) {
         // Verify the 'cron_key' in the request headers
         const cronKey = req.query['cron_key'];
