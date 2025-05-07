@@ -9,6 +9,8 @@ services:
     volumes:
       - ./tmp:/app/tmp
       - ./logs:/app/logs
+    env_file:
+      - .env
     # Pass command-line arguments to your script
     # command:
     #   [

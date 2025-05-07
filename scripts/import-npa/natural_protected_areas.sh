@@ -13,14 +13,15 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 # Default values
-#DATASET_URL=""
 ENVIRONMENT="production"
 TEMP_DIR="$(pwd)/tmp"
 OUTPUT_SQL="${TEMP_DIR}/natural_protected_areas.sql"
 BACKUP_PATH=""
 IS_PRODUCTION=true
 EXTRACT_DIR="${TEMP_DIR}/extracted"
-#DATABASE_URL=""
+# Will be passed from Envvironment
+# DATASET_URL=""
+# DATABASE_URL=""
 
 # Print a formatted message
 print_message() {
@@ -34,6 +35,19 @@ print_message() {
     error)   echo -e "\033[0;31m[ERROR]\033[0m $message" >&2 ;;
     *)       echo "$message" >&2 ;;
   esac
+}
+
+# Format duration in seconds to human readable format
+format_duration() {
+  local seconds=$1
+  local minutes=$(( seconds / 60 ))
+  local remaining_seconds=$(( seconds % 60 ))
+  
+  if [[ $minutes -gt 0 ]]; then
+    echo "${minutes}m ${remaining_seconds}s"
+  else
+    echo "${remaining_seconds}s"
+  fi
 }
 
 # Parse command-line arguments
@@ -64,6 +78,7 @@ parse_args() {
         echo "Options:"
         echo "  --url URL     URL to the natural_protected_areas dataset zip file"
         echo "  --env ENV     FireAlert environment (production or development)"
+        echo "  --dburl URL   FireAlert PostgreSQL database URL"
         echo "  --help        Show this help message"
         exit 0
         ;;
@@ -110,6 +125,12 @@ prepare_temp_dir() {
 
 # Download the dataset
 download_dataset() {
+
+  if [[ -z "$DATASET_URL" ]]; then
+    print_message error "Dataset URL (--url) or DATASET_URL environment variable is required"
+    exit 1
+  fi
+
   print_message info "Preparing to download dataset from $DATASET_URL..."
   
   local zip_name="protected_planet_$(date +%Y%m%d%H%M%S).zip"
@@ -225,8 +246,8 @@ convert_shapefiles_to_sql() {
   
   local schema_polygons="${TEMP_DIR}/schema_polygons.sql"
   local polygons="${TEMP_DIR}/polygons.sql"
-  > "$schema_polygons"
-  > "$polygons"
+  : > "$schema_polygons"
+  : > "$polygons"
   
   print_message info "Processing polygon shapefiles from $polygons_list..."
   while IFS= read -r polygon_file; do
@@ -266,8 +287,6 @@ get_firealert_db_url() {
   else
     read -p "Enter the FireAlert ${ENVIRONMENT} PostgreSQL database URL: " db_url
   fi
-  
-  print_message info "$db_url"
 
   # Basic validation of the URL format
   if [[ ! "$db_url" =~ ^postgres(ql)?:// ]]; then
@@ -382,44 +401,60 @@ cleanup() {
 main() {
   print_message info "Starting natural_protected_areas PostGIS Integration & FireAlert Sync"
   
+  # Start total execution timer
+  local start_total=$SECONDS
+  
   # Parse command line arguments
   parse_args "$@"
   
   # Check required tools
+  local start_check=$SECONDS
   check_environment || exit 1
+  print_message info "Tool check took $(format_duration $((SECONDS - start_check)))"
   
   # Prepare temporary directory
+  local start_prep=$SECONDS
   prepare_temp_dir
+  print_message info "Directory preparation took $(format_duration $((SECONDS - start_prep)))"
   
   # Download dataset
-  local zip_path=$(download_dataset)
-  [[ $? -ne 0 ]] && exit 1
+  local start_download=$SECONDS
+  local zip_path
+  zip_path=$(download_dataset) || exit 1
+  print_message info "Dataset download took $(format_duration $((SECONDS - start_download)))"
   
   # Extract archives
-  local EXTRACT_DIR=$(extract_archives "$zip_path")
-  [[ $? -ne 0 ]] && exit 1
+  local start_extract=$SECONDS
+  local EXTRACT_DIR
+  EXTRACT_DIR=$(extract_archives "$zip_path") || exit 1
+  print_message info "Archive extraction took $(format_duration $((SECONDS - start_extract)))"
   
   # Find shapefiles
-  local shapefile_list=$(find_shapefiles "$EXTRACT_DIR")
-  [[ $? -ne 0 ]] && exit 1
+  local start_find=$SECONDS
+  local shapefile_list
+  shapefile_list=$(find_shapefiles "$EXTRACT_DIR") || exit 1
+  print_message info "Finding shapefiles took $(format_duration $((SECONDS - start_find)))"
   
   # Convert shapefiles to SQL
-  # local sql_path=$OUTPUT_SQL
-  local sql_path=$(convert_shapefiles_to_sql "$shapefile_list")
-  [[ $? -ne 0 ]] && exit 1
+  local start_convert=$SECONDS
+  local sql_path=$(convert_shapefiles_to_sql "$shapefile_list") || exit 1
+  print_message info "Converting shapefiles to SQL took $(format_duration $((SECONDS - start_convert)))"
   
   if [[ $? -ne 0 ]]; then
     print_message info "SQL file created but not imported. You can find it at:"
     print_message info "$(realpath "$OUTPUT_SQL")"
-    # exit 1
   fi
 
   # Get database URL
+  local start_dburl=$SECONDS
   local db_url=$(get_firealert_db_url)
+  print_message info "Database URL validation took $(format_duration $((SECONDS - start_dburl)))"
   
   # Backup database if production
   if [[ "$IS_PRODUCTION" == true ]]; then
+    local start_backup=$SECONDS
     backup_database "$db_url"
+    print_message info "Database backup took $(format_duration $((SECONDS - start_backup)))"
     
     if [[ $? -ne 0 ]]; then
       read -p "Backup failed. Continue with import? (y/n): " user_continue
@@ -428,25 +463,22 @@ main() {
   fi
 
   # Import data
+  local start_import=$SECONDS
   import_data "$sql_path" "$db_url"
   local import_success=$?
+  print_message info "Data import took $(format_duration $((SECONDS - start_import)))"
 
-  # Clean up or preserve files
+  # Clean up temporary files
+  local start_cleanup=$SECONDS
   cleanup
-  # Not Waiting for User Input for cleanup.
-  # if [[ $import_success -eq 0 ]]; then
-  #   read -p "Clean up temporary files? (y/n): " clean_up
-    
-  #   if [[ "$clean_up" == "y" ]]; then
-  #     cleanup
-  #   else
-  #     print_message info "SQL file preserved at: $(realpath "$OUTPUT_SQL")"
-  #   fi
-  # fi
+  print_message info "Cleanup took $(format_duration $((SECONDS - start_cleanup)))"
   
   if [[ -n "$BACKUP_PATH" && -f "$BACKUP_PATH" ]]; then
     print_message info "Database backup preserved at: $(realpath "$BACKUP_PATH")"
   fi
+  
+  # Print total execution time
+  print_message info "Total execution time: $(format_duration $((SECONDS - start_total)))"
   
   if [[ $import_success -eq 0 ]]; then
     print_message success "natural_protected_areas integration completed successfully"
