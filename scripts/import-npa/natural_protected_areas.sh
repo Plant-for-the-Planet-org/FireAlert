@@ -295,7 +295,7 @@ get_firealert_db_url() {
   fi
   
   print_message success "Database URL validated"
-  # echo "$db_url"
+  echo "$db_url"
 }
 
 # Parse database URL components
@@ -425,8 +425,8 @@ main() {
   
   # Extract archives
   local start_extract=$SECONDS
-  local EXTRACT_DIR
-  EXTRACT_DIR=$(extract_archives "$zip_path") || exit 1
+  local extract_dir
+  extract_dir=$(extract_archives "$zip_path") || exit 1
   print_message info "Archive extraction took $(format_duration $((SECONDS - start_extract)))"
   
   # Find shapefiles
