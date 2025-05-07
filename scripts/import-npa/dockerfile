@@ -1,0 +1,45 @@
+FROM debian:bullseye-slim
+
+# Avoid prompts and set up temp dir
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TEMP_DIR=/app/tmp
+
+WORKDIR /app
+RUN mkdir -p /app/tmp /app/logs
+
+# 1. Install prerequisites for adding PGDG repo
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      wget \
+      ca-certificates \
+      gnupg2 \
+      lsb-release && \
+    rm -rf /var/lib/apt/lists/*
+
+# 2. Add PostgreSQL Apt repository for Bullseye
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+      | apt-key add - && \
+    echo "deb http://apt.postgresql.org/pub/repos/apt \
+      $(lsb_release -cs)-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update
+
+# 3. Install PostgreSQL 15 client tools + PostGIS (shp2pgsql) + GDAL
+RUN apt-get install -y --no-install-recommends \
+      postgresql-client-15 \
+      postgresql-15-postgis-3 \
+      postgis \
+      gdal-bin \
+      unzip \
+      ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# 4. Copy your main script and make it executable
+COPY natural_protected_areas.sh /app/natural_protected_areas.sh
+RUN chmod +x /app/natural_protected_areas.sh
+
+# 5. Entrypoint: run your script, then keep container alive for debugging
+ENTRYPOINT ["bash", "-c", "/app/natural_protected_areas.sh \"$@\"; \
+             echo 'Script finished, container remains open for debugging'; \
+             tail -f /dev/null", "--"]
