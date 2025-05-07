@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import {emailTemplateString} from '../../../utils/notification/emailTemplateString';
 import {env} from '../../../env.mjs';
 import {logger} from '../../../../src/server/logger';
+import {handleFailedNotification as genericFailedNotificationHandler} from '../handleFailedNotification';
 
 // Define Email Template
 interface TemplateData {
@@ -28,17 +29,18 @@ class EmailNotifier implements Notifier {
     return [NOTIFICATION_METHOD.EMAIL];
   }
 
-  notify(
+  async notify(
     destination: string,
     parameters: NotificationParameters,
   ): Promise<boolean> {
     const {message, subject} = parameters;
 
-    // if env.SMTP_URL is not set return promise with false
+    // Check if SMTP is configured
     if (!env.SMTP_URL) {
-      logger(`Error sending email: SMTP_URL is not set`, 'error');
+      logger(`Email notifications are disabled: SMTP_URL is not configured`, 'warn');
       return Promise.resolve(false);
     }
+
     // Establish a transporter using SMTP settings
     // Be aware that AWS SES may assign passwords that include special characters such as "+", "/", "=", etc., which are not in line with URL standards
     // To accommodate these characters for env.SMTP_URL, encode them using encodeURIComponent() and then decode them prior to supplying to nodemailer
@@ -67,9 +69,15 @@ class EmailNotifier implements Notifier {
 
     // Send the email
     return new Promise((resolve, reject) => {
-      transporter.sendMail(mailOptions, (err) => {
+      transporter.sendMail(mailOptions, err => {
         if (err) {
           logger(`Error sending email: ${err}`, 'error');
+
+          this.handleFailedNotification({
+            destination: destination,
+            method: NOTIFICATION_METHOD.EMAIL,
+          });
+
           reject(false);
         } else {
           // logger(`Message sent: ${info.response}`, "info");
@@ -78,6 +86,8 @@ class EmailNotifier implements Notifier {
       });
     });
   }
+
+  handleFailedNotification = genericFailedNotificationHandler;
 }
 
 export default EmailNotifier;
