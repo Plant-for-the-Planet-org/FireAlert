@@ -2,8 +2,7 @@
 CREATE TYPE "SiteRelationRole" AS ENUM ('ROLE_ADMIN', 'ROLE_VIEWER');
 
 -- AlterTable
-ALTER TABLE "Site" ALTER COLUMN "userId" DROP NOT NULL,
-ALTER COLUMN "detectionArea" DROP DEFAULT;
+ALTER TABLE "Site" ALTER COLUMN "userId" DROP NOT NULL;
 
 -- CreateTable
 CREATE TABLE "SiteRelation" (
@@ -21,36 +20,36 @@ CREATE TABLE "SiteRelation" (
 -- CreateTable
 CREATE TABLE "ProtectedArea" (
     "gid" SERIAL NOT NULL,
-    "wdpaid" DECIMAL,
-    "wdpa_pid" VARCHAR(52),
-    "pa_def" VARCHAR(20),
-    "name" VARCHAR(254),
-    "orig_name" VARCHAR(254),
-    "desig" VARCHAR(254),
-    "desig_eng" VARCHAR(254),
-    "desig_type" VARCHAR(20),
-    "iucn_cat" VARCHAR(20),
-    "int_crit" VARCHAR(100),
-    "marine" VARCHAR(20),
-    "rep_m_area" DECIMAL,
-    "gis_m_area" DECIMAL,
-    "rep_area" DECIMAL,
-    "gis_area" DECIMAL,
-    "no_take" VARCHAR(50),
-    "no_tk_area" DECIMAL,
-    "status" VARCHAR(100),
-    "status_yr" INTEGER,
-    "gov_type" VARCHAR(254),
-    "own_type" VARCHAR(254),
-    "mang_auth" VARCHAR(254),
-    "mang_plan" VARCHAR(254),
-    "verif" VARCHAR(20),
-    "metadataid" INTEGER,
-    "sub_loc" VARCHAR(100),
-    "parent_iso" VARCHAR(50),
-    "iso3" VARCHAR(50),
-    "supp_info" VARCHAR(254),
-    "cons_obj" VARCHAR(100),
+    "WDPAID" DECIMAL(65,30),
+    "WDPA_PID" VARCHAR(52),
+    "PA_DEF" VARCHAR(20),
+    "NAME" VARCHAR(254),
+    "ORIG_NAME" VARCHAR(254),
+    "DESIG" VARCHAR(254),
+    "DESIG_ENG" VARCHAR(254),
+    "DESIG_TYPE" VARCHAR(20),
+    "IUCN_CAT" VARCHAR(20),
+    "INT_CRIT" VARCHAR(100),
+    "MARINE" VARCHAR(20),
+    "REP_M_AREA" DECIMAL(65,30),
+    "GIS_M_AREA" DECIMAL(65,30),
+    "REP_AREA" DECIMAL(65,30),
+    "GIS_AREA" DECIMAL(65,30),
+    "NO_TAKE" VARCHAR(50),
+    "NO_TK_AREA" DECIMAL(65,30),
+    "STATUS" VARCHAR(100),
+    "STATUS_YR" INTEGER,
+    "GOV_TYPE" VARCHAR(254),
+    "OWN_TYPE" VARCHAR(254),
+    "MANG_AUTH" VARCHAR(254),
+    "MANG_PLAN" VARCHAR(254),
+    "VERIF" VARCHAR(20),
+    "METADATAID" INTEGER,
+    "SUB_LOC" VARCHAR(100),
+    "PARENT_ISO" VARCHAR(50),
+    "ISO3" VARCHAR(50),
+    "SUPP_INFO" VARCHAR(254),
+    "CONS_OBJ" VARCHAR(100),
     "geom" geometry,
 
     CONSTRAINT "ProtectedArea_pkey" PRIMARY KEY ("gid")
@@ -58,9 +57,6 @@ CREATE TABLE "ProtectedArea" (
 
 -- CreateIndex
 CREATE INDEX "ProtectedArea_geom_idx" ON "ProtectedArea" USING GIST ("geom");
-
--- CreateIndex
-CREATE INDEX "ProtectedArea_geom_idx1" ON "ProtectedArea" USING GIST ("geom");
 
 -- AddForeignKey
 ALTER TABLE "SiteRelation" ADD CONSTRAINT "SiteRelation_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE CASCADE ON UPDATE CASCADE;
