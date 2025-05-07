@@ -30,7 +30,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
     }
   }
 
-  // Set Limit to 7 if not provided or greater than 10
+  // Set Limit to 7 if not provided or greater than 7
   // Extract limit from query
   const rawLimit = req.query['limit'];
 
@@ -39,13 +39,13 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   if (typeof rawLimit === 'string') {
     const parsedLimit = parseInt(rawLimit, 10);
-    if (isNaN(parsedLimit) || parsedLimit > 15) {
-      limit = 15;
+    if (isNaN(parsedLimit) || parsedLimit > 7) {
+      limit = 7;
     } else {
       limit = parsedLimit;
     }
   } else {
-    limit = 4;
+    limit = 2;
   }
 
 
@@ -55,7 +55,7 @@ export default async function alertFetcher(req: NextApiRequest, res: NextApiResp
 
   let newSiteAlertCount = 0;
   let processedProviders = 0;
-  const fetchCount = Math.max(5, limit * 2);
+  const fetchCount = limit;
   // while (processedProviders <= limit) {
     const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
         SELECT *

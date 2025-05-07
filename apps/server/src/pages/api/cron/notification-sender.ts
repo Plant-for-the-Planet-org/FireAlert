@@ -19,12 +19,13 @@ export default async function notificationSender(
   logger(`Running Notification Sender.`, 'info');
 
   try {
-    const notificationsSent = await sendNotifications();
+    const notificationsSent = await sendNotifications({req});
 
     if (notificationsSent === 0) {
       // No notifications were needed to be sent, but the job executed successfully
       res.status(200).json({
-        message: 'Cron job executed successfully, but no notifications were sent',
+        message:
+          'Cron job executed successfully, but no notifications were sent',
         status: '200',
         notificationsSent,
       });
@@ -45,6 +46,4 @@ export default async function notificationSender(
       status: '307',
     });
   }
-
-
 }
