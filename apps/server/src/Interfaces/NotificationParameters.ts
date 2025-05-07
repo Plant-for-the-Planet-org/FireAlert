@@ -6,8 +6,8 @@ export interface NotificationParameters {
   subject?: string;
   url?: string;
   authenticationMessage?: boolean;
-  otp?: string,
-  siteName?: string,
+  otp?: string;
+  siteName?: string;
   alert?: {
     id: string;
     type: string;
@@ -20,5 +20,11 @@ export interface NotificationParameters {
     data: DataRecord;
     siteId: string;
     siteName: string;
+  };
+  site?: {
+    id: string;
+  };
+  user?: {
+    id: string;
   };
 }
