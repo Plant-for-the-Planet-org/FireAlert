@@ -3,7 +3,7 @@ import {
   type CheckUserHasSitePermissionArgs,
   type CheckIfPlanetROSiteArgs,
 } from '../../Interfaces/Site';
-import {type Site, SiteAlert, AlertConfidence} from '@prisma/client';
+import type { Site, SiteAlert, AlertConfidence} from '@prisma/client';
 import {prisma} from '../../../src/server/db';
 
 // Compares the User in session or token with the Site that is being Read, Updated or Deleted
