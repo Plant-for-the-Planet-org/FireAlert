@@ -1,11 +1,12 @@
+import type {Prisma, SiteAlert} from "@prisma/client"; 
+
 import {TRPCError} from "@trpc/server";
-import {createSiteSchema, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateSiteSchema} from '../zodSchemas/site.schema'
+import {createProtectedSiteSchema, createSiteSchema, findProtectedSiteParams, getSitesWithProjectIdParams, params, pauseAlertInputSchema, updateProtectedSiteSchema, updateSiteSchema} from '../zodSchemas/site.schema'
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
 import {checkUserHasSitePermission, checkIfPlanetROSite, triggerTestAlert} from '../../../utils/routers/site'
-import {Prisma, SiteAlert} from "@prisma/client";
 // import {UserPlan} from "../../../Interfaces/AlertMethod";
 
 export const siteRouter = createTRPCRouter({
@@ -103,6 +104,28 @@ export const siteRouter = createTRPCRouter({
                     message: `Something Went Wrong`,
                 });
             }
+        }),
+
+    findProtectedSites: protectedProcedure
+        .input(findProtectedSiteParams)
+        .mutation(async ({ctx, input}) => {
+            return {
+                    status: 'success',
+                    data: [],
+                };
+        }),
+
+    
+    createProtectedSite: protectedProcedure
+        .input(createProtectedSiteSchema)
+        .mutation(async ({ctx, input}) => {
+            return {
+                status: "success",
+                data: {
+                    site: {},
+                    siteRelation: {}
+                },
+            };
         }),
 
     getSitesForProject: protectedProcedure
@@ -243,6 +266,39 @@ export const siteRouter = createTRPCRouter({
             }
         }),
 
+    getProtectedSites: protectedProcedure.query(async ({ctx}) => {
+        const userId = ctx.user!.id;
+        try {
+            
+            // const _siteRelation = await ctx.prisma.siteRelation.findMany({
+            //     where: { userId: userId, },
+            //     select: { siteId: true, isActive:true, site: { 
+            //         select: {
+            //             id: true,
+            //             name: true
+            //         }
+            //     } }
+            // })
+      
+            // const sites = _siteRelation.map(el => ({
+            //     ...el.site,
+            //     isActive: el.isActive,
+            // }))
+
+            const sites = [];
+            return {
+                status: 'success',
+                data: sites,
+            };
+        } catch (error) {
+            console.log(error)
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: `${error}`,
+            });
+        }
+    }),
+        
     updateSite: protectedProcedure
         .input(updateSiteSchema)
         .mutation(async ({ctx, input}) => {
@@ -311,6 +367,12 @@ export const siteRouter = createTRPCRouter({
                     message: `Error Updating Site.`,
                 });
             }
+        }),
+    
+    updateProtectedSite: protectedProcedure
+        .input(updateProtectedSiteSchema)
+        .mutation(async ({ctx, input}) => {
+            return { status: 'success' };
         }),
 
     triggerTestAlert: protectedProcedure
