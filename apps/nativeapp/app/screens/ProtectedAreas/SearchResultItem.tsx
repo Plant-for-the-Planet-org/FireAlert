@@ -15,8 +15,13 @@ import {useNavigation} from '@react-navigation/native';
 
 export type Result = {
   name: string;
+  wdpaid: string;
+  wdpa_pid: string;
+  gis_area?: number;
+  iso3: string;
   country: string;
-  area?: number;
+  areaInHectare: string;
+  remoteId: string;
 };
 type Props = {
   results: Result[];
@@ -31,7 +36,7 @@ export default function SearchResultItems({results}: Props) {
   const createProtectedSite = trpc.site.createProtectedSite.useMutation({
     retryDelay: 3000,
     onSuccess: res => {
-      console.log(res);
+      // console.log(res);
       if (res?.json && res?.json?.status === 'success') {
         console.log(res.json.data);
         setTimeout(() => {
@@ -53,7 +58,9 @@ export default function SearchResultItems({results}: Props) {
               style={styles.listItemTouchable}
               onPress={() => {
                 createProtectedSite.mutate({
-                  json: {externalId: r?.externalId},
+                  json: {
+                    remoteId: r?.remoteId,
+                  },
                 });
               }}>
               <SvgXml height={52} xml={protectedAreaSearchResultIcon} />
@@ -64,9 +71,9 @@ export default function SearchResultItems({results}: Props) {
                   style={styles.listItemName}>
                   {r.name}
                 </Text>
-                {/* <Text style={styles.listItemDescription}>
-                {r.country} · {r?.area ? `${r.area} mha` : 'Unknown'}
-                </Text> */}
+                <Text style={styles.listItemDescription}>
+                  {r.country} · {r.areaInHectare}
+                </Text>
               </View>
             </TouchableOpacity>
           </View>
