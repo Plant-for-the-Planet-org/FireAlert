@@ -16,6 +16,7 @@ import {
   triggerTestAlert,
 } from '../../../utils/routers/site';
 import type {Prisma, Site, SiteAlert, SiteRelation} from '@prisma/client';
+import * as countries from 'i18n-iso-countries';
 
 export const siteRouter = createTRPCRouter({
   createSite: protectedProcedure
@@ -127,9 +128,23 @@ export const siteRouter = createTRPCRouter({
             name: true,
             wdpaid: true,
             wdpa_pid: true,
+            iso3: true,
+            gis_area: true,
             // geom: true,
           },
         });
+
+        const sites = results.map(el => ({
+          ...el,
+          country: countries.getName(el.iso3!, 'en'),
+          areaInHectare: new Intl.NumberFormat('en', {
+            style: 'unit',
+            unit: 'hectare',
+            unitDisplay: 'short',
+            maximumFractionDigits: 2,
+          }).format(+el.gis_area! * 100),
+          remoteId: el.wdpa_pid,
+        }));
 
         // const sites = await ctx.prisma.site.findMany({
         //     where: {
@@ -157,7 +172,7 @@ export const siteRouter = createTRPCRouter({
 
         return {
           status: 'success',
-          data: results,
+          data: sites,
         };
       } catch (error) {
         console.log(error);
@@ -290,6 +305,8 @@ export const siteRouter = createTRPCRouter({
           data: {site, siteRelation},
         };
       } catch (error) {
+        console.log({error});
+
         if (error instanceof TRPCError) {
           throw error;
         }
@@ -300,90 +317,6 @@ export const siteRouter = createTRPCRouter({
         });
       }
     }),
-
-  // joinProtectedSite: protectedProcedure
-  //     .input(joinProtectedSiteParams)
-  //     .mutation(async ({ctx, input}) => {
-  //         const userId = ctx.user!.id;
-  //         let siteId = input.siteId;
-  //         const externalId:string = input.externalId!;
-  //         try {
-
-  //             if (externalId) {
-  //               const site = await ctx.prisma.site.findFirst({
-  //                 where: {externalId: externalId},
-  //               })
-
-  //               if(site)
-  //                 siteId = site?.id;
-  //             }
-
-  //             const foundSiteRelation = await ctx.prisma.siteRelation.findFirst({
-  //                 where: {
-  //                     userId: userId,
-  //                     siteId: siteId,
-  //                     isActive: true
-  //                 },
-  //                 select: {
-  //                     siteId: true, userId: true, role: true,
-  //                     site: {
-  //                         select: {
-  //                             id: true,
-  //                             type: true,
-  //                             name: true,
-  //                             radius: true,
-  //                             geometry: true,
-  //                             externalId: true,
-  //                         }
-  //                     }
-  //                 }
-  //             })
-
-  //             if (foundSiteRelation) {
-  //                 return {
-  //                     status: 'success',
-  //                     data: foundSiteRelation,
-  //                 };
-  //             }
-
-  //             const siteRelation = await ctx.prisma.siteRelation.create({
-  //                 data: {
-  //                     role: "ROLE_VIEWER",
-  //                     userId: userId,
-  //                     siteId: siteId
-  //                 },
-  //                 select: {
-  //                     siteId: true, userId: true, role: true,
-  //                     site: {
-  //                         select: {
-  //                             id: true,
-  //                             type: true,
-  //                             name: true,
-  //                             radius: true,
-  //                             geometry: true,
-  //                             externalId: true,
-  //                         }
-  //                     }
-  //                 }
-  //             })
-
-  //             return {
-  //                 status: 'success',
-  //                 data: siteRelation,
-  //             };
-  //         } catch (error) {
-  //             console.log(error);
-  //             if (error instanceof TRPCError) {
-  //                 // if the error is already a TRPCError, just re-throw it
-  //                 throw error;
-  //             }
-  //             // if it's a different type of error, throw a new TRPCError
-  //             throw new TRPCError({
-  //                 code: "INTERNAL_SERVER_ERROR",
-  //                 message: `Something Went Wrong`,
-  //             });
-  //         }
-  //     }),
 
   getSitesForProject: protectedProcedure
     .input(getSitesWithProjectIdParams)
