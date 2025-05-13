@@ -7,7 +7,8 @@ axios.defaults.timeout = 30000;
 
 export default function fireApi({method, URL, data, header, token}) {
   if (URL === ApiUrl.userDetails) {
-    URL = Config.NEXT_API_URL + URL;
+    // URL = Config.NEXT_API_URL + URL;
+    URL = Config.API_URL + URL;
   } else {
     URL = URL;
   }
