@@ -73,6 +73,22 @@ export function returnUser(user: User) {
   };
 }
 
+export function returnUserSettings() {
+  return {
+    settings: {
+      alertMethods: {
+        enabled: {
+          email: true,
+          device: true,
+          sms: !env.ALERT_SMS_DISABLED,
+          whatsapp: !env.ALERT_WHATSAPP_DISABLED,
+          webhook: true,
+        },
+      },
+    },
+  };
+}
+
 interface Auth0User {
   sub: string;
   nickname: string;
@@ -105,9 +121,10 @@ export async function handleNewUser(bearer_token: string) {
   // Auth0 has a bug where email_verified is a sometimes string instead of a boolean
   // Therefore check both string and boolean values
 
-  const email_verified = (typeof userData.email_verified === 'boolean' && userData.email_verified) || 
-                        (typeof userData.email_verified === 'string' && 
-                        userData.email_verified.toLowerCase() === 'true');
+  const email_verified =
+    (typeof userData.email_verified === 'boolean' && userData.email_verified) ||
+    (typeof userData.email_verified === 'string' &&
+      userData.email_verified.toLowerCase() === 'true');
 
   const getPlanetUser = await planetUser(bearer_token);
   const isPlanetRO = getPlanetUser.isPlanetRO;
