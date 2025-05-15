@@ -38,6 +38,7 @@
     "csv-parse": "^5.3.9",
     "geo-tz": "^7.0.7",
     "hash-wasm": "^4.9.0",
+    "i18n-iso-countries": "^7.14.0",
     "libphonenumber-js": "^1.10.56",
     "mapbox-gl": "1.13",
     "maplibre-gl": "^3.1.0",

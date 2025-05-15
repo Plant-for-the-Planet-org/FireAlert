@@ -94,8 +94,6 @@ const processEnv = {
     : process.env.DATABASE_URL,
   // DATABASE_PRISMA_URL is set by VERCEL POSTGRES and had pooling built in.
   NODE_ENV: process.env.NODE_ENV,
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   NEXT_PUBLIC_AUTH0_CLIENT_ID: process.env.NEXT_AUTH0_CLIENT_ID,
   NEXT_PUBLIC_AUTH0_ISSUER: process.env.AUTH0_ISSUER,
   NEXT_PUBLIC_AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
