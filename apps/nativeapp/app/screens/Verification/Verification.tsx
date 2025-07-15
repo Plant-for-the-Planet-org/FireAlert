@@ -84,21 +84,17 @@ const Verification = ({navigation, route}) => {
     ) {
       return toast.show('Incorrect Number', {type: 'warning'});
     }
-    if (
-      (verificationType === 'Sms' && limitDestination)
-    ) {
+    if (verificationType === 'Sms' && limitDestination) {
       return toast.show(
-        `Apologies, sms services to your region are currently unsupported. Please select a different method.`,
+        'Apologies, sms services to your region are currently unsupported. Please select a different method.',
         {
           type: 'warning',
         },
       );
     }
-    if (
-      (verificationType === 'Whatsapp' && limitDestination)
-    ) {
+    if (verificationType === 'Whatsapp' && limitDestination) {
       return toast.show(
-        `Meta's API change in India affects delivery of FireAlerts over WhatsApp. Please select a different method.`,
+        "Meta's API change in India affects delivery of FireAlerts over WhatsApp. Please select a different method.",
         {
           type: 'warning',
         },

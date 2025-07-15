@@ -2,7 +2,7 @@ import React from 'react';
 import Config from 'react-native-config';
 import {createTRPCReact, httpBatchLink} from '@trpc/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {QueryClient} from '@tanstack/react-query';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {PersistQueryClientProvider} from '@tanstack/react-query-persist-client';
 import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persister';
 
@@ -37,13 +37,17 @@ export const TRPCProvider: React.FC<{children: React.ReactNode}> = ({
     }),
   );
 
+  console.log('queryClient', JSON.stringify(queryClient, null, 2));
+
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{persister: asyncStoragePersister}}>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        {children}
-      </trpc.Provider>
-    </PersistQueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{persister: asyncStoragePersister}}>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          {children}
+        </trpc.Provider>
+      </PersistQueryClientProvider>
+    </QueryClientProvider>
   );
 };

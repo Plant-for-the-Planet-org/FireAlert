@@ -17,15 +17,15 @@ import {
 import bbox from '@turf/bbox';
 import moment from 'moment-timezone';
 import MapboxGL from '@rnmapbox/maps';
-import { useAuth0 } from 'react-native-auth0';
+import {useAuth0} from 'react-native-auth0';
 import Lottie from 'lottie-react-native';
 import rewind from '@mapbox/geojson-rewind';
-import { multiPolygon, polygon } from '@turf/helpers';
-import { useQueryClient } from '@tanstack/react-query';
+import {multiPolygon, polygon} from '@turf/helpers';
+import {useQueryClient} from '@tanstack/react-query';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
-import Toast, { useToast } from 'react-native-toast-notifications';
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import Toast, {useToast} from 'react-native-toast-notifications';
+import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
   DropDown,
@@ -66,20 +66,20 @@ import {
   PermissionBlockedAlert,
 } from './PermissionAlert/LocationPermissionAlerts';
 
-import { trpc } from '../../services/trpc';
-import { useFetchSites } from '../../utils/api';
-import { Colors, Typography } from '../../styles';
-import { daysFromToday } from '../../utils/moment';
-import { clearAll } from '../../utils/localStorage';
-import { categorizedRes } from '../../utils/filters';
+import {trpc} from '../../services/trpc';
+import {useFetchSites} from '../../utils/api';
+import {Colors, Typography} from '../../styles';
+import {daysFromToday} from '../../utils/moment';
+import {clearAll} from '../../utils/localStorage';
+import {categorizedRes} from '../../utils/filters';
 import handleLink from '../../utils/browserLinking';
-import { getFireIcon } from '../../utils/getFireIcon';
-import { locationPermission } from '../../utils/permissions';
-import { useAppDispatch, useAppSelector } from '../../hooks';
-import { highlightWave } from '../../assets/animation/lottie';
-import { BottomBarContext } from '../../global/reducers/bottomBar';
-import { POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS } from '../../constants';
-import { MapLayerContext, useMapLayers } from '../../global/reducers/mapLayers';
+import {getFireIcon} from '../../utils/getFireIcon';
+import {locationPermission} from '../../utils/permissions';
+import {useAppDispatch, useAppSelector} from '../../hooks';
+import {highlightWave} from '../../assets/animation/lottie';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
+import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
+import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -105,18 +105,16 @@ const images: Record<CompassImage, ImageSourcePropType> = {
   compass1: require('../../assets/images/compassImage.png'),
 };
 
-const Home = ({ navigation, route }) => {
+const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
-  const { state } = useMapLayers(MapLayerContext);
-  const { clearSession, clearCredentials, error } = useAuth0()
+  const {state} = useMapLayers(MapLayerContext);
+  const {clearSession, clearCredentials, error} = useAuth0();
 
-  const { selected, setSelected, selectedSiteBar, passMapInfo } =
+  const {selected, setSelected, selectedSiteBar, passMapInfo} =
     useContext(BottomBarContext);
-  const { userDetails, configData } = useAppSelector(
+  const {userDetails, configData} = useAppSelector(
     appState => appState.loginSlice,
   );
-
-
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);
@@ -165,7 +163,7 @@ const Home = ({ navigation, route }) => {
       setSelectedAlert({});
       const centerCoordinates = await map.current.getCenter();
       const currZoom = await map.current.getZoom();
-      passMapInfo({ centerCoordinates, currZoom });
+      passMapInfo({centerCoordinates, currZoom});
     }
     passProp();
   }, [selectedSiteBar]);
@@ -216,15 +214,15 @@ const Home = ({ navigation, route }) => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location, onUpdateUserLocation]);
 
-  const { data: alerts } = useFetchSites({ enabled: true });
+  const {data: alerts} = useFetchSites({enabled: true});
 
-  const { data: sites, refetch: refetchSites } = trpc.site.getSites.useQuery(
+  const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],
     {
       enabled: true,
       retryDelay: 3000,
       onError: () => {
-        toast.show('something went wrong', { type: 'danger' });
+        toast.show('something went wrong', {type: 'danger'});
       },
     },
   );
@@ -238,9 +236,9 @@ const Home = ({ navigation, route }) => {
     retryDelay: 3000,
     onSuccess: () => {
       const request = {
-        onSuccess: async message => { },
+        onSuccess: async message => {},
         onFail: () => {
-          toast.show('something went wrong', { type: 'danger' });
+          toast.show('something went wrong', {type: 'danger'});
         },
       };
       setLoading(false);
@@ -250,7 +248,7 @@ const Home = ({ navigation, route }) => {
     onError: () => {
       setLoading(false);
       setProfileEditModal(false);
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
@@ -258,43 +256,43 @@ const Home = ({ navigation, route }) => {
     retryDelay: 3000,
     onSuccess: (res, req) => {
       queryClient.setQueryData(
-        [['site', 'getSites'], { input: ['site', 'getSites'], type: 'query' }],
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
         oldData =>
           oldData
             ? {
-              ...oldData,
-              json: {
-                ...oldData.json,
-                data: oldData.json.data.filter(
-                  item => item.id !== req.json.siteId,
-                ),
-              },
-            }
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item.id !== req.json.siteId,
+                  ),
+                },
+              }
             : null,
       );
       queryClient.setQueryData(
         [
           ['alert', 'getAlerts'],
-          { input: ['alerts', 'getAlerts'], type: 'query' },
+          {input: ['alerts', 'getAlerts'], type: 'query'},
         ],
         oldData =>
           oldData
             ? {
-              ...oldData,
-              json: {
-                ...oldData.json,
-                data: oldData.json.data.filter(
-                  item => item?.site?.id !== req.json.siteId,
-                ),
-              },
-            }
+                ...oldData,
+                json: {
+                  ...oldData.json,
+                  data: oldData.json.data.filter(
+                    item => item?.site?.id !== req.json.siteId,
+                  ),
+                },
+              }
             : null,
       );
       setSelectedSite({});
       setSelectedArea(null);
     },
     onError: () => {
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
@@ -302,22 +300,22 @@ const Home = ({ navigation, route }) => {
     retryDelay: 3000,
     onSuccess: (res, req) => {
       queryClient.setQueryData(
-        [['site', 'getSites'], { input: ['site', 'getSites'], type: 'query' }],
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
         oldData =>
           oldData
             ? {
-              ...oldData,
-              json: {
-                ...oldData?.json,
-                data: oldData?.json?.data?.map(item =>
-                  item.id === res?.json?.data?.id ? res?.json?.data : item,
-                ),
-              },
-            }
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
             : null,
       );
       if (req?.json?.body.hasOwnProperty('isMonitored')) {
-        setSelectedSite({ site: res?.json?.data });
+        setSelectedSite({site: res?.json?.data});
       } else {
         setSelectedSite({});
         setSelectedArea(null);
@@ -325,7 +323,7 @@ const Home = ({ navigation, route }) => {
       setSiteNameModalVisible(false);
     },
     onError: () => {
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
@@ -338,14 +336,14 @@ const Home = ({ navigation, route }) => {
       dispatch(updateIsLoggedIn(false));
     },
     onError: () => {
-      toast.show('something went wrong', { type: 'danger' });
+      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
   const onGoBack = () => setShowDelAccount(false);
 
   const onDeleteAccount = () => {
-    softDeleteUser.mutate({ json: { id: userDetails?.data?.id } });
+    softDeleteUser.mutate({json: {id: userDetails?.data?.id}});
   };
 
   const handleDelAccount = () => {
@@ -365,7 +363,7 @@ const Home = ({ navigation, route }) => {
 
   const handleEditSiteInfo = () => {
     let payload = {
-      json: { params: { siteId }, body: { name: siteName, radius: siteRad?.value } },
+      json: {params: {siteId}, body: {name: siteName, radius: siteRad?.value}},
     };
     if (isEditSite) {
       delete payload.json.body.name;
@@ -383,7 +381,7 @@ const Home = ({ navigation, route }) => {
   };
 
   const handleDeleteSite = (id: string) => {
-    deleteSite.mutate({ json: { siteId: id } });
+    deleteSite.mutate({json: {siteId: id}});
   };
 
   // recenter the mapmap to the current coordinates of user location
@@ -480,18 +478,18 @@ const Home = ({ navigation, route }) => {
   };
 
   const handleLogout = () => {
-    setProfileModalVisible(false);  
+    setProfileModalVisible(false);
     setTimeout(() => {
       clearCredentials()
-      .then(() => clearSession({}, { useLegacyCallbackUrl: true }))
-      .then(async () => {
-        dispatch(updateIsLoggedIn(false));
-        queryClient.clear();
-        await clearAll();
-      })
-      .catch(error => {
-        console.log("Error ocurred", error)
-      })
+        .then(() => clearSession({}, {useLegacyCallbackUrl: true}))
+        .then(async () => {
+          dispatch(updateIsLoggedIn(false));
+          queryClient.clear();
+          await clearAll();
+        })
+        .catch(error => {
+          console.log('Error ocurred', error);
+        });
     }, 300);
   };
 
@@ -500,7 +498,7 @@ const Home = ({ navigation, route }) => {
     const payload = {
       name: profileName?.trim(),
     };
-    updateUser.mutate({ json: { body: payload } });
+    updateUser.mutate({json: {body: payload}});
   };
 
   const handlePencil = () => {
@@ -514,7 +512,7 @@ const Home = ({ navigation, route }) => {
   const handleGoogleRedirect = () => {
     const lat = Number.parseFloat(selectedAlert?.latitude);
     const lng = Number.parseFloat(selectedAlert?.longitude);
-    const scheme = Platform.select({ ios: 'maps:', android: 'geo:' });
+    const scheme = Platform.select({ios: 'maps:', android: 'geo:'});
     const latLng = `${lat},${lng}`;
     const url = Platform.select({
       ios: `${scheme}//?q=${lat},${lng}`,
@@ -531,7 +529,7 @@ const Home = ({ navigation, route }) => {
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
 
-  const onPressPerBlockedAlertPrimaryBtn = () => { };
+  const onPressPerBlockedAlertPrimaryBtn = () => {};
   const onPressPerBlockedAlertSecondaryBtn = () => {
     BackHandler.exitApp();
   };
@@ -599,7 +597,7 @@ const Home = ({ navigation, route }) => {
             zoomLevel: 15,
             animationDuration: 500,
           });
-          setSelectedSite({ site: pointInfo });
+          setSelectedSite({site: pointInfo});
         }}
         coordinate={coordinate}>
         <PointSiteIcon />
@@ -629,7 +627,7 @@ const Home = ({ navigation, route }) => {
           selectedArea?.map(singleSite => {
             return {
               type: 'Feature',
-              properties: { site: singleSite },
+              properties: {site: singleSite},
               geometry: singleSite?.geometry,
             };
           }) || [],
@@ -664,7 +662,7 @@ const Home = ({ navigation, route }) => {
             ?.map((singleSite, i) => {
               return {
                 type: 'Feature',
-                properties: { site: singleSite },
+                properties: {site: singleSite},
                 geometry: singleSite?.geometry,
               };
             }) || [],
@@ -806,7 +804,7 @@ const Home = ({ navigation, route }) => {
         testID="layer">
         {userDetails?.data?.image ? (
           <Image
-            source={{ uri: userDetails?.data?.image }}
+            source={{uri: userDetails?.data?.image}}
             style={styles.userAvatar}
           />
         ) : (
@@ -844,7 +842,7 @@ const Home = ({ navigation, route }) => {
                   source={{
                     uri: userDetails?.data?.image,
                   }}
-                  style={[styles.userAvatar, { width: 81, height: 81 }]}
+                  style={[styles.userAvatar, {width: 81, height: 81}]}
                 />
               ) : (
                 <UserPlaceholder width={81} height={81} />
@@ -872,7 +870,7 @@ const Home = ({ navigation, route }) => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleDelAccount}
-            style={[styles.btn, { marginBottom: 16 }]}>
+            style={[styles.btn, {marginBottom: 16}]}>
             <TrashSolidIcon width={20} height={20} />
             <Text style={styles.siteActionPfText}>Delete Account</Text>
           </TouchableOpacity>
@@ -916,7 +914,7 @@ const Home = ({ navigation, route }) => {
           <View
             style={[
               styles.alertLocInfoCon,
-              { marginTop: 30, justifyContent: 'space-between' },
+              {marginTop: 30, justifyContent: 'space-between'},
             ]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
@@ -927,7 +925,7 @@ const Home = ({ navigation, route }) => {
                   <Text style={styles.satelliteLocText}>PROJECT</Text>
                   <Text style={styles.alertLocText}>
                     {selectedAlert?.site?.project?.name}{' '}
-                    <Text style={{ fontSize: Typography.FONT_SIZE_12 }}>
+                    <Text style={{fontSize: Typography.FONT_SIZE_12}}>
                       {selectedAlert?.site?.name}
                     </Text>
                   </Text>
@@ -944,7 +942,7 @@ const Home = ({ navigation, route }) => {
           </View>
           <View style={styles.separator} />
           <View
-            style={[styles.alertLocInfoCon, { justifyContent: 'space-between' }]}>
+            style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
             <View style={styles.satelliteInfoLeft}>
               <View style={styles.satelliteIcon}>
                 <LocationPinIcon />
@@ -971,10 +969,10 @@ const Home = ({ navigation, route }) => {
               <RadarIcon />
             </View>
             <View style={styles.satelliteInfo}>
-              <Text style={[styles.alertLocText, { width: SCREEN_WIDTH / 1.3 }]}>
+              <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
                 Search for the fire within a{' '}
                 <Text
-                  style={[styles.confidenceVal, { textTransform: 'lowercase' }]}>
+                  style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
                   {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
                   km
                 </Text>{' '}
@@ -985,7 +983,7 @@ const Home = ({ navigation, route }) => {
           <TouchableOpacity
             onPress={handleGoogleRedirect}
             style={styles.simpleBtn}>
-            <Text style={[styles.siteActionText, { marginLeft: 0 }]}>
+            <Text style={[styles.siteActionText, {marginLeft: 0}]}>
               Open in Google Maps
             </Text>
           </TouchableOpacity>
@@ -1023,8 +1021,8 @@ const Home = ({ navigation, route }) => {
             onPress={() =>
               updateSite.mutate({
                 json: {
-                  params: { siteId: selectedSite?.site?.id },
-                  body: { isMonitored: !selectedSite?.site?.isMonitored },
+                  params: {siteId: selectedSite?.site?.id},
+                  body: {isMonitored: !selectedSite?.site?.isMonitored},
                 },
               })
             }
@@ -1085,18 +1083,18 @@ const Home = ({ navigation, route }) => {
       {/* profile edit modal */}
       <Modal visible={profileEditModal} animationType={'slide'} transparent>
         <KeyboardAvoidingView
-          {...(Platform.OS === 'ios' ? { behavior: 'padding' } : {})}
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
           <TouchableOpacity
             onPress={handleCloseProfileModal}
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, { paddingHorizontal: 16 }]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Edit Your Name
           </Text>
           <View
-            style={[styles.siteModalStyle, { justifyContent: 'space-between' }]}>
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
             <FloatingInput
               autoFocus
               isFloat={false}
@@ -1116,7 +1114,7 @@ const Home = ({ navigation, route }) => {
       {/* site edit modal */}
       <Modal visible={siteNameModalVisible} animationType={'slide'} transparent>
         <KeyboardAvoidingView
-          {...(Platform.OS === 'ios' ? { behavior: 'padding' } : {})}
+          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
           style={styles.siteModalStyle}>
           <Toast ref={modalToast} offsetBottom={100} duration={2000} />
           <TouchableOpacity
@@ -1124,11 +1122,11 @@ const Home = ({ navigation, route }) => {
             style={styles.crossContainer}>
             <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
           </TouchableOpacity>
-          <Text style={[styles.heading, { paddingHorizontal: 16 }]}>
+          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
             Enter Site Name
           </Text>
           <View
-            style={[styles.siteModalStyle, { justifyContent: 'space-between' }]}>
+            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
             <View>
               <FloatingInput
                 autoFocus

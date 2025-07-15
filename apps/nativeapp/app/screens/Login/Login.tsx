@@ -7,7 +7,7 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import Config from 'react-native-config';
 
 import {
@@ -15,35 +15,31 @@ import {
   updateIsLoggedIn,
   updateAccessToken,
 } from '../../redux/slices/login/loginSlice';
-import { useAppDispatch } from '../../hooks';
-import { CustomButton } from '../../components';
-import { Colors, Typography } from '../../styles';
-import { VerifyAccAlert } from '../../assets/svgs';
-import { storeData } from '../../utils/localStorage';
+import {useAppDispatch} from '../../hooks';
+import {CustomButton} from '../../components';
+import {Colors, Typography} from '../../styles';
+import {VerifyAccAlert} from '../../assets/svgs';
+import {storeData} from '../../utils/localStorage';
 import LinearGradient from 'react-native-linear-gradient';
-import { useAuth0 } from 'react-native-auth0';
-import { useToast } from 'react-native-toast-notifications';
+import {useAuth0} from 'react-native-auth0';
+import {useToast} from 'react-native-toast-notifications';
 
 const launch_screen = require('../../assets/images/launch_screen.png');
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showVerifyAccModal, setShowVerifyAccModal] = useState<boolean>(false);
-  const { authorize, error } = useAuth0()
-  const toast = useToast()
+  const {authorize, error} = useAuth0();
+  const toast = useToast();
   const dispatch = useAppDispatch();
-
-
 
   useEffect(() => {
     if (error) {
-      if (error.code === "unauthorized") {
+      if (error.code === 'unauthorized') {
         setShowVerifyAccModal(true);
       }
     }
-  }, [error])
-
-
+  }, [error]);
 
   const handleLogin = async () => {
     try {
@@ -54,8 +50,8 @@ const Login = () => {
           scope: 'openid email profile offline_access',
           audience: 'urn:plant-for-the-planet',
         },
-        { ephemeralSession: false, useLegacyCallbackUrl: true },
-      )
+        {ephemeralSession: false, useLegacyCallbackUrl: true},
+      );
 
       if (authCred) {
         const request = {
@@ -72,10 +68,10 @@ const Login = () => {
         dispatch(getUserDetails(request));
       } else {
         setIsLoading(false);
-        toast.show("Login Failed")
+        toast.show('Login Failed');
       }
     } catch (error) {
-      toast.show("Login Failed")
+      toast.show('Login Failed');
     }
   };
 
@@ -105,8 +101,8 @@ const Login = () => {
           <Text style={styles.alertMessage}>
             To secure your account, we need to verify your email. Please check
             your inbox or spam/junk folder for a confirmation email and then
-            continue to login.{`\n\n`}{' '}
-            <Text style={{ fontFamily: Typography.FONT_FAMILY_ITALIC }}>
+            continue to login.{'\n\n'}{' '}
+            <Text style={{fontFamily: Typography.FONT_FAMILY_ITALIC}}>
               If you didn’t receive an email please try logging in again and
               we’ll send you another email.
             </Text>
@@ -115,7 +111,7 @@ const Login = () => {
             <LinearGradient
               useAngle
               angle={135}
-              angleCenter={{ x: 0.5, y: 0.5 }}
+              angleCenter={{x: 0.5, y: 0.5}}
               colors={Colors.GREEN_GRADIENT_ARR}
               style={[styles.addSiteBtn, styles.justifyContentCenter]}>
               <Text style={styles.emptySiteText}>Continue to Login</Text>
