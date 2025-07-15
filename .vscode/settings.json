@@ -5,5 +5,27 @@
         "Logtail",
         "MODIS",
         "VIIRS"
-    ]
+    ],
+    "workbench.preferredLightColorTheme": "Default Light Modern",
+    "workbench.colorTheme": "Default Light Modern",
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#ee9481",
+        "activityBar.background": "#ee9481",
+        "activityBar.foreground": "#15202b",
+        "activityBar.inactiveForeground": "#15202b99",
+        "activityBarBadge.background": "#e3fbe7",
+        "activityBarBadge.foreground": "#15202b",
+        "commandCenter.border": "#15202b99",
+        "sash.hoverBorder": "#ee9481",
+        "statusBar.background": "#e86e54",
+        "statusBar.foreground": "#15202b",
+        "statusBarItem.hoverBackground": "#e24827",
+        "statusBarItem.remoteBackground": "#e86e54",
+        "statusBarItem.remoteForeground": "#15202b",
+        "titleBar.activeBackground": "#e86e54",
+        "titleBar.activeForeground": "#15202b",
+        "titleBar.inactiveBackground": "#e86e5499",
+        "titleBar.inactiveForeground": "#15202b99"
+    },
+    "peacock.color": "#E86E54"
 }
