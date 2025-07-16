@@ -1,11 +1,9 @@
+import {useNavigation} from '@react-navigation/native';
 import React, {useState} from 'react';
-import {Button, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {StyleSheet, TouchableOpacity, View} from 'react-native';
+import {BackArrowIcon} from '../../assets/svgs';
 import SearchInput from '../../components/inputs/SearchInput';
 import {addToRecentSearches} from './RecentSearches';
-import FlatButton from '../../components/flatButton';
-import {CustomButton} from '../../components';
-import {BackArrowIcon} from '../../assets/svgs';
-import {useNavigation} from '@react-navigation/native';
 
 type Props = {
   value: string;
@@ -21,9 +19,13 @@ export default function ProtectedAreasSearch({
   const {goBack} = useNavigation();
   const [input, setInput] = useState(value);
 
-  function handleSubmitEditing() {
+  async function handleSubmitEditing() {
     onSubmit(input);
-    addToRecentSearches(input);
+    try {
+      await addToRecentSearches(input);
+    } catch (error) {
+      console.warn('Failed to add to recent searches:', error);
+    }
   }
 
   return (
@@ -32,8 +34,9 @@ export default function ProtectedAreasSearch({
         <BackArrowIcon />
       </TouchableOpacity>
       <SearchInput
-        containerStyle={styles.searchInput}
-        placeholder="Search"
+        containerStyle={styles.searchInputContainer}
+        inputStyle={styles.searchInput}
+        placeholder="Search protected areas"
         value={input}
         inputMode="search"
         onChangeText={text => {
@@ -53,10 +56,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  searchInput: {
+  searchInputContainer: {
     flex: 1,
-    flexDirection: 'row',
     flexGrow: 1,
     marginRight: 8,
+  },
+  searchInput: {
+    width: '100%',
   },
 });

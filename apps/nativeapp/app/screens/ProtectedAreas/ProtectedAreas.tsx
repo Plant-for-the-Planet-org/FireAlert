@@ -1,25 +1,21 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import {
   Platform,
   SafeAreaView,
   StatusBar,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
+import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import NoResult from './NoResult';
 import ProtectedAreasSearch from './ProtectedAreasSearch';
 import RecentSearches from './RecentSearches';
 import SearchResultItems, {Result} from './SearchResultItem';
-import {trpc} from '../../services/trpc';
-import {useToast} from 'react-native-toast-notifications';
 
 const IS_ANDROID = Platform.OS === 'android';
 
 const ProtectedAreas = () => {
-  const toast = useToast();
-
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [noResults, setNoResults] = useState(false);
@@ -40,12 +36,6 @@ const ProtectedAreas = () => {
 
   function handleSubmit() {
     findProtectedSites.mutate({json: {query}});
-    // const _result = filterSampleData(query);
-    // if (_result.length === 0) {
-    //   setNoResults(true);
-    //   return;
-    // }
-    // setResults(_result);
   }
 
   return (
@@ -63,7 +53,7 @@ const ProtectedAreas = () => {
             setResults([]);
             setNoResults(false);
           }}
-          onSubmit={input => {
+          onSubmit={() => {
             handleSubmit();
           }}
         />
@@ -104,10 +94,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-function filterSampleData(query: string) {
-  const sampleData = require('./sample.json');
-  return sampleData.filter(item => {
-    return item.name.toLowerCase().includes(query.toLowerCase());
-  });
-}

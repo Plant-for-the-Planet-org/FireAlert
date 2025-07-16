@@ -36,14 +36,12 @@ export default function SearchResultItems({results}: Props) {
   const createProtectedSite = trpc.site.createProtectedSite.useMutation({
     retryDelay: 3000,
     onSuccess: res => {
-      // console.log(res);
       if (res?.json && res?.json?.status === 'success') {
         console.log(res.json.data);
         setTimeout(() => {
           toast.show('Success', {type: 'success'});
           navigate('Home');
         }, 500);
-        // navigate("")
       }
     },
   });
@@ -57,11 +55,7 @@ export default function SearchResultItems({results}: Props) {
             <TouchableOpacity
               style={styles.listItemTouchable}
               onPress={() => {
-                createProtectedSite.mutate({
-                  json: {
-                    remoteId: r?.remoteId,
-                  },
-                });
+                createProtectedSite.mutate({json: {remoteId: r?.remoteId}});
               }}>
               <SvgXml height={52} xml={protectedAreaSearchResultIcon} />
               <View>
@@ -101,9 +95,11 @@ const styles = StyleSheet.create({
   listItemName: {
     fontSize: Typography.FONT_SIZE_14,
     lineHeight: Typography.LINE_HEIGHT_20,
+    color: Colors.TEXT_COLOR,
     fontWeight: 'bold',
   },
   listItemDescription: {
     fontSize: Typography.FONT_SIZE_12,
+    color: Colors.TEXT_COLOR,
   },
 });

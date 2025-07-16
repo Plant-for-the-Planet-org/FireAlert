@@ -1,15 +1,14 @@
 //  This section defines the "contexts" that are available in the backend API.
 //  These allow you to access things when processing a request, like the database, the session, etc.
 
-import {type CreateNextContextOptions} from '@trpc/server/adapters/next';
-import {prisma} from '../../server/db';
-import {initTRPC, TRPCError} from '@trpc/server';
+import type { User } from '@prisma/client';
+import { initTRPC, TRPCError } from '@trpc/server';
+import { type CreateNextContextOptions } from '@trpc/server/adapters/next';
+import type { NextApiRequest } from 'next';
 import superjson from 'superjson';
-import {ZodError} from 'zod';
-import {NextApiRequest} from 'next';
-import {decodeToken} from '../../utils/routers/trpc';
-import * as Sentry from '@sentry/nextjs';
-import {User} from '@prisma/client';
+import { ZodError } from 'zod';
+import { prisma } from '../../server/db';
+import { decodeToken } from '../../utils/routers/trpc';
 
 type CreateContextOptions = {
   req: NextApiRequest;
@@ -28,7 +27,7 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   };
 };
 
-export const createTRPCContext = async (
+export const createTRPCContext = (
   opts: CreateNextContextOptions,
   user: User | null,
   isAdmin: boolean,
@@ -78,6 +77,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   // Sentry.Handlers.trpcMiddleware({
   //   attachRpcInput: true,
   // });
+  // TODO(rupam): Re-enable Sentry TRPC middleware
   // Decode the token
   const {decodedToken, access_token} = await decodeToken(ctx);
   // Find the user associated with the token

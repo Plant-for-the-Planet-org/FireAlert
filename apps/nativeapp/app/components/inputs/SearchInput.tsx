@@ -1,25 +1,26 @@
-import {
-  Text,
-  View,
-  Platform,
-  TextInput,
-  StyleSheet,
-  Dimensions,
-  ActivityIndicator,
-  type TextInputProps,
-} from 'react-native';
 import React, {useState} from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  TextInput,
+  View,
+  type StyleProp,
+  type TextInputProps,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 
 import {Colors} from '../../styles';
 
 const TOP = Platform.OS === 'ios' ? -8.2 : -8.6;
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
 type Props = TextInputProps & {
   errors?: boolean;
-  inputStyle?: any;
+  inputStyle?: StyleProp<TextStyle>;
+  containerStyle?: StyleProp<ViewStyle>;
   onChangeText: (text: string) => void;
-  containerStyle?: any;
   label?: string;
   placeholder?: string;
   verifier?: boolean;
@@ -32,8 +33,8 @@ const SearchInput = (props: Props) => {
   const {
     errors,
     inputStyle,
-    onChangeText,
     containerStyle,
+    onChangeText,
     label = '',
     placeholder = '',
     verifier = false,
@@ -74,6 +75,7 @@ const SearchInput = (props: Props) => {
         onBlur={onBlur}
         style={inputStyles}
         placeholder={placeholder}
+        placeholderTextColor={Colors.GRAY_DARK}
         onFocus={setIsFocused}
         onChangeText={onChangeText}
         selectionColor={Colors.TEXT_COLOR}

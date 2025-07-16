@@ -14,9 +14,11 @@ export default function RecentSearches() {
   const recents = useRecentSearches();
 
   const handleClearRecentSearches = (array: any[], index: number) => {
-    array.splice(index, 1);
-    array.reverse();
-    storeData('recentSearches', array);
+    const updatedArray = [...array];
+    updatedArray.splice(index, 1);
+    const reversedArray = [...updatedArray].reverse();
+    storeData('recentSearches', reversedArray);
+    // You may need to trigger a re-render or use a state update here
   };
 
   return (
@@ -66,19 +68,20 @@ export function useRecentSearches() {
 export async function addToRecentSearches(search: string) {
   let searches = (await getData('recentSearches')) as string[];
 
-  if (searches) {
-    if (searches.length >= MAX_RECENT_SEARCHES) {
-      searches.shift();
-    }
-    if (searches.includes(search)) {
-      return;
-    } else {
-      searches.push(search);
-    }
-    storeData('recentSearches', searches);
-  } else {
+  if (!searches) {
     searches = [];
   }
+
+  if (searches.includes(search)) {
+    return;
+  }
+
+  if (searches.length >= MAX_RECENT_SEARCHES) {
+    searches.shift();
+  }
+
+  searches.push(search);
+  storeData('recentSearches', searches);
 }
 
 const styles = StyleSheet.create({
