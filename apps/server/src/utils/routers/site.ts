@@ -3,7 +3,7 @@ import {
   type CheckUserHasSitePermissionArgs,
   type CheckIfPlanetROSiteArgs,
 } from '../../Interfaces/Site';
-import type { Site, SiteAlert, AlertConfidence} from '@prisma/client';
+import type {Site, SiteAlert, AlertConfidence} from '@prisma/client';
 import {prisma} from '../../../src/server/db';
 
 // Compares the User in session or token with the Site that is being Read, Updated or Deleted
@@ -24,7 +24,7 @@ export const checkUserHasSitePermission = async ({
       message: 'Site with that id does not exist, cannot update site',
     });
   }
-  if (siteToCRUD.userId !== userId) {
+  if (siteToCRUD?.userId && siteToCRUD.userId !== userId) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'You are not authorized to update this site',
@@ -100,7 +100,7 @@ export const getTestSiteAlertCount = async (userId: string) => {
 };
 
 export const triggerTestAlert = async (siteId: string) => {
-  const site: Site = await prisma.site.findFirst({
+  const site = await prisma.site.findFirst({
     where: {
       id: siteId,
     },
@@ -113,6 +113,10 @@ export const triggerTestAlert = async (siteId: string) => {
 
   if (!site) {
     throw new Error('Site not found!');
+  }
+
+  if (!site?.userId) {
+    throw new Error('Site is protected & can not be accessed!');
   }
 
   const existingAlerts = await getTestSiteAlertCount(site.userId);
