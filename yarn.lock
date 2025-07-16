@@ -2933,10 +2933,10 @@
     redux-thunk "^2.4.2"
     reselect "^4.1.8"
 
-"@rnmapbox/maps@10.1.38":
-  version "10.1.38"
-  resolved "https://registry.npmjs.org/@rnmapbox/maps/-/maps-10.1.38.tgz"
-  integrity sha512-TMKaVwh5C5Z+nqUx87mZlDfPB1zmsdJqU6jAjmM8OrZWpuxpaBo3r0AgijmLEhoXIcJ2ptREk/RRcVnNgwNxgQ==
+"@rnmapbox/maps@10.1.27":
+  version "10.1.27"
+  resolved "https://registry.yarnpkg.com/@rnmapbox/maps/-/maps-10.1.27.tgz#434c3d3d955f7e2df041d17a449e4b2a696ab75c"
+  integrity sha512-x//dWjd9BbaSL0UBcbgbl9nu8rUCOIIxcTB4bbuorHnNapCq6v7gIle/dXhGYyaCGw3fLKC24PK0BEOlZYeTTg==
   dependencies:
     "@turf/along" "6.5.0"
     "@turf/distance" "6.5.0"

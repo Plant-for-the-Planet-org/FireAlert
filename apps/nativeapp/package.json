@@ -20,7 +20,7 @@
     "@react-navigation/native": "^6.1.2",
     "@react-navigation/native-stack": "^6.9.8",
     "@reduxjs/toolkit": "^1.9.3",
-    "@rnmapbox/maps": "10.1.38",
+    "@rnmapbox/maps": "10.1.27",
     "@tanstack/query-async-storage-persister": "4.36.1",
     "@tanstack/react-query-persist-client": "4.36.1",
     "@tmcw/togeojson": "^5.6.0",
