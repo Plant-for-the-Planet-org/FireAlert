@@ -61,7 +61,7 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
   DisabledTrashOutlineIcon,
-  WhatsAppIcon
+  WhatsAppIcon,
 } from '../../assets/svgs';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
@@ -74,6 +74,7 @@ import {extractCountryCode} from '../../utils/countryCodeFilter';
 // import {updateUserDetails} from '../../redux/slices/login/loginSlice';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
+import ProtectedSitesSettings from './ProtectedSitesSettings';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -128,6 +129,7 @@ const Settings = ({navigation}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
   const groupOfSites = useMemo(
     () => groupSitesAsProject(sites?.json?.data || []),
     [sites],
@@ -754,6 +756,12 @@ const Settings = ({navigation}) => {
             </View>
           )}
         </View>
+        <ProtectedSitesSettings
+          radiusLoaderArr={radiusLoaderArr}
+          setRadiusLoaderArr={setRadiusLoaderArr}
+          setRefreshing={setRefreshing}
+          toast={toast}
+        />
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
@@ -1490,7 +1498,7 @@ const Settings = ({navigation}) => {
 
 export default Settings;
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   marginRight5: {
     marginRight: 5,
   },
