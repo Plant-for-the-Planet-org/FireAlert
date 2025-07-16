@@ -90,11 +90,11 @@ export default function ProtectedSitesSettings({
         protectedSites?.json?.data
           ?.filter(site => site?.project === null)
           .map((item, index) => (
-            <TouchableOpacity
+            <View
               disabled={radiusLoaderArr.includes(item?.id)}
-              onPress={() => {
-                // handleSiteInformation(item);
-              }}
+              // onPress={() => {
+              //   // handleSiteInformation(item);
+              // }}
               key={`protectedSites_${index}`}
               style={[
                 settingsStyles.mySiteNameContainer,
@@ -121,7 +121,7 @@ export default function ProtectedSitesSettings({
                   />
                 )}
               </View>
-            </TouchableOpacity>
+            </View>
           ))
       ) : (
         <View
@@ -164,6 +164,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   addProtectedSiteBtn: {
-    width: 162,
+    width: 164,
   },
 });
