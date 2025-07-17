@@ -37,8 +37,6 @@ export const TRPCProvider: React.FC<{children: React.ReactNode}> = ({
     }),
   );
 
-  console.log('queryClient', JSON.stringify(queryClient, null, 2));
-
   return (
     <QueryClientProvider client={queryClient}>
       <PersistQueryClientProvider
