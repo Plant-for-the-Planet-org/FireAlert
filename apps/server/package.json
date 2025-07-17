@@ -17,7 +17,8 @@
     "db:pull": "dotenv -e ../../.env npx prisma db pull",
     "db:deploy": "dotenv -e ../../.env npx prisma migrate deploy",
     "db:reset": "dotenv -e ../../.env npx prisma migrate reset",
-    "db:generate": "dotenv -e ../../.env npx prisma generate"
+    "db:generate": "dotenv -e ../../.env npx prisma generate",
+    "db:studio": "dotenv -e ../../.env npx prisma studio"
   },
   "dependencies": {
     "@google/earthengine": "^0.1.396",
@@ -37,6 +38,7 @@
     "csv-parse": "^5.3.9",
     "geo-tz": "^7.0.7",
     "hash-wasm": "^4.9.0",
+    "i18n-iso-countries": "^7.14.0",
     "libphonenumber-js": "^1.10.56",
     "mapbox-gl": "1.13",
     "maplibre-gl": "^3.1.0",
