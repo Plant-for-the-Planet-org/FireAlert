@@ -19,6 +19,7 @@ import {
   uploadIcon,
   polygonIcon,
   locationIcon,
+  protectedAreaIcon,
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {plusIcon} from '../../assets/svgs/plusIcon';
@@ -103,6 +104,14 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
       title: 'Upload Polygon',
       onPress: () => {
         navigation.navigate('UploadPolygon');
+        onPressCallback();
+      },
+    },
+    {
+      svgXML: protectedAreaIcon,
+      title: 'Protected Area',
+      onPress: () => {
+        navigation.navigate('ProtectedAreas');
         onPressCallback();
       },
     },

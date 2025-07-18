@@ -10,7 +10,7 @@ import React, {memo} from 'react';
 
 import {LayerCheck} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
-import {SELECT_MAP_LAYER} from '../../global/actions/types';
+import {SELECT_MAP_LAYER} from '../../global/actions/Types';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 
 interface ILayerModalProps {

@@ -29,7 +29,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from '../home/permissionAlert/locationPermissionAlerts';
+} from '../Home/PermissionAlert/LocationPermissionAlerts';
 
 import {
   DropDown,

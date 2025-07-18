@@ -17,8 +17,7 @@ import {
 import bbox from '@turf/bbox';
 import moment from 'moment-timezone';
 import MapboxGL from '@rnmapbox/maps';
-import Auth0 from 'react-native-auth0';
-import Config from 'react-native-config';
+import {useAuth0} from 'react-native-auth0';
 import Lottie from 'lottie-react-native';
 import rewind from '@mapbox/geojson-rewind';
 import {multiPolygon, polygon} from '@turf/helpers';
@@ -65,7 +64,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from './permissionAlert/locationPermissionAlerts';
+} from './PermissionAlert/LocationPermissionAlerts';
 
 import {trpc} from '../../services/trpc';
 import {useFetchSites} from '../../utils/api';
@@ -109,6 +108,8 @@ const images: Record<CompassImage, ImageSourcePropType> = {
 const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
   const {state} = useMapLayers(MapLayerContext);
+  const {clearSession, clearCredentials, error} = useAuth0();
+
   const {selected, setSelected, selectedSiteBar, passMapInfo} =
     useContext(BottomBarContext);
   const {userDetails, configData} = useAppSelector(
@@ -477,20 +478,19 @@ const Home = ({navigation, route}) => {
   };
 
   const handleLogout = () => {
-    try {
-      setProfileModalVisible(false);
-      const auth0 = new Auth0({
-        domain: Config.AUTH0_DOMAIN,
-        clientId: Config.AUTH0_CLIENT_ID,
-      });
-      auth0.webAuth.clearSession().then(async () => {
-        dispatch(updateIsLoggedIn(false));
-        queryClient.clear();
-        await clearAll();
-      });
-    } catch (e) {
-      console.log('Log out cancelled');
-    }
+    setProfileModalVisible(false);
+    setTimeout(() => {
+      clearCredentials()
+        .then(() => clearSession({}, {useLegacyCallbackUrl: true}))
+        .then(async () => {
+          dispatch(updateIsLoggedIn(false));
+          queryClient.clear();
+          await clearAll();
+        })
+        .catch(error => {
+          console.log('Error ocurred', error);
+        });
+    }, 300);
   };
 
   const handleEditProfileName = () => {
