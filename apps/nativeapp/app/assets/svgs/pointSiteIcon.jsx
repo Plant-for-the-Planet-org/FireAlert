@@ -32,7 +32,7 @@ function PointSiteIcon(props) {
         d="M4.978 8.712a3.734 3.734 0 117.467 0 3.734 3.734 0 01-7.467 0z"
         fill="#fff"
       />
-      <Defs></Defs>
+      <Defs />
     </Svg>
   );
 }

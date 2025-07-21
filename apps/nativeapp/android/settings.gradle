@@ -17,7 +17,7 @@ dependencyResolutionManagement {
             // This should always be `mapbox` (not your username).
             username = "mapbox"
             // Use the secret token you stored in gradle.properties as the password
-            password = properties.getProperty('MAPBOX_DOWNLOADS_TOKEN')
+            password = System.getenv("MAPBOXGL_ACCCESS_TOKEN") ?: properties.getProperty("mapboxgl_access_token")
         }
       }
     }
@@ -25,4 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = 'FireAlert'
 apply from: file("../../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
 include ':app'
-includeBuild('../../../node_modules/react-native-gradle-plugin')
+includeBuild('../../../node_modules/@react-native/gradle-plugin')

@@ -1,5 +1,5 @@
-import * as React from "react"
-import Svg, { Path } from "react-native-svg"
+import * as React from 'react';
+import Svg, {Path} from 'react-native-svg';
 
 function MapOutlineIcon(props) {
   return (
@@ -9,8 +9,7 @@ function MapOutlineIcon(props) {
       viewBox="0 0 21 20"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
+      {...props}>
       <Path
         d="M13.667 4.687c0 .418-.033.714-.108 1.001-.077.293-.211.62-.461 1.088-.333.622-.816 1.396-1.538 2.552-.308.493-.66 1.056-1.06 1.706-.405-.656-.76-1.223-1.069-1.72-.716-1.148-1.197-1.918-1.529-2.538-.25-.467-.384-.795-.46-1.088-.076-.287-.109-.583-.109-1C7.333 2.536 8.858 1 10.5 1s3.167 1.537 3.167 3.687z"
         stroke="#E86F56"
@@ -22,7 +21,7 @@ function MapOutlineIcon(props) {
         strokeWidth={2}
       />
     </Svg>
-  )
+  );
 }
 
-export default MapOutlineIcon
+export default MapOutlineIcon;

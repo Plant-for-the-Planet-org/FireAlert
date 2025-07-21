@@ -4,7 +4,7 @@ import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
 import {View, Platform, StyleSheet, ImageSourcePropType} from 'react-native';
 
-import Markers from '../markers';
+import Markers from '../Markers/index.tsx';
 import {
   useMapLayers,
   MapLayerContext,
