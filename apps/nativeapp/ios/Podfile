@@ -19,21 +19,25 @@ target 'FireAlert' do
 
   use_react_native!(
     :path => config[:reactNativePath],
+    :fabric_enabled => false,
+    :hermes_enabled => false,
+
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
+
   )
 
   target 'FireAlertTests' do
     inherit! :complete
     # Pods for testing
   end
-  pre_install do |installer|
-    $RNMapboxMaps.pre_install(installer)
-  end
+  # pre_install do |installer|
+  #   $RNMapboxMaps.pre_install(installer)
+  # end
 
 
   post_install do |installer|
-    $RNMapboxMaps.post_install(installer)
+    # $RNMapboxMaps.post_install(installer)
 
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
     react_native_post_install(

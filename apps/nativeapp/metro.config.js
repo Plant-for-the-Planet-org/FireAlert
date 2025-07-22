@@ -26,7 +26,10 @@ const config = {
     extraNodeModules: {
       ...monorepoMetroTools.extraNodeModules,
     },
+    platforms: ['ios', 'android'],
   },
+  projectRoot: __dirname,
+  watchFolders: [path.resolve(__dirname, '../..')],
 };
 
 module.exports = mergeConfig(getDefaultConfig(__dirname), config);

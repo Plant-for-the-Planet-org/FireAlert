@@ -1,6 +1,6 @@
 import React from 'react';
 import {Provider} from 'react-redux';
-import MapboxGL from '@rnmapbox/maps';
+// import MapboxGL from '@rnmapbox/maps';
 import Config from 'react-native-config';
 import {Auth0Provider} from 'react-native-auth0';
 import {ToastProvider} from 'react-native-toast-notifications';
@@ -11,13 +11,16 @@ import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
 import {BottomBarProvider} from './global/reducers/bottomBar';
 
-MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
+// MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
+console.log(Config);
+console.log(Config.AUTH0_DOMAIN);
+console.log(Config.AUTH0_CLIENT_ID);
 
 function App(): JSX.Element {
   return (
     <Auth0Provider
-      domain={Config.AUTH0_DOMAIN}
-      clientId={Config.AUTH0_CLIENT_ID}>
+      domain={Config.AUTH0_DOMAIN!}
+      clientId={Config.AUTH0_CLIENT_ID!}>
       <ToastProvider
         duration={2000}
         offsetBottom={100}
