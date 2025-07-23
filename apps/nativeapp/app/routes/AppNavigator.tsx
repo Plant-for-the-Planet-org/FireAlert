@@ -1,6 +1,6 @@
 import * as React from 'react';
 import jwt_decode from 'jwt-decode';
-import Auth0, {useAuth0} from 'react-native-auth0';
+import {useAuth0} from 'react-native-auth0';
 import Config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
 import SplashScreen from 'react-native-splash-screen';
@@ -13,7 +13,9 @@ import {
   updateIsLoggedIn,
   updateAccessToken,
 } from '../redux/slices/login/loginSlice';
-import {CommonStack, SignInStack} from './stack';
+// import {CommonStack, SignInStack} from './stack';
+import CommonStack from './stack/CommonStack';
+import SignInStack from './stack/SignInStack';
 import {clearAll, getData, storeData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector, useOneSignal} from '../hooks';
 import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';

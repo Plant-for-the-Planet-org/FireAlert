@@ -11,10 +11,7 @@ import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
 import {BottomBarProvider} from './global/reducers/bottomBar';
 
-// MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
-console.log(Config);
-console.log(Config.AUTH0_DOMAIN);
-console.log(Config.AUTH0_CLIENT_ID);
+// MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN!);
 
 function App(): JSX.Element {
   return (

@@ -26,7 +26,12 @@ const config = {
     extraNodeModules: {
       ...monorepoMetroTools.extraNodeModules,
     },
-    platforms: ['ios', 'android'],
+    // Make sure these extensions are in the right order
+    sourceExts: ['js', 'jsx', 'ts', 'tsx', 'json'],
+    // iOS should check these platforms in order
+    platforms: ['ios', 'native', 'web', 'android'],
+    // Ensure barrel imports resolve correctly
+    resolverMainFields: ['react-native', 'browser', 'main'],
   },
   projectRoot: __dirname,
   watchFolders: [path.resolve(__dirname, '../..')],
