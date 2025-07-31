@@ -1,4 +1,4 @@
-package com.firealert
+package eco.pp.firealert
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

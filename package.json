@@ -1,12 +1,12 @@
 {
-  "name": "fire-alert",
+  "name": "firealert",
   "version": "1.0.0",
   "private": true,
   "repository": "https://github.com/Plant-for-the-Planet-org/FireAlert.git",
   "author": "Plant-for-the-Planet <info@plant-for-the-planet.org>",
   "license": "MIT",
   "engines": {
-    "node": "18.x",
+    "node": "22.x",
     "yarn": "1.22.x"
   },
   "scripts": {
@@ -23,7 +23,8 @@
   "dependencies": {
     "dotenv-cli": "^7.1.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@babel/runtime": "^7.20.0"
   },
   "devDependencies": {
     "prettier": "^2.7.1"

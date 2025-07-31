@@ -19,6 +19,15 @@ buildscript {
 }
 
 allprojects {
+    // In Exisiting App
+    project.pluginManager.withPlugin("com.facebook.react") {
+        react {
+            reactNativeDir = rootProject.file("../../../node_modules/react-native/")
+            codegenDir = rootProject.file("../../../node_modules/@react-native/codegen/")
+        }
+    }
+    // ---
+
     repositories {
         maven {
             url 'https://api.mapbox.com/downloads/v2/releases/maven'
@@ -34,6 +43,8 @@ allprojects {
                 // password = project.properties['MAPBOX_DOWNLOADS_TOKEN'] ?: ""
             }
         }
+        mavenCentral()
+        google()
     }
 }
 
