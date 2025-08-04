@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
-import Config from 'react-native-config';
 
 import {
   getUserDetails,

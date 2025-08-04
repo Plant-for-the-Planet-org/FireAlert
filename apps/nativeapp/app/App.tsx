@@ -10,13 +10,13 @@ import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
 import {BottomBarProvider} from './global/reducers/bottomBar';
 
-MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN!);
+MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
 function App(): JSX.Element {
   return (
     <Auth0Provider
-      domain={Config.AUTH0_DOMAIN!}
-      clientId={Config.AUTH0_CLIENT_ID!}>
+      domain={Config.AUTH0_DOMAIN}
+      clientId={Config.AUTH0_CLIENT_ID}>
       <ToastProvider
         duration={2000}
         offsetBottom={100}

@@ -1,12 +1,11 @@
 import * as React from 'react';
-import jwt_decode from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';
 import {useAuth0} from 'react-native-auth0';
 import Config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
 import SplashScreen from 'react-native-splash-screen';
 import {NavigationContainer} from '@react-navigation/native';
 import {onlineManager, useQueryClient} from '@tanstack/react-query';
-
 import {
   getConfigData,
   getUserDetails,
@@ -17,7 +16,8 @@ import {
 import CommonStack from './stack/CommonStack';
 import SignInStack from './stack/SignInStack';
 import {clearAll, getData, storeData} from '../utils/localStorage';
-import {useAppDispatch, useAppSelector, useOneSignal} from '../hooks';
+import {useAppDispatch, useAppSelector} from '../hooks/redux/reduxHooks';
+import useOneSignal from '../hooks/notification/useOneSignal';
 import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';
 
 const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
@@ -107,11 +107,11 @@ export default function AppNavigator() {
         return;
       }
       try {
-        const decoded = jwt_decode(cred?.accessToken);
+        const decoded = jwtDecode(cred?.accessToken);
         if (decoded && !decoded.exp) {
           throw 'error';
         }
-        const isExpired = hasTimestampExpiredOrCloseToExpiry(decoded.exp);
+        const isExpired = hasTimestampExpiredOrCloseToExpiry(decoded?.exp || 0);
         if (isExpired) {
           if (!cred.refreshToken || cred.refreshToken == null) {
             throw 'error';

@@ -51,15 +51,15 @@ PODS:
     - MapboxMobileEvents (= 2.0.0)
     - Turf (= 2.8.0)
   - MapboxMobileEvents (2.0.0)
-  - OneSignalXCFramework (3.12.10):
-    - OneSignalXCFramework/OneSignalCore (= 3.12.10)
-    - OneSignalXCFramework/OneSignalExtension (= 3.12.10)
-    - OneSignalXCFramework/OneSignalOutcomes (= 3.12.10)
-  - OneSignalXCFramework/OneSignalCore (3.12.10)
-  - OneSignalXCFramework/OneSignalExtension (3.12.10):
+  - OneSignalXCFramework (3.12.4):
+    - OneSignalXCFramework/OneSignalCore (= 3.12.4)
+    - OneSignalXCFramework/OneSignalExtension (= 3.12.4)
+    - OneSignalXCFramework/OneSignalOutcomes (= 3.12.4)
+  - OneSignalXCFramework/OneSignalCore (3.12.4)
+  - OneSignalXCFramework/OneSignalExtension (3.12.4):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalOutcomes (3.12.10):
+  - OneSignalXCFramework/OneSignalOutcomes (3.12.4):
     - OneSignalXCFramework/OneSignalCore
   - RCT-Folly (2024.10.14.00):
     - boost
@@ -1389,8 +1389,8 @@ PODS:
     - React
   - react-native-netinfo (11.4.1):
     - React-Core
-  - react-native-onesignal (4.5.4):
-    - OneSignalXCFramework (= 3.12.10)
+  - react-native-onesignal (4.5.1):
+    - OneSignalXCFramework (= 3.12.4)
     - React (< 1.0.0, >= 0.13.0)
   - react-native-safe-area-context (5.5.2):
     - DoubleConversion
@@ -1922,7 +1922,7 @@ DEPENDENCIES:
   - "react-native-document-viewer (from `../../../node_modules/@react-native-documents/viewer`)"
   - react-native-geolocation-service (from `../../../node_modules/react-native-geolocation-service`)
   - "react-native-netinfo (from `../../../node_modules/@react-native-community/netinfo`)"
-  - react-native-onesignal (from `../../../node_modules/react-native-onesignal`)
+  - react-native-onesignal (from `../node_modules/react-native-onesignal`)
   - react-native-safe-area-context (from `../../../node_modules/react-native-safe-area-context`)
   - react-native-splash-screen (from `../../../node_modules/react-native-splash-screen`)
   - React-nativeconfig (from `../../../node_modules/react-native/ReactCommon`)
@@ -2065,7 +2065,7 @@ EXTERNAL SOURCES:
   react-native-netinfo:
     :path: "../../../node_modules/@react-native-community/netinfo"
   react-native-onesignal:
-    :path: "../../../node_modules/react-native-onesignal"
+    :path: "../node_modules/react-native-onesignal"
   react-native-safe-area-context:
     :path: "../../../node_modules/react-native-safe-area-context"
   react-native-splash-screen:
@@ -2157,7 +2157,7 @@ SPEC CHECKSUMS:
   MapboxCoreMaps: 35685edba03e44468aed57c3dfd7f8795edafda8
   MapboxMaps: f87023cf0d72b180b40ea0b6fb4b2d7db6b73b71
   MapboxMobileEvents: d044b9edbe0ec7df60f6c2c9634fe9a7f449266b
-  OneSignalXCFramework: e458f7a374192598a1d66418e1b61481c3cdf0e9
+  OneSignalXCFramework: 087934ab0d4d7445fcf1c015c7c782359e26c020
   RCT-Folly: ea9d9256ba7f9322ef911169a9f696e5857b9e17
   RCTDeprecation: ebe712bb05077934b16c6bf25228bdec34b64f83
   RCTRequired: ca91e5dd26b64f577b528044c962baf171c6b716
@@ -2192,7 +2192,7 @@ SPEC CHECKSUMS:
   react-native-document-viewer: 99f547622d8f3b362b7548e3150768fa00b5bb00
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
-  react-native-onesignal: 8d8f7d5e2cc44239fc0ec72fe9c6d27b939870fc
+  react-native-onesignal: 7bd44dbd031d8d57110c0203836ffc37ddead526
   react-native-safe-area-context: 3134aaf026d82369b294c6f1a426542d3f4c534e
   react-native-splash-screen: 95994222cc95c236bd3cdc59fe45ed5f27969594
   React-nativeconfig: 8efdb1ef1e9158c77098a93085438f7e7b463678
