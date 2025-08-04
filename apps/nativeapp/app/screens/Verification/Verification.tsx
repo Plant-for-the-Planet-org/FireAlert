@@ -10,7 +10,7 @@ import {
 import React, {useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
-import Clipboard from '@react-native-clipboard/clipboard';
+// import Clipboard from '@react-native-clipboard/clipboard';
 
 import {trpc} from '../../services/trpc';
 import {useAppSelector} from '../../hooks';
@@ -129,7 +129,7 @@ const Verification = ({navigation, route}) => {
   };
 
   const handlePaste: () => Promise<void> = async () => {
-    const content = await Clipboard.getString();
+    // const content = await Clipboard.getString();
     setWebhookUrl(content);
   };
 

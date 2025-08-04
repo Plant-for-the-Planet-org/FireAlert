@@ -22,7 +22,7 @@ import Lottie from 'lottie-react-native';
 import rewind from '@mapbox/geojson-rewind';
 import {multiPolygon, polygon} from '@turf/helpers';
 import {useQueryClient} from '@tanstack/react-query';
-import Clipboard from '@react-native-clipboard/clipboard';
+// import Clipboard from '@react-native-clipboard/clipboard';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
 import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
@@ -522,7 +522,7 @@ const Home = ({navigation, route}) => {
   };
 
   const _copyToClipboard = loc => () => {
-    Clipboard.setString(JSON.stringify(loc));
+    // Clipboard.setString(JSON.stringify(loc));
     modalToast.current.show('copied');
   };
 

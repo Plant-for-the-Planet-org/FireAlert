@@ -67,12 +67,13 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
   useEffect(() => {
     if (userDetails?.data?.id) {
       // OneSignal.setAppId(appId);
-      OneSignal.initialize(appId);
+      // OneSignal.initialize(appId);
+
       // OneSignal.promptForPushNotificationsWithUserResponse();
       // OneSignal.Notifications.requestPermission(false);
 
       // OneSignal.setExternalUserId(userDetails?.data?.id);
-      OneSignal.login(userDetails?.data?.id);
+      // OneSignal.login(userDetails?.data?.id);
 
       const receivedHandler = (notificationReceivedEvent: any) => {
         console.log(
@@ -95,16 +96,17 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
       };
 
       // OneSignal.setNotificationWillShowInForegroundHandler(receivedHandler);
-      OneSignal.Notifications.addEventListener(
-        'foregroundWillDisplay',
-        receivedHandler,
-      );
+      // OneSignal.Notifications.addEventListener(
+      //   'foregroundWillDisplay',
+      //   receivedHandler,
+      // );
+
       // OneSignal.setNotificationOpenedHandler(openedHandler);
-      OneSignal.Notifications.addEventListener('click', openedHandler);
+      // OneSignal.Notifications.addEventListener('click', openedHandler);
     }
     return () => {
       // OneSignal.clearHandlers();
-      OneSignal.Notifications.clearAll();
+      // OneSignal.Notifications.clearAll();
     };
   }, [
     appId,
