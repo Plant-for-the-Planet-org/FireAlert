@@ -85,6 +85,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 6
         versionName "1.3"
+
+        manifestPlaceholders = [
+            auth0Domain:   "accounts.plant-for-the-planet.org",
+            auth0Scheme:   "eco.pp.firealert"
+        ]
     }
 
     signingConfigs {
@@ -118,6 +123,22 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    /* 
+    TODO: 
+    Current Solution - Force Exclude Old Support Libraries
+     */
+    configurations {
+        all {
+            exclude group: 'com.android.support', module: 'support-compat'
+            exclude group: 'com.android.support', module: 'support-annotations'
+            exclude group: 'com.android.support', module: 'support-v4'
+            exclude group: 'com.android.support', module: 'support-v13'
+            exclude group: 'com.android.support', module: 'support-fragment'
+            exclude group: 'com.android.support'
+        }
+    }
+    // --- Force Exclude Old Support Libraries
 }
 
 dependencies {
