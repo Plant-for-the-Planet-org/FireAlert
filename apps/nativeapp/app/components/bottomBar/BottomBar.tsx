@@ -283,8 +283,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   bottomBarContainer: {
-    // bottom: 0,
-    bottom: 32,
+    bottom: 0,
+    // bottom: 32,
     position: 'absolute',
   },
   menuDash: {
@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    // bottom: 0,
-    bottom: 24,
+    bottom: 0,
+    // bottom: 24,
     alignItems: 'center',
     justifyContent: 'flex-end',
     height,

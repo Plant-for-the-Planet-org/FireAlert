@@ -75,13 +75,15 @@ import {extractCountryCode} from '../../utils/countryCodeFilter';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 import ProtectedSitesSettings from './ProtectedSitesSettings';
+import {useNavigation} from '@react-navigation/native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const Settings = ({navigation}) => {
+const Settings = () => {
+  const navigation = useNavigation();
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
@@ -501,15 +503,18 @@ const Settings = ({navigation}) => {
       bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
     }
-    navigation.navigate('Home', {
-      bboxGeo,
-      siteInfo: [
-        {
-          type: 'Feature',
-          geometry: highlightSiteInfo,
-          properties: {site: siteInfo},
-        },
-      ],
+    navigation.navigate('BottomTab', {
+      screen: 'Home',
+      params: {
+        bboxGeo,
+        siteInfo: [
+          {
+            type: 'Feature',
+            geometry: highlightSiteInfo,
+            properties: {site: siteInfo},
+          },
+        ],
+      },
     });
   };
 

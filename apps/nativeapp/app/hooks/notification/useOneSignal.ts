@@ -71,12 +71,8 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
       // OneSignal.promptForPushNotificationsWithUserResponse();
       OneSignal.Notifications.requestPermission(false);
 
-      try {
-        // OneSignal.setExternalUserId(userDetails?.data?.id);
-        OneSignal.login(userDetails?.data?.id);
-      } catch (error) {
-        console.log('Error setting external user id', error);
-      }
+      // OneSignal.setExternalUserId(userDetails?.data?.id);
+      OneSignal.login(userDetails?.data?.id);
 
       const receivedHandler = (notificationReceivedEvent: any) => {
         console.log(
@@ -109,7 +105,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
     }
     return () => {
       // OneSignal.clearHandlers();
-      OneSignal.Notifications.clearAll();
+      // OneSignal.Notifications.clearAll();
     };
   }, [
     appId,

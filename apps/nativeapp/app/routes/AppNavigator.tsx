@@ -12,9 +12,7 @@ import {
   updateIsLoggedIn,
   updateAccessToken,
 } from '../redux/slices/login/loginSlice';
-// import {CommonStack, SignInStack} from './stack';
-import CommonStack from './stack/CommonStack';
-import SignInStack from './stack/SignInStack';
+import {CommonStack, SignInStack} from './stack';
 import {clearAll, getData, storeData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector} from '../hooks/redux/reduxHooks';
 import useOneSignal from '../hooks/notification/useOneSignal';
@@ -85,7 +83,6 @@ export default function AppNavigator() {
   const refreshUserToken = async (refreshToken: string) => {
     try {
       const result = await getCredentials(refreshToken);
-      console.log('result occured here', result);
       return result;
     } catch (error) {
       console.log('Error occured here', error);

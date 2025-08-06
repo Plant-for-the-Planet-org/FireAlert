@@ -40,7 +40,7 @@ export default function SearchResultItems({results}: Props) {
         console.log(res.json.data);
         setTimeout(() => {
           toast.show('Success', {type: 'success'});
-          navigate('Home');
+          navigate('BottomTab', {screen: 'Home'});
         }, 500);
       }
     },
