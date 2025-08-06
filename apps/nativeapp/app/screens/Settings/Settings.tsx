@@ -647,15 +647,8 @@ const Settings = () => {
                         angle={135}
                         angleCenter={{x: 0.5, y: 0.5}}
                         colors={Colors.GREEN_GRADIENT_ARR}
-                        style={[
-                          styles.addSiteBtn,
-                          styles.justifyContentCenter,
-                        ]}>
-                        <Text
-                          style={[
-                            styles.emptySiteText,
-                            styles.paddingHorizontal0ColorWhite,
-                          ]}>
+                        style={[styles.visitPPecoBtn]}>
+                        <Text style={[styles.visitPPecoBtnText]}>
                           Visit pp.eco
                         </Text>
                       </LinearGradient>
@@ -2096,13 +2089,32 @@ export const styles = StyleSheet.create({
   justifyContentCenter: {
     justifyContent: 'center',
   },
+  visitPPecoBtn: {
+    width: 92,
+    borderRadius: 8,
+    marginTop: 12,
+    marginLeft: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  visitPPecoBtnText: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    fontSize: 12,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.WHITE,
+  },
   addSiteBtn: {
-    backgroundColor: Colors.GRADIENT_PRIMARY,
+    borderWidth: 1,
+    // borderColor: Colors.GRADIENT_PRIMARY,
+    // backgroundColor: Colors.GRADIENT_PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 10,
-    width: 93,
+    width: 92,
     borderRadius: 8,
     marginTop: 12,
     marginLeft: 10,
