@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import bbox from '@turf/bbox';
 import rewind from '@mapbox/geojson-rewind';
-import OneSignal from 'react-native-onesignal';
+import {OneSignal} from 'react-native-onesignal';
 import DeviceInfo from 'react-native-device-info';
 import Toast from 'react-native-toast-notifications';
 import {useQueryClient} from '@tanstack/react-query';
@@ -155,8 +155,8 @@ const Settings = ({navigation}) => {
   const deviceNotification = useCallback(async () => {
     try {
       const {deviceId} = await getDeviceInfo();
-      const {userId} = await OneSignal.getDeviceState();
-      // const userId = await OneSignal.User.pushSubscription.getIdAsync();
+      // const {userId} = await OneSignal.getDeviceState();
+      const userId = await OneSignal.User.pushSubscription.getIdAsync();
       const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
         el => userId === el?.destination && el.deviceId === deviceId,
       );

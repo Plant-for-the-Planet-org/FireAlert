@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import OneSignal from 'react-native-onesignal';
+import {OneSignal} from 'react-native-onesignal';
 import {useToast} from 'react-native-toast-notifications';
 
 import {trpc} from '../../services/trpc';
@@ -65,14 +65,15 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
 
   useEffect(() => {
     if (userDetails?.data?.id) {
-      OneSignal.setAppId(appId);
+      // OneSignal.setAppId(appId);
+      OneSignal.initialize(appId);
 
-      OneSignal.promptForPushNotificationsWithUserResponse();
-      // OneSignal.Notifications.requestPermission(false);
+      // OneSignal.promptForPushNotificationsWithUserResponse();
+      OneSignal.Notifications.requestPermission(false);
 
       try {
-        OneSignal.setExternalUserId(userDetails?.data?.id);
-        // OneSignal.login(userDetails?.data?.id);
+        // OneSignal.setExternalUserId(userDetails?.data?.id);
+        OneSignal.login(userDetails?.data?.id);
       } catch (error) {
         console.log('Error setting external user id', error);
       }
@@ -97,18 +98,18 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
         }
       };
 
-      OneSignal.setNotificationWillShowInForegroundHandler(receivedHandler);
-      // OneSignal.Notifications.addEventListener(
-      //   'foregroundWillDisplay',
-      //   receivedHandler,
-      // );
+      // OneSignal.setNotificationWillShowInForegroundHandler(receivedHandler);
+      OneSignal.Notifications.addEventListener(
+        'foregroundWillDisplay',
+        receivedHandler,
+      );
 
-      OneSignal.setNotificationOpenedHandler(openedHandler);
-      // OneSignal.Notifications.addEventListener('click', openedHandler);
+      // OneSignal.setNotificationOpenedHandler(openedHandler);
+      OneSignal.Notifications.addEventListener('click', openedHandler);
     }
     return () => {
       // OneSignal.clearHandlers();
-      // OneSignal.Notifications.clearAll();
+      OneSignal.Notifications.clearAll();
     };
   }, [
     appId,
