@@ -1,85 +1,84 @@
+import rewind from '@mapbox/geojson-rewind';
+import MapboxGL from '@rnmapbox/maps';
+import {useQueryClient} from '@tanstack/react-query';
+import bbox from '@turf/bbox';
+import {multiPolygon, polygon} from '@turf/helpers';
+import Lottie from 'lottie-react-native';
+import moment from 'moment-timezone';
 import {
-  Text,
-  View,
-  Modal,
+  ActivityIndicator,
+  BackHandler,
+  Dimensions,
   Image,
+  ImageSourcePropType,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   StatusBar,
-  Dimensions,
   StyleSheet,
-  BackHandler,
+  Text,
   TouchableOpacity,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  ImageSourcePropType,
+  View,
 } from 'react-native';
-import bbox from '@turf/bbox';
-import moment from 'moment-timezone';
-import MapboxGL from '@rnmapbox/maps';
 import {useAuth0} from 'react-native-auth0';
-import Lottie from 'lottie-react-native';
-import rewind from '@mapbox/geojson-rewind';
-import {multiPolygon, polygon} from '@turf/helpers';
-import {useQueryClient} from '@tanstack/react-query';
 // import Clipboard from '@react-native-clipboard/clipboard';
+import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
-  DropDown,
-  LayerModal,
+  CopyIcon,
+  CrossIcon,
+  DisabledTrashOutlineIcon,
+  EyeIcon,
+  EyeOffIcon,
+  GreenMapOutline,
+  LayerIcon,
+  LocationPinIcon,
+  LogoutIcon,
+  MyLocIcon,
+  PencilIcon,
+  PencilRoundIcon,
+  PointSiteIcon,
+  RadarIcon,
+  SatelliteIcon,
+  SiteIcon,
+  TrashOutlineIcon,
+  TrashSolidIcon,
+  UserPlaceholder,
+} from '../../assets/svgs';
+import {
   AlertModal,
   BottomSheet,
   CustomButton,
+  DropDown,
   FloatingInput,
+  LayerModal,
 } from '../../components';
-import {
-  EyeIcon,
-  SiteIcon,
-  CopyIcon,
-  LayerIcon,
-  MyLocIcon,
-  RadarIcon,
-  CrossIcon,
-  LogoutIcon,
-  EyeOffIcon,
-  PencilIcon,
-  PointSiteIcon,
-  SatelliteIcon,
-  MapOutlineIcon,
-  TrashSolidIcon,
-  LocationPinIcon,
-  PencilRoundIcon,
-  UserPlaceholder,
-  GreenMapOutline,
-  TrashOutlineIcon,
-  DisabledTrashOutlineIcon,
-} from '../../assets/svgs';
 import {
   getUserDetails,
   updateIsLoggedIn,
 } from '../../redux/slices/login/loginSlice';
 import {
-  PermissionDeniedAlert,
   PermissionBlockedAlert,
+  PermissionDeniedAlert,
 } from './PermissionAlert/LocationPermissionAlerts';
 
-import {trpc} from '../../services/trpc';
-import {useFetchSites} from '../../utils/api';
-import {Colors, Typography} from '../../styles';
-import {daysFromToday} from '../../utils/moment';
-import {clearAll} from '../../utils/localStorage';
-import {categorizedRes} from '../../utils/filters';
-import handleLink from '../../utils/browserLinking';
-import {getFireIcon} from '../../utils/getFireIcon';
-import {locationPermission} from '../../utils/permissions';
-import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
-import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {useAppDispatch, useAppSelector} from '../../hooks';
+import {trpc} from '../../services/trpc';
+import {Colors, Typography} from '../../styles';
+import {useFetchSites} from '../../utils/api';
+import handleLink from '../../utils/browserLinking';
+import {categorizedRes} from '../../utils/filters';
+import {getFireIcon} from '../../utils/getFireIcon';
+import {clearAll} from '../../utils/localStorage';
+import {daysFromToday} from '../../utils/moment';
+import {locationPermission} from '../../utils/permissions';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -842,10 +841,10 @@ const Home = ({navigation, route}) => {
                   source={{
                     uri: userDetails?.data?.image,
                   }}
-                  style={[styles.userAvatar, {width: 81, height: 81}]}
+                  style={[styles.userAvatar, {width: 82, height: 82}]}
                 />
               ) : (
-                <UserPlaceholder width={81} height={81} />
+                <UserPlaceholder width={82} height={82} />
               )}
               <View style={styles.profileInfo}>
                 <Text style={styles.lightText}>Name</Text>

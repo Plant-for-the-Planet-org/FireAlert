@@ -2098,7 +2098,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   visitPPecoBtnText: {
     paddingVertical: 8,
     paddingHorizontal: 10,
@@ -2107,9 +2106,7 @@ export const styles = StyleSheet.create({
     color: Colors.WHITE,
   },
   addSiteBtn: {
-    borderWidth: 1,
-    // borderColor: Colors.GRADIENT_PRIMARY,
-    // backgroundColor: Colors.GRADIENT_PRIMARY,
+    backgroundColor: Colors.GRADIENT_PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,

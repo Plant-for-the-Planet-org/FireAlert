@@ -283,9 +283,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   bottomBarContainer: {
-    bottom: 0,
-    // bottom: 32,
     position: 'absolute',
+    ...Platform.select({
+      ios: {
+        bottom: 34,
+      },
+      android: {
+        bottom: 0,
+      },
+    }),
   },
   menuDash: {
     height: 3,
@@ -343,11 +349,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
+    // bottom: 0,
     // bottom: 24,
     alignItems: 'center',
     justifyContent: 'flex-end',
     height,
+    ...Platform.select({
+      ios: {
+        bottom: 24,
+      },
+      android: {
+        bottom: 0,
+      },
+    }),
   },
   addOptionsContainer: {
     width: 229,
