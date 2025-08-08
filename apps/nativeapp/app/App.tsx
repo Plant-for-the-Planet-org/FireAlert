@@ -4,10 +4,9 @@ import MapboxGL from '@rnmapbox/maps';
 import Config from 'react-native-config';
 import {Auth0Provider} from 'react-native-auth0';
 import {ToastProvider} from 'react-native-toast-notifications';
-
 import {store} from './redux/store';
 import {TRPCProvider} from './services/trpc';
-import AppNavigator from './routes/appNavigator';
+import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
 import {BottomBarProvider} from './global/reducers/bottomBar';
 

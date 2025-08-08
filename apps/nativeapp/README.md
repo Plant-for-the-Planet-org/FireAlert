@@ -1,108 +1,79 @@
-# FireAlert App
-FireAlert is open source application based on react-native licensed under terms of GPL v3. It is managed by [Plant-for-the-Planet Foundation](https://www.plant-for-the-planet.org/) and open source contributors.
+This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
-For contributions please read our [contribution guide](https://github.com/Plant-for-the-Planet-org/FireAlert/blob/develop/CONTRIBUTING.md) as well as our [code of conduct](https://github.com/Plant-for-the-Planet-org/FireAlert/blob/develop/CODE_OF_CONDUCT.md) and the following information:
+# Getting Started
 
-## Directory Structure
+>**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
 
-`ios` houses the iOS project files and `android` contains Android project files. The `app` contains the react code base for all platform.
+## Step 1: Start the Metro Server
 
-`index.js` is the entry point of both iOS and android platform build process.
+First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
 
-## Configuration
+To start Metro, run the following command from the _root_ of your React Native project:
 
-Copy `.env.sample` to `.env` and add the necessary API keys for your development environment.
-Install nvm following instructions from https://github.com/nvm-sh/nvm#install--update-script
-Run `nvm install && nvm use` to install and use required version of node.
+```bash
+# using npm
+npm start
 
-## Configure your secret token for Mapbox
-
-Your secret token enables you to download the SDK directly from Mapbox. To use your secret token, you will need to store it in a `.netrc` file in your home directory (not your project folder).
-```
-machine api.mapbox.com
-login mapbox
-password YOUR_SECRET_MAPBOX_ACCESS_TOKEN
+# OR using Yarn
+yarn start
 ```
 
-## iOS Setup
+## Step 2: Start your Application
 
-* Install latest Xcode.
-* Run following commands
-```
-npm install
-cd ios && pod install
-```
+Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
 
-### Running into iOS simulator
+### For Android
 
-Build and run the app in development mode deployed from Metro Bundler in an iOS simulator (starts Metro Bundler automatically if not already running, also starts iOS simulator):
-
-```
-bash
-npm run ios
-```
-
-If you have problems with a cached version of the bundle, you can stop the Metro Bundler and manually start it with the reset cache option:
-
-```
-react-native start --reset-cache
-```
-
-## Android Setup
-
-Steps for setting up Dev Env for android on MAC is as follows:
-
-* Install Latest Android Studio with latest SDK and build tools
-* Run following commands
-
-```
-bash
-npm install
-```
-
-### Running into Android emulator
-
-Build and run the app in development mode deployed from Metro Bundler (starts Metro Bundler automatically if not already running) on an emulator or device. You need to start an Android emulator or attach a device manually before:
-
-```
-bash
+```bash
+# using npm
 npm run android
+
+# OR using Yarn
+yarn android
 ```
 
-If you have problems with a cached version of the bundle, you can stop the Metro Bundler and manually start it with the reset cache option:
+### For iOS
 
+```bash
+# using npm
+npm run ios
+
+# OR using Yarn
+yarn ios
 ```
-react-native start --reset-cache
-```
 
-## Development process
+If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
 
-This project uses GitFlow (https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) with Main-Branch `main` and Development-Branch `develop`.
+This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
 
-## Versioning
+## Step 3: Modifying your App
 
-*App Versioning Guide*
+Now that you have successfully run the app, let's modify it.
 
-eg: Version M.F.B
-V 1.1.10
+1. Open `App.tsx` in your text editor of choice and edit some lines.
+2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
 
-M = Major Changes
-F = Feature Addition
-B = Critical Bug Fixes and Additions
+   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
 
-Release candidate can have the target version number
-V 1.1.`11` RC `1`
+## Congratulations! :tada:
 
-Beta and Alpha builds can also have target version number
-V 1.1.`11` B `12`
-V 1.1.`11` A `12` [increment per release]
+You've successfully run and modified your React Native App. :partying_face:
 
+### Now what?
 
-## Supporters
-The deployment and production of this app is also possible due to support from open-source software contributors.
-<a href="https://www.browserstack.com">
-<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTPH0TU07S98aX7O5PbjVtOwLz5Q-8IAnaRWn6tv_qkxKaAedd9" height="24"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="https://www.bugsnag.com">
-<img src="https://global-uploads.webflow.com/5c741219fd0819540590e785/5c741219fd0819856890e790_asset%2039.svg" height="24"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="https://lingohub.com">
-<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcQqJ0vVrXzxzszvleoGhXuxpMFlGueY5UfBEP-HPtTVTH2j29hv" height="30"></a>
+- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
+- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
+
+# Troubleshooting
+
+If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+
+# Learn More
+
+To learn more about React Native, take a look at the following resources:
+
+- [React Native Website](https://reactnative.dev) - learn more about React Native.
+- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
+- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
+- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
+- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.

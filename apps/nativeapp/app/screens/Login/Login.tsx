@@ -7,9 +7,7 @@ import {
   ImageBackground,
   TouchableOpacity,
 } from 'react-native';
-import React, {useState} from 'react';
-import Auth0 from 'react-native-auth0';
-import Config from 'react-native-config';
+import React, {useEffect, useState} from 'react';
 
 import {
   getUserDetails,
@@ -22,52 +20,61 @@ import {Colors, Typography} from '../../styles';
 import {VerifyAccAlert} from '../../assets/svgs';
 import {storeData} from '../../utils/localStorage';
 import LinearGradient from 'react-native-linear-gradient';
+import {useAuth0} from 'react-native-auth0';
+import {useToast} from 'react-native-toast-notifications';
 
 const launch_screen = require('../../assets/images/launch_screen.png');
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showVerifyAccModal, setShowVerifyAccModal] = useState<boolean>(false);
-
+  const {authorize, error} = useAuth0();
+  const toast = useToast();
   const dispatch = useAppDispatch();
 
+  useEffect(() => {
+    if (error) {
+      if (error.code === 'unauthorized') {
+        setShowVerifyAccModal(true);
+      }
+    }
+  }, [error]);
+
   const handleLogin = async () => {
-    setShowVerifyAccModal(false);
-    setIsLoading(true);
-    const auth0 = new Auth0({
-      domain: Config.AUTH0_DOMAIN,
-      clientId: Config.AUTH0_CLIENT_ID,
-    });
-    auth0.webAuth
-      .authorize(
+    try {
+      setShowVerifyAccModal(false);
+      setIsLoading(true);
+      const authCred = await authorize(
         {
           scope: 'openid email profile offline_access',
-          federated: true,
-          prompt: 'login',
           audience: 'urn:plant-for-the-planet',
         },
-        {ephemeralSession: false, useLegacyCallbackUrl: true},
-      )
-      .then(cred => {
+        {
+          ephemeralSession: false,
+          useLegacyCallbackUrl: true,
+        },
+      );
+
+      if (authCred) {
         const request = {
           onSuccess: async () => {
             dispatch(updateIsLoggedIn(true));
-            storeData('cred', cred);
+            storeData('cred', authCred);
             setIsLoading(false);
           },
           onFail: () => {
             setIsLoading(false);
           },
         };
-        dispatch(updateAccessToken(cred?.accessToken));
+        dispatch(updateAccessToken(authCred?.accessToken));
         dispatch(getUserDetails(request));
-      })
-      .catch(err => {
+      } else {
         setIsLoading(false);
-        if (err?.name === 'unauthorized') {
-          setShowVerifyAccModal(true);
-        }
-      });
+        toast.show('Login Failed');
+      }
+    } catch (error) {
+      toast.show('Login Failed');
+    }
   };
 
   return (
@@ -96,7 +103,7 @@ const Login = () => {
           <Text style={styles.alertMessage}>
             To secure your account, we need to verify your email. Please check
             your inbox or spam/junk folder for a confirmation email and then
-            continue to login.{`\n\n`}{' '}
+            continue to login.{'\n\n'}{' '}
             <Text style={{fontFamily: Typography.FONT_FAMILY_ITALIC}}>
               If you didn’t receive an email please try logging in again and
               we’ll send you another email.

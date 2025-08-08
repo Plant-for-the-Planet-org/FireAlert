@@ -4,5 +4,4 @@ module.exports = {
     android: {},
   },
   assets: ['./app/assets/fonts'],
-  reactNativePath: '../../node_modules/react-native',
 };

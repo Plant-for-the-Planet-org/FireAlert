@@ -1,5 +1,5 @@
-import * as React from "react"
-import Svg, { G, Path, Defs } from "react-native-svg"
+import * as React from 'react';
+import Svg, {G, Path, Defs} from 'react-native-svg';
 /* SVGR has dropped some elements not supported by react-native-svg: filter */
 
 function BlueFireIcon(props) {
@@ -10,8 +10,7 @@ function BlueFireIcon(props) {
       viewBox="0 0 30 30"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
+      {...props}>
       <G filter="url(#filter0_b_771_9381)">
         <Path
           d="M12.478 14.854c-2.568 0-2.652-4.814-2.652-4.893a.94.94 0 00-.186-.56 1.075 1.075 0 00-1.103-.386c-.201.05-.384.155-.52.303a12.37 12.37 0 00-2.683 5.126c-1.49 7.123 2.386 10.45 4.111 11.553a9.574 9.574 0 005.14 1.457c2.68 0 5.256-.985 7.193-2.748a9.997 9.997 0 002.909-4.808 9.61 9.61 0 00-.205-5.545 11.54 11.54 0 00-3.503-4.894c-2.088-1.69-3.442-4.055-3.802-6.642a.96.96 0 00-.241-.49 1.041 1.041 0 00-.477-.292 1.104 1.104 0 00-.555 0 1.03 1.03 0 00-.474.275c-.114.118-2.785 2.934-1.468 7.913.505 1.909.452 3.357-.133 4.08a1.701 1.701 0 01-1.351.551z"
@@ -22,9 +21,9 @@ function BlueFireIcon(props) {
           stroke="#fff"
         />
       </G>
-      <Defs></Defs>
+      <Defs />
     </Svg>
-  )
+  );
 }
 
-export default BlueFireIcon
+export default BlueFireIcon;

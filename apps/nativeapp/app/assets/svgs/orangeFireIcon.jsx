@@ -1,5 +1,5 @@
-import * as React from "react"
-import Svg, { G, Path, Defs, LinearGradient, Stop } from "react-native-svg"
+import * as React from 'react';
+import Svg, {G, Path, Defs, LinearGradient, Stop} from 'react-native-svg';
 /* SVGR has dropped some elements not supported by react-native-svg: filter */
 
 function OrangeFireIcon(props) {
@@ -10,8 +10,7 @@ function OrangeFireIcon(props) {
       viewBox="0 0 30 30"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
+      {...props}>
       <G filter="url(#filter0_b_771_9373)">
         <Path
           d="M12.226 15.14c-2.825 0-2.917-5.296-2.917-5.383 0-.22-.072-.438-.205-.617a1.117 1.117 0 00-.542-.392 1.183 1.183 0 00-.67-.033 1.163 1.163 0 00-.573.335 13.607 13.607 0 00-2.951 5.638c-1.64 7.836 2.623 11.496 4.522 12.71A10.532 10.532 0 0014.543 29c2.948 0 5.783-1.084 7.913-3.024a10.997 10.997 0 003.2-5.288 10.572 10.572 0 00-.226-6.1 12.694 12.694 0 00-3.854-5.383c-2.297-1.859-3.786-4.46-4.18-7.306a1.056 1.056 0 00-.267-.539 1.145 1.145 0 00-.524-.321 1.214 1.214 0 00-.61 0 1.133 1.133 0 00-.522.302c-.126.13-3.063 3.228-1.615 8.705.555 2.099.497 3.692-.147 4.487-.371.412-.92.636-1.485.607z"
@@ -29,14 +28,13 @@ function OrangeFireIcon(props) {
           y1={1.5}
           x2={14}
           y2={30.5}
-          gradientUnits="userSpaceOnUse"
-        >
+          gradientUnits="userSpaceOnUse">
           <Stop stopColor="#FFA14E" />
           <Stop offset={1} stopColor="#DC3F1F" />
         </LinearGradient>
       </Defs>
     </Svg>
-  )
+  );
 }
 
-export default OrangeFireIcon
+export default OrangeFireIcon;
