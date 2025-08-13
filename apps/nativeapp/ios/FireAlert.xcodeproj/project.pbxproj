@@ -3,31 +3,31 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 55;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		00E356F31AD99517003FC87E /* FireAlertTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* FireAlertTests.m */; };
+		046CD2CB5CD2422D9E6C090F /* Oswald-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7A2F02D1237A4790AC26FE1C /* Oswald-Bold.ttf */; };
 		0C80B921A6F3F58F76C31292 /* libPods-FireAlert.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-FireAlert.a */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
+		1E373E3D1CE64989A4B1737C /* OpenSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2429E4F3442B48D4BEDA3401 /* OpenSans-Bold.ttf */; };
 		2B3589642E42752F006B8C37 /* OneSignalNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2B35895D2E42752F006B8C37 /* OneSignalNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5845F29011E9480F8D2915BF /* OpenSans-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 74E41CDA5ABD42F38D81707D /* OpenSans-SemiBoldItalic.ttf */; };
 		7699B88040F8A987B510C191 /* libPods-FireAlert-FireAlertTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 19F6CBCC0A4E27FBF8BF4A61 /* libPods-FireAlert-FireAlertTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		85B71CA0CBA342B7824ECBF7 /* OpenSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 516793589BD94239BA5BC0B2 /* OpenSans-Regular.ttf */; };
+		94096FC69B014A17A30E6344 /* OpenSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 963169F5E76A4918853B06D5 /* OpenSans-Italic.ttf */; };
+		96D9395124824018B44B88C6 /* OpenSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 13F5B35315EE464A9C90F5C3 /* OpenSans-SemiBold.ttf */; };
+		98134753199F48138622D327 /* OpenSans-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F512D9ACF2D3420BA0B8EE84 /* OpenSans-BoldItalic.ttf */; };
 		AB293F79DBA16BB62C9E07E7 /* libPods-OneSignalNotificationServiceExtension.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 08797433E9E634C9482F4CF3 /* libPods-OneSignalNotificationServiceExtension.a */; };
 		BBB24EFCB7FE1E5B7EA7624A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		1E373E3D1CE64989A4B1737C /* OpenSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2429E4F3442B48D4BEDA3401 /* OpenSans-Bold.ttf */; };
-		98134753199F48138622D327 /* OpenSans-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F512D9ACF2D3420BA0B8EE84 /* OpenSans-BoldItalic.ttf */; };
-		FDBDD81095994608AAFBB671 /* OpenSans-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 99DAB4AA9DCC40569814EDEC /* OpenSans-ExtraBold.ttf */; };
-		FC3EFC489DE443A98C8F93EA /* OpenSans-ExtraBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2DBDE74FF7E849A58A5FE254 /* OpenSans-ExtraBoldItalic.ttf */; };
-		94096FC69B014A17A30E6344 /* OpenSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 963169F5E76A4918853B06D5 /* OpenSans-Italic.ttf */; };
-		F399D43A2A0A44AE87790471 /* OpenSans-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1916595DD12E4D92B54C2607 /* OpenSans-Light.ttf */; };
 		F19EB1AF083242549A4D3F08 /* OpenSans-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F04AE74442F8409F8D584E86 /* OpenSans-LightItalic.ttf */; };
-		85B71CA0CBA342B7824ECBF7 /* OpenSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 516793589BD94239BA5BC0B2 /* OpenSans-Regular.ttf */; };
-		96D9395124824018B44B88C6 /* OpenSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 13F5B35315EE464A9C90F5C3 /* OpenSans-SemiBold.ttf */; };
-		5845F29011E9480F8D2915BF /* OpenSans-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 74E41CDA5ABD42F38D81707D /* OpenSans-SemiBoldItalic.ttf */; };
-		046CD2CB5CD2422D9E6C090F /* Oswald-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7A2F02D1237A4790AC26FE1C /* Oswald-Bold.ttf */; };
+		F399D43A2A0A44AE87790471 /* OpenSans-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1916595DD12E4D92B54C2607 /* OpenSans-Light.ttf */; };
+		FC3EFC489DE443A98C8F93EA /* OpenSans-ExtraBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2DBDE74FF7E849A58A5FE254 /* OpenSans-ExtraBoldItalic.ttf */; };
+		FDBDD81095994608AAFBB671 /* OpenSans-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 99DAB4AA9DCC40569814EDEC /* OpenSans-ExtraBold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,33 +73,33 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = FireAlert/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = FireAlert/main.m; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = FireAlert/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		13F5B35315EE464A9C90F5C3 /* OpenSans-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-SemiBold.ttf"; path = "../app/assets/fonts/OpenSans-SemiBold.ttf"; sourceTree = "<group>"; };
+		1916595DD12E4D92B54C2607 /* OpenSans-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Light.ttf"; path = "../app/assets/fonts/OpenSans-Light.ttf"; sourceTree = "<group>"; };
 		19F6CBCC0A4E27FBF8BF4A61 /* libPods-FireAlert-FireAlertTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FireAlert-FireAlertTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2429E4F3442B48D4BEDA3401 /* OpenSans-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Bold.ttf"; path = "../app/assets/fonts/OpenSans-Bold.ttf"; sourceTree = "<group>"; };
 		2B35895D2E42752F006B8C37 /* OneSignalNotificationServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OneSignalNotificationServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B83E8F52E38C3D20023925F /* FireAlert.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = FireAlert.entitlements; path = FireAlert/FireAlert.entitlements; sourceTree = "<group>"; };
+		2DBDE74FF7E849A58A5FE254 /* OpenSans-ExtraBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-ExtraBoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-ExtraBoldItalic.ttf"; sourceTree = "<group>"; };
 		3B4392A12AC88292D35C810B /* Pods-FireAlert.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert.debug.xcconfig"; path = "Target Support Files/Pods-FireAlert/Pods-FireAlert.debug.xcconfig"; sourceTree = "<group>"; };
+		516793589BD94239BA5BC0B2 /* OpenSans-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Regular.ttf"; path = "../app/assets/fonts/OpenSans-Regular.ttf"; sourceTree = "<group>"; };
 		5709B34CF0A7D63546082F79 /* Pods-FireAlert.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert.release.xcconfig"; path = "Target Support Files/Pods-FireAlert/Pods-FireAlert.release.xcconfig"; sourceTree = "<group>"; };
 		5B7EB9410499542E8C5724F5 /* Pods-FireAlert-FireAlertTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert-FireAlertTests.debug.xcconfig"; path = "Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests.debug.xcconfig"; sourceTree = "<group>"; };
 		5DCACB8F33CDC322A6C60F78 /* libPods-FireAlert.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-FireAlert.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		74E41CDA5ABD42F38D81707D /* OpenSans-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-SemiBoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		75022DFFB5E36A3C129272D9 /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneSignalNotificationServiceExtension.debug.xcconfig"; path = "Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.debug.xcconfig"; sourceTree = "<group>"; };
 		7603968F7488FEF3798734BC /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OneSignalNotificationServiceExtension.release.xcconfig"; path = "Target Support Files/Pods-OneSignalNotificationServiceExtension/Pods-OneSignalNotificationServiceExtension.release.xcconfig"; sourceTree = "<group>"; };
+		7A2F02D1237A4790AC26FE1C /* Oswald-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Oswald-Bold.ttf"; path = "../app/assets/fonts/Oswald-Bold.ttf"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = FireAlert/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		89C6BE57DB24E9ADA2F236DE /* Pods-FireAlert-FireAlertTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FireAlert-FireAlertTests.release.xcconfig"; path = "Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests.release.xcconfig"; sourceTree = "<group>"; };
+		963169F5E76A4918853B06D5 /* OpenSans-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-Italic.ttf"; path = "../app/assets/fonts/OpenSans-Italic.ttf"; sourceTree = "<group>"; };
+		99DAB4AA9DCC40569814EDEC /* OpenSans-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-ExtraBold.ttf"; path = "../app/assets/fonts/OpenSans-ExtraBold.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		2429E4F3442B48D4BEDA3401 /* OpenSans-Bold.ttf */ = {isa = PBXFileReference; name = "OpenSans-Bold.ttf"; path = "../app/assets/fonts/OpenSans-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		F512D9ACF2D3420BA0B8EE84 /* OpenSans-BoldItalic.ttf */ = {isa = PBXFileReference; name = "OpenSans-BoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-BoldItalic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		99DAB4AA9DCC40569814EDEC /* OpenSans-ExtraBold.ttf */ = {isa = PBXFileReference; name = "OpenSans-ExtraBold.ttf"; path = "../app/assets/fonts/OpenSans-ExtraBold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		2DBDE74FF7E849A58A5FE254 /* OpenSans-ExtraBoldItalic.ttf */ = {isa = PBXFileReference; name = "OpenSans-ExtraBoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-ExtraBoldItalic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		963169F5E76A4918853B06D5 /* OpenSans-Italic.ttf */ = {isa = PBXFileReference; name = "OpenSans-Italic.ttf"; path = "../app/assets/fonts/OpenSans-Italic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		1916595DD12E4D92B54C2607 /* OpenSans-Light.ttf */ = {isa = PBXFileReference; name = "OpenSans-Light.ttf"; path = "../app/assets/fonts/OpenSans-Light.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		F04AE74442F8409F8D584E86 /* OpenSans-LightItalic.ttf */ = {isa = PBXFileReference; name = "OpenSans-LightItalic.ttf"; path = "../app/assets/fonts/OpenSans-LightItalic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		516793589BD94239BA5BC0B2 /* OpenSans-Regular.ttf */ = {isa = PBXFileReference; name = "OpenSans-Regular.ttf"; path = "../app/assets/fonts/OpenSans-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		13F5B35315EE464A9C90F5C3 /* OpenSans-SemiBold.ttf */ = {isa = PBXFileReference; name = "OpenSans-SemiBold.ttf"; path = "../app/assets/fonts/OpenSans-SemiBold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		74E41CDA5ABD42F38D81707D /* OpenSans-SemiBoldItalic.ttf */ = {isa = PBXFileReference; name = "OpenSans-SemiBoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-SemiBoldItalic.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		7A2F02D1237A4790AC26FE1C /* Oswald-Bold.ttf */ = {isa = PBXFileReference; name = "Oswald-Bold.ttf"; path = "../app/assets/fonts/Oswald-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		F04AE74442F8409F8D584E86 /* OpenSans-LightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-LightItalic.ttf"; path = "../app/assets/fonts/OpenSans-LightItalic.ttf"; sourceTree = "<group>"; };
+		F512D9ACF2D3420BA0B8EE84 /* OpenSans-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OpenSans-BoldItalic.ttf"; path = "../app/assets/fonts/OpenSans-BoldItalic.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		2B3589682E42752F006B8C37 /* Exceptions for "OneSignalNotificationServiceExtension" folder in "OneSignalNotificationServiceExtension" target */ = {
+		2B3589682E42752F006B8C37 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -109,18 +109,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		2B35895E2E42752F006B8C37 /* OneSignalNotificationServiceExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				2B3589682E42752F006B8C37 /* Exceptions for "OneSignalNotificationServiceExtension" folder in "OneSignalNotificationServiceExtension" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = OneSignalNotificationServiceExtension;
-			sourceTree = "<group>";
-		};
+		2B35895E2E42752F006B8C37 /* OneSignalNotificationServiceExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (2B3589682E42752F006B8C37 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = OneSignalNotificationServiceExtension; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -228,21 +217,8 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				3B4392A12AC88292D35C810B /* Pods-FireAlert.debug.xcconfig */,
-				5709B34CF0A7D63546082F79 /* Pods-FireAlert.release.xcconfig */,
-				5B7EB9410499542E8C5724F5 /* Pods-FireAlert-FireAlertTests.debug.xcconfig */,
-				89C6BE57DB24E9ADA2F236DE /* Pods-FireAlert-FireAlertTests.release.xcconfig */,
-				75022DFFB5E36A3C129272D9 /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */,
-				7603968F7488FEF3798734BC /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		B945AA2F973E4052BAB4C254 /* Resources */ = {
-			isa = "PBXGroup";
+			isa = PBXGroup;
 			children = (
 				2429E4F3442B48D4BEDA3401 /* OpenSans-Bold.ttf */,
 				F512D9ACF2D3420BA0B8EE84 /* OpenSans-BoldItalic.ttf */,
@@ -258,7 +234,19 @@
 			);
 			name = Resources;
 			sourceTree = "<group>";
-			path = "";
+		};
+		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				3B4392A12AC88292D35C810B /* Pods-FireAlert.debug.xcconfig */,
+				5709B34CF0A7D63546082F79 /* Pods-FireAlert.release.xcconfig */,
+				5B7EB9410499542E8C5724F5 /* Pods-FireAlert-FireAlertTests.debug.xcconfig */,
+				89C6BE57DB24E9ADA2F236DE /* Pods-FireAlert-FireAlertTests.release.xcconfig */,
+				75022DFFB5E36A3C129272D9 /* Pods-OneSignalNotificationServiceExtension.debug.xcconfig */,
+				7603968F7488FEF3798734BC /* Pods-OneSignalNotificationServiceExtension.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
@@ -432,9 +420,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -515,9 +507,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -532,9 +528,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FireAlert/Pods-FireAlert-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -549,9 +549,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-FireAlert-FireAlertTests/Pods-FireAlert-FireAlertTests-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -660,7 +664,7 @@
 				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = FireAlert/FireAlert.entitlements;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = UYRJ8SA699;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = FireAlert/Info.plist;
@@ -671,7 +675,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.5;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -693,7 +697,9 @@
 				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = FireAlert/FireAlert.entitlements;
-				CURRENT_PROJECT_VERSION = 7;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = UYRJ8SA699;
 				INFOPLIST_FILE = FireAlert/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FireAlert;
@@ -703,7 +709,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.5;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -711,6 +717,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = eco.pp.firealert;
 				PRODUCT_NAME = FireAlert;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -870,10 +877,7 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -942,10 +946,7 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;
