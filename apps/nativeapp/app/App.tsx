@@ -9,10 +9,14 @@ import {TRPCProvider} from './services/trpc';
 import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
 import {BottomBarProvider} from './global/reducers/bottomBar';
+import {useInAppUpdate} from './hooks/useInAppUpdate';
+import UpdateStatusListener from './components/UpdateStatusListener';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
 function App(): JSX.Element {
+  useInAppUpdate(true);
+
   return (
     <Auth0Provider
       domain={Config.AUTH0_DOMAIN}
@@ -26,6 +30,7 @@ function App(): JSX.Element {
           <TRPCProvider>
             <Provider store={store}>
               <MapLayerProvider>
+                <UpdateStatusListener />
                 <AppNavigator />
               </MapLayerProvider>
             </Provider>
