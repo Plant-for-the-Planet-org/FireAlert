@@ -157,8 +157,9 @@ const Settings = () => {
   const deviceNotification = useCallback(async () => {
     try {
       const {deviceId} = await getDeviceInfo();
-      // const {userId} = await OneSignal.getDeviceState();
+      // const {userId} = await OneSignal.getDeviceState(); // Old SDK
       const userId = await OneSignal.User.pushSubscription.getIdAsync();
+
       const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
         el => userId === el?.destination && el.deviceId === deviceId,
       );
@@ -172,6 +173,7 @@ const Settings = () => {
           ...nonFilteredData,
         ].filter(el => el.deviceName !== '');
       }
+
       setDeviceAlertPreferences(formattedAlertPreferences?.device);
     } catch {
       setDeviceAlertPreferences([]);

@@ -8,7 +8,7 @@
   "scripts": {
     "build": "yarn db:deploy && dotenv -e ../../.env next build",
     "dev": "dotenv -e ../../.env next dev",
-    "postinstall": "",
+    "postinstall": "cd ../../ && npx prisma generate",
     "lint": "dotenv -e ../../.env next lint",
     "start": "dotenv -e ../../.env next start",
     "heroku-start": "next start -p $PORT",

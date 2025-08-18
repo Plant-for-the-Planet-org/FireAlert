@@ -56,6 +56,7 @@
     "react-native-splash-screen": "^3.3.0",
     "react-native-svg": "^15.12.0",
     "react-native-switch": "^1.5.1",
+    "react-native-dropdown-picker": "^5.4.6",
     "react-native-toast-notifications": "^3.4.0",
     "react-redux": "^9.2.0",
     "xmldom": "^0.6.0"

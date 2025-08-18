@@ -1,5 +1,9 @@
 import {useEffect} from 'react';
-import {OneSignal} from 'react-native-onesignal';
+import {
+  NotificationClickEvent,
+  NotificationWillDisplayEvent,
+  OneSignal,
+} from 'react-native-onesignal';
 import {useToast} from 'react-native-toast-notifications';
 
 import {trpc} from '../../services/trpc';
@@ -33,19 +37,31 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
     },
   });
 
+  async function getDeviceState() {
+    const deviceState = {
+      userId: await OneSignal.User.pushSubscription.getIdAsync(),
+      pushToken: await OneSignal.User.pushSubscription.getTokenAsync(),
+      externalId: await OneSignal.User.getExternalId(),
+      optedIn: await OneSignal.User.pushSubscription.getOptedInAsync(),
+      permission: await OneSignal.Notifications.getPermissionAsync(),
+      permissionNative: await OneSignal.Notifications.permissionNative(),
+      tags: await OneSignal.User.getTags(),
+    };
+
+    // console.log(JSON.stringify(deviceState, null, 2));
+    return deviceState;
+  }
+
   trpc.alertMethod.getAlertMethods.useQuery(undefined, {
-    enabled: !!userDetails?.data?.id,
+    enabled: true,
     onSuccess: alertMethods => {
-      OneSignal.getDeviceState().then(async res => {
+      getDeviceState().then(async res => {
         if (res?.userId) {
-          if (
-            !(
-              alertMethods?.json?.data?.filter(
-                el => el.destination === res?.userId && el.method === 'device',
-              ).length > 0
-            ) &&
-            res?.hasNotificationPermission
-          ) {
+          const hasMatchingDeviceMethod = alertMethods?.json?.data?.some(
+            el => el.destination === res?.userId && el.method === 'device',
+          );
+
+          if (!hasMatchingDeviceMethod && res?.permission) {
             const {deviceName, deviceId} = await getDeviceInfo();
             const payload = {
               deviceId,
@@ -53,6 +69,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
               method: 'device',
               destination: res?.userId,
             };
+            // console.log(payload);
             createAlertPreference.mutate({json: payload});
           }
         }
@@ -62,6 +79,37 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  // trpc.alertMethod.getAlertMethods.useQuery(undefined, {
+  //   enabled: !!userDetails?.data?.id,
+  //   onSuccess: alertMethods => {
+  //     OneSignal.getDeviceState().then(async res => {
+  //       if (res?.userId) {
+  //         if (
+  //           !(
+  //             alertMethods?.json?.data?.filter(
+  //               el => el.destination === res?.userId && el.method === 'device',
+  //             ).length > 0
+  //           ) &&
+  //           res?.hasNotificationPermission
+  //         ) {
+  //           const {deviceName, deviceId} = await getDeviceInfo();
+  //           const payload = {
+  //             deviceId,
+  //             deviceName,
+  //             method: 'device',
+  //             destination: res?.userId,
+  //           };
+
+  //           createAlertPreference.mutate({json: payload});
+  //         }
+  //       }
+  //     });
+  //   },
+  //   onError: () => {
+  //     toast.show('something went wrong', {type: 'danger'});
+  //   },
+  // });
 
   useEffect(() => {
     if (userDetails?.data?.id) {
@@ -74,23 +122,21 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
       // OneSignal.setExternalUserId(userDetails?.data?.id);
       OneSignal.login(userDetails?.data?.id);
 
-      const receivedHandler = (notificationReceivedEvent: any) => {
-        console.log(
-          'OneSignal: notification will show in foreground:',
-          notificationReceivedEvent,
-        );
-        const notification = notificationReceivedEvent.getNotification();
+      const receivedHandler = (event: NotificationWillDisplayEvent) => {
+        // console.log('OneSignal: notification will show in foreground:', event);
+        const notification = event.getNotification();
 
-        notificationReceivedEvent.complete(notification);
+        event.notification.display();
+        // notificationReceivedEvent.complete(notification);
 
         if (handlers.onReceived) {
           handlers.onReceived(notification);
         }
       };
 
-      const openedHandler = (notification: any) => {
+      const openedHandler = (event: NotificationClickEvent) => {
         if (handlers.onOpened) {
-          handlers.onOpened(notification);
+          handlers.onOpened(event);
         }
       };
 
@@ -105,7 +151,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
     }
     return () => {
       // OneSignal.clearHandlers();
-      // OneSignal.Notifications.clearAll();
+      OneSignal.Notifications.clearAll();
     };
   }, [
     appId,
