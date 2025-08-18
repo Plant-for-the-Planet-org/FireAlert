@@ -53,7 +53,10 @@ class DeviceNotifier implements Notifier {
 
     // Check if OneSignal is configured
     if (!env.ONESIGNAL_APP_ID || !env.ONESIGNAL_REST_API_KEY) {
-      logger(`Push notifications are disabled: OneSignal is not configured`, 'warn');
+      logger(
+        `Push notifications are disabled: OneSignal is not configured`,
+        'warn',
+      );
       return Promise.resolve(false);
     }
 
@@ -70,15 +73,20 @@ class DeviceNotifier implements Notifier {
     };
 
     // call OneSignal API to send the notification
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${env.ONESIGNAL_REST_API_KEY}`,
-        'Content-Type': 'application/json; charset=utf-8',
+    // const response = await fetch('https://onesignal.com/api/v1/notifications', { // Legacy API Key
+    const response = await fetch(
+      'https://api.onesignal.com/api/v1/notifications',
+      {
+        method: 'POST',
+        headers: {
+          // Authorization: `Basic ${env.ONESIGNAL_REST_API_KEY}`, // Legacy API Key
+          Authorization: `Key ${env.ONESIGNAL_REST_API_KEY}`,
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    });
-    // console.log(response);
+    );
+    console.log(response);
     if (!response.ok) {
       logger(
         `Failed to send device notification. Error: ${response.statusText} for ${parameters.id}`,
