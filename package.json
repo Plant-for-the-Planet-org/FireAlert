@@ -21,13 +21,13 @@
     "packages/*"
   ],
   "dependencies": {
-    "dotenv-cli": "^7.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "@tanstack/react-query": "^4.36.0",
     "@babel/runtime": "^7.20.0"
   },
   "devDependencies": {
+    "dotenv-cli": "^10.0.0",
     "prettier": "^2.7.1"
   },
   "packageManager": "yarn@1.22.19",
