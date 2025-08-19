@@ -48,7 +48,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
       tags: await OneSignal.User.getTags(),
     };
 
-    // console.log(JSON.stringify(deviceState, null, 2));
+    console.log(JSON.stringify(deviceState, null, 2));
     return deviceState;
   }
 
@@ -80,37 +80,6 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
     },
   });
 
-  // trpc.alertMethod.getAlertMethods.useQuery(undefined, {
-  //   enabled: !!userDetails?.data?.id,
-  //   onSuccess: alertMethods => {
-  //     OneSignal.getDeviceState().then(async res => {
-  //       if (res?.userId) {
-  //         if (
-  //           !(
-  //             alertMethods?.json?.data?.filter(
-  //               el => el.destination === res?.userId && el.method === 'device',
-  //             ).length > 0
-  //           ) &&
-  //           res?.hasNotificationPermission
-  //         ) {
-  //           const {deviceName, deviceId} = await getDeviceInfo();
-  //           const payload = {
-  //             deviceId,
-  //             deviceName,
-  //             method: 'device',
-  //             destination: res?.userId,
-  //           };
-
-  //           createAlertPreference.mutate({json: payload});
-  //         }
-  //       }
-  //     });
-  //   },
-  //   onError: () => {
-  //     toast.show('something went wrong', {type: 'danger'});
-  //   },
-  // });
-
   useEffect(() => {
     if (userDetails?.data?.id) {
       // OneSignal.setAppId(appId);
@@ -123,7 +92,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
       OneSignal.login(userDetails?.data?.id);
 
       const receivedHandler = (event: NotificationWillDisplayEvent) => {
-        // console.log('OneSignal: notification will show in foreground:', event);
+        console.log('OneSignal: notification will show in foreground:', event);
         const notification = event.getNotification();
 
         event.notification.display();
@@ -151,7 +120,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
     }
     return () => {
       // OneSignal.clearHandlers();
-      OneSignal.Notifications.clearAll();
+      // OneSignal.Notifications.clearAll();
     };
   }, [
     appId,

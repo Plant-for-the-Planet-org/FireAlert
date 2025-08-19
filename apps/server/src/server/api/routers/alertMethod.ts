@@ -178,7 +178,6 @@ export const alertMethodRouter = createTRPCRouter({
       // If a user Logs out and logs in with a new user on the same device, the destination does not change. This results in multiple alertMethods with the same destination.
       // To fix this, we should remove the AlertMethod from the previous user and add it to the new user.
       if (input.method === 'device') {
-        console.log('verifying device destination -> get inside');
         const isDeviceVerified = await deviceVerification(input.destination);
         if (isDeviceVerified) {
           // Check if the destination (PlayerID) already exists in the table
