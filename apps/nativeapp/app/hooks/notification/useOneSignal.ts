@@ -48,7 +48,7 @@ const useOneSignal = (appId: string, handlers: NotificationHandlers) => {
       tags: await OneSignal.User.getTags(),
     };
 
-    console.log(JSON.stringify(deviceState, null, 2));
+    // console.log(JSON.stringify(deviceState, null, 2));
     return deviceState;
   }
 
