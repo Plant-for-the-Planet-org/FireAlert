@@ -60,6 +60,9 @@ const server = z.object({
   ALERT_SMS_DISABLED: coerceBooleanWithDefault(true),
   ALERT_WHATSAPP_DISABLED: coerceBooleanWithDefault(true),
 
+  // Database slow query logging. Disabled by default.
+  DATABASE_LOG_SLOWQUERY: coerceBooleanWithDefault(false),
+
   // API caching configuration. Enabled by default in production, disabled in development.
   PUBLIC_API_CACHING: z
     .union([z.literal('true'), z.literal('false')])
@@ -115,6 +118,7 @@ const processEnv = {
   WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
   ALERT_SMS_DISABLED: process.env.ALERT_SMS_DISABLED,
   ALERT_WHATSAPP_DISABLED: process.env.ALERT_WHATSAPP_DISABLED,
+  DATABASE_LOG_SLOWQUERY: process.env.DATABASE_LOG_SLOWQUERY,
   PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING,
 };
 
