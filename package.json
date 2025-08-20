@@ -6,7 +6,7 @@
   "author": "Plant-for-the-Planet <info@plant-for-the-planet.org>",
   "license": "MIT",
   "engines": {
-    "node": "18.x",
+    "node": "22.x",
     "yarn": "1.22.x"
   },
   "scripts": {
@@ -21,11 +21,11 @@
     "packages/*"
   ],
   "dependencies": {
-    "dotenv-cli": "^7.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "dotenv-cli": "^10.0.0",
     "prettier": "^2.7.1"
   },
   "packageManager": "yarn@1.22.19"
