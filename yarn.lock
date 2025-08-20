@@ -2262,21 +2262,6 @@
     "@sentry/utils" "7.77.0"
     https-proxy-agent "^5.0.0"
 
-"@sentry/profiling-node@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@sentry/profiling-node/-/profiling-node-0.3.0.tgz#5df0b1baf051f6551e86f57670408966f00a455b"
-  integrity sha512-zodtr8JgI3m7GOoELEiE+zokEhyVoP6I4PvfPOTA6Etud4CUZ1B6uM7Ls8VgWAwlrPxJzaP+GJUJevZ0P2jfOQ==
-  dependencies:
-    "@sentry/hub" "^7.44.1"
-    "@sentry/node" "^7.44.1"
-    "@sentry/tracing" "^7.44.1"
-    "@sentry/types" "^7.44.1"
-    "@sentry/utils" "^7.44.1"
-    detect-libc "^2.0.1"
-    nan "^2.17.0"
-    node-abi "^3.28.0"
-    node-gyp "^9.3.0"
-
 "@sentry/react@7.77.0":
   version "7.77.0"
   resolved "https://registry.yarnpkg.com/@sentry/react/-/react-7.77.0.tgz#9da14e4b21eae4b5a6306d39bb7c42ef0827d2c2"
