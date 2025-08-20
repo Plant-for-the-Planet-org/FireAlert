@@ -392,8 +392,7 @@ async function cleanNotifications(startTime: number) {
     // Delete Notifications which have sentAt Older than 90 Days (if NULL Do not delete)
     const notificationsToDelete = await prisma.notification.findMany({
       where: {
-        sentAt: {
-          not: null,
+        createdAt: {
           lt: new Date(
             currentDateTimeAt1AM.getTime() - 90 * 24 * 60 * 60 * 1000,
           ),
