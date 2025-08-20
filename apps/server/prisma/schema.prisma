@@ -148,6 +148,7 @@ model Notification {
     siteAlertId String
     alertMethod String
     destination String
+    createdAt   DateTime  @default(now())
     sentAt      DateTime?
     isDelivered Boolean   @default(false)
     isSkipped   Boolean   @default(false)
