@@ -14,7 +14,8 @@
     "server": "yarn workspace @firealert/server",
     "dev": "yarn server dev",
     "start": "yarn workspace @firealert/server heroku-start",
-    "heroku-postbuild": "yarn workspace @firealert/server build"
+    "heroku-postbuild": "yarn workspace @firealert/server build",
+    "postinstall": "patch-package"
   },
   "workspaces": [
     "apps/*",

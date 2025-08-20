@@ -1,7 +1,6 @@
 import React, {useState} from 'react';
 import {
   ActivityIndicator,
-  Dimensions,
   Platform,
   StyleSheet,
   TextInput,

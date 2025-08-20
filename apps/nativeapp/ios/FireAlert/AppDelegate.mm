@@ -18,7 +18,6 @@
 {
   return [self bundleURL];
 }
-
 - (NSURL *)bundleURL
 {
 #if DEBUG
