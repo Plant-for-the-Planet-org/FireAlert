@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import bbox from '@turf/bbox';
 import rewind from '@mapbox/geojson-rewind';
-import OneSignal from 'react-native-onesignal';
+import {OneSignal} from 'react-native-onesignal';
 import DeviceInfo from 'react-native-device-info';
 import Toast from 'react-native-toast-notifications';
 import {useQueryClient} from '@tanstack/react-query';
@@ -61,7 +61,7 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
   DisabledTrashOutlineIcon,
-  WhatsAppIcon
+  WhatsAppIcon,
 } from '../../assets/svgs';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
@@ -74,13 +74,16 @@ import {extractCountryCode} from '../../utils/countryCodeFilter';
 // import {updateUserDetails} from '../../redux/slices/login/loginSlice';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
+import ProtectedSitesSettings from './ProtectedSitesSettings';
+import {useNavigation} from '@react-navigation/native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const Settings = ({navigation}) => {
+const Settings = () => {
+  const navigation = useNavigation();
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
@@ -128,6 +131,7 @@ const Settings = ({navigation}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
   const groupOfSites = useMemo(
     () => groupSitesAsProject(sites?.json?.data || []),
     [sites],
@@ -153,7 +157,9 @@ const Settings = ({navigation}) => {
   const deviceNotification = useCallback(async () => {
     try {
       const {deviceId} = await getDeviceInfo();
-      const {userId} = await OneSignal.getDeviceState();
+      // const {userId} = await OneSignal.getDeviceState(); // Old SDK
+      const userId = await OneSignal.User.pushSubscription.getIdAsync();
+
       const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
         el => userId === el?.destination && el.deviceId === deviceId,
       );
@@ -167,6 +173,7 @@ const Settings = ({navigation}) => {
           ...nonFilteredData,
         ].filter(el => el.deviceName !== '');
       }
+
       setDeviceAlertPreferences(formattedAlertPreferences?.device);
     } catch {
       setDeviceAlertPreferences([]);
@@ -498,15 +505,18 @@ const Settings = ({navigation}) => {
       bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
     }
-    navigation.navigate('Home', {
-      bboxGeo,
-      siteInfo: [
-        {
-          type: 'Feature',
-          geometry: highlightSiteInfo,
-          properties: {site: siteInfo},
-        },
-      ],
+    navigation.navigate('BottomTab', {
+      screen: 'Home',
+      params: {
+        bboxGeo,
+        siteInfo: [
+          {
+            type: 'Feature',
+            geometry: highlightSiteInfo,
+            properties: {site: siteInfo},
+          },
+        ],
+      },
     });
   };
 
@@ -639,15 +649,8 @@ const Settings = ({navigation}) => {
                         angle={135}
                         angleCenter={{x: 0.5, y: 0.5}}
                         colors={Colors.GREEN_GRADIENT_ARR}
-                        style={[
-                          styles.addSiteBtn,
-                          styles.justifyContentCenter,
-                        ]}>
-                        <Text
-                          style={[
-                            styles.emptySiteText,
-                            styles.paddingHorizontal0ColorWhite,
-                          ]}>
+                        style={[styles.visitPPecoBtn]}>
+                        <Text style={[styles.visitPPecoBtnText]}>
                           Visit pp.eco
                         </Text>
                       </LinearGradient>
@@ -754,6 +757,12 @@ const Settings = ({navigation}) => {
             </View>
           )}
         </View>
+        <ProtectedSitesSettings
+          radiusLoaderArr={radiusLoaderArr}
+          setRadiusLoaderArr={setRadiusLoaderArr}
+          setRefreshing={setRefreshing}
+          toast={toast}
+        />
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
@@ -903,7 +912,7 @@ const Settings = ({navigation}) => {
             )}
           </View>
           {/* whatsapp */}
-          <View style={styles.mySiteNameMainContainer}>
+          {/* <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
@@ -967,7 +976,7 @@ const Settings = ({navigation}) => {
                 ))}
               </View>
             )}
-          </View>
+          </View> */}
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
@@ -1490,7 +1499,7 @@ const Settings = ({navigation}) => {
 
 export default Settings;
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   marginRight5: {
     marginRight: 5,
   },
@@ -2082,13 +2091,29 @@ const styles = StyleSheet.create({
   justifyContentCenter: {
     justifyContent: 'center',
   },
+  visitPPecoBtn: {
+    width: 92,
+    borderRadius: 8,
+    marginTop: 12,
+    marginLeft: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  visitPPecoBtnText: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    fontSize: 12,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.WHITE,
+  },
   addSiteBtn: {
     backgroundColor: Colors.GRADIENT_PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 10,
-    width: 93,
+    width: 92,
     borderRadius: 8,
     marginTop: 12,
     marginLeft: 10,

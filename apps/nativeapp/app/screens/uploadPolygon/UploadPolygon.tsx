@@ -8,13 +8,12 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import DocumentPicker, {
-  isInProgress,
-  DocumentPickerResponse,
-  DirectoryPickerResponse,
-} from 'react-native-document-picker';
+import {
+  pick,
+  isErrorWithCode,
+  errorCodes,
+} from '@react-native-documents/picker';
 import Toast from 'react-native-toast-notifications';
-
 import area from '@turf/area';
 import bbox from '@turf/bbox';
 import {DOMParser} from 'xmldom';
@@ -37,14 +36,10 @@ import {POINT_RADIUS_ARR, RADIUS_ARR} from '../../constants';
 
 import {CustomButton, DropDown, FloatingInput} from '../../components';
 import {BackArrowIcon, CrossIcon, UploadCloud} from '../../assets/svgs';
+import {useNavigation} from '@react-navigation/native';
 
-const PICKER_OPTIONS = {
-  presentationStyle: 'pageSheet',
-  copyTo: 'documentDirectory',
-  // type: ['application/vnd.google-earth.kml+xml', 'application/json','application/geo+json'],
-};
-
-const UploadPolygon = ({navigation}) => {
+const UploadPolygon = () => {
+  const navigation = useNavigation();
   const [fileName, setFileName] = useState<string>('');
   const [siteName, setSiteName] = useState<string>('');
   const [siteGeometry, setSiteGeometry] = useState<string | null>('');
@@ -70,15 +65,18 @@ const UploadPolygon = ({navigation}) => {
       bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
     }
     highlightSiteInfo = siteInfo?.geometry;
-    navigation.navigate('Home', {
-      bboxGeo,
-      siteInfo: [
-        {
-          type: 'Feature',
-          geometry: highlightSiteInfo,
-          properties: {site: siteInfo},
-        },
-      ],
+    navigation.navigate('BottomTab', {
+      screen: 'Home',
+      params: {
+        bboxGeo,
+        siteInfo: [
+          {
+            type: 'Feature',
+            geometry: highlightSiteInfo,
+            properties: {site: siteInfo},
+          },
+        ],
+      },
     });
   };
 
@@ -110,14 +108,27 @@ const UploadPolygon = ({navigation}) => {
   const handleBack = () => navigation.goBack();
 
   const handleError = (err: unknown) => {
-    if (DocumentPicker.isCancel(err)) {
-      console.warn('cancelled');
-      // User cancelled the picker, exit any dialogs or menus and move on
-    } else if (isInProgress(err)) {
-      console.warn(
-        'multiple pickers were opened, only the last will be considered',
-      );
+    if (isErrorWithCode(err)) {
+      switch (err.code) {
+        case errorCodes.OPERATION_CANCELED:
+          console.warn('cancelled');
+          // User cancelled the picker, exit any dialogs or menus and move on
+          break;
+        case errorCodes.IN_PROGRESS:
+          console.warn(
+            'multiple pickers were opened, only the last will be considered',
+          );
+          break;
+        case errorCodes.UNABLE_TO_OPEN_FILE_TYPE:
+          console.warn('Unable to open the selected file type');
+          // Handle case where file type cannot be opened
+          break;
+        default:
+          console.error('Unknown picker error:', err);
+          throw err;
+      }
     } else {
+      console.error('Non-picker error:', err);
       throw err;
     }
   };
@@ -155,8 +166,11 @@ const UploadPolygon = ({navigation}) => {
   };
 
   const handleUploadFile = async () => {
+    console.log('handleUploadFile');
     try {
-      const pickerResult = await DocumentPicker.pickSingle(PICKER_OPTIONS);
+      const pickerResults = await pick();
+      const pickerResult = pickerResults[0];
+
       const read = await readFile(pickerResult.uri);
 
       if (fileExtensionExtract(pickerResult?.name) === 'geojson') {
