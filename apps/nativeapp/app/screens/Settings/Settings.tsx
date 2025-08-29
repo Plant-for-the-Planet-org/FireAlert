@@ -82,6 +82,7 @@ import {
 } from './Badges';
 import {useSelector} from 'react-redux';
 import {RootState} from '../../redux/store';
+import {useNavigation} from '@react-navigation/native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
