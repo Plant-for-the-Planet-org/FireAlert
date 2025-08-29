@@ -16,8 +16,9 @@
     "db:pull": "dotenv -e ../../.env npx prisma db pull",
     "db:deploy": "dotenv -e ../../.env -- npx prisma migrate deploy",
     "db:reset": "dotenv -e ../../.env npx prisma migrate reset",
-    "db:generate": "dotenv -e ../../.env npx prisma generate",
-    "db:studio": "dotenv -e ../../.env npx prisma studio"
+    "db:generate": "dotenv -e ../../.env -- npx prisma generate",
+    "db:studio": "dotenv -e ../../.env npx prisma studio",
+    "postinstall": "yarn db:generate"
   },
   "dependencies": {
     "@google/earthengine": "^0.1.396",
