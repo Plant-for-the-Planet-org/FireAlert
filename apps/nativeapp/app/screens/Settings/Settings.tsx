@@ -75,7 +75,13 @@ import {extractCountryCode} from '../../utils/countryCodeFilter';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 import ProtectedSitesSettings from './ProtectedSitesSettings';
-import {useNavigation} from '@react-navigation/native';
+import {
+  ComingSoonBadge,
+  DisabledBadge,
+  DisabledNotificationInfo,
+} from './Badges';
+import {useSelector} from 'react-redux';
+import {RootState} from '../../redux/store';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -84,6 +90,8 @@ const IS_ANDROID = Platform.OS === 'android';
 
 const Settings = () => {
   const navigation = useNavigation();
+  const {alertMethods} = useSelector((state: RootState) => state.settingsSlice);
+
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
@@ -771,8 +779,12 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <PhoneIcon />
                 <Text style={[styles.smallHeading]}>Mobile</Text>
+                {!alertMethods?.enabled.device && <DisabledBadge />}
               </View>
             </View>
+            {!alertMethods?.enabled.device && (
+              <DisabledNotificationInfo method="device" />
+            )}
             {deviceAlertPreferences?.length > 0 && (
               <View style={styles.emailContainer}>
                 {deviceAlertPreferences?.map((item, i) => (
@@ -841,11 +853,15 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <EmailIcon />
                 <Text style={[styles.smallHeading]}>Email</Text>
+                {!alertMethods?.enabled.email && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddEmail}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
+            {!alertMethods?.enabled.email && (
+              <DisabledNotificationInfo method="email" />
+            )}
             {formattedAlertPreferences?.email?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.email?.map((item, i) => (
@@ -917,6 +933,7 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
                 <Text style={styles.smallHeading}>WhatsApp</Text>
+                {!alertMethods?.enabled.whatsapp && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddWhatsapp}>
                 <AddIcon />
@@ -983,11 +1000,15 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <SmsIcon />
                 <Text style={styles.smallHeading}>SMS</Text>
+                {!alertMethods?.enabled.sms && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddSms}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
+            {!alertMethods?.enabled.sms && (
+              <DisabledNotificationInfo method="sms" />
+            )}
             {formattedAlertPreferences?.sms?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.sms?.map((item, i) => (
@@ -1059,6 +1080,7 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <GlobeWebIcon width={17} height={17} />
                 <Text style={styles.smallHeading}>Webhook</Text>
+                {!alertMethods?.enabled.webhook && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleWebhook}>
                 <AddIcon />
@@ -1167,9 +1189,10 @@ const Settings = () => {
         <View style={[styles.geostationaryMainContainer, styles.commonPadding]}>
           <View style={styles.comingSoonCon}>
             <Text style={styles.subHeading}>Geostationary</Text>
-            <View style={[styles.deviceTagCon, styles.comingSoon]}>
+            {/* <View style={[styles.deviceTagCon, styles.comingSoon]}>
               <Text style={styles.deviceTag}>Coming Soon</Text>
-            </View>
+            </View> */}
+            <ComingSoonBadge />
           </View>
           <Text style={styles.desc}>
             Quick detection but many false alarms [BETA]
@@ -2051,12 +2074,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 4,
   },
-  deviceTag: {
-    textTransform: 'uppercase',
-    fontSize: Typography.FONT_SIZE_10,
-    fontWeight: Typography.FONT_WEIGHT_BOLD,
-    color: Colors.WHITE,
-  },
   comingSoonCon: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2064,6 +2081,12 @@ export const styles = StyleSheet.create({
   comingSoon: {
     width: 93,
     marginLeft: 10,
+  },
+  deviceTag: {
+    textTransform: 'uppercase',
+    fontSize: Typography.FONT_SIZE_10,
+    fontWeight: Typography.FONT_WEIGHT_BOLD,
+    color: Colors.WHITE,
   },
   emptySiteCon: {
     justifyContent: 'space-between',
