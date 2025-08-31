@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {jwtDecode} from 'jwt-decode';
 import {useAuth0} from 'react-native-auth0';
-import Config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
 import SplashScreen from 'react-native-splash-screen';
 import {NavigationContainer} from '@react-navigation/native';
@@ -17,6 +16,7 @@ import {clearAll, getData, storeData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector} from '../hooks/redux/reduxHooks';
 import useOneSignal from '../hooks/notification/useOneSignal';
 import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';
+import {Config} from '../../config';
 
 const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
 

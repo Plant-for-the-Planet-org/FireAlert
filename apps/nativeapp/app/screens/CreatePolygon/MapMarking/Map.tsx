@@ -1,6 +1,5 @@
 import React from 'react';
 import {SvgXml} from 'react-native-svg';
-import Config from 'react-native-config';
 import MapboxGL, {Logger} from '@rnmapbox/maps';
 import {View, Platform, StyleSheet, ImageSourcePropType} from 'react-native';
 
@@ -11,6 +10,7 @@ import {
 } from '../../../global/reducers/mapLayers';
 import {active_marker} from '../../../assets/svgs';
 import {Colors, Typography} from '../../../styles';
+import {Config} from '../../../../config.ts';
 
 const IS_ANDROID = Platform.OS === 'android';
 let attributionPosition: any = {

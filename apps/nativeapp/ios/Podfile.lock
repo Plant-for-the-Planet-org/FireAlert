@@ -20,7 +20,7 @@ PODS:
   - hermes-engine/Pre-built (0.76.9)
   - JWTDecode (3.2.0)
   - lottie-ios (4.5.0)
-  - lottie-react-native (7.2.5):
+  - lottie-react-native (7.3.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1375,10 +1375,6 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-config (1.5.5):
-    - react-native-config/App (= 1.5.5)
-  - react-native-config/App (1.5.5):
-    - React-Core
   - react-native-document-picker (10.1.5):
     - DoubleConversion
     - glog
@@ -1428,7 +1424,7 @@ PODS:
   - react-native-onesignal (5.2.13):
     - OneSignalXCFramework (= 5.2.14)
     - React (< 1.0.0, >= 0.13.0)
-  - react-native-safe-area-context (5.5.2):
+  - react-native-safe-area-context (5.6.1):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1441,8 +1437,8 @@ PODS:
     - React-featureflags
     - React-graphics
     - React-ImageManager
-    - react-native-safe-area-context/common (= 5.5.2)
-    - react-native-safe-area-context/fabric (= 5.5.2)
+    - react-native-safe-area-context/common (= 5.6.1)
+    - react-native-safe-area-context/fabric (= 5.6.1)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-rendererdebug
@@ -1451,7 +1447,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/common (5.5.2):
+  - react-native-safe-area-context/common (5.6.1):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1472,7 +1468,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/fabric (5.5.2):
+  - react-native-safe-area-context/fabric (5.6.1):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1818,7 +1814,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - Turf
     - Yoga
-  - RNScreens (4.12.0):
+  - RNScreens (4.15.4):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1839,9 +1835,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNScreens/common (= 4.12.0)
+    - RNScreens/common (= 4.15.4)
     - Yoga
-  - RNScreens/common (4.12.0):
+  - RNScreens/common (4.15.4):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1954,7 +1950,6 @@ DEPENDENCIES:
   - React-logger (from `../../../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../../../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
-  - react-native-config (from `../../../node_modules/react-native-config`)
   - "react-native-document-picker (from `../../../node_modules/@react-native-documents/picker`)"
   - "react-native-document-viewer (from `../../../node_modules/@react-native-documents/viewer`)"
   - react-native-geolocation-service (from `../../../node_modules/react-native-geolocation-service`)
@@ -1993,7 +1988,7 @@ DEPENDENCIES:
   - RNDeviceInfo (from `../../../node_modules/react-native-device-info`)
   - RNFS (from `../../../node_modules/react-native-fs`)
   - "rnmapbox-maps (from `../../../node_modules/@rnmapbox/maps`)"
-  - RNScreens (from `../node_modules/react-native-screens`)
+  - RNScreens (from `../../../node_modules/react-native-screens`)
   - RNSVG (from `../../../node_modules/react-native-svg`)
   - Yoga (from `../../../node_modules/react-native/ReactCommon/yoga`)
 
@@ -2091,8 +2086,6 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../../../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
-  react-native-config:
-    :path: "../../../node_modules/react-native-config"
   react-native-document-picker:
     :path: "../../../node_modules/@react-native-documents/picker"
   react-native-document-viewer:
@@ -2170,7 +2163,7 @@ EXTERNAL SOURCES:
   rnmapbox-maps:
     :path: "../../../node_modules/@rnmapbox/maps"
   RNScreens:
-    :path: "../node_modules/react-native-screens"
+    :path: "../../../node_modules/react-native-screens"
   RNSVG:
     :path: "../../../node_modules/react-native-svg"
   Yoga:
@@ -2189,7 +2182,7 @@ SPEC CHECKSUMS:
   hermes-engine: 9e868dc7be781364296d6ee2f56d0c1a9ef0bb11
   JWTDecode: 7dae24cb9bf9b608eae61e5081029ec169bb5527
   lottie-ios: a881093fab623c467d3bce374367755c272bdd59
-  lottie-react-native: f0ffbd4baf81ee56297d7d74fc4e747220c2b757
+  lottie-react-native: 2d7092a7d804dc6c365360a18d9612b8b936b4b2
   MapboxCommon: cc47fafe3fe5408ca49240aa80fa64f27f275711
   MapboxCoreMaps: 35685edba03e44468aed57c3dfd7f8795edafda8
   MapboxMaps: f87023cf0d72b180b40ea0b6fb4b2d7db6b73b71
@@ -2224,13 +2217,12 @@ SPEC CHECKSUMS:
   React-logger: c4052eb941cca9a097ef01b59543a656dc088559
   React-Mapbuffer: 33546a3ebefbccb8770c33a1f8a5554fa96a54de
   React-microtasksnativemodule: d80ff86c8902872d397d9622f1a97aadcc12cead
-  react-native-config: 644074ab88db883fcfaa584f03520ec29589d7df
   react-native-document-picker: f9f1d85f93d45567ac39061a74468b20d71d3c7d
   react-native-document-viewer: 99f547622d8f3b362b7548e3150768fa00b5bb00
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-onesignal: 0829ce2a504db26dd80eaf14d4e0211ea626fe62
-  react-native-safe-area-context: 3134aaf026d82369b294c6f1a426542d3f4c534e
+  react-native-safe-area-context: 76bd6904253fc0f68fbc3d7f594b6a394d0ac34c
   react-native-splash-screen: 95994222cc95c236bd3cdc59fe45ed5f27969594
   React-nativeconfig: 8efdb1ef1e9158c77098a93085438f7e7b463678
   React-NativeModulesApple: cebca2e5320a3d66e123cade23bd90a167ffce5e
@@ -2263,7 +2255,7 @@ SPEC CHECKSUMS:
   RNDeviceInfo: d863506092aef7e7af3a1c350c913d867d795047
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
   rnmapbox-maps: 33a399dd9cd8b2a099421375bb56d46d2687c3e6
-  RNScreens: a54ba59dc9dd53833a6c3db1dc210668245aa233
+  RNScreens: 9f0908e65b9a2286a1c13ae59714b2307a449970
   RNSVG: 8dd938fb169dd81009b74c2334780d7d2a04a373
   SimpleKeychain: 768cf43ae778b1c21816e94dddf01bb8ee96a075
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748

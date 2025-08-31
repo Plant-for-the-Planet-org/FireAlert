@@ -1,7 +1,7 @@
 import axios from 'axios';
-import Config from 'react-native-config';
 
 import ApiUrl from '../axios/url';
+import {Config} from '../../../config';
 
 axios.defaults.timeout = 30000;
 

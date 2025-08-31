@@ -1,5 +1,4 @@
 import React from 'react';
-import Config from 'react-native-config';
 import {createTRPCReact, httpBatchLink} from '@trpc/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persist
 
 import {store} from '../redux/store';
 import type {AppRouter} from '../../../server/src/server/api/root';
+import {Config} from '../../config';
 
 export const trpc = createTRPCReact<AppRouter>();
 
