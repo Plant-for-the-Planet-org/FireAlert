@@ -84,8 +84,8 @@ android {
         applicationId "eco.pp.firealert"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 6
-        versionName "1.3"
+        versionCode 10
+        versionName "1.5"
 
         manifestPlaceholders = [
             auth0Domain:   "accounts.plant-for-the-planet.org",
