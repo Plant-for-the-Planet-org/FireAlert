@@ -82,8 +82,5 @@
     "react-native-dotenv": "^3.4.11",
     "react-test-renderer": "18.3.1",
     "typescript": "5.0.4"
-  },
-  "engines": {
-    "node": ">=18"
   }
 }
