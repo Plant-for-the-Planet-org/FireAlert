@@ -14,7 +14,7 @@
     - Document data flow between web app, mobile app, and services
     - _Requirements: 4.1_
 
-  - [ ] 2.2 Document service layer architecture
+  - [x] 2.2 Document service layer architecture
     - Create documentation for GeoEvent provider system
     - Document notification service architecture and notifier registry
     - Create guides for extending providers and notifiers
