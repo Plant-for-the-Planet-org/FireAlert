@@ -83,7 +83,7 @@ import {
 import {useSelector} from 'react-redux';
 import {RootState} from '../../redux/store';
 import {useNavigation} from '@react-navigation/native';
-import {PromptInAppUpdatePanel} from '../../PromptInAppUpdate';
+// import {PromptInAppUpdatePanel} from '../../PromptInAppUpdate';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -556,7 +556,7 @@ const Settings = () => {
           />
         }>
         {/* Prompt In App Update Panel */}
-        <PromptInAppUpdatePanel />
+        {/* <PromptInAppUpdatePanel /> */}
         {/* my projects */}
         <View style={[styles.myProjects, styles.commonPadding]}>
           <Text style={styles.mainHeading}>

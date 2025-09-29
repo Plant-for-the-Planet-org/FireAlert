@@ -9,11 +9,11 @@ import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
 import {BottomBarProvider} from './global/reducers/bottomBar';
 import {Config} from '../config';
-// import {promptAppUpdateOnInit} from './PromptInAppUpdate';
+import {promptAppUpdateOnInit} from './PromptInAppUpdate';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
-// promptAppUpdateOnInit();
+promptAppUpdateOnInit();
 
 function App(): JSX.Element {
   return (
