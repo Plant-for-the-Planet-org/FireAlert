@@ -13,7 +13,7 @@ import SpInAppUpdates, {
   StartUpdateOptions,
 } from 'sp-react-native-in-app-updates';
 
-const inAppUpdates = new SpInAppUpdates(true);
+const inAppUpdates = new SpInAppUpdates(false);
 
 export async function promptAppUpdateOnInit() {
   try {
@@ -32,7 +32,7 @@ export async function promptAppUpdateOnInit() {
     if (result.shouldUpdate) {
       let updateOptions: StartUpdateOptions = {};
       if (Platform.OS === 'android') {
-        updateOptions = {updateType: IAUUpdateKind.FLEXIBLE};
+        updateOptions = {updateType: IAUUpdateKind.IMMEDIATE};
       }
       await inAppUpdates.startUpdate(updateOptions);
     }
