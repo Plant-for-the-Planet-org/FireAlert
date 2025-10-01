@@ -14,7 +14,7 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-target 'FireAlert' do
+target 'nativeapp' do
   config = use_native_modules!
 
   use_react_native!(
@@ -22,15 +22,6 @@ target 'FireAlert' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
-
-  target 'FireAlertTests' do
-    inherit! :complete
-    # Pods for testing
-  end
-  pre_install do |installer|
-    $RNMapboxMaps.pre_install(installer)
-  end
-
 
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
@@ -40,9 +31,5 @@ target 'FireAlert' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
-    $RNMapboxMaps.post_install(installer)
   end
-end
-target 'OneSignalNotificationServiceExtension' do
-  pod 'OneSignalXCFramework', '>= 5.0.0', '< 6.0'
 end

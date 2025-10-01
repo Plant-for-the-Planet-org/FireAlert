@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "FireAlert.app"
-               BlueprintName = "FireAlert"
-               ReferencedContainer = "container:FireAlert.xcodeproj">
+               BuildableName = "nativeapp.app"
+               BlueprintName = "nativeapp"
+               ReferencedContainer = "container:nativeapp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "FireAlertTests.xctest"
-               BlueprintName = "FireAlertTests"
-               ReferencedContainer = "container:FireAlert.xcodeproj">
+               BuildableName = "nativeappTests.xctest"
+               BlueprintName = "nativeappTests"
+               ReferencedContainer = "container:nativeapp.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "FireAlert.app"
-            BlueprintName = "FireAlert"
-            ReferencedContainer = "container:FireAlert.xcodeproj">
+            BuildableName = "nativeapp.app"
+            BlueprintName = "nativeapp"
+            ReferencedContainer = "container:nativeapp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "FireAlert.app"
-            BlueprintName = "FireAlert"
-            ReferencedContainer = "container:FireAlert.xcodeproj">
+            BuildableName = "nativeapp.app"
+            BlueprintName = "nativeapp"
+            ReferencedContainer = "container:nativeapp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
