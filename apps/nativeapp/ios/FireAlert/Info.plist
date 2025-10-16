@@ -17,24 +17,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.5</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>None</string>
-			<key>CFBundleURLName</key>
-			<string>auth0</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-			</array>
-		</dict>
-	</array>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -42,34 +29,24 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
-		<false/>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
 	</dict>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>We need access to precise location to show your current location for creating sites.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>We need access to precise location to show your current location for creating sites.</string>
+	<string></string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need access to precise location to show your current location for creating sites.</string>
-	<key>OneSignal_app_groups_key</key>
-	<string>group.eco.pp.firealert.onesignal</string>
-	<key>OneSignal_suppress_launch_urls</key>
-	<true/>
 	<key>RCTNewArchEnabled</key>
 	<true/>
-	<key>UIAppFonts</key>
-	<array>
-		<string>OpenSans-Bold.ttf</string>
-		<string>OpenSans-BoldItalic.ttf</string>
-		<string>OpenSans-ExtraBold.ttf</string>
-		<string>OpenSans-ExtraBoldItalic.ttf</string>
-		<string>OpenSans-Italic.ttf</string>
-		<string>OpenSans-Light.ttf</string>
-		<string>OpenSans-LightItalic.ttf</string>
-		<string>OpenSans-Regular.ttf</string>
-		<string>OpenSans-SemiBold.ttf</string>
-		<string>OpenSans-SemiBoldItalic.ttf</string>
-		<string>Oswald-Bold.ttf</string>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
@@ -83,12 +60,8 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
-		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>

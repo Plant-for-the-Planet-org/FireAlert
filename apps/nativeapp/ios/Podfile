@@ -13,16 +13,15 @@ $RNMapboxMapsImpl = 'mapbox'
 platform :ios, '15.1'
 prepare_react_native_project!
 
-# Ensure consistent frameworks linkage for host app + extension.
+# RNMapbox configuration
+$RNMapboxMapsImpl = 'mapbox'
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage
   use_frameworks! :linkage => linkage.to_sym
 else
   use_frameworks!
 end
-
-# capture reactNativePath for post_install
-$react_native_path = nil
 
 target 'FireAlert' do
   config = use_native_modules!
@@ -36,34 +35,22 @@ target 'FireAlert' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  target 'FireAlertTests' do
-    inherit! :complete
-  end
-
-  # Mapbox pre_install hook (if using @rnmapbox/maps)
   pre_install do |installer|
-    $RNMapboxMaps.pre_install(installer) if defined?($RNMapboxMaps)
+    $RNMapboxMaps.pre_install(installer)
+  end
+
+  post_install do |installer|
+    $RNMapboxMaps.post_install(installer)
+    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
   end
 end
 
-# Notification Service Extension: do NOT call use_frameworks! here (already global above)
 target 'OneSignalNotificationServiceExtension' do
-  # Pin exact XCFramework version required by react-native-onesignal
-  pod 'OneSignalXCFramework', '= 5.2.14'
-end
-
-post_install do |installer|
-  # Force pods' IPHONEOS_DEPLOYMENT_TARGET to match platform :ios above (fixes "required a higher minimum deployment target" errors)
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
-    end
-  end
-
-  # Run React Native's post-install hook (uses $react_native_path captured above)
-  react_native_post_install(
-    installer,
-    $react_native_path,
-    :mac_catalyst_enabled => false
-  )
+  pod 'OneSignalXCFramework', '>= 5.0.0', '< 6.0'
 end
