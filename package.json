@@ -20,13 +20,9 @@
     "apps/*",
     "packages/*"
   ],
-  "dependencies": {
-    "@tanstack/react-query": "^4.36.0",
-    "@babel/runtime": "^7.20.0"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "dotenv-cli": "^10.0.0",
-    "prettier": "^2.7.1"
+    "dotenv-cli": "^10.0.0"
   },
   "packageManager": "yarn@1.22.22",
   "prisma": {
