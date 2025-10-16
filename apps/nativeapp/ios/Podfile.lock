@@ -2697,6 +2697,7 @@ DEPENDENCIES:
   - glog (from `../../../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../../../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - lottie-react-native (from `../../../node_modules/lottie-react-native`)
+  - OneSignalXCFramework (< 6.0, >= 5.0.0)
   - RCT-Folly (from `../../../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTDeprecation (from `../../../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../../../node_modules/react-native/Libraries/Required`)
@@ -3068,6 +3069,6 @@ SPEC CHECKSUMS:
   Turf: aa2ede4298009639d10db36aba1a7ebaad072a5e
   Yoga: a3ed390a19db0459bd6839823a6ac6d9c6db198d
 
-PODFILE CHECKSUM: 7c5102ab530d61b63f54f6b4fe4a2d52787d24d7
+PODFILE CHECKSUM: 5c9c12ec9f06b80ae4548c1f2d505bdb342d3f97
 
 COCOAPODS: 1.16.2

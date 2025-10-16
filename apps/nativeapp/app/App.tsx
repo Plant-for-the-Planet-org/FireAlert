@@ -1,5 +1,4 @@
 import React, {JSX} from 'react';
-import {Text, View} from 'react-native';
 import {Provider} from 'react-redux';
 import MapboxGL from '@rnmapbox/maps';
 import {Auth0Provider} from 'react-native-auth0';

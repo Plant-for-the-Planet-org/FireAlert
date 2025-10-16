@@ -8,13 +8,16 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# RNMapbox configuration
+$RNMapboxMapsImpl = 'mapbox'
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
   use_frameworks! :linkage => linkage.to_sym
 end
 
-target 'nativeapp' do
+target 'FireAlert' do
   config = use_native_modules!
 
   use_react_native!(
@@ -23,7 +26,12 @@ target 'nativeapp' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  pre_install do |installer|
+    $RNMapboxMaps.pre_install(installer)
+  end
+
   post_install do |installer|
+    $RNMapboxMaps.post_install(installer)
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
     react_native_post_install(
       installer,
@@ -32,4 +40,8 @@ target 'nativeapp' do
       # :ccache_enabled => true
     )
   end
+end
+
+target 'OneSignalNotificationServiceExtension' do
+  pod 'OneSignalXCFramework', '>= 5.0.0', '< 6.0'
 end
