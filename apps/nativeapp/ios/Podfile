@@ -11,6 +11,10 @@ $RNMapboxMapsImpl = 'mapbox'
 
 # React Native >= 0.76 requires iOS 15.1 minimum; set to 15.1 to satisfy ReactCommon / turbomodule pods.
 platform :ios, '15.1'
+
+# Disable New Architecture to ensure compatibility
+ENV['RCT_NEW_ARCH_ENABLED'] = '0'
+
 prepare_react_native_project!
 
 # RNMapbox configuration
