@@ -1,9 +1,9 @@
-import { withSentryConfig } from "@sentry/nextjs";
+import {withSentryConfig} from '@sentry/nextjs';
 /**
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.
  * This is especially useful for Docker builds.
  */
-!process.env.SKIP_ENV_VALIDATION && (await import("./src/env.mjs"));
+!process.env.SKIP_ENV_VALIDATION && (await import('./src/env.mjs'));
 
 /** @type {import("next").NextConfig} */
 const config = {
@@ -29,40 +29,56 @@ const config = {
    * @see https://github.com/vercel/next.js/issues/41980
    */
   i18n: {
-    locales: ["en"],
-    defaultLocale: "en",
+    locales: ['en'],
+    defaultLocale: 'en',
   },
 
   // Add the compiler option and remove console logs in production
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production"
+    removeConsole: process.env.NODE_ENV === 'production',
   },
 };
-export default withSentryConfig(config, {
-// For all available options, see:
-// https://github.com/getsentry/sentry-webpack-plugin#options
+export default withSentryConfig(
+  config,
+  {
+    // For all available options, see:
+    // https://github.com/getsentry/sentry-webpack-plugin#options
 
-// Suppresses source map uploading logs during build
-silent: true,
+    // Suppresses source map uploading logs during build
+    silent: true,
 
-org: "plant-for-the-planet",
-project: "firealert",
-}, {
-// For all available options, see:
-// https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+    org: 'plant-for-the-planet',
+    project: 'firealert',
 
-// Upload a larger set of source maps for prettier stack traces (increases build time)
-widenClientFileUpload: true,
+    // Only upload sourcemaps in production
+    authToken: process.env.SENTRY_AUTH_TOKEN,
 
-// Transpiles SDK to be compatible with IE11 (increases bundle size)
-transpileClientSDK: true,
+    // Disable Sentry CLI output
+    telemetry: false,
+  },
+  {
+    // For all available options, see:
+    // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
-// Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers (increases server load)
-tunnelRoute: "/monitoring",
+    // Upload a larger set of source maps for prettier stack traces (increases build time)
+    widenClientFileUpload: true,
 
-// Hides source maps from generated client bundles
-hideSourceMaps: true,
+    // Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers (increases server load)
+    tunnelRoute: '/monitoring',
 
-// Automatically tree-shake Sentry logger statements to reduce bundle size
-disableLogger: true,
-});
+    // Hides source maps from generated client bundles
+    hideSourceMaps: true,
+
+    // Automatically tree-shake Sentry logger statements to reduce bundle size
+    disableLogger: true,
+
+    // Automatically instrument Next.js data fetching methods and API routes
+    autoInstrumentServerFunctions: true,
+    autoInstrumentMiddleware: true,
+
+    // Suppress Sentry SDK initialization logs
+    unstable_sentryWebpackPluginOptions: {
+      silent: true,
+    },
+  },
+);
