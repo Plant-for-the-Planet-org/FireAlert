@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Task Completion Auto-Commit",
+  "description": "Automatically creates a git commit when a task from any spec in ./.kiro/specs is completed. The commit includes a short description, task ID tag, and updates the task list with commit details and file changes. Also notes any breaking changes for easy reference.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "./.kiro/specs/**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A task from a spec file has been completed. Please:\n\n1. Create a git commit with:\n   - Single line commit message with short description\n   - Tag the commit with the task ID (e.g., git tag task-[id])\n\n2. Update the relevant Task List in the spec with:\n   - Commit ID and message\n   - List of files changed in this commit\n   - Note any breaking changes that could affect the system\n\n3. If there are breaking changes, add a note explaining what broke and reference it back to the spec for future debugging.\n\nThe goal is to have a clear audit trail of what was implemented, when, and what files were affected, so if something breaks later, it can be traced back to the specific commit and task."
+  }
+}
