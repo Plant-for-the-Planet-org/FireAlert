@@ -28,7 +28,8 @@
     - Extract database query logic for active providers
     - Implement proper error handling for database operations
     - Use typed Prisma queries with proper parameter validation
-    - _Requirements: 1.5, 2.3, 4.2, 6.3_
+    - Move shuffleArray call into this function for provider selection
+    - _Requirements: 1.5, 2.3, 4.2, 6.1, 6.2, 6.3, 6.4, 6.5_
 
   - [ ] 3.2 Create parseProviderConfig function in geo-event-fetcher.ts
 
@@ -50,13 +51,15 @@
     - Extract main processing loop logic into separate orchestration function
     - Implement proper error isolation for individual provider failures
     - Add comprehensive logging with structured context
+    - Return ProcessingResult with metrics
     - _Requirements: 2.4, 4.1, 4.4, 9.4_
 
   - [ ] 4.2 Create processProviderGeoEvents function in geo-event-fetcher.ts
-    - Extract individual provider processing logic
+    - Extract individual provider processing logic from the Promise.all map
     - Implement proper error handling and logging for each provider
-    - Use descriptive variable names throughout the function
-    - _Requirements: 3.1, 3.3, 4.1, 6.5_
+    - Use descriptive variable names throughout the function (rename breadcrumbPrefix to logPrefix)
+    - Return ProviderProcessingResult with metrics
+    - _Requirements: 3.1, 3.3, 3.5, 4.1, 6.5_
 
 - [ ] 5. Implement enhanced response formatting and metrics
 
@@ -93,12 +96,14 @@
     - Remove commented-out while loop and related logic
     - Remove unused processedProviders variable
     - Update variable names for clarity (fetchCount to providerLimit, promises to providerProcessingPromises)
-    - _Requirements: 5.1, 5.2, 5.4, 3.2, 3.3_
+    - Remove commented-out notification count logic
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 3.2, 3.3_
 
   - [ ] 6.3 Add comprehensive error handling and logging
     - Wrap all async operations in try-catch blocks
     - Add detailed error logging with provider context
     - Implement graceful error handling for edge cases
+    - Handle case when no active providers are available
     - _Requirements: 4.1, 4.2, 4.4, 7.1, 7.3, 7.4, 7.5_
 
 - [ ] 7. Final integration and testing preparation
@@ -107,7 +112,7 @@
 
     - Add explicit return types for all functions
     - Ensure proper TypeScript typing throughout
-    - Fix any remaining type safety issues
+    - Fix TypeScript any type errors in template literals
     - _Requirements: 1.2, 1.4, 8.1_
 
   - [ ] 7.2 Verify separation of concerns implementation
@@ -117,7 +122,7 @@
     - Confirm proper parameter passing to service functions
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-  - [ ] 7.3 Write unit tests for extracted functions
+  - [ ]\* 7.3 Write unit tests for extracted functions
 
     - Create unit tests for authentication function
     - Create unit tests for query parameter parsing
@@ -125,7 +130,7 @@
     - Create unit tests for utility functions
     - _Requirements: 2.1, 2.2, 2.3, 2.5_
 
-  - [ ] 7.4 Write integration tests for main workflow
+  - [ ]\* 7.4 Write integration tests for main workflow
     - Create integration tests for complete CRON job execution
     - Test error scenarios and edge cases
     - Verify backward compatibility of API responses
