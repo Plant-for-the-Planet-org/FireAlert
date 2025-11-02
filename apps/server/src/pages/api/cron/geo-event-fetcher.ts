@@ -1,171 +1,460 @@
 // to execute this handler, access the endpoint:  http://localhost:3000/api/cron/geo-event-fetcher
 
-import { type NextApiRequest, type NextApiResponse } from "next";
-import GeoEventProviderClassRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry'
-import { type GeoEventProvider } from '@prisma/client'
-import { type GeoEventProviderConfig } from '../../../Interfaces/GeoEventProvider'
-import { env } from "../../../env.mjs";
-import processGeoEvents from "../../../../src/Services/GeoEvent/GeoEventHandler";
-import createSiteAlerts from "../../../../src/Services/SiteAlert/CreateSiteAlert";
-import { logger } from "../../../../src/server/logger";
-import { type GeoEventProviderClientId } from "../../../Interfaces/GeoEventProvider";
-import { prisma } from "../../../../src/server/db";
-import { type geoEventInterface as GeoEvent } from "../../../Interfaces/GeoEvent"
+import {type NextApiRequest, type NextApiResponse} from 'next';
+import {z} from 'zod';
+import GeoEventProviderClassRegistry from '../../../Services/GeoEventProvider/GeoEventProviderRegistry';
+import {type GeoEventProvider} from '@prisma/client';
+import {
+  type GeoEventProviderConfig,
+  type GeoEventProviderClientId,
+  GeoEventProviderClient,
+} from '../../../Interfaces/GeoEventProvider';
+import {env} from '../../../env.mjs';
+import processGeoEvents from '../../../../src/Services/GeoEvent/GeoEventHandler';
+import createSiteAlerts from '../../../../src/Services/SiteAlert/CreateSiteAlert';
+import {logger} from '../../../../src/server/logger';
+import {prisma} from '../../../../src/server/db';
+import {shuffleArray, chunkArray} from '../../../utils/arrayUtils';
 
-// This ensures that the alertFetcher Vercel serverless function runs for a maximum of 300 seconds
+// This ensures that the geoEventFetcher Vercel serverless function runs for a maximum of 300 seconds
 // 300s is the maximum allowed duration for Vercel pro plans
 export const config = {
   maxDuration: 300,
 };
 
-// TODO: Run this cron every 5 minutes
-export default async function alertFetcher(req: NextApiRequest, res: NextApiResponse) {
-  // Verify the 'cron_key' in the request headers before proceeding
-  if (env.CRON_KEY) {
-    // Verify the 'cron_key' in the request headers
-    const cronKey = req.query['cron_key'];
-    if (!cronKey || cronKey !== env.CRON_KEY) {
-      res.status(403).json({ message: "Unauthorized Invalid Cron Key" });
-      return;
-    }
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+interface ProcessingResult {
+  totalProviders: number;
+  totalGeoEvents: number;
+  totalNewGeoEvents: number;
+  totalSiteAlerts: number;
+  executionDuration: number;
+}
+
+interface ApiResponse {
+  message: string;
+  alertsCreated: number;
+  processedProviders: number;
+  status: number;
+  metrics?: ProcessingResult;
+}
+
+interface ProviderProcessingResult {
+  providerId: string;
+  geoEventsFetched: number;
+  newGeoEventsCreated: number;
+  siteAlertsCreated: number;
+}
+
+// Zod schema for provider configuration validation
+const GeoEventProviderConfigSchema = z.object({
+  bbox: z.string(),
+  slice: z.string(),
+  client: z.nativeEnum(GeoEventProviderClient),
+});
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Authenticates the incoming request by validating the CRON_KEY
+ * @param req - The Next.js API request object
+ * @returns true if authenticated, false otherwise
+ */
+function authenticateRequest(req: NextApiRequest): boolean {
+  if (!env.CRON_KEY) {
+    return true; // No CRON_KEY configured, allow request
   }
 
-  // Set Limit to 7 if not provided or greater than 7
-  // Extract limit from query
-  const rawLimit = req.query['limit'];
+  const cronKey = req.query['cron_key'];
+  return cronKey === env.CRON_KEY;
+}
 
-  // Initialize final limit as number
-  let limit: number;
+/**
+ * Parses and validates query parameters from the request
+ * @param req - The Next.js API request object
+ * @returns An object containing the validated limit parameter
+ */
+function parseQueryParameters(req: NextApiRequest): {limit: number} {
+  const rawLimit = req.query['limit'];
+  const DEFAULT_LIMIT = 2;
+  const MAX_LIMIT = 7;
 
   if (typeof rawLimit === 'string') {
     const parsedLimit = parseInt(rawLimit, 10);
-    if (isNaN(parsedLimit) || parsedLimit > 7) {
-      limit = 7;
-    } else {
-      limit = parsedLimit;
+    if (!isNaN(parsedLimit) && parsedLimit > 0 && parsedLimit <= MAX_LIMIT) {
+      return {limit: parsedLimit};
     }
-  } else {
-    limit = 2;
+    // If parsed limit is greater than MAX_LIMIT, use MAX_LIMIT
+    if (!isNaN(parsedLimit) && parsedLimit > MAX_LIMIT) {
+      return {limit: MAX_LIMIT};
+    }
   }
 
+  return {limit: DEFAULT_LIMIT};
+}
 
-
-  // get all active providers where now  fetch frequency + last run is greater than current time
-
-
-  let newSiteAlertCount = 0;
-  let processedProviders = 0;
-  const fetchCount = limit;
-  // while (processedProviders <= limit) {
+/**
+ * Selects active providers from the database that are due for processing
+ * @param providerLimit - Maximum number of providers to select
+ * @returns Array of active GeoEventProvider records
+ */
+async function selectActiveProviders(
+  providerLimit: number,
+): Promise<GeoEventProvider[]> {
+  try {
     const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
-        SELECT *
-        FROM "GeoEventProvider"
-        WHERE "isActive" = true
-          AND "fetchFrequency" IS NOT NULL
-          AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < (current_timestamp AT TIME ZONE 'UTC')
-        ORDER BY (current_timestamp AT TIME ZONE 'UTC' - "lastRun") DESC
-        LIMIT ${fetchCount};
+      SELECT *
+      FROM "GeoEventProvider"
+      WHERE "isActive" = true
+        AND "fetchFrequency" IS NOT NULL
+        AND ("lastRun" + ("fetchFrequency" || ' minutes')::INTERVAL) < (current_timestamp AT TIME ZONE 'UTC')
+      ORDER BY (current_timestamp AT TIME ZONE 'UTC' - "lastRun") DESC
+      LIMIT ${providerLimit};
     `;
-    function shuffleArray(array: GeoEventProvider[]) {
-      for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]]; // swap elements
-      }
-      return array;
-    }
+
+    // Shuffle providers to distribute load evenly across different providers
+    // This prevents always processing the same providers first
     const shuffledProviders = shuffleArray([...activeProviders]);
-    const selectedProviders = shuffledProviders.slice(0, limit);
+    const selectedProviders = shuffledProviders.slice(0, providerLimit);
 
-    // Filter out those active providers whose last (run date + fetchFrequency (in minutes) > current time
-    // Break the loop if there are no active providers
-    
-    // if (activeProviders.length === 0) {
-    //   logger(`Nothing to process anymore activeProviders.length = 0`, "info");
-    //   break;
-    // }
+    logger(
+      `Selected ${selectedProviders.length} providers out of ${activeProviders.length} eligible providers`,
+      'info',
+    );
 
-    logger(`Running Geo Event Fetcher. Taking ${selectedProviders.length} eligible providers.`, "info");
+    return selectedProviders;
+  } catch (error) {
+    logger(
+      `Failed to select active providers: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'error',
+    );
+    throw error;
+  }
+}
 
-      // Define Chunk Size for processGeoEvents
-    const chunkSize = 2000;
-    const chunkArray = (array: GeoEvent[], size: number) => {
-      const chunked = [];
-      let index = 0;
-      while (index < array.length) {
-          chunked.push(array.slice(index, size + index));
-          index += size;
+/**
+ * Parses and validates provider configuration using Zod schema
+ * @param config - Raw configuration object from database
+ * @returns Validated GeoEventProviderConfig
+ */
+function parseProviderConfig(config: unknown): GeoEventProviderConfig {
+  try {
+    return GeoEventProviderConfigSchema.parse(config);
+  } catch (error) {
+    logger(
+      `Failed to parse provider config: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'error',
+    );
+    throw new Error('Invalid provider configuration');
+  }
+}
+
+/**
+ * Gets the API key for a provider, with support for FIRMS_MAP_KEY override
+ * @param provider - The GeoEventProvider record
+ * @param providerConfig - The parsed provider configuration
+ * @returns The API key to use for this provider
+ */
+function getApiKey(
+  provider: GeoEventProvider,
+  providerConfig: GeoEventProviderConfig,
+): string {
+  // Check if this is a FIRMS provider and FIRMS_MAP_KEY is configured
+  const isFirmsProvider =
+    providerConfig.client === GeoEventProviderClient.FIRMS;
+
+  if (isFirmsProvider && env.FIRMS_MAP_KEY) {
+    logger(
+      `Using FIRMS_MAP_KEY environment variable for provider ${provider.clientId}`,
+      'info',
+    );
+    return env.FIRMS_MAP_KEY as string;
+  }
+
+  logger(
+    `Using database clientApiKey for provider ${provider.clientId}`,
+    'info',
+  );
+  return provider.clientApiKey;
+}
+
+/**
+ * Updates the lastRun timestamp for a provider
+ * @param providerId - The ID of the provider to update
+ */
+async function updateProviderLastRun(providerId: string): Promise<void> {
+  try {
+    await prisma.geoEventProvider.update({
+      where: {id: providerId},
+      data: {lastRun: new Date().toISOString()},
+    });
+  } catch (error) {
+    logger(
+      `Failed to update lastRun for provider ${providerId}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'error',
+    );
+    // Don't throw - this is not critical enough to fail the entire process
+  }
+}
+
+/**
+ * Processes geo-events for a single provider
+ * @param provider - The GeoEventProvider to process
+ * @returns Processing result with metrics
+ */
+async function processProviderGeoEvents(
+  provider: GeoEventProvider,
+): Promise<ProviderProcessingResult> {
+  const {
+    config,
+    id: geoEventProviderId,
+    clientId: geoEventProviderClientId,
+    clientApiKey,
+    lastRun,
+  } = provider;
+
+  const result: ProviderProcessingResult = {
+    providerId: geoEventProviderId,
+    geoEventsFetched: 0,
+    newGeoEventsCreated: 0,
+    siteAlertsCreated: 0,
+  };
+
+  try {
+    // Parse and validate provider configuration
+    const parsedConfig = parseProviderConfig(config);
+    const client = parsedConfig.client;
+    const slice = parsedConfig.slice;
+
+    // Get the appropriate API key (with FIRMS_MAP_KEY override support)
+    const apiKey = getApiKey(provider, parsedConfig);
+
+    // Initialize provider
+    const geoEventProvider = GeoEventProviderClassRegistry.get(client);
+    geoEventProvider.initialize(parsedConfig);
+
+    // Create log prefix for this provider
+    const logPrefix =
+      geoEventProviderClientId === 'GEOSTATIONARY'
+        ? `Geostationary Satellite ${clientApiKey}:`
+        : `${geoEventProviderClientId} Slice ${slice}:`;
+
+    // Fetch geo-events from the provider
+    const geoEvents = await geoEventProvider.getLatestGeoEvents(
+      geoEventProviderClientId,
+      geoEventProviderId,
+      slice,
+      apiKey,
+      lastRun,
+    );
+
+    result.geoEventsFetched = geoEvents.length;
+    logger(`${logPrefix} Fetched ${geoEvents.length} geoEvents`, 'info');
+
+    if (geoEvents.length > 0) {
+      // Split geoEvents into smaller chunks for memory-efficient processing
+      const CHUNK_SIZE = 2000;
+      const geoEventChunks = chunkArray(geoEvents, CHUNK_SIZE);
+
+      let totalEventCount = 0;
+      let totalNewGeoEvent = 0;
+
+      // Process each chunk sequentially
+      for (const geoEventChunk of geoEventChunks) {
+        try {
+          const processedGeoEvent = await processGeoEvents(
+            geoEventProviderClientId as GeoEventProviderClientId,
+            geoEventProviderId,
+            slice,
+            geoEventChunk,
+          );
+          totalEventCount += processedGeoEvent.geoEventCount;
+          totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
+        } catch (error) {
+          logger(
+            `${logPrefix} Failed to process chunk: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+            'error',
+          );
+          // Continue processing remaining chunks
+        }
       }
-      return chunked;
+
+      result.newGeoEventsCreated = totalNewGeoEvent;
+
+      logger(`${logPrefix} Found ${totalNewGeoEvent} new Geo Events`, 'info');
+      logger(`${logPrefix} Created ${totalEventCount} Geo Events`, 'info');
+
+      // Create site alerts for the processed events
+      const alertCount = await createSiteAlerts(
+        geoEventProviderId,
+        geoEventProviderClientId as GeoEventProviderClientId,
+        slice,
+      );
+
+      result.siteAlertsCreated = alertCount;
+      logger(`${logPrefix} Created ${alertCount} Site Alerts`, 'info');
     }
 
-    // Loop for each active provider and fetch geoEvents
-    const promises = selectedProviders.map(async (provider) => {
-      const { config, id: geoEventProviderId, clientId: geoEventProviderClientId, clientApiKey, lastRun } = provider
-      // For GOES-16, geoEventProviderId is 55, geoEventProviderClientId is GEOSTATIONARY, and clientApiKey is GOES-16
-      const parsedConfig: GeoEventProviderConfig = JSON.parse(JSON.stringify(config))
-      const client = parsedConfig.client // For GOES-16 = GOES-16
-      const geoEventProvider = GeoEventProviderClassRegistry.get(client);
-      geoEventProvider.initialize(parsedConfig);
+    // Update lastRun timestamp
+    await updateProviderLastRun(provider.id);
 
-      const slice = parsedConfig.slice;
-      let breadcrumbPrefix = `${geoEventProviderClientId} Slice ${slice}:`
-      if(geoEventProviderClientId === 'GEOSTATIONARY'){
-        breadcrumbPrefix = `Geostationary Satellite ${clientApiKey}:`
-      }
+    return result;
+  } catch (error) {
+    logger(
+      `Failed to process provider ${geoEventProviderClientId}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'error',
+    );
+    // Return partial results even on error
+    return result;
+  }
+}
 
-      // First fetch all geoEvents from the provider
-      return await geoEventProvider.getLatestGeoEvents(geoEventProviderClientId, geoEventProviderId, slice, clientApiKey, lastRun)
-        .then(async (geoEvents) => {
-          // If there are geoEvents, emit an event to find duplicates and persist them
-          logger(`${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`, "info");
-          
+/**
+ * Orchestrates the processing of multiple providers
+ * @param providers - Array of GeoEventProvider records to process
+ * @returns Processing result with aggregated metrics
+ */
+async function orchestrateGeoEventProcessing(
+  providers: GeoEventProvider[],
+): Promise<ProcessingResult> {
+  const startTime = Date.now();
 
-          let totalEventCount = 0;
-          let totalNewGeoEvent = 0;
+  logger(
+    `Running Geo Event Fetcher. Processing ${providers.length} eligible providers`,
+    'info',
+  );
 
-          if (geoEvents.length > 0) {
-            // Split geoEvents into smaller chunks
-            const geoEventChunks = chunkArray(geoEvents, chunkSize);
-            
-            // Process each chunk sequentially
-            for (const geoEventChunk of geoEventChunks) {
-                const processedGeoEvent = await processGeoEvents(geoEventProviderClientId as GeoEventProviderClientId, geoEventProviderId, slice, geoEventChunk);
-                totalEventCount += processedGeoEvent.geoEventCount;
-                totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
-            }
-          }
+  // Handle edge case: no providers to process
+  if (providers.length === 0) {
+    logger('No active providers available for processing', 'info');
+    return {
+      totalProviders: 0,
+      totalGeoEvents: 0,
+      totalNewGeoEvents: 0,
+      totalSiteAlerts: 0,
+      executionDuration: Date.now() - startTime,
+    };
+  }
 
-          logger(`${breadcrumbPrefix} Found ${totalNewGeoEvent} new Geo Events`, "info");
-          logger(`${breadcrumbPrefix} Created ${totalEventCount} Geo Events`, "info");
+  // Process all providers in parallel
+  const providerProcessingPromises = providers.map(provider =>
+    processProviderGeoEvents(provider),
+  );
 
-          // if (totalNewGeoEvent > 0) {
-          const alertCount = await createSiteAlerts(geoEventProviderId, geoEventProviderClientId as GeoEventProviderClientId, slice)
-          logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, "info");
+  const results = await Promise.allSettled(providerProcessingPromises);
 
-          newSiteAlertCount += alertCount
-          // }
+  // Aggregate results from all providers
+  let totalGeoEvents = 0;
+  let totalNewGeoEvents = 0;
+  let totalSiteAlerts = 0;
 
-          // Update lastRun value of the provider to the current Date()
-          await prisma.geoEventProvider.update({
-            where: {
-              id: provider.id
-            },
-            data: {
-              lastRun: new Date().toISOString()
-            },
-          });
-        });
-
-    })
-    processedProviders += activeProviders.length;
-
-    await Promise.all(promises).catch(error => logger(`Something went wrong before creating notifications. ${error}`, "error"));
-
-  res.status(200).json({
-    message: "Geo-event-fetcher Cron job executed successfully",
-    alertsCreated: newSiteAlertCount,
-    // notificationCount: notificationCount,
-    processedProviders: processedProviders,
-    status: 200
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      totalGeoEvents += result.value.geoEventsFetched;
+      totalNewGeoEvents += result.value.newGeoEventsCreated;
+      totalSiteAlerts += result.value.siteAlertsCreated;
+    } else {
+      const errorMessage =
+        result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason);
+      logger(
+        `Provider ${providers[index]?.clientId} processing failed: ${errorMessage}`,
+        'error',
+      );
+    }
   });
+
+  const executionDuration = Date.now() - startTime;
+
+  logger(
+    `Geo Event Fetcher completed in ${executionDuration}ms. Processed ${providers.length} providers, ${totalGeoEvents} events, created ${totalSiteAlerts} alerts`,
+    'info',
+  );
+
+  return {
+    totalProviders: providers.length,
+    totalGeoEvents,
+    totalNewGeoEvents,
+    totalSiteAlerts,
+    executionDuration,
+  };
+}
+
+/**
+ * Formats the API response with backward compatibility
+ * @param processingResult - The processing result with metrics
+ * @returns Formatted API response
+ */
+function formatResponse(processingResult: ProcessingResult): ApiResponse {
+  return {
+    message: 'Geo-event-fetcher Cron job executed successfully',
+    alertsCreated: processingResult.totalSiteAlerts,
+    processedProviders: processingResult.totalProviders,
+    status: 200,
+    metrics: processingResult,
+  };
+}
+
+// ============================================================================
+// Main Handler
+// ============================================================================
+
+/**
+ * Main CRON job handler for fetching and processing geo-events
+ * Endpoint: GET /api/cron/geo-event-fetcher
+ */
+export default async function geoEventFetcher(
+  req: NextApiRequest,
+  res: NextApiResponse,
+): Promise<void> {
+  try {
+    // Authenticate request
+    if (!authenticateRequest(req)) {
+      res.status(403).json({message: 'Unauthorized Invalid Cron Key'});
+      return;
+    }
+
+    // Parse and validate query parameters
+    const {limit: providerLimit} = parseQueryParameters(req);
+
+    // Select active providers
+    const selectedProviders = await selectActiveProviders(providerLimit);
+
+    // Orchestrate geo-event processing
+    const processingResult = await orchestrateGeoEventProcessing(
+      selectedProviders,
+    );
+
+    // Format and return response
+    const response = formatResponse(processingResult);
+    res.status(200).json(response);
+  } catch (error) {
+    logger(
+      `Geo Event Fetcher failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'error',
+    );
+    res.status(500).json({
+      message: 'Geo-event-fetcher Cron job failed',
+      error: error instanceof Error ? error.message : String(error),
+      status: 500,
+    });
+  }
 }

@@ -56,17 +56,18 @@ const server = z.object({
   WHATSAPP_ENDPOINT_URL: z.string().optional(),
   WHATSAPP_ENDPOINT_AUTH_TOKEN: z.string().optional(),
 
+  // NASA FIRMS API key for development testing. If provided, overrides provider-specific API keys.
+  FIRMS_MAP_KEY: z.string().optional(),
+
   // Default is true (unless set "false") that means SMS/Whatsapp will be disabled
   ALERT_SMS_DISABLED: coerceBooleanWithDefault(true),
   ALERT_WHATSAPP_DISABLED: coerceBooleanWithDefault(true),
-
 
   // Database slow query logging. Disabled by default.
   DATABASE_LOG_SLOWQUERY: coerceBooleanWithDefault(false),
 
   // Notification batch size for processing notifications in batches. Defaults to 10.
   NOTIFICATION_BATCH_SIZE: z.string().default('10'),
-
 
   // API caching configuration. Enabled by default in production, disabled in development.
   PUBLIC_API_CACHING: z
@@ -121,6 +122,7 @@ const processEnv = {
     process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
   WHATSAPP_ENDPOINT_URL: process.env.WHATSAPP_ENDPOINT_URL,
   WHATSAPP_ENDPOINT_AUTH_TOKEN: process.env.WHATSAPP_ENDPOINT_AUTH_TOKEN,
+  FIRMS_MAP_KEY: process.env.FIRMS_MAP_KEY,
   ALERT_SMS_DISABLED: process.env.ALERT_SMS_DISABLED,
   ALERT_WHATSAPP_DISABLED: process.env.ALERT_WHATSAPP_DISABLED,
   DATABASE_LOG_SLOWQUERY: process.env.DATABASE_LOG_SLOWQUERY,
