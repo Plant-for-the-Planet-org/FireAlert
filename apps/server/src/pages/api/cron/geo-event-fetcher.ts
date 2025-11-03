@@ -190,7 +190,7 @@ function getApiKey(
       `Using FIRMS_MAP_KEY environment variable for provider ${provider.clientId}`,
       'info',
     );
-    return env.FIRMS_MAP_KEY as string;
+    return env.FIRMS_MAP_KEY;
   }
 
   logger(
