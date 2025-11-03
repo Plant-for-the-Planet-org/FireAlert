@@ -293,3 +293,256 @@ To keep the review manageable, the refactoring will:
 - Maintain clear separation between utilities and business logic
 
 This design ensures the refactored code is more maintainable, testable, and follows SOLID principles while preserving all existing functionality and maintaining backward compatibility.
+
+---
+
+## FOCUSED DEPENDENCY REFACTORING - SUPPORTING THE CRON JOB
+
+**Note: The following sections outline ONLY the minimal changes needed to support the geo-event-fetcher refactor. This is not a comprehensive overhaul but targeted improvements.**
+
+### What Actually Needs to be Fixed
+
+Based on the current geo-event-fetcher refactor, we identified these **specific issues** that impact the CRON job:
+
+1. **Configuration Validation**: The Zod schema was too strict (fixed)
+2. **Error Handling**: Services don't provide enough context for debugging
+3. **Return Types**: Missing explicit interfaces for service responses
+4. **Logging**: Inconsistent logging patterns across services
+
+### Phase 2: Minimal Service Improvements (ONLY what's needed)
+
+#### 2.1 GeoEventHandler - Add Better Error Context
+
+**File: `apps/server/src/Services/GeoEvent/GeoEventHandler.ts`**
+
+**Current Issue**: When `processGeoEvents` fails, the CRON job gets generic errors without context.
+
+**Minimal Fix Needed**:
+
+```typescript
+// Add explicit interface for return type (currently missing)
+interface GeoEventProcessingResult {
+  geoEventCount: number;
+  newGeoEventCount: number;
+  processingDuration?: number; // Add timing info
+  errors?: string[]; // Add error context
+}
+
+// Update function signature to be explicit
+const processGeoEvents = async (
+  geoEventProviderClientId: GeoEventProviderClientId,
+  geoEventProviderId: string,
+  slice: string,
+  geoEvents: GeoEvent[]
+): Promise<GeoEventProcessingResult> => {
+  // Add timing and better error context
+  // Keep existing logic, just add wrapper for error handling
+};
+```
+
+**Why This Helps**: The CRON job can now get detailed error information and timing metrics.
+
+#### 2.2 CreateSiteAlert - Add Better Error Context
+
+**File: `apps/server/src/Services/SiteAlert/CreateSiteAlert.ts`**
+
+**Current Issue**: When `createSiteAlerts` fails, the CRON job doesn't know which batch or operation failed.
+
+**Minimal Fix Needed**:
+
+```typescript
+// Add explicit interface for return type (currently just returns number)
+interface SiteAlertCreationResult {
+  totalAlertsCreated: number;
+  batchesProcessed: number;
+  processingDuration?: number;
+  errors?: string[];
+}
+
+// Update function signature
+const createSiteAlerts = async (
+  geoEventProviderId: string,
+  geoEventProviderClientId: GeoEventProviderClientId,
+  slice: string
+): Promise<SiteAlertCreationResult> => {
+  // Add timing and error context
+  // Keep existing SQL logic, just add wrapper for error handling
+};
+```
+
+**Why This Helps**: The CRON job can now report which specific operations failed and provide better metrics.
+
+#### 2.3 Provider Registry - Better Error Messages
+
+**File: `apps/server/src/Services/GeoEventProvider/GeoEventProviderRegistry.ts`**
+
+**Current Issue**: Generic "Provider not found" errors don't help with debugging.
+
+**Minimal Fix Needed**:
+
+```typescript
+// Just improve error messages, no structural changes
+const GeoEventProviderClassRegistry = {
+  get: (client: string): GeoEventProviderClass => {
+    const provider = registry[client];
+    if (!provider) {
+      // Better error message with available providers
+      const availableProviders = Object.keys(registry).join(", ");
+      throw new Error(
+        `Provider with key '${client}' not found. Available providers: ${availableProviders}`
+      );
+    }
+    return provider;
+  },
+};
+```
+
+**Why This Helps**: Debugging becomes much easier when you know what providers are actually available.
+
+### Phase 3: Provider Configuration Validation (ONLY what's needed)
+
+#### 3.1 Add Configuration Schemas to Existing Providers
+
+**Files: `apps/server/src/Services/GeoEventProvider/ProviderClass/*.ts`**
+
+**Current Issue**: Provider config validation happens at runtime with generic errors.
+
+**Minimal Fix Needed**:
+
+```typescript
+// Add Zod schemas to existing providers (no structural changes)
+import { z } from 'zod';
+
+// In NasaGeoEventProviderClass.ts
+const NasaConfigSchema = z.object({
+  bbox: z.string(),
+  slice: z.string(),
+  client: z.literal('FIRMS'),
+  apiUrl: z.string().url(),
+}).passthrough();
+
+// In GOES16GeoEventProviderClass.ts
+const GOES16ConfigSchema = z.object({
+  bbox: z.string(),
+  slice: z.string(),
+  client: z.literal('GOES-16'),
+  privateKey: z.object({
+    type: z.string(),
+    project_id: z.string(),
+    private_key: z.string(),
+    // ... other required fields
+  }),
+}).passthrough();
+
+// Update getConfig() methods to use Zod validation
+getConfig(): NasaGeoEventProviderConfig {
+  if (typeof this.config === 'undefined') {
+    throw new Error(`Invalid or incomplete alert provider configuration`);
+  }
+
+  try {
+    return NasaConfigSchema.parse(this.config);
+  } catch (error) {
+    throw new Error(`Invalid NASA provider configuration: ${error.message}`);
+  }
+}
+```
+
+**Why This Helps**: The CRON job gets clear validation errors instead of runtime failures.
+
+### Phase 4: Integration Testing (ONLY what's needed)
+
+#### 4.1 Update CRON Job to Handle New Response Types
+
+**File: `apps/server/src/pages/api/cron/geo-event-fetcher.ts`**
+
+**Changes Needed**:
+
+```typescript
+// Update processProviderGeoEvents to handle new response types
+const processedGeoEvent = await processGeoEvents(
+  geoEventProviderClientId as GeoEventProviderClientId,
+  geoEventProviderId,
+  slice,
+  geoEventChunk
+);
+
+// Now we can access more detailed info:
+totalEventCount += processedGeoEvent.geoEventCount;
+totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
+
+// Add error handling for new error context
+if (processedGeoEvent.errors?.length > 0) {
+  logger(
+    `${logPrefix} Processing errors: ${processedGeoEvent.errors.join(", ")}`,
+    "warn"
+  );
+}
+```
+
+#### 4.2 Enhanced Metrics Collection
+
+**Update the ProcessingResult interface**:
+
+```typescript
+interface ProcessingResult {
+  totalProviders: number;
+  totalGeoEvents: number;
+  totalNewGeoEvents: number;
+  totalSiteAlerts: number;
+  executionDuration: number;
+  // Add new metrics from services
+  serviceErrors: string[];
+  processingDetails: {
+    geoEventProcessingDuration: number;
+    siteAlertProcessingDuration: number;
+    batchesProcessed: number;
+  };
+}
+```
+
+### Implementation Timeline
+
+#### ✅ **Phase 1: COMPLETED** - CRON Job Orchestration (1 week)
+
+- Refactored geo-event-fetcher.ts
+- Fixed configuration validation
+- Improved error handling and logging
+
+#### 🔄 **Phase 2: Service Response Improvements** (1 week)
+
+- Add explicit return type interfaces
+- Improve error context in GeoEventHandler
+- Improve error context in CreateSiteAlert
+- Better error messages in Registry
+
+#### 🔄 **Phase 3: Configuration Validation** (3-4 days)
+
+- Add Zod schemas to existing providers
+- Update getConfig() methods for better validation
+- No structural changes to providers
+
+#### 🔄 **Phase 4: Integration** (2-3 days)
+
+- Update CRON job to use new response types
+- Enhanced metrics collection
+- End-to-end testing
+
+### What We're NOT Doing (Out of Scope)
+
+❌ **Complete service restructuring** - Services work fine, just need better interfaces  
+❌ **Provider base classes** - Existing providers work, just need better validation  
+❌ **Complex SQL refactoring** - SQL works, just need better error reporting  
+❌ **Performance optimization** - No performance issues identified  
+❌ **Comprehensive testing framework** - Focus on integration testing only
+
+### Benefits of This Focused Approach
+
+1. ✅ **Minimal Risk**: Small, targeted changes
+2. ✅ **Quick Implementation**: 2-3 weeks total
+3. ✅ **Immediate Value**: Better debugging and monitoring
+4. ✅ **Backward Compatible**: No breaking changes
+5. ✅ **Supports CRON Job**: Directly improves the refactored CRON job
+6. ✅ **Easy to Review**: Small, focused changes
+
+This focused approach gives us the benefits we need to support the geo-event-fetcher refactor without the complexity and risk of a comprehensive overhaul.

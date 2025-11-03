@@ -3,44 +3,79 @@ import {prisma} from '../../server/db';
 import {logger} from '../../../src/server/logger';
 import {type GeoEventProviderClientId} from '../../Interfaces/GeoEventProvider';
 
+/**
+ * Result interface for site alert creation operations
+ */
+export interface SiteAlertCreationResult {
+  totalAlertsCreated: number;
+  batchesProcessed: number;
+  processingDuration?: number;
+  errors?: string[];
+}
+
+/**
+ * Creates site alerts by matching unprocessed geo-events with monitored sites
+ * @param geoEventProviderId - The unique ID of the provider
+ * @param geoEventProviderClientId - The client ID of the geo-event provider
+ * @param slice - The geographic slice identifier
+ * @returns Creation result with counts, duration, and any errors
+ */
 const createSiteAlerts = async (
   geoEventProviderId: string,
   geoEventProviderClientId: GeoEventProviderClientId,
   slice: string,
-) => {
+): Promise<SiteAlertCreationResult> => {
+  const startTime = Date.now();
+  const errors: string[] = [];
   let totalSiteAlertsCreatedCount = 0;
+  let batchesProcessed = 0;
   let geoEventBatch: number = 1000;
   let moreToProcess = true;
-  // Automatically process any unprocessed geoEvents older than 24 hours ago.
-  await prisma.$executeRaw`
+
+  try {
+    // Automatically process any unprocessed geoEvents older than 24 hours ago.
+    await prisma.$executeRaw`
         UPDATE "GeoEvent"
         SET "isProcessed" = true
         WHERE "isProcessed" = false
           AND "eventDate" < NOW() - INTERVAL '24 HOURS';
     `;
+  } catch (error) {
+    const errorMessage = `Failed to cleanup stale events: ${
+      error instanceof Error ? error.message : String(error)
+    }`;
+    errors.push(errorMessage);
+    logger(errorMessage, 'error');
+  }
+
   // Use a different SQL for GEOSTATIONARY satellite
-  if(geoEventProviderClientId === 'GEOSTATIONARY'){
+  if (geoEventProviderClientId === 'GEOSTATIONARY') {
     geoEventBatch = 500;
-    while(moreToProcess){
-      const unprocessedGeoEvents = await prisma.geoEvent.findMany({
-        where:{
-          isProcessed: false,
-          geoEventProviderId: geoEventProviderId
-        },
-        select:{
-          id: true
-        }, 
-        take: geoEventBatch
-      })
-      if(unprocessedGeoEvents.length === 0){
-        moreToProcess = false;
-        continue;  // Skip the current iteration of the loop
-        // Since moreToProcess is false, continue will end the while clause here
-      }
-      const unprocessedGeoEventIds = unprocessedGeoEvents.map(geoEvent => geoEvent.id)
+    while (moreToProcess) {
       try {
-        // TODO: only take the first ${geoEventBatch} of geoEvents and join it with site and createSiteAlerts, keep doing so until there is no unprocessed geoEvents left. 
-        const siteAlertCreationQuery = Prisma.sql`INSERT INTO "SiteAlert" (id, TYPE, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
+        const unprocessedGeoEvents = await prisma.geoEvent.findMany({
+          where: {
+            isProcessed: false,
+            geoEventProviderId: geoEventProviderId,
+          },
+          select: {
+            id: true,
+          },
+          take: geoEventBatch,
+        });
+
+        if (unprocessedGeoEvents.length === 0) {
+          moreToProcess = false;
+          continue; // Skip the current iteration of the loop
+          // Since moreToProcess is false, continue will end the while clause here
+        }
+
+        const unprocessedGeoEventIds = unprocessedGeoEvents.map(
+          geoEvent => geoEvent.id,
+        );
+
+        try {
+          const siteAlertCreationQuery = Prisma.sql`INSERT INTO "SiteAlert" (id, TYPE, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
         SELECT
             gen_random_uuid(),
             e.type,
@@ -69,7 +104,9 @@ const createSiteAlerts = async (
             AND EXISTS (
               SELECT 1
               FROM jsonb_array_elements_text(s.slices) AS slice_element
-              WHERE slice_element = ANY(string_to_array(${Prisma.raw(`'${slice}'`)}, ',')::text[])
+              WHERE slice_element = ANY(string_to_array(${Prisma.raw(
+                `'${slice}'`,
+              )}, ',')::text[])
             )
             AND ST_Within(ST_SetSRID(ST_MakePoint(e.longitude, e.latitude), 4326), ST_GeomFromEWKB(decode(dg_elem, 'hex')))
             AND NOT EXISTS (
@@ -108,7 +145,9 @@ const createSiteAlerts = async (
             AND EXISTS (
               SELECT 1
               FROM jsonb_array_elements_text(s.slices) AS slice_element
-              WHERE slice_element = ANY(string_to_array(${Prisma.raw(`'${slice}'`)}, ',')::text[])
+              WHERE slice_element = ANY(string_to_array(${Prisma.raw(
+                `'${slice}'`,
+              )}, ',')::text[])
             )
             AND NOT EXISTS (
                 SELECT 1
@@ -119,48 +158,71 @@ const createSiteAlerts = async (
                     AND "SiteAlert"."siteId" = s.id
             );
         `;
-    
-        const updateGeoEventIsProcessedToTrue = Prisma.sql`
+
+          const updateGeoEventIsProcessedToTrue = Prisma.sql`
           UPDATE "GeoEvent" 
           SET "isProcessed" = true 
           WHERE id IN (${Prisma.join(unprocessedGeoEventIds)})`;
-        // REMOVE after 2nd release
-        const updateGeostationarySiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false AND "detectedBy" = ${geoEventProviderClientId}`;
-        // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
-        // And, Set all GeoEvents as processed
-        const results = await prisma.$transaction([
-          prisma.$executeRaw(siteAlertCreationQuery),
-          prisma.$executeRaw(updateGeoEventIsProcessedToTrue),
-        ]);
-        await prisma.$executeRaw(updateGeostationarySiteAlertIsProcessedToTrue)
-        let siteAlertsCreatedInBatchCount = results[0];
-        totalSiteAlertsCreatedCount += siteAlertsCreatedInBatchCount
+          // REMOVE after 2nd release
+          const updateGeostationarySiteAlertIsProcessedToTrue = Prisma.sql`UPDATE "SiteAlert" SET "isProcessed" = true WHERE "isProcessed" = false AND "detectedBy" = ${geoEventProviderClientId}`;
+          // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
+          // And, Set all GeoEvents as processed
+          const results = await prisma.$transaction([
+            prisma.$executeRaw(siteAlertCreationQuery),
+            prisma.$executeRaw(updateGeoEventIsProcessedToTrue),
+          ]);
+          await prisma.$executeRaw(
+            updateGeostationarySiteAlertIsProcessedToTrue,
+          );
+          const siteAlertsCreatedInBatchCount = results[0] as number;
+          totalSiteAlertsCreatedCount += siteAlertsCreatedInBatchCount;
+          batchesProcessed++;
+        } catch (error) {
+          const errorMessage = `Failed to create SiteAlerts for GEOSTATIONARY batch ${
+            batchesProcessed + 1
+          }: ${error instanceof Error ? error.message : String(error)}`;
+          errors.push(errorMessage);
+          logger(errorMessage, 'error');
+          // Continue processing remaining batches
+          batchesProcessed++;
+        }
       } catch (error) {
-        logger(`Failed to create SiteAlerts. Error: ${error}`, 'error');
+        const errorMessage = `Failed to fetch unprocessed events for GEOSTATIONARY: ${
+          error instanceof Error ? error.message : String(error)
+        }`;
+        errors.push(errorMessage);
+        logger(errorMessage, 'error');
+        moreToProcess = false;
       }
     }
-  }else {
+  } else {
     // Non-geostationary satellites do not belong to a specific site
     geoEventBatch = 1000;
-    while(moreToProcess){
-      const unprocessedGeoEvents = await prisma.geoEvent.findMany({
-        where:{
-          isProcessed: false,
-          geoEventProviderId: geoEventProviderId
-        },
-        select:{
-          id: true
-        }, 
-        take: geoEventBatch
-      })
-      if(unprocessedGeoEvents.length === 0){
-        moreToProcess = false;
-        continue;  // Skip the current iteration of the loop
-        // Since moreToProcess is false, continue will end the while clause here
-      }
-      const unprocessedGeoEventIds = unprocessedGeoEvents.map(geoEvent => geoEvent.id)
+    while (moreToProcess) {
       try {
-        const siteAlertCreationQuery = Prisma.sql`INSERT INTO "SiteAlert" (id, TYPE, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
+        const unprocessedGeoEvents = await prisma.geoEvent.findMany({
+          where: {
+            isProcessed: false,
+            geoEventProviderId: geoEventProviderId,
+          },
+          select: {
+            id: true,
+          },
+          take: geoEventBatch,
+        });
+
+        if (unprocessedGeoEvents.length === 0) {
+          moreToProcess = false;
+          continue; // Skip the current iteration of the loop
+          // Since moreToProcess is false, continue will end the while clause here
+        }
+
+        const unprocessedGeoEventIds = unprocessedGeoEvents.map(
+          geoEvent => geoEvent.id,
+        );
+
+        try {
+          const siteAlertCreationQuery = Prisma.sql`INSERT INTO "SiteAlert" (id, TYPE, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
     
         SELECT
             gen_random_uuid(),
@@ -232,23 +294,46 @@ const createSiteAlerts = async (
                     AND "SiteAlert"."siteId" = s.id
             );
         `;
-    
-        const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId} AND "slice" = ${slice}`;
-    
-        // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
-        // And, Set all GeoEvents as processed
-        const results = await prisma.$transaction([
-          prisma.$executeRaw(siteAlertCreationQuery),
-          prisma.$executeRaw(updateGeoEventIsProcessedToTrue),
-        ]);
-        let siteAlertsCreatedInBatchCount = results[0];
-        totalSiteAlertsCreatedCount += siteAlertsCreatedInBatchCount
+
+          const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${geoEventProviderId} AND "slice" = ${slice}`;
+
+          // Create SiteAlerts by joining New GeoEvents and Sites that have the event's location in their proximity
+          // And, Set all GeoEvents as processed
+          const results = await prisma.$transaction([
+            prisma.$executeRaw(siteAlertCreationQuery),
+            prisma.$executeRaw(updateGeoEventIsProcessedToTrue),
+          ]);
+          const siteAlertsCreatedInBatchCount = results[0] as number;
+          totalSiteAlertsCreatedCount += siteAlertsCreatedInBatchCount;
+          batchesProcessed++;
+        } catch (error) {
+          const errorMessage = `Failed to create SiteAlerts for batch ${
+            batchesProcessed + 1
+          }: ${error instanceof Error ? error.message : String(error)}`;
+          errors.push(errorMessage);
+          logger(errorMessage, 'error');
+          // Continue processing remaining batches
+          batchesProcessed++;
+        }
       } catch (error) {
-        logger(`Failed to create SiteAlerts. Error: ${error}`, 'error');
+        const errorMessage = `Failed to fetch unprocessed events: ${
+          error instanceof Error ? error.message : String(error)
+        }`;
+        errors.push(errorMessage);
+        logger(errorMessage, 'error');
+        moreToProcess = false;
       }
     }
   }
-  return totalSiteAlertsCreatedCount;
+
+  const processingDuration = Date.now() - startTime;
+
+  return {
+    totalAlertsCreated: totalSiteAlertsCreatedCount,
+    batchesProcessed,
+    processingDuration,
+    errors: errors.length > 0 ? errors : undefined,
+  };
 };
 
 export default createSiteAlerts;

@@ -32,6 +32,12 @@ interface ProcessingResult {
   totalNewGeoEvents: number;
   totalSiteAlerts: number;
   executionDuration: number;
+  serviceErrors: string[];
+  processingDetails: {
+    geoEventProcessingDuration: number;
+    siteAlertProcessingDuration: number;
+    batchesProcessed: number;
+  };
 }
 
 interface ApiResponse {
@@ -47,14 +53,21 @@ interface ProviderProcessingResult {
   geoEventsFetched: number;
   newGeoEventsCreated: number;
   siteAlertsCreated: number;
+  geoEventProcessingDuration: number;
+  siteAlertProcessingDuration: number;
+  batchesProcessed: number;
+  errors: string[];
 }
 
 // Zod schema for provider configuration validation
-const GeoEventProviderConfigSchema = z.object({
-  bbox: z.string(),
-  slice: z.string(),
-  client: z.nativeEnum(GeoEventProviderClient),
-});
+// Using passthrough() to allow additional properties like apiUrl
+const GeoEventProviderConfigSchema = z
+  .object({
+    bbox: z.string(),
+    slice: z.string(),
+    client: z.nativeEnum(GeoEventProviderClient),
+  })
+  .passthrough(); // Allow additional properties like apiUrl
 
 // ============================================================================
 // Helper Functions
@@ -229,6 +242,10 @@ async function processProviderGeoEvents(
     geoEventsFetched: 0,
     newGeoEventsCreated: 0,
     siteAlertsCreated: 0,
+    geoEventProcessingDuration: 0,
+    siteAlertProcessingDuration: 0,
+    batchesProcessed: 0,
+    errors: [],
   };
 
   try {
@@ -281,13 +298,29 @@ async function processProviderGeoEvents(
           );
           totalEventCount += processedGeoEvent.geoEventCount;
           totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
+
+          // Collect processing duration
+          if (processedGeoEvent.processingDuration) {
+            result.geoEventProcessingDuration +=
+              processedGeoEvent.processingDuration;
+          }
+
+          // Collect errors if any
+          if (processedGeoEvent.errors && processedGeoEvent.errors.length > 0) {
+            result.errors.push(...processedGeoEvent.errors);
+            logger(
+              `${logPrefix} Processing errors: ${processedGeoEvent.errors.join(
+                ', ',
+              )}`,
+              'warn',
+            );
+          }
         } catch (error) {
-          logger(
-            `${logPrefix} Failed to process chunk: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-            'error',
-          );
+          const errorMessage = `Failed to process chunk: ${
+            error instanceof Error ? error.message : String(error)
+          }`;
+          result.errors.push(errorMessage);
+          logger(`${logPrefix} ${errorMessage}`, 'error');
           // Continue processing remaining chunks
         }
       }
@@ -296,16 +329,49 @@ async function processProviderGeoEvents(
 
       logger(`${logPrefix} Found ${totalNewGeoEvent} new Geo Events`, 'info');
       logger(`${logPrefix} Created ${totalEventCount} Geo Events`, 'info');
+      if (result.geoEventProcessingDuration > 0) {
+        logger(
+          `${logPrefix} Geo-event processing took ${result.geoEventProcessingDuration}ms`,
+          'info',
+        );
+      }
 
       // Create site alerts for the processed events
-      const alertCount = await createSiteAlerts(
+      const siteAlertResult = await createSiteAlerts(
         geoEventProviderId,
         geoEventProviderClientId as GeoEventProviderClientId,
         slice,
       );
 
-      result.siteAlertsCreated = alertCount;
-      logger(`${logPrefix} Created ${alertCount} Site Alerts`, 'info');
+      result.siteAlertsCreated = siteAlertResult.totalAlertsCreated;
+      result.batchesProcessed = siteAlertResult.batchesProcessed;
+
+      // Collect site alert processing duration
+      if (siteAlertResult.processingDuration) {
+        result.siteAlertProcessingDuration = siteAlertResult.processingDuration;
+      }
+
+      // Collect site alert errors if any
+      if (siteAlertResult.errors && siteAlertResult.errors.length > 0) {
+        result.errors.push(...siteAlertResult.errors);
+        logger(
+          `${logPrefix} Site alert errors: ${siteAlertResult.errors.join(
+            ', ',
+          )}`,
+          'warn',
+        );
+      }
+
+      logger(
+        `${logPrefix} Created ${siteAlertResult.totalAlertsCreated} Site Alerts in ${siteAlertResult.batchesProcessed} batches`,
+        'info',
+      );
+      if (result.siteAlertProcessingDuration > 0) {
+        logger(
+          `${logPrefix} Site alert processing took ${result.siteAlertProcessingDuration}ms`,
+          'info',
+        );
+      }
     }
 
     // Update lastRun timestamp
@@ -348,6 +414,12 @@ async function orchestrateGeoEventProcessing(
       totalNewGeoEvents: 0,
       totalSiteAlerts: 0,
       executionDuration: Date.now() - startTime,
+      serviceErrors: [],
+      processingDetails: {
+        geoEventProcessingDuration: 0,
+        siteAlertProcessingDuration: 0,
+        batchesProcessed: 0,
+      },
     };
   }
 
@@ -362,12 +434,28 @@ async function orchestrateGeoEventProcessing(
   let totalGeoEvents = 0;
   let totalNewGeoEvents = 0;
   let totalSiteAlerts = 0;
+  let geoEventProcessingDuration = 0;
+  let siteAlertProcessingDuration = 0;
+  let batchesProcessed = 0;
+  const serviceErrors: string[] = [];
 
   results.forEach((result, index) => {
     if (result.status === 'fulfilled') {
       totalGeoEvents += result.value.geoEventsFetched;
       totalNewGeoEvents += result.value.newGeoEventsCreated;
       totalSiteAlerts += result.value.siteAlertsCreated;
+      geoEventProcessingDuration += result.value.geoEventProcessingDuration;
+      siteAlertProcessingDuration += result.value.siteAlertProcessingDuration;
+      batchesProcessed += result.value.batchesProcessed;
+
+      // Collect errors from successful provider processing
+      if (result.value.errors.length > 0) {
+        serviceErrors.push(
+          ...result.value.errors.map(
+            err => `${providers[index]?.clientId}: ${err}`,
+          ),
+        );
+      }
     } else {
       const errorMessage =
         result.reason instanceof Error
@@ -377,6 +465,7 @@ async function orchestrateGeoEventProcessing(
         `Provider ${providers[index]?.clientId} processing failed: ${errorMessage}`,
         'error',
       );
+      serviceErrors.push(`${providers[index]?.clientId}: ${errorMessage}`);
     }
   });
 
@@ -387,12 +476,25 @@ async function orchestrateGeoEventProcessing(
     'info',
   );
 
+  if (serviceErrors.length > 0) {
+    logger(
+      `Encountered ${serviceErrors.length} service errors during processing`,
+      'warn',
+    );
+  }
+
   return {
     totalProviders: providers.length,
     totalGeoEvents,
     totalNewGeoEvents,
     totalSiteAlerts,
     executionDuration,
+    serviceErrors,
+    processingDetails: {
+      geoEventProcessingDuration,
+      siteAlertProcessingDuration,
+      batchesProcessed,
+    },
   };
 }
 

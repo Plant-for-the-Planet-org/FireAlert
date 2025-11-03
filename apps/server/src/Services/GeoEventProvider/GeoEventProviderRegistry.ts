@@ -11,7 +11,6 @@ const createGeoEventProviderClassRegistry = function (
   geoEventProviders.forEach((geoEventProvider: GeoEventProviderClass) => {
     const client = geoEventProvider.getKey();
     if (registry[client]) {
-      // Better logic?: break out of that geoEventProvider and move to the next one instead of throwing an error!
       throw new Error(
         `Provider for client '${client}' has already been registered`,
       );
@@ -20,19 +19,36 @@ const createGeoEventProviderClassRegistry = function (
   });
 
   return {
+    /**
+     * Gets a provider by its client key
+     * @param client - The client key to look up
+     * @returns The provider class instance
+     * @throws Error if provider not found
+     */
     get: (client: string): GeoEventProviderClass => {
       const provider = registry[client];
       if (!provider) {
-        throw new Error(`Provider with key '${client}' not found`);
+        const availableProviders = Object.keys(registry).join(', ');
+        throw new Error(
+          `Provider with key '${client}' not found. Available providers: ${availableProviders}`,
+        );
       }
       return provider;
+    },
+
+    /**
+     * Gets a list of all available provider keys
+     * @returns Array of registered provider keys
+     */
+    getAvailableProviders: (): string[] => {
+      return Object.keys(registry);
     },
   };
 };
 
 const GeoEventProviderClassRegistry = createGeoEventProviderClassRegistry([
   new NasaGeoEventProvider(),
-  new GOES16GeoEventProvider()
+  new GOES16GeoEventProvider(),
   // add new alert providers here
 ]);
 
