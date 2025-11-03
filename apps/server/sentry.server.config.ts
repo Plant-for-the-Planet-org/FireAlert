@@ -1,23 +1,44 @@
-// This file configures the initialization of Sentry on the server.
-// The config you add here will be used whenever the server handles a request.
+// This file configures the initialization of Sentry for server-side and edge runtime.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from '@sentry/nextjs';
-import {env} from './src/env.mjs';
-import {ProfilingIntegration} from '@sentry/profiling-node';
 
 Sentry.init({
-  dsn: env.NEXT_PUBLIC_SENTRY_DSN,
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
   // Adjust this value in production, or use tracesSampler for greater control
-  tracesSampleRate: 1,
+  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: false,
+  // Disable debug logging to reduce console noise
+  // Set SENTRY_DEBUG=true in .env to enable debug logs when troubleshooting
+  debug: process.env.SENTRY_DEBUG === 'true',
 
-  profilesSampleRate: 1,
-  integrations: [
-    // Add profiling integration to list of integrations
-    new ProfilingIntegration(),
-  ],
+  // Set environment
+  environment: process.env.NODE_ENV,
+
+  // Reduce console output
+  beforeBreadcrumb(breadcrumb) {
+    // Filter out noisy breadcrumbs
+    if (breadcrumb.category === 'console') {
+      return null;
+    }
+    return breadcrumb;
+  },
+
+  // Enable profiling
+  profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+
+  // Integrations are automatically added by Sentry
+  // Prisma, Postgres, and other integrations will be auto-discovered
+
+  // Ignore common errors
+  ignoreErrors: ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'],
+
+  beforeSend(event, hint) {
+    // Filter out errors from health checks
+    if (event.request?.url?.includes('/api/health')) {
+      return null;
+    }
+    return event;
+  },
 });
