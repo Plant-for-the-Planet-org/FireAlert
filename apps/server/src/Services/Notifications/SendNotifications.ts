@@ -1,15 +1,15 @@
-import type {AdditionalOptions} from '../../Interfaces/AdditionalOptions';
-import {type AlertMethodMethod} from '../../Interfaces/AlertMethod';
+import type { AdditionalOptions } from '../../Interfaces/AdditionalOptions';
+import { type AlertMethodMethod } from '../../Interfaces/AlertMethod';
 import type DataRecord from '../../Interfaces/DataRecord';
-import {type NotificationParameters} from '../../Interfaces/NotificationParameters';
-import {getLocalTime} from '../../../src/utils/date';
-import {env} from '../../env.mjs';
-import {prisma} from '../../server/db';
-import {logger} from '../../server/logger';
+import { type NotificationParameters } from '../../Interfaces/NotificationParameters';
+import { getLocalTime } from '../../../src/utils/date';
+import { env } from '../../env.mjs';
+import { prisma } from '../../server/db';
+import { logger } from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
-import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
+import { NOTIFICATION_METHOD } from '../Notifier/methodConstants';
 
-const MAX_RETRIES = 0;
+// Removed MAX_RETRIES - we now process all batches until no more notifications remain
 const ALERT_SMS_DISABLED = env.ALERT_SMS_DISABLED;
 const ALERT_WHATSAPP_DISABLED = env.ALERT_WHATSAPP_DISABLED;
 
@@ -17,24 +17,25 @@ const ALERT_WHATSAPP_DISABLED = env.ALERT_WHATSAPP_DISABLED;
 // for each notification, send the notification to the destination
 // After sending notification update the notification table to set isDelivered to true and sentAt to current time
 // If notification fails to send, increment the failCount in all alertMethods table where destination and method match.
-const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
+const sendNotifications = async ({ req }: AdditionalOptions): Promise<number> => {
   const alertMethodsExclusionList = [];
   if (ALERT_SMS_DISABLED)
     alertMethodsExclusionList.push(NOTIFICATION_METHOD.SMS);
   if (ALERT_WHATSAPP_DISABLED)
     alertMethodsExclusionList.push(NOTIFICATION_METHOD.WHATSAPP);
 
-  const take = 10;
+  const BATCH_SIZE = parseInt(env.NOTIFICATION_BATCH_SIZE || '10', 10);
+  const take = BATCH_SIZE;
   let successCount = 0;
   let continueProcessing = true;
-  let retries = 0;
+  let batchCount = 0;
   while (continueProcessing) {
     const notifications = await prisma.notification.findMany({
       where: {
         isSkipped: false,
         isDelivered: false,
         sentAt: null,
-        alertMethod: {notIn: alertMethodsExclusionList},
+        alertMethod: { notIn: alertMethodsExclusionList },
       },
       include: {
         siteAlert: {
@@ -64,7 +65,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     await Promise.all(
       notifications.map(async notification => {
         try {
-          const {id, destination, siteAlert} = notification;
+          const { id, destination, siteAlert } = notification;
           const alertMethod = notification.alertMethod as AlertMethodMethod;
           const {
             id: alertId,
@@ -173,7 +174,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
           const isDelivered = await notifier.notify(
             destination,
             notificationParameters,
-            {req},
+            { req },
           );
 
           if (isDelivered === true) {
@@ -181,12 +182,11 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             successfulDestinations.push(destination);
             successCount++;
           } else {
-            failedAlertMethods.push({destination, method: alertMethod});
+            failedAlertMethods.push({ destination, method: alertMethod });
           }
         } catch (error) {
           logger(
-            `Error processing notification ${notification.id}: ${
-              (error as Error)?.message
+            `Error processing notification ${notification.id}: ${(error as Error)?.message
             }`,
             'error',
           );
@@ -197,33 +197,34 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     // UpdateMany notification
     if (successfulNotificationIds.length > 0) {
       await prisma.notification.updateMany({
-        where: {id: {in: successfulNotificationIds}},
-        data: {isDelivered: true, sentAt: new Date()},
+        where: { id: { in: successfulNotificationIds } },
+        data: { isDelivered: true, sentAt: new Date() },
       });
       await prisma.alertMethod.updateMany({
-        where: {destination: {in: successfulDestinations}},
-        data: {failCount: 0},
+        where: { destination: { in: successfulDestinations } },
+        data: { failCount: 0 },
       });
     }
 
-    retries += 1;
-    if (retries >= MAX_RETRIES) {
-      const unsuccessfulNotifications = notifications.filter(
-        ({id}) => !successfulNotificationIds.includes(id),
-      );
+    batchCount += 1;
 
+    // Handle failed notifications - mark them as skipped if they failed
+    const unsuccessfulNotifications = notifications.filter(
+      ({ id }) => !successfulNotificationIds.includes(id),
+    );
+
+    if (unsuccessfulNotifications.length > 0) {
       const unsuccessfulNotificationIds = unsuccessfulNotifications.map(
-        ({id}) => id,
+        ({ id }) => id,
       );
 
       await prisma.notification.updateMany({
-        where: {id: {in: unsuccessfulNotificationIds}},
-        data: {isSkipped: true, isDelivered: false, sentAt: null},
+        where: { id: { in: unsuccessfulNotificationIds } },
+        data: { isSkipped: true, isDelivered: false, sentAt: null },
       });
-
-      continueProcessing = false;
-      break;
     }
+
+    logger(`Completed batch ${batchCount}. Successful: ${successfulNotificationIds.length}, Failed: ${unsuccessfulNotifications.length}`, 'info');
 
     // skip += take; No need to skip take as we update the notifications to isDelivered = true
     // wait .7 seconds before starting the next round to ensure we aren't hitting any rate limits.
