@@ -1,22 +1,23 @@
-import {TRPCError} from '@trpc/server';
+import type { Prisma, Site, SiteAlert, SiteRelation } from '@prisma/client';
+import { TRPCError } from '@trpc/server';
+import * as countries from 'i18n-iso-countries';
+import {
+  checkIfPlanetROSite,
+  checkUserHasSitePermission,
+  triggerTestAlert,
+} from '../../../utils/routers/site';
+import { createTRPCRouter, protectedProcedure } from '../trpc';
 import {
   createProtectedSiteSchema,
   createSiteSchema,
+  deleteProtectedSiteSchema,
   findProtectedSiteParams,
   getSitesWithProjectIdParams,
   params,
   pauseAlertInputSchema,
-  updateProtectedSiteSchema,
-  updateSiteSchema,
+  pauseProtectedSiteAlertSchema,
+  updateSiteSchema
 } from '../zodSchemas/site.schema';
-import {createTRPCRouter, protectedProcedure} from '../trpc';
-import {
-  checkUserHasSitePermission,
-  checkIfPlanetROSite,
-  triggerTestAlert,
-} from '../../../utils/routers/site';
-import type {Prisma, Site, SiteAlert, SiteRelation} from '@prisma/client';
-import * as countries from 'i18n-iso-countries';
 
 export const siteRouter = createTRPCRouter({
   createSite: protectedProcedure
@@ -145,30 +146,6 @@ export const siteRouter = createTRPCRouter({
           }).format(+el.gis_area! * 100),
           remoteId: el.wdpa_pid,
         }));
-
-        // const sites = await ctx.prisma.site.findMany({
-        //     where: {
-        //         userId: userId,
-        //         deletedAt: null,
-        //     },
-        //     select: {
-        //         id: true,
-        //         name: true,
-        //         type: true,
-        //         radius: true,
-        //         isMonitored: true,
-        //         lastUpdated: true,
-        //         userId: true,
-        //         remoteId: true,
-        //         project: {
-        //             select: {
-        //                 id: true,
-        //                 name: true
-        //             }
-        //         },
-        //         geometry: true,
-        //     }
-        // })
 
         return {
           status: 'success',
@@ -406,9 +383,14 @@ export const siteRouter = createTRPCRouter({
     try {
       // console.log(userId)
       const _siteRelation = await ctx.prisma.siteRelation.findMany({
-        where: {userId: userId},
+        where: {
+          userId: userId,
+          deletedAt: null,
+        },
         select: {
+          id: true,
           siteId: true,
+          userId: true,
           isActive: true,
           site: {
             select: {
@@ -426,9 +408,13 @@ export const siteRouter = createTRPCRouter({
       });
 
       const sites = _siteRelation.map(el => ({
-        ...el.site,
+        siteRelationId: el.id,
+        siteId: el.siteId,
         isActive: el.isActive,
+        ...el.site,
+        userId: el.userId,
       }));
+
       return {
         status: 'success',
         data: sites,
@@ -576,14 +562,15 @@ export const siteRouter = createTRPCRouter({
       }
     }),
 
-  updateProtectedSite: protectedProcedure
-    .input(updateProtectedSiteSchema)
+  pauseAlertForProtectedSite: protectedProcedure
+    .input(pauseProtectedSiteAlertSchema)
     .mutation(async ({ctx, input}) => {
       const userId = ctx.user!.id;
+      const siteRelationId = input.params.siteRelationId;
       const siteId = input.params.siteId;
       try {
         const updatedSiteRelation = await ctx.prisma.siteRelation.updateMany({
-          where: {siteId: siteId, userId: userId},
+          where: {id: siteRelationId, siteId: siteId, userId: userId},
           data: {
             isActive: input.body.isActive,
           },
@@ -596,18 +583,21 @@ export const siteRouter = createTRPCRouter({
         const activeSiteRelations = await ctx.prisma.siteRelation.findMany({
           where: {siteId: input.params.siteId, isActive: true},
         });
+
         await ctx.prisma.site.update({
           where: {id: siteId},
           data: {
             isMonitored:
-              activeSiteRelations.length === 0 ? false : input.body.isActive,
+              activeSiteRelations.length === 0 ? false : true,
           },
         });
 
         const _siteRelation = await ctx.prisma.siteRelation.findFirst({
           where: {siteId: siteId, userId: userId},
           select: {
+            id: true,
             siteId: true,
+            userId: true,
             isActive: true,
             site: {
               select: {
@@ -625,6 +615,9 @@ export const siteRouter = createTRPCRouter({
         });
 
         const updatedSite = {
+          siteRelationId: _siteRelation?.id,
+          siteId: _siteRelation?.siteId,
+          userId: _siteRelation?.userId,
           ..._siteRelation?.site,
           isActive: _siteRelation?.isActive,
         };
@@ -777,6 +770,45 @@ export const siteRouter = createTRPCRouter({
         return {
           status: 'success',
           message: `Site with id ${input.siteId} deleted successfully`,
+        };
+      } catch (error) {
+        console.log(error);
+        if (error instanceof TRPCError) {
+          // if the error is already a TRPCError, just re-throw it
+          throw error;
+        }
+        // if it's a different type of error, throw a new TRPCError
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Something Went Wrong`,
+        });
+      }
+    }),
+
+  deleteProtectedSite: protectedProcedure
+    .input(deleteProtectedSiteSchema)
+    .mutation(async ({ctx, input}) => {
+      console.log('deleteProtectedSite', input);
+      const siteRelationId = input.params.siteRelationId;
+      const siteId = input.params.siteId;
+      const userId = ctx.user!.id;
+      try {
+        const updatedSiteRelation = await ctx.prisma.siteRelation.updateMany({
+          where: {id: siteRelationId, siteId: siteId, userId: userId},
+          data: {deletedAt: new Date()},
+        });
+        if( updatedSiteRelation.count != 1) {
+          return {status: 'failed'};
+        } else {
+          // TODO: Delete Notification scheduled for this protected site through site relation.
+          // Why Can't delete SiteAlert = That site might be watched by other thru different SiteRelation
+          // SiteRelationId -> SiteReltion -> Site -> SiteAlert -> Notifications 
+          // UserID -> User -> AlertMethod -> Notifications 
+          // Compare Notifications thru relations & delete ones not needed.
+        }
+        return {
+          status: 'success',
+          message: `Protected Site with id ${siteId} deleted successfully`,
         };
       } catch (error) {
         console.log(error);

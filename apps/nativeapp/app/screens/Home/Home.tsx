@@ -1059,15 +1059,19 @@ const Home = ({navigation, route}) => {
                 ) : (
                   <TrashOutlineIcon />
                 )}
-                <Text
-                  style={[
-                    styles.siteActionText,
-                    selectedSite?.site?.project?.id && {
-                      color: Colors.GRAY_LIGHTEST,
-                    },
-                  ]}>
-                  Delete Site
-                </Text>
+                {true ? (
+                  <></>
+                ) : (
+                  <Text
+                    style={[
+                      styles.siteActionText,
+                      selectedSite?.site?.project?.id && {
+                        color: Colors.GRAY_LIGHTEST,
+                      },
+                    ]}>
+                    Delete Site
+                  </Text>
+                )}
               </>
             )}
           </TouchableOpacity>

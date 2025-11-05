@@ -36,7 +36,7 @@ export default function ProtectedAreasSearch({
       <SearchInput
         containerStyle={styles.searchInputContainer}
         inputStyle={styles.searchInput}
-        placeholder="Search protected areas"
+        placeholder="Search for over 280000 Protected Areas and get fFre Alerts for them."
         value={input}
         inputMode="search"
         onChangeText={text => {

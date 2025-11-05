@@ -170,6 +170,7 @@ model SiteRelation {
     userId    String
     role      SiteRelationRole @default(ROLE_ADMIN)
     isActive  Boolean          @default(true)
+    deletedAt DateTime?
     site      Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
     user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

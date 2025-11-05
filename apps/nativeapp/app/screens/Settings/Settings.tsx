@@ -117,6 +117,8 @@ const Settings = () => {
   const [selectedSiteInfo, setSelectedSiteInfo] = useState<boolean | null>(
     null,
   );
+  const [isDeletingSite, setIsDeletingSite] = useState<boolean>(false);
+  const deleteSiteTimeout = useRef<any>(null);
 
   const toast = useToast();
   const modalToast = useRef();
@@ -196,6 +198,15 @@ const Settings = () => {
 
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
+    onMutate: () => {
+      setIsDeletingSite(true);
+      if (deleteSiteTimeout.current) {
+        clearTimeout(deleteSiteTimeout.current);
+      }
+      deleteSiteTimeout.current = setTimeout(() => {
+        setIsDeletingSite(false);
+      }, 15000);
+    },
     onSuccess: (res, req) => {
       queryClient.setQueryData(
         [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
@@ -231,8 +242,16 @@ const Settings = () => {
             : null,
       );
       setSitesInfoModal(false);
+      if (deleteSiteTimeout.current) {
+        clearTimeout(deleteSiteTimeout.current);
+      }
+      setIsDeletingSite(false);
     },
     onError: () => {
+      if (deleteSiteTimeout.current) {
+        clearTimeout(deleteSiteTimeout.current);
+      }
+      setIsDeletingSite(false);
       toast.show('something went wrong', {type: 'danger'});
     },
   });
@@ -1387,12 +1406,12 @@ const Settings = () => {
             </TouchableOpacity>
             {selectedSiteInfo?.project === null && (
               <TouchableOpacity
-                disabled={deleteSite?.isLoading}
+                disabled={deleteSite?.isLoading || isDeletingSite}
                 onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
                 style={[
                   styles.btn,
                   selectedSiteInfo?.project !== null &&
-                    styles.borderColorGrayLightest,
+                    styles.borderolorGrayLightest,
                 ]}>
                 {deleteSite?.isLoading ? (
                   <ActivityIndicator color={Colors.PRIMARY} />
@@ -1692,7 +1711,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    // paddingVertical: 14,
   },
   dropDownRadiusMarginRight5PaddingVeritcal16: {
     flexDirection: 'row',
@@ -1759,6 +1778,7 @@ export const styles = StyleSheet.create({
   },
   mySiteNameContainer: {
     paddingHorizontal: 16,
+    paddingVertical: 14,
     marginTop: 24,
     borderRadius: 12,
     flexDirection: 'row',
