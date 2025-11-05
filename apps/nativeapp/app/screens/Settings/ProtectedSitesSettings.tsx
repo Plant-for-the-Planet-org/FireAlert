@@ -104,14 +104,16 @@ export default function ProtectedSitesSettings({
       deleteProtectedTimeout.current = setTimeout(() => {
         setIsDeletingProtected(false);
       }, 15000);
-    },
-    onMutate: () => {
       setRefreshing(true);
     },
     onSuccess: async (res, req) => {
       await queryClient.invalidateQueries([
         ['site', 'getProtectedSites'],
         {input: ['site', 'getProtectedSites'], type: 'query'},
+      ]);
+      await queryClient.invalidateQueries([
+        ['alert', 'getAlerts'],
+        {input: ['alerts', 'getAlerts'], type: 'query'},
       ]);
       setSitesInfoModal(false);
       setRefreshing(false);

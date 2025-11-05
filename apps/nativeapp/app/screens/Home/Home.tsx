@@ -182,7 +182,6 @@ const Home = ({navigation, route}) => {
           500,
         );
         setSelectedArea(siteInfo?.siteInfo);
-        console.log('siteInfo?.siteInfo', siteInfo?.siteInfo);
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
       }, 1000);
     }
@@ -308,6 +307,26 @@ const Home = ({navigation, route}) => {
     },
   });
 
+  const deleteProtectedSite = trpc.site.deleteProtectedSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: async (res, req) => {
+      await queryClient.invalidateQueries([
+        ['site', 'getProtectedSites'],
+        {input: ['site', 'getProtectedSites'], type: 'query'},
+      ]);
+      await queryClient.invalidateQueries([
+        ['alert', 'getAlerts'],
+        {input: ['alerts', 'getAlerts'], type: 'query'},
+      ]);
+      setSelectedSite({});
+      setSelectedArea(null);
+      toast.show('Deleted', {type: 'success'});
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
     onSuccess: (res, req) => {
@@ -393,7 +412,23 @@ const Home = ({navigation, route}) => {
   };
 
   const handleDeleteSite = (id: string) => {
-    deleteSite.mutate({json: {siteId: id}});
+    if (protectedSites?.json?.data?.find(site => site.id === id)) {
+      const protectedSiteRelationId = protectedSites?.json?.data?.find(
+        site => site.id === id,
+      )?.siteRelationId;
+
+      console.log('protectedSiteRelationId', protectedSiteRelationId);
+      deleteProtectedSite.mutate({
+        json: {
+          params: {
+            siteRelationId: protectedSiteRelationId,
+            siteId: id,
+          },
+        },
+      });
+    } else if (sites?.json?.data?.find(site => site.id === id)) {
+      deleteSite.mutate({json: {siteId: id}});
+    }
   };
 
   // recenter the mapmap to the current coordinates of user location

@@ -795,7 +795,7 @@ export const siteRouter = createTRPCRouter({
       try {
         const updatedSiteRelation = await ctx.prisma.siteRelation.updateMany({
           where: {id: siteRelationId, siteId: siteId, userId: userId},
-          data: {deletedAt: new Date()},
+          data: {deletedAt: new Date(), isActive: false},
         });
         if( updatedSiteRelation.count != 1) {
           return {status: 'failed'};
