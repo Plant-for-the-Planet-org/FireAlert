@@ -182,6 +182,7 @@ const Home = ({navigation, route}) => {
           500,
         );
         setSelectedArea(siteInfo?.siteInfo);
+        console.log('siteInfo?.siteInfo', siteInfo?.siteInfo);
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
       }, 1000);
     }
@@ -223,6 +224,18 @@ const Home = ({navigation, route}) => {
       onError: () => {
         toast.show('something went wrong', {type: 'danger'});
       },
+    },
+  );
+
+  // Fetch protected sites to optionally highlight one on app open
+  const {data: protectedSites} = (trpc.site as any).getProtectedSites.useQuery(
+    ['site', 'getProtectedSites'],
+    {
+      enabled: true,
+      retryDelay: 3000,
+      staleTime: 'Infinity',
+      cacheTime: 'Infinity',
+      keepPreviousData: true,
     },
   );
 
@@ -627,7 +640,12 @@ const Home = ({navigation, route}) => {
             return {
               type: 'Feature',
               properties: {site: singleSite},
-              geometry: singleSite?.geometry,
+              geometry:
+                singleSite?.geometry?.type === 'MultiPolygon'
+                  ? (rewind(singleSite?.geometry) as any)
+                  : singleSite?.geometry?.type === 'Polygon'
+                  ? (rewind(singleSite?.geometry) as any)
+                  : singleSite?.geometry,
             };
           }) || [],
       }}>
@@ -635,15 +653,15 @@ const Home = ({navigation, route}) => {
         id="fillLayer"
         style={{
           fillColor: Colors.GRADIENT_PRIMARY,
-          fillOpacity: 0.4,
+          fillOpacity: 0.25,
         }}
       />
       <MapboxGL.LineLayer
         id="fillOutline"
         style={{
-          lineWidth: 2,
-          lineColor: Colors.GRADIENT_PRIMARY,
-          lineOpacity: 1,
+          lineWidth: 1.5,
+          lineColor: Colors.WHITE,
+          lineOpacity: 0.9,
           lineJoin: 'bevel',
         }}
       />
@@ -704,6 +722,68 @@ const Home = ({navigation, route}) => {
     </MapboxGL.ShapeSource>
   );
 
+  const renderProtectedAreasSource = () => (
+    <MapboxGL.ShapeSource
+      id={'protected-polygons'}
+      shape={{
+        type: 'FeatureCollection',
+        features:
+          (protectedSites?.json?.data || [])
+            ?.filter(single => single?.project === null)
+            ?.filter(
+              single =>
+                single?.geometry?.type === 'Polygon' ||
+                single?.geometry?.type === 'MultiPolygon',
+            )
+            ?.map(single => ({
+              type: 'Feature',
+              properties: {site: single},
+              geometry:
+                single?.geometry?.type === 'MultiPolygon'
+                  ? (rewind(single?.geometry) as any)
+                  : single?.geometry?.type === 'Polygon'
+                  ? (rewind(single?.geometry) as any)
+                  : single?.geometry,
+            })) ?? [],
+      }}
+      onPress={e => {
+        let bboxGeo = null;
+        setSelectedArea(e?.features);
+        if (e?.features[0]?.geometry?.type === 'MultiPolygon') {
+          bboxGeo = bbox(
+            multiPolygon(rewind(e?.features[0]?.geometry.coordinates)),
+          );
+        } else {
+          bboxGeo = bbox(polygon(e?.features[0]?.geometry.coordinates));
+        }
+        camera.current.fitBounds(
+          [bboxGeo[0], bboxGeo[1]],
+          [bboxGeo[2], bboxGeo[3]],
+          60,
+          500,
+        );
+        setSelectedSite(e?.features[0]?.properties);
+      }}>
+      {/* <MapboxGL.FillLayer
+        id={'protected-polyFill'}
+        layerIndex={2}
+        style={{
+          fillColor: Colors.WHITE,
+          fillOpacity: 0.4,
+        }}
+      /> */}
+      <MapboxGL.LineLayer
+        id={'protected-polyline'}
+        style={{
+          lineWidth: 2,
+          lineColor: Colors.WHITE,
+          lineOpacity: 1,
+          lineJoin: 'bevel',
+        }}
+      />
+    </MapboxGL.ShapeSource>
+  );
+
   return (
     <>
       <MapboxGL.MapView
@@ -731,6 +811,7 @@ const Home = ({navigation, route}) => {
           />
         )}
         {renderMapSource()}
+        {renderProtectedAreasSource()}
         {/* highlighted */}
         {selectedArea && renderHighlightedMapSource()}
         {/* for alerts */}
@@ -1059,19 +1140,15 @@ const Home = ({navigation, route}) => {
                 ) : (
                   <TrashOutlineIcon />
                 )}
-                {true ? (
-                  <></>
-                ) : (
-                  <Text
-                    style={[
-                      styles.siteActionText,
-                      selectedSite?.site?.project?.id && {
-                        color: Colors.GRAY_LIGHTEST,
-                      },
-                    ]}>
-                    Delete Site
-                  </Text>
-                )}
+                <Text
+                  style={[
+                    styles.siteActionText,
+                    selectedSite?.site?.project?.id && {
+                      color: Colors.GRAY_LIGHTEST,
+                    },
+                  ]}>
+                  Delete Site
+                </Text>
               </>
             )}
           </TouchableOpacity>

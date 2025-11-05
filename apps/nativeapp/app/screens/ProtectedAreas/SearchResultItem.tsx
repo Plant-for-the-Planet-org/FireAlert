@@ -8,6 +8,10 @@ import {
 } from 'react-native';
 import {SvgXml} from 'react-native-svg';
 import {protectedAreaSearchResultIcon} from '../../assets/svgs';
+import bbox from '@turf/bbox';
+// @ts-ignore - no type definitions available
+import rewind from '@mapbox/geojson-rewind';
+import {point, polygon, multiPolygon} from '@turf/helpers';
 import {Colors, Typography} from '../../styles';
 import {trpc} from '../../services/trpc';
 import Toast, {useToast} from 'react-native-toast-notifications';
@@ -37,11 +41,40 @@ export default function SearchResultItems({results}: Props) {
     retryDelay: 3000,
     onSuccess: res => {
       if (res?.json && res?.json?.status === 'success') {
-        console.log(res.json.data);
-        setTimeout(() => {
+        const site = res?.json?.data?.site;
+        if (site?.geometry?.type) {
+          let highlightSiteInfo = site;
+          let bboxGeo;
+          if (site?.geometry?.type === 'MultiPolygon') {
+            bboxGeo = bbox(multiPolygon(rewind(site?.geometry.coordinates)));
+            highlightSiteInfo = rewind(site?.geometry);
+          } else if (site?.geometry?.type === 'Point') {
+            bboxGeo = bbox(point(site?.geometry.coordinates));
+            highlightSiteInfo = site?.geometry;
+          } else {
+            bboxGeo = bbox(polygon(site?.geometry.coordinates));
+            highlightSiteInfo = site?.geometry;
+          }
+          setTimeout(() => {
+            toast.show('Success', {type: 'success'});
+            navigate('BottomTab', {
+              screen: 'Home',
+              params: {
+                bboxGeo,
+                siteInfo: [
+                  {
+                    type: 'Feature',
+                    geometry: highlightSiteInfo,
+                    properties: {site},
+                  },
+                ],
+              },
+            });
+          }, 500);
+        } else {
           toast.show('Success', {type: 'success'});
           navigate('BottomTab', {screen: 'Home'});
-        }, 500);
+        }
       }
     },
   });
