@@ -10,7 +10,11 @@ import {getData, storeData} from '../../utils/localStorage';
 
 const MAX_RECENT_SEARCHES = 20;
 
-export default function RecentSearches() {
+export type Props = {
+  onRecentSearchSelect: (search: string) => void;
+};
+
+export default function RecentSearches({onRecentSearchSelect}: Props) {
   const recents = useRecentSearches();
 
   const handleClearRecentSearches = (array: any[], index: number) => {
@@ -27,11 +31,15 @@ export default function RecentSearches() {
       <ScrollView style={styles.resultsContainer}>
         {recents.map((s, key) => (
           <View key={key} style={styles.listItem}>
-            <View style={styles.listItemContainer}>
+            <Pressable
+              style={styles.listItemContainer}
+              onPress={() => {
+                onRecentSearchSelect(s);
+              }}>
               <View style={styles.listItemLeftContainer}>
-                <Pressable onPress={() => {}}>
+                <View>
                   <SvgXml xml={recentSearchApplyIcon} />
-                </Pressable>
+                </View>
                 <Text style={styles.listItemTextContent}>{s}</Text>
               </View>
               <Pressable
@@ -40,7 +48,7 @@ export default function RecentSearches() {
                 }}>
                 <SvgXml xml={recentSearchClearIcon} />
               </Pressable>
-            </View>
+            </Pressable>
           </View>
         ))}
       </ScrollView>

@@ -1907,7 +1907,7 @@ PODS:
   - react-native-onesignal (5.2.13):
     - OneSignalXCFramework (= 5.2.14)
     - React (< 1.0.0, >= 0.13.0)
-  - react-native-safe-area-context (5.6.1):
+  - react-native-safe-area-context (5.6.2):
     - React-Core
   - react-native-splash-screen (3.3.0):
     - React-Core
@@ -2809,7 +2809,7 @@ SPEC CHECKSUMS:
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-onesignal: 0829ce2a504db26dd80eaf14d4e0211ea626fe62
-  react-native-safe-area-context: 2243039f43d10cb1ea30ec5ac57fc6d1448413f4
+  react-native-safe-area-context: 6c8805194166a9d6b3e53ba69ca76756c9bfb052
   react-native-splash-screen: 95994222cc95c236bd3cdc59fe45ed5f27969594
   React-NativeModulesApple: 8c7eb6057b00c191a11ad5ced41826ec5a0e4d78
   React-oscompat: 93b5535ea7f7dff46aaee4f78309a70979bdde9d

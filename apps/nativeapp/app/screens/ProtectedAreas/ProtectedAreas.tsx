@@ -61,7 +61,16 @@ const ProtectedAreas = () => {
       </View>
 
       <View style={[styles.bodyContainer, styles.commonPadding]}>
-        {query.length === 0 && <RecentSearches />}
+        {query.length === 0 && (
+          <RecentSearches
+            onRecentSearchSelect={text => {
+              setQuery(text);
+              setResults([]);
+              setNoResults(false);
+              findProtectedSites.mutate({json: {query: text}});
+            }}
+          />
+        )}
         {noResults && <NoResult />}
         {/* <Text>{JSON.stringify(results, null, 2)}</Text> */}
         {results.length > 0 && <SearchResultItems results={results} />}

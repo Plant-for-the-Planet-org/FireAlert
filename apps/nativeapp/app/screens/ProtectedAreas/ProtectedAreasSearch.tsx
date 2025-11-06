@@ -1,5 +1,5 @@
 import {useNavigation} from '@react-navigation/native';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {StyleSheet, TouchableOpacity, View} from 'react-native';
 import {BackArrowIcon} from '../../assets/svgs';
 import SearchInput from '../../components/inputs/SearchInput';
@@ -18,6 +18,10 @@ export default function ProtectedAreasSearch({
 }: Props) {
   const {goBack} = useNavigation();
   const [input, setInput] = useState(value);
+
+  useEffect(() => {
+    setInput(value);
+  }, [value]);
 
   async function handleSubmitEditing() {
     onSubmit(input);

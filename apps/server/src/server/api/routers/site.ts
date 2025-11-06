@@ -204,7 +204,7 @@ export const siteRouter = createTRPCRouter({
 
         if (foundSite) {
           const _foundSiteRelation = await ctx.prisma.siteRelation.findFirst({
-            where: {userId: userId, siteId: foundSite.id},
+            where: {userId: userId, siteId: foundSite.id, deletedAt: null},
           });
           if (_foundSiteRelation) {
             site = foundSite;
@@ -581,7 +581,7 @@ export const siteRouter = createTRPCRouter({
         }
 
         const activeSiteRelations = await ctx.prisma.siteRelation.findMany({
-          where: {siteId: input.params.siteId, isActive: true},
+          where: {siteId: input.params.siteId, isActive: true, deletedAt: null},
         });
 
         await ctx.prisma.site.update({
@@ -593,7 +593,7 @@ export const siteRouter = createTRPCRouter({
         });
 
         const _siteRelation = await ctx.prisma.siteRelation.findFirst({
-          where: {siteId: siteId, userId: userId},
+          where: {siteId: siteId, userId: userId, deletedAt: null},
           select: {
             id: true,
             siteId: true,
@@ -794,7 +794,7 @@ export const siteRouter = createTRPCRouter({
       const userId = ctx.user!.id;
       try {
         const updatedSiteRelation = await ctx.prisma.siteRelation.updateMany({
-          where: {id: siteRelationId, siteId: siteId, userId: userId},
+          where: {id: siteRelationId, siteId: siteId, userId: userId, deletedAt: null},
           data: {deletedAt: new Date(), isActive: false},
         });
         if( updatedSiteRelation.count != 1) {

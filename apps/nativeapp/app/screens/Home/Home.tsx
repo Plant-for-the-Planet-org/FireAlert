@@ -416,8 +416,6 @@ const Home = ({navigation, route}) => {
       const protectedSiteRelationId = protectedSites?.json?.data?.find(
         site => site.id === id,
       )?.siteRelationId;
-
-      console.log('protectedSiteRelationId', protectedSiteRelationId);
       deleteProtectedSite.mutate({
         json: {
           params: {
