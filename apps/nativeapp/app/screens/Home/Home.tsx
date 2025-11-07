@@ -307,26 +307,6 @@ const Home = ({navigation, route}) => {
     },
   });
 
-  const deleteProtectedSite = trpc.site.deleteProtectedSite.useMutation({
-    retryDelay: 3000,
-    onSuccess: async (res, req) => {
-      await queryClient.invalidateQueries([
-        ['site', 'getProtectedSites'],
-        {input: ['site', 'getProtectedSites'], type: 'query'},
-      ]);
-      await queryClient.invalidateQueries([
-        ['alert', 'getAlerts'],
-        {input: ['alerts', 'getAlerts'], type: 'query'},
-      ]);
-      setSelectedSite({});
-      setSelectedArea(null);
-      toast.show('Deleted', {type: 'success'});
-    },
-    onError: () => {
-      toast.show('something went wrong', {type: 'danger'});
-    },
-  });
-
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
     onSuccess: (res, req) => {
@@ -355,6 +335,56 @@ const Home = ({navigation, route}) => {
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const deleteProtectedSite = trpc.site.deleteProtectedSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries([
+        ['site', 'getProtectedSites'],
+        {input: ['site', 'getProtectedSites'], type: 'query'},
+      ]);
+      await queryClient.invalidateQueries([
+        ['alert', 'getAlerts'],
+        {input: ['alerts', 'getAlerts'], type: 'query'},
+      ]);
+      setSelectedSite({});
+      setSelectedArea(null);
+      toast.show('Deleted', {type: 'success'});
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const pauseAlertForProtectedSite = (
+    trpc.site as any
+  ).pauseAlertForProtectedSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: async (res, req) => {
+      queryClient.setQueryData(
+        [
+          ['site', 'getProtectedSites'],
+          {input: ['site', 'getProtectedSites'], type: 'query'},
+        ],
+        (oldData: any) => {
+          return oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map((item: any) =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
+            : null;
+        },
+      );
+      if (res?.json?.data.hasOwnProperty('isActive')) {
+        setSelectedSite({site: res?.json?.data});
+      }
     },
   });
 
@@ -411,21 +441,51 @@ const Home = ({navigation, route}) => {
     }
   };
 
-  const handleDeleteSite = (id: string) => {
-    if (protectedSites?.json?.data?.find(site => site.id === id)) {
-      const protectedSiteRelationId = protectedSites?.json?.data?.find(
-        site => site.id === id,
-      )?.siteRelationId;
-      deleteProtectedSite.mutate({
+  const handleUpdateMonitoringSite = ({
+    siteId,
+    isMonitoredUpdated,
+  }: {
+    siteId: string;
+    isMonitoredUpdated: boolean;
+  }) => {
+    const foundInProtectedSites = protectedSites?.json?.data?.find(
+      site => site.id === siteId,
+    );
+    const foundInSites = sites?.json?.data?.find(site => site.id === siteId);
+    if (foundInProtectedSites) {
+      const {siteRelationId: protectedSiteRelationId, isActive} =
+        foundInProtectedSites;
+      const isActiveUpdated = !isActive;
+      pauseAlertForProtectedSite.mutate({
         json: {
-          params: {
-            siteRelationId: protectedSiteRelationId,
-            siteId: id,
-          },
+          params: {siteRelationId: protectedSiteRelationId, siteId: siteId},
+          body: {isActive: isActiveUpdated},
         },
       });
-    } else if (sites?.json?.data?.find(site => site.id === id)) {
-      deleteSite.mutate({json: {siteId: id}});
+    } else if (foundInSites) {
+      updateSite.mutate({
+        json: {
+          params: {siteId: siteId},
+          body: {isMonitored: isMonitoredUpdated},
+        },
+      });
+    }
+  };
+
+  const handleDeleteSite = (siteId: string) => {
+    const foundInProtectedSites = protectedSites?.json?.data?.find(
+      site => site.id === siteId,
+    );
+    const foundInSites = sites?.json?.data?.find(site => site.id === siteId);
+    if (foundInProtectedSites) {
+      const protectedSiteRelationId = foundInProtectedSites?.siteRelationId;
+      deleteProtectedSite.mutate({
+        json: {
+          params: {siteRelationId: protectedSiteRelationId, siteId: siteId},
+        },
+      });
+    } else if (foundInSites) {
+      deleteSite.mutate({json: {siteId: siteId}});
     }
   };
 
@@ -797,14 +857,14 @@ const Home = ({navigation, route}) => {
         );
         setSelectedSite(e?.features[0]?.properties);
       }}>
-      {/* <MapboxGL.FillLayer
+      <MapboxGL.FillLayer
         id={'protected-polyFill'}
         layerIndex={2}
         style={{
           fillColor: Colors.WHITE,
           fillOpacity: 0.4,
         }}
-      /> */}
+      />
       <MapboxGL.LineLayer
         id={'protected-polyline'}
         style={{
@@ -1124,38 +1184,69 @@ const Home = ({navigation, route}) => {
                 {selectedSite?.site?.name || selectedSite?.site?.id}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => handleEditSite(selectedSite?.site)}>
-              <PencilIcon />
-            </TouchableOpacity>
+            {selectedSite?.site?.siteRelationId ? (
+              <></>
+            ) : (
+              <TouchableOpacity
+                onPress={() => handleEditSite(selectedSite?.site)}>
+                <PencilIcon />
+              </TouchableOpacity>
+            )}
           </View>
           <TouchableOpacity
-            disabled={updateSite?.isLoading}
-            onPress={() =>
-              updateSite.mutate({
-                json: {
-                  params: {siteId: selectedSite?.site?.id},
-                  body: {isMonitored: !selectedSite?.site?.isMonitored},
-                },
-              })
+            disabled={
+              updateSite?.isLoading || pauseAlertForProtectedSite?.isLoading
             }
+            onPress={() => {
+              handleUpdateMonitoringSite({
+                siteId: selectedSite?.site?.id,
+                isMonitoredUpdated: !selectedSite?.site?.isMonitored,
+              });
+            }}
             style={[styles.simpleBtn]}>
-            {updateSite?.isLoading ? (
+            {updateSite?.isLoading || pauseAlertForProtectedSite?.isLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <>
-                {selectedSite?.site?.isMonitored ? <EyeOffIcon /> : <EyeIcon />}
-                <Text style={[styles.siteActionText]}>
-                  {selectedSite?.site?.isMonitored
-                    ? 'Disable Monitoring'
-                    : 'Enable Monitoring'}
-                </Text>
+                {selectedSite?.site?.siteRelationId ? (
+                  selectedSite?.site?.isActive ? (
+                    <>
+                      <EyeOffIcon />
+                      <Text style={[styles.siteActionText]}>
+                        Disable Monitoring
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <EyeIcon />
+                      <Text style={[styles.siteActionText]}>
+                        Enable Monitoring
+                      </Text>
+                    </>
+                  )
+                ) : selectedSite?.site?.isMonitored ? (
+                  <>
+                    <EyeOffIcon />
+                    <Text style={[styles.siteActionText]}>
+                      Disable Monitoring
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <EyeIcon />
+                    <Text style={[styles.siteActionText]}>
+                      Enable Monitoring
+                    </Text>
+                  </>
+                )}
               </>
             )}
           </TouchableOpacity>
           <TouchableOpacity
             disabled={
-              deleteSite?.isLoading || !!selectedSite?.site?.project?.id
+              deleteSite?.isLoading ||
+              deleteProtectedSite?.isLoading ||
+              !!selectedSite?.site?.project?.id
             }
             onPress={() => handleDeleteSite(selectedSite?.site?.id)}
             style={[
@@ -1164,7 +1255,7 @@ const Home = ({navigation, route}) => {
                 borderColor: Colors.GRAY_LIGHTEST,
               },
             ]}>
-            {deleteSite?.isLoading ? (
+            {deleteSite?.isLoading || deleteProtectedSite?.isLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <>

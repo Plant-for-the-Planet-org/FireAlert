@@ -301,6 +301,6 @@ export default function ProtectedSitesSettings({
 
 const styles = StyleSheet.create({
   addProtectedSiteBtn: {
-    width: 164,
+    width: 166,
   },
 });
