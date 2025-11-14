@@ -70,3 +70,6 @@ Sentry.init({
     /metrics\.itunes\.apple\.com\.edgesuite\.net\//i,
   ],
 });
+
+// Export the router transition hook to instrument navigation events
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
