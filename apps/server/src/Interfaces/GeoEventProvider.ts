@@ -1,4 +1,4 @@
-import {geoEventInterface as GeoEvent} from './GeoEvent';
+import {GeoEventInterface as GeoEvent} from './GeoEvent';
 
 export enum GeoEventProviderClientId {
   LANDSAT_NRT = 'LANDSAT_NRT',
@@ -7,12 +7,12 @@ export enum GeoEventProviderClientId {
   VIIRS_NOAA20_NRT = 'VIIRS_NOAA20_NRT',
   VIIRS_SNPP_NRT = 'VIIRS_SNPP_NRT',
   VIIRS_SNPP_SP = 'VIIRS_SNPP_SP',
-  GEOSTATIONARY = 'GEOSTATIONARY'
+  GEOSTATIONARY = 'GEOSTATIONARY',
 }
 
 export enum GeoEventProviderClient {
   FIRMS = 'FIRMS',
-  GOES16 = 'GOES-16'
+  GOES16 = 'GOES-16',
 }
 
 export interface GeoEventProviderConfig {
@@ -29,7 +29,7 @@ export interface GeoEventProviderClass {
     geoEventProviderId: string,
     slice: string,
     clientApiKey: string,
-    lastRun: Date | null
+    lastRun: Date | null,
   ) => Promise<GeoEvent[]>;
 }
 
