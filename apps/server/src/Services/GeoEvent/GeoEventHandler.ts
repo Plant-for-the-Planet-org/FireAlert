@@ -3,13 +3,23 @@ import {AlertType} from '../../Interfaces/SiteAlert';
 import {type GeoEventInterface as GeoEvent} from '../../Interfaces/GeoEvent';
 import {createXXHash3} from 'hash-wasm';
 import {prisma} from '../../server/db';
+import {type ProcessedGeoEventResult} from '../../types/GeoEventProvider.types';
 
+/**
+ * Processes geo events by deduplicating and saving them to the database.
+ *
+ * @param geoEventProviderClientId - The client ID of the geo event provider (e.g., "MODIS", "VIIRS")
+ * @param geoEventProviderId - The unique ID of the provider
+ * @param slice - The time slice identifier
+ * @param geoEvents - Array of geo events to process
+ * @returns Object containing count of events created and new events found
+ */
 const processGeoEvents = async (
   geoEventProviderClientId: GeoEventProviderClientId,
   geoEventProviderId: string,
   slice: string,
   geoEvents: GeoEvent[],
-) => {
+): Promise<ProcessedGeoEventResult> => {
   const hasher = await createXXHash3(); // Create the hasher outside the function
   const buildChecksum = (geoEvent: GeoEvent): string => {
     hasher.init(); // Reset the hasher

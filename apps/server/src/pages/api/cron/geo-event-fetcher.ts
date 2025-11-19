@@ -1,16 +1,17 @@
 // to execute this handler, access the endpoint:  http://localhost:3000/api/cron/geo-event-fetcher
+// FEATURE FLAG CONTROLLED - Supports both legacy and refactored implementations
 
 import {type NextApiRequest, type NextApiResponse} from 'next';
-import GeoEventProviderClassRegistry from '../../../Services/GeoEventProvider/GeoEventProviderClassRegistry';
 import {type GeoEventProvider} from '@prisma/client';
-import {type GeoEventProviderConfig} from '../../../Interfaces/GeoEventProvider';
-import {env} from '../../../env.mjs';
-import processGeoEvents from '../../../../src/Services/GeoEvent/GeoEventHandler';
-import createSiteAlerts from '../../../../src/Services/SiteAlert/CreateSiteAlert';
-import {logger} from '../../../../src/server/logger';
-import {type GeoEventProviderClientId} from '../../../Interfaces/GeoEventProvider';
 import {prisma} from '../../../../src/server/db';
-import {type GeoEventInterface as GeoEvent} from '../../../Interfaces/GeoEvent';
+import {logger} from '../../../../src/server/logger';
+import {env} from '../../../env.mjs';
+import {
+  type ProviderConfig,
+  type ProcessedGeoEventResult,
+} from '../../../types/GeoEventProvider.types';
+import {type GeoEventInterface} from '../../../Interfaces/GeoEvent';
+import {type GeoEventProviderClientId} from '../../../Interfaces/GeoEventProvider';
 
 // This ensures that the alertFetcher Vercel serverless function runs for a maximum of 300 seconds
 // 300s is the maximum allowed duration for Vercel pro plans
@@ -23,6 +24,137 @@ export default async function alertFetcher(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  // Check feature flag to determine which implementation to use
+  if (env.USE_REFACTORED_PIPELINE) {
+    logger('Using REFACTORED pipeline implementation', 'info');
+    return await refactoredImplementation(req, res);
+  } else {
+    logger('Using LEGACY pipeline implementation', 'info');
+    return await legacyImplementation(req, res);
+  }
+}
+
+/**
+ * REFACTORED IMPLEMENTATION - Service layer architecture
+ * Uses dependency injection and clean separation of concerns
+ */
+async function refactoredImplementation(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  const {CronValidator} = await import('../../../handlers/utils/CronValidator');
+  const {RequestParser} = await import('../../../handlers/utils/RequestParser');
+  const {ResponseBuilder} = await import(
+    '../../../handlers/utils/ResponseBuilder'
+  );
+  const {GeoEventProviderRepository} = await import(
+    '../../../repositories/GeoEventProviderRepository'
+  );
+  const {GeoEventRepository} = await import(
+    '../../../repositories/GeoEventRepository'
+  );
+  const {SiteAlertRepository} = await import(
+    '../../../repositories/SiteAlertRepository'
+  );
+  const {GeoEventService} = await import('../../../Services/GeoEventService');
+  const {SiteAlertService} = await import('../../../Services/SiteAlertService');
+  const {GeoEventProviderService} = await import(
+    '../../../Services/GeoEventProviderService'
+  );
+  const {ChecksumGenerator} = await import('../../../utils/ChecksumGenerator');
+  const {DuplicateFilter} = await import('../../../utils/DuplicateFilter');
+  const {BatchProcessor} = await import('../../../utils/BatchProcessor');
+  const {ProviderSelector} = await import('../../../utils/ProviderSelector');
+  const {GeoEventProviderFactory} = await import(
+    '../../../utils/GeoEventProviderFactory'
+  );
+  const {PQueue} = await import('../../../utils/PQueue');
+  const {ProcessingResult} = await import('../../../domain/ProcessingResult');
+
+  // 1. Validate cron key
+  if (!CronValidator.validate(req)) {
+    return res.status(403).json(ResponseBuilder.unauthorized());
+  }
+
+  // 2. Parse request parameters
+  const limit = RequestParser.parseLimit(req);
+
+  // 3. Find eligible providers
+  const providerRepo = new GeoEventProviderRepository(prisma);
+  const eligible = await providerRepo.findEligibleProviders(limit);
+
+  // 4. Shuffle and select providers
+  const providerSelector = new ProviderSelector();
+  const selected = providerSelector.shuffleAndSelect(eligible, limit);
+
+  if (selected.length === 0) {
+    logger('No eligible providers to process', 'info');
+    return res
+      .status(200)
+      .json(ResponseBuilder.success(ProcessingResult.empty()));
+  }
+
+  logger(
+    `Running Geo Event Fetcher. Taking ${selected.length} eligible providers.`,
+    'info',
+  );
+
+  // 5. Initialize services with dependency injection
+  const checksumGenerator = new ChecksumGenerator();
+  await checksumGenerator.initialize();
+
+  const geoEventRepo = new GeoEventRepository(prisma);
+  const siteAlertRepo = new SiteAlertRepository(prisma);
+
+  const geoEventService = new GeoEventService(
+    geoEventRepo,
+    checksumGenerator,
+    new DuplicateFilter(),
+    new BatchProcessor(),
+  );
+
+  const siteAlertService = new SiteAlertService(
+    siteAlertRepo,
+    geoEventRepo,
+    new BatchProcessor(),
+  );
+
+  const queue = new PQueue({concurrency: 3}); // Concurrency limit of 3
+
+  const providerService = new GeoEventProviderService(
+    providerRepo,
+    geoEventService,
+    siteAlertService,
+    new GeoEventProviderFactory(),
+    queue,
+  );
+
+  // 6. Process providers with concurrency control
+  const result = await providerService.processProviders(selected, 3);
+
+  // 7. Return response
+  res.status(200).json(ResponseBuilder.success(result));
+}
+
+/**
+ * LEGACY IMPLEMENTATION - Original inline implementation
+ * Preserved for safe rollback capability
+ *
+ * Now properly typed for better type safety while maintaining exact runtime behavior.
+ */
+async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
+  const GeoEventProviderClassRegistry = (
+    await import(
+      '../../../Services/GeoEventProvider/GeoEventProviderClassRegistry'
+    )
+  ).default;
+  const processGeoEvents = (
+    await import('../../../../src/Services/GeoEvent/GeoEventHandler')
+  ).default;
+  const createSiteAlerts = (
+    await import('../../../../src/Services/SiteAlert/CreateSiteAlert')
+  ).default;
+
   // Verify the 'cron_key' in the request headers before proceeding
   if (env.CRON_KEY) {
     // Verify the 'cron_key' in the request headers
@@ -57,7 +189,7 @@ export default async function alertFetcher(
   let processedProviders = 0;
   const fetchCount = limit;
   // while (processedProviders <= limit) {
-  const activeProviders: GeoEventProvider[] = await prisma.$queryRaw`
+  const activeProviders = await prisma.$queryRaw<GeoEventProvider[]>`
         SELECT *
         FROM "GeoEventProvider"
         WHERE "isActive" = true
@@ -66,10 +198,17 @@ export default async function alertFetcher(
         ORDER BY (current_timestamp AT TIME ZONE 'UTC' - "lastRun") DESC
         LIMIT ${fetchCount};
     `;
-  function shuffleArray(array: GeoEventProvider[]) {
+  /**
+   * Shuffles an array using Fisher-Yates algorithm
+   * @template T - The type of array elements
+   * @param array - The array to shuffle (modified in place)
+   * @returns The shuffled array
+   */
+  function shuffleArray<T>(array: T[]): T[] {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]]; // swap elements
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      [array[i], array[j]] = [array[j]!, array[i]!]; // swap elements
     }
     return array;
   }
@@ -91,8 +230,16 @@ export default async function alertFetcher(
 
   // Define Chunk Size for processGeoEvents
   const chunkSize = 2000;
-  const chunkArray = (array: GeoEvent[], size: number) => {
-    const chunked = [];
+
+  /**
+   * Chunks an array into smaller arrays of specified size
+   * @template T - The type of array elements
+   * @param array - The array to chunk
+   * @param size - The size of each chunk
+   * @returns Array of chunked arrays
+   */
+  const chunkArray = <T>(array: T[], size: number): T[][] => {
+    const chunked: T[][] = [];
     let index = 0;
     while (index < array.length) {
       chunked.push(array.slice(index, size + index));
@@ -102,7 +249,7 @@ export default async function alertFetcher(
   };
 
   // Loop for each active provider and fetch geoEvents
-  const promises = selectedProviders.map(async provider => {
+  const promises = selectedProviders.map(async (provider: GeoEventProvider) => {
     const {
       config,
       id: geoEventProviderId,
@@ -111,9 +258,7 @@ export default async function alertFetcher(
       lastRun,
     } = provider;
     // For GOES-16, geoEventProviderId is 55, geoEventProviderClientId is GEOSTATIONARY, and clientApiKey is GOES-16
-    const parsedConfig: GeoEventProviderConfig = JSON.parse(
-      JSON.stringify(config),
-    );
+    const parsedConfig = JSON.parse(JSON.stringify(config)) as ProviderConfig;
     const client = parsedConfig.client; // For GOES-16 = GOES-16
     const geoEventProvider = GeoEventProviderClassRegistry.get(client);
     geoEventProvider.initialize(parsedConfig);
@@ -133,7 +278,7 @@ export default async function alertFetcher(
         clientApiKey,
         lastRun,
       )
-      .then(async geoEvents => {
+      .then(async (geoEvents: GeoEventInterface[]) => {
         // If there are geoEvents, emit an event to find duplicates and persist them
         logger(
           `${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`,
@@ -149,12 +294,13 @@ export default async function alertFetcher(
 
           // Process each chunk sequentially
           for (const geoEventChunk of geoEventChunks) {
-            const processedGeoEvent = await processGeoEvents(
-              geoEventProviderClientId as GeoEventProviderClientId,
-              geoEventProviderId,
-              slice,
-              geoEventChunk,
-            );
+            const processedGeoEvent: ProcessedGeoEventResult =
+              await processGeoEvents(
+                geoEventProviderClientId as GeoEventProviderClientId,
+                geoEventProviderId,
+                slice,
+                geoEventChunk,
+              );
             totalEventCount += processedGeoEvent.geoEventCount;
             totalNewGeoEvent += processedGeoEvent.newGeoEventCount;
           }
@@ -170,7 +316,7 @@ export default async function alertFetcher(
         );
 
         // if (totalNewGeoEvent > 0) {
-        const alertCount = await createSiteAlerts(
+        const alertCount: number = await createSiteAlerts(
           geoEventProviderId,
           geoEventProviderClientId as GeoEventProviderClientId,
           slice,
@@ -196,9 +342,11 @@ export default async function alertFetcher(
   });
   processedProviders += activeProviders.length;
 
-  await Promise.all(promises).catch(error =>
+  await Promise.all(promises).catch((error: unknown) =>
     logger(
-      `Something went wrong before creating notifications. ${error}`,
+      `Something went wrong before creating notifications. ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       'error',
     ),
   );

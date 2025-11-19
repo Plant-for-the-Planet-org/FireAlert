@@ -12,6 +12,7 @@ import {parse} from 'csv-parse';
 import {AlertType} from '../../../Interfaces/SiteAlert';
 import type DataRecord from '../../../Interfaces/DataRecord';
 import {Confidence} from '../../../Interfaces/GeoEvent';
+import {env} from '../../../env.mjs';
 
 interface NasaGeoEventProviderConfig extends GeoEventProviderConfig {
   apiUrl: string;
@@ -135,9 +136,11 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
 
   getUrl(clientApiKey: string, clientId: GeoEventProviderClientId): string {
     const {apiUrl, bbox} = this.getConfig();
+    // Use FIRMS_MAP_KEY from environment if available, otherwise fall back to clientApiKey parameter
+    const apiKey = env.FIRMS_MAP_KEY ?? clientApiKey;
     // const currentDate = new Date().toISOString().split("T")[0];
     // If Date isn't passed API returns most recent data
-    return `${apiUrl}/api/area/csv/${clientApiKey}/${clientId}/${bbox}/1/`;
+    return `${apiUrl}/api/area/csv/${apiKey}/${clientId}/${bbox}/1/`;
   }
 
   getConfig(): NasaGeoEventProviderConfig {

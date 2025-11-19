@@ -21,9 +21,32 @@ export interface GeoEventProviderConfig {
   client: GeoEventProviderClient; //'FIRMS'
 }
 
+/**
+ * Interface for geo event provider implementations.
+ * Each provider (FIRMS, GOES-16, etc.) must implement this interface.
+ */
 export interface GeoEventProviderClass {
+  /**
+   * Returns the unique key identifying this provider type
+   * @returns Provider key (e.g., "FIRMS", "GOES-16")
+   */
   getKey: () => string;
+
+  /**
+   * Initializes the provider with configuration
+   * @param config - Provider-specific configuration
+   */
   initialize: (config?: GeoEventProviderConfigGeneral) => void;
+
+  /**
+   * Fetches the latest geo events from the provider
+   * @param client - Client identifier
+   * @param geoEventProviderId - Provider ID
+   * @param slice - Time slice identifier
+   * @param clientApiKey - API key for authentication
+   * @param lastRun - Timestamp of last successful run
+   * @returns Promise resolving to array of geo events
+   */
   getLatestGeoEvents: (
     client: string,
     geoEventProviderId: string,

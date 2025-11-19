@@ -60,13 +60,11 @@ const server = z.object({
   ALERT_SMS_DISABLED: coerceBooleanWithDefault(true),
   ALERT_WHATSAPP_DISABLED: coerceBooleanWithDefault(true),
 
-
   // Database slow query logging. Disabled by default.
   DATABASE_LOG_SLOWQUERY: coerceBooleanWithDefault(false),
 
   // Notification batch size for processing notifications in batches. Defaults to 10.
   NOTIFICATION_BATCH_SIZE: z.string().default('10'),
-
 
   // API caching configuration. Enabled by default in production, disabled in development.
   PUBLIC_API_CACHING: z
@@ -76,6 +74,12 @@ const server = z.object({
       if (val === undefined) return process.env.NODE_ENV === 'production';
       return val === 'true';
     }),
+
+  // Feature flag for refactored geo-event-fetcher pipeline. Defaults to false for safe rollout.
+  USE_REFACTORED_PIPELINE: coerceBooleanWithDefault(false),
+
+  // NASA FIRMS API key for accessing fire/heat anomaly data. Optional - falls back to provider config if not set.
+  FIRMS_MAP_KEY: z.string().optional(),
 });
 
 /**
@@ -126,6 +130,8 @@ const processEnv = {
   DATABASE_LOG_SLOWQUERY: process.env.DATABASE_LOG_SLOWQUERY,
   PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING,
   NOTIFICATION_BATCH_SIZE: process.env.NOTIFICATION_BATCH_SIZE,
+  USE_REFACTORED_PIPELINE: process.env.USE_REFACTORED_PIPELINE,
+  FIRMS_MAP_KEY: process.env.FIRMS_MAP_KEY,
 };
 
 // Don't touch the part below
