@@ -461,3 +461,17 @@
   - Log chunk number, chunk size, and running totals
   - Add timing information for each chunk
   - _Requirements: Observability for chunked processing performance_
+
+## Phase 8: Fix SiteAlert Creation Bug (0 Alerts Created)
+
+## Phase 8 Addendum: ACTUAL BUG FOUND - markStaleAsProcessed Timing
+
+- [x] 15 FIX: Move markStaleAsProcessed to END of createAlertsForProvider
+
+  - **ROOT CAUSE IDENTIFIED**: Line 36 in `SiteAlertService.ts` calls `markStaleAsProcessed(24)` BEFORE querying for unprocessed events
+  - **IMPACT**: Events older than 24 hours get marked as processed immediately, then query finds 0 unprocessed events
+  - **FIX**: Move `await this.geoEventRepository.markStaleAsProcessed(24)` to the END of the method (after the while loop)
+  - Update `apps/server/src/Services/SiteAlertService.ts`
+  - Move the markStaleAsProcessed call to line ~62 (after the while loop completes)
+  - This ensures alerts are created BEFORE events are marked as stale
+  - _Requirements: Fix the workflow order to match legacy behavior_
