@@ -30,6 +30,9 @@ export class SiteAlertService {
     clientId: string,
     slice: string,
   ): Promise<number> {
+    // Mark events >24hrs as processed AFTER creating alerts
+    await this.geoEventRepository.markStaleAsProcessed(24);
+
     const isGeostationary = clientId === 'GEOSTATIONARY';
     const batchSize = isGeostationary ? 500 : 1000;
     let totalAlerts = 0;
@@ -57,9 +60,6 @@ export class SiteAlertService {
       );
       totalAlerts += count;
     }
-
-    // Mark events >24hrs as processed AFTER creating alerts
-    await this.geoEventRepository.markStaleAsProcessed(24);
 
     return totalAlerts;
   }
