@@ -413,3 +413,51 @@
   - Ensure `getLatestGeoEvents()` has proper return type
   - Document expected parameter types
   - _Requirements: Type-safe provider implementations_
+
+## Phase 7: Bug Fixes and Performance Improvements
+
+- [x] 14. Fix critical bugs in refactored implementation
+
+  - Fix SiteAlert update query bug and add event chunking for memory optimization
+  - _Requirements: Correct batch processing and memory efficiency_
+
+- [x] 14.1 Fix SiteAlertRepository polar update query
+
+  - Update `apps/server/src/repositories/SiteAlertRepository.ts` line 217
+  - Change `UPDATE "GeoEvent" SET "isProcessed" = true WHERE "geoEventProviderId" = ${geoEventProviderId}`
+  - To `UPDATE "GeoEvent" SET "isProcessed" = true WHERE id IN (${Prisma.join(eventIds)})`
+  - Verify `createAlertsForGeostationary()` line 117 already uses correct WHERE clause
+  - _Requirements: Fix bug where ALL events are marked processed instead of just current batch_
+
+- [x] 14.2 Verify slice field in provider implementations
+
+  - Check `apps/server/src/Services/GeoEventProvider/NasaGeoEventProviderClass.ts`
+  - Check `apps/server/src/Services/GeoEventProvider/GOES16GeoEventProviderClass.ts`
+  - Verify `getLatestGeoEvents()` adds `slice` field to each event object
+  - Confirm events are returned as `{ ...eventData, slice: this.config.slice }`
+  - _Requirements: Ensure slice field exists before implementing chunking_
+
+- [x] 14.3 Add event chunking in GeoEventProviderService
+
+  - Update `apps/server/src/Services/GeoEventProviderService.ts` in `processProvider()` method
+  - Replace direct call to `this.geoEventService.deduplicateAndSave(geoEvents, geoEventProviderId)`
+  - Implement chunking with `BatchProcessor.processSequentially()` using chunk size 2000
+  - Process each chunk through `deduplicateAndSave()` sequentially
+  - Aggregate results from all chunks (sum `created` and `new` counts)
+  - Update logging to reflect aggregated totals
+  - _Requirements: Prevent memory issues when processing large event batches_
+
+- [x] 14.4 Update GeoEventService to handle chunked processing
+
+  - Review `apps/server/src/Services/GeoEventService.ts`
+  - Ensure `deduplicateAndSave()` works correctly with event chunks
+  - Verify checksum generation handles partial batches
+  - Confirm duplicate filtering works across chunk boundaries
+  - _Requirements: Maintain deduplication accuracy with chunked processing_
+
+- [x] 14.5 Add logging for chunk processing
+
+  - Add debug logs in `GeoEventProviderService.processProvider()` for chunk processing
+  - Log chunk number, chunk size, and running totals
+  - Add timing information for each chunk
+  - _Requirements: Observability for chunked processing performance_

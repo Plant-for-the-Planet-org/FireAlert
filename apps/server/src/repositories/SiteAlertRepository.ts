@@ -225,7 +225,9 @@ export class SiteAlertRepository {
           );
       `;
 
-      const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE "isProcessed" = false AND "geoEventProviderId" = ${providerId} AND "slice" = ${slice}`;
+      const updateGeoEventIsProcessedToTrue = Prisma.sql`UPDATE "GeoEvent" SET "isProcessed" = true WHERE id IN (${Prisma.join(
+        eventIds,
+      )})`;
 
       const results = await this.prisma.$transaction([
         this.prisma.$executeRaw(siteAlertCreationQuery),

@@ -7,6 +7,7 @@ import {ProcessingResult} from '../domain/ProcessingResult';
 import {logger} from '../server/logger';
 import {type GeoEventProviderClientId} from '../Interfaces/GeoEventProvider';
 import {type PQueue} from '../utils/PQueue';
+import {BatchProcessor} from '../utils/BatchProcessor';
 
 /**
  * Top-level service for orchestrating provider processing workflow.
@@ -34,7 +35,7 @@ export class GeoEventProviderService {
     concurrency: number,
   ): Promise<ProcessingResult> {
     const promises = providers.map(provider =>
-      this.queue.add(() => this.processProvider(provider)),
+      this.queue.add(() => this.processEachProvider(provider)),
     );
 
     const results = await Promise.all(promises);
@@ -56,7 +57,9 @@ export class GeoEventProviderService {
    * @param provider - The provider to process
    * @returns ProcessingResult with metrics
    */
-  async processProvider(provider: GeoEventProvider): Promise<ProcessingResult> {
+  async processEachProvider(
+    provider: GeoEventProvider,
+  ): Promise<ProcessingResult> {
     const result = new ProcessingResult();
 
     try {
@@ -92,18 +95,57 @@ export class GeoEventProviderService {
       );
 
       if (geoEvents.length > 0) {
-        // Deduplicate and save events
-        const {created, new: newCount} =
-          await this.geoEventService.deduplicateAndSave(
-            geoEvents,
-            geoEventProviderId,
-          );
+        // Process events in chunks to prevent memory issues
+        const chunkSize = 2000;
+        const batchProcessor = new BatchProcessor();
+
+        logger(
+          `${breadcrumbPrefix} Processing ${geoEvents.length} events in chunks of ${chunkSize}`,
+          'info',
+        );
+
+        let chunkIndex = 0;
+        const chunkResults = await batchProcessor.processSequentially(
+          geoEvents,
+          chunkSize,
+          async chunk => {
+            chunkIndex++;
+            const chunkStart = Date.now();
+            logger(
+              `${breadcrumbPrefix} Processing chunk ${chunkIndex} with ${chunk.length} events`,
+              'debug',
+            );
+
+            const chunkResult = await this.geoEventService.deduplicateAndSave(
+              chunk,
+              geoEventProviderId,
+            );
+
+            const chunkDuration = Date.now() - chunkStart;
+            logger(
+              `${breadcrumbPrefix} Chunk ${chunkIndex} completed in ${chunkDuration}ms - Created: ${chunkResult.created}, New: ${chunkResult.new}`,
+              'debug',
+            );
+
+            return chunkResult;
+          },
+        );
+
+        // Aggregate results from all chunks
+        const totalCreated = chunkResults.reduce(
+          (sum, r) => sum + r.created,
+          0,
+        );
+        const totalNew = chunkResults.reduce((sum, r) => sum + r.new, 0);
 
         result.addEventsProcessed(geoEvents.length);
-        result.addEventsCreated(created);
+        result.addEventsCreated(totalCreated);
 
-        logger(`${breadcrumbPrefix} Found ${newCount} new Geo Events`, 'info');
-        logger(`${breadcrumbPrefix} Created ${created} Geo Events`, 'info');
+        logger(`${breadcrumbPrefix} Found ${totalNew} new Geo Events`, 'info');
+        logger(
+          `${breadcrumbPrefix} Created ${totalCreated} Geo Events`,
+          'info',
+        );
       }
 
       // Create site alerts
