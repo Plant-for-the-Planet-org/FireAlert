@@ -1,13 +1,13 @@
 import {type GeoEventProvider} from '@prisma/client';
-import {type GeoEventProviderRepository} from '../repositories/GeoEventProviderRepository';
-import {type GeoEventService} from './GeoEventService';
-import {type SiteAlertService} from './SiteAlertService';
-import {type GeoEventProviderFactory} from '../utils/GeoEventProviderFactory';
-import {ProcessingResult} from '../domain/ProcessingResult';
-import {logger} from '../server/logger';
-import {type GeoEventProviderClientId} from '../Interfaces/GeoEventProvider';
-import {type PQueue} from '../utils/PQueue';
-import {BatchProcessor} from '../utils/BatchProcessor';
+import {type GeoEventProviderClientId} from '../../Interfaces/GeoEventProvider';
+import {logger} from '../../server/logger';
+import {BatchProcessor} from '../../utils/BatchProcessor';
+import {OperationResult} from '../../utils/OperationResult';
+import {type PQueue} from '../../utils/PQueue';
+import {type ProviderManager} from '../../utils/ProviderManager';
+import {type GeoEventService} from '../GeoEvent/GeoEventService';
+import {type SiteAlertService} from '../SiteAlert/SiteAlertService';
+import {type GeoEventProviderRepository} from './GeoEventProviderRepository';
 
 /**
  * Top-level service for orchestrating provider processing workflow.
@@ -18,7 +18,7 @@ export class GeoEventProviderService {
     private readonly providerRepository: GeoEventProviderRepository,
     private readonly geoEventService: GeoEventService,
     private readonly siteAlertService: SiteAlertService,
-    private readonly providerFactory: GeoEventProviderFactory,
+    private readonly providerManager: ProviderManager,
     private readonly queue: PQueue,
   ) {}
 
@@ -33,7 +33,7 @@ export class GeoEventProviderService {
   async processProviders(
     providers: GeoEventProvider[],
     concurrency: number,
-  ): Promise<ProcessingResult> {
+  ): Promise<OperationResult> {
     const promises = providers.map(provider =>
       this.queue.add(() => this.processEachProvider(provider)),
     );
@@ -42,7 +42,7 @@ export class GeoEventProviderService {
 
     return results.reduce(
       (acc, result) => acc.merge(result),
-      ProcessingResult.empty(),
+      OperationResult.empty(),
     );
   }
 
@@ -59,8 +59,8 @@ export class GeoEventProviderService {
    */
   async processEachProvider(
     provider: GeoEventProvider,
-  ): Promise<ProcessingResult> {
-    const result = new ProcessingResult();
+  ): Promise<OperationResult> {
+    const result = new OperationResult();
 
     try {
       const {
@@ -80,7 +80,7 @@ export class GeoEventProviderService {
       }
 
       // Fetch latest geo events from provider
-      const geoEventProvider = this.providerFactory.create(provider);
+      const geoEventProvider = this.providerManager.createProvider(provider);
       const geoEvents = await geoEventProvider.getLatestGeoEvents(
         geoEventProviderClientId,
         geoEventProviderId,

@@ -1,8 +1,7 @@
-import {type GeoEventInterface as GeoEvent} from '../Interfaces/GeoEvent';
-import {GeoEventRepository} from '../repositories/GeoEventRepository';
-import {ChecksumGenerator} from '../utils/ChecksumGenerator';
-import {DuplicateFilter} from '../utils/DuplicateFilter';
-import {BatchProcessor} from '../utils/BatchProcessor';
+import {type GeoEventInterface as GeoEvent} from '../../Interfaces/GeoEvent';
+import {type GeoEventRepository} from './GeoEventRepository';
+import {type EventProcessor} from '../../utils/EventProcessor';
+import {type BatchProcessor} from '../../utils/BatchProcessor';
 
 /**
  * Service for coordinating GeoEvent processing pipeline.
@@ -11,8 +10,7 @@ import {BatchProcessor} from '../utils/BatchProcessor';
 export class GeoEventService {
   constructor(
     private readonly repository: GeoEventRepository,
-    private readonly checksumGenerator: ChecksumGenerator,
-    private readonly duplicateFilter: DuplicateFilter,
+    private readonly eventProcessor: EventProcessor,
     private readonly batchProcessor: BatchProcessor,
   ) {}
 
@@ -34,7 +32,7 @@ export class GeoEventService {
     providerId: string,
   ): Promise<{created: number; new: number}> {
     // Generate checksums for all events
-    const checksumMap = this.checksumGenerator.generateForEvents(events);
+    const checksumMap = this.eventProcessor.generateChecksums(events);
 
     // Assign IDs to events
     const eventsWithIds = Array.from(checksumMap.entries()).map(
@@ -48,10 +46,13 @@ export class GeoEventService {
     const existingIds = await this.repository.fetchExistingIds(providerId, 30);
 
     // Filter duplicates against DB
-    const newEvents = this.duplicateFilter.filter(eventsWithIds, existingIds);
+    const newEvents = this.eventProcessor.filterDuplicates(
+      eventsWithIds,
+      existingIds,
+    );
 
     // Filter in-memory duplicates
-    const uniqueEvents = this.duplicateFilter.filterInMemory(newEvents);
+    const uniqueEvents = this.eventProcessor.filterInMemory(newEvents);
 
     // Bulk insert in batches of 1000
     const created = await this.repository.bulkCreate(uniqueEvents, 1000);

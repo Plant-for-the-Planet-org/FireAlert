@@ -475,3 +475,270 @@
   - Move the markStaleAsProcessed call to line ~62 (after the while loop completes)
   - This ensures alerts are created BEFORE events are marked as stale
   - _Requirements: Fix the workflow order to match legacy behavior_
+
+## Phase 9: Consolidate & Reorganize Utilities (Reduce Fragmentation)
+
+- [x] 16. Consolidate and reorganize utilities for better maintainability
+
+  - Reduce fragmentation by grouping related utilities and simplifying names
+  - Move all utilities into `apps/server/src/utils/` directory
+  - Eliminate `domain/` and `handlers/` directories under `src/`
+  - Maintain separation of concerns while improving code organization
+  - _Requirements: Cleaner, more maintainable utility structure_
+
+- [x] 16.1 Consolidate event processing utilities
+
+  - Merge `ChecksumGenerator.ts` and `DuplicateFilter.ts` into single `EventProcessor.ts`
+  - Move to `apps/server/src/utils/EventProcessor.ts`
+  - Rename class to `EventProcessor` with methods: `generateChecksums()`, `filterDuplicates()`, `filterInMemory()`
+  - Update imports in `GeoEventService.ts`
+  - _Requirements: Group related event processing logic, reduce file count_
+
+- [x] 16.2 Consolidate provider utilities
+
+  - Merge `ProviderSelector.ts` and `GeoEventProviderFactory.ts` into single `ProviderManager.ts`
+  - Move to `apps/server/src/utils/ProviderManager.ts`
+  - Rename class to `ProviderManager` with methods: `selectProviders()`, `createProvider()`
+  - Update imports in `GeoEventProviderService.ts`
+  - _Requirements: Group related provider operations, reduce file count_
+
+- [x] 16.3 Consolidate handler utilities into single module
+
+  - Merge `CronValidator.ts`, `RequestParser.ts`, `ResponseBuilder.ts` into `RequestHandler.ts`
+  - Move to `apps/server/src/utils/RequestHandler.ts`
+  - Rename class to `RequestHandler` with static methods: `validateCron()`, `parseLimit()`, `buildSuccess()`, `buildUnauthorized()`
+  - Update imports in `geo-event-fetcher.ts`
+  - _Requirements: Consolidate handler-specific logic, improve organization_
+
+- [x] 16.4 Rename domain models for clarity
+
+  - Rename `GeoEventChecksum.ts` to `EventId.ts` (value object for event identity)
+  - Rename `ProcessingResult.ts` to `OperationResult.ts` (more generic, reusable name)
+  - Move both files to `apps/server/src/utils/`
+  - Update class names and all imports across services and repositories
+  - _Requirements: Clearer, more concise naming_
+
+- [x] 16.5 Move domain models from domain/ to utils/
+
+  - Move `apps/server/src/domain/EventId.ts` to `apps/server/src/utils/EventId.ts`
+  - Move `apps/server/src/domain/OperationResult.ts` to `apps/server/src/utils/OperationResult.ts`
+  - Verify all imports are updated
+  - _Requirements: Consolidate all utilities in single directory_
+
+- [x] 16.6 Create utility index file for cleaner imports
+
+  - Create `apps/server/src/utils/index.ts` exporting: `EventId`, `OperationResult`, `EventProcessor`, `ProviderManager`, `RequestHandler`
+  - Update all service and handler imports to use barrel export
+  - _Requirements: Simplified import statements across codebase_
+
+- [x] 16.7 Update service constructors with consolidated utilities
+
+  - Update `GeoEventService.ts` to use `EventProcessor` instead of separate `ChecksumGenerator` and `DuplicateFilter`
+  - Update `GeoEventProviderService.ts` to use `ProviderManager` instead of separate `ProviderSelector` and `GeoEventProviderFactory`
+  - Update `geo-event-fetcher.ts` handler to use `RequestHandler` instead of separate validators/parsers/builders
+  - _Requirements: Cleaner dependency injection, fewer constructor parameters_
+
+- [x] 16.8 Remove old utility files and empty directories
+
+  - Delete `apps/server/src/utils/ChecksumGenerator.ts`
+  - Delete `apps/server/src/utils/DuplicateFilter.ts`
+  - Delete `apps/server/src/utils/ProviderSelector.ts`
+  - Delete `apps/server/src/utils/GeoEventProviderFactory.ts`
+  - Delete `apps/server/src/handlers/utils/CronValidator.ts`
+  - Delete `apps/server/src/handlers/utils/RequestParser.ts`
+  - Delete `apps/server/src/handlers/utils/ResponseBuilder.ts`
+  - Delete empty directory `apps/server/src/handlers/utils/`
+  - Delete empty directory `apps/server/src/handlers/`
+  - Delete empty directory `apps/server/src/domain/`
+  - _Requirements: Clean up old files and eliminate empty directories_
+
+- [x] 16.9 Verify all tests pass after consolidation
+
+  - Run unit tests for consolidated utilities
+  - Run integration tests for services
+  - Run handler integration tests
+  - Verify no import errors or type mismatches
+  - _Requirements: Ensure refactoring maintains functionality_
+
+- [x] 16.10 Update documentation with new structure
+
+  - Update architecture diagrams to reflect consolidated utilities
+  - Document new import patterns using barrel exports
+  - Update CONSOLIDATION_STRATEGY.md with final structure
+  - Add migration guide for future developers
+  - _Requirements: Clear documentation of new organization_
+
+## Phase 10: Update Imports & Type Definitions
+
+- [x] 16.11 Update all imports after repository reorganization
+
+  - Update imports in all files that reference repositories moved to Services subdirectories
+  - Files involved in this import update:
+    - `apps/server/src/Services/GeoEvent/GeoEventService.ts` - Uses `GeoEventRepository`
+    - `apps/server/src/Services/GeoEventProvider/GeoEventProviderService.ts` - Uses `GeoEventProviderRepository`
+    - `apps/server/src/Services/SiteAlert/SiteAlertService.ts` - Uses `SiteAlertRepository` and `GeoEventRepository`
+    - `apps/server/src/pages/api/cron/geo-event-fetcher.ts` - Uses all three repositories
+    - `apps/server/src/utils/EventProcessor.ts` - Consolidated utility
+    - `apps/server/src/utils/ProviderManager.ts` - Consolidated utility
+    - `apps/server/src/utils/RequestHandler.ts` - Consolidated utility
+    - `apps/server/src/utils/EventId.ts` - Renamed domain model
+    - `apps/server/src/utils/OperationResult.ts` - Renamed domain model
+  - Verify all relative import paths are correct after reorganization
+  - Ensure no broken imports or circular dependencies
+  - _Requirements: Correct all import paths after repository relocation_
+
+- [x] 16.12 Update ARCHITECTURE_FLOW_DIAGRAM.md with new structure
+
+  - Update all diagrams to reflect consolidated utilities (EventProcessor, ProviderManager, RequestHandler)
+  - Update diagrams to show repositories in Services subdirectories
+  - Update component dependency graph with new file locations
+  - Update import examples to use barrel exports from utils/
+  - Update file structure diagrams to show new organization
+  - _Requirements: Accurate architecture documentation_
+
+- [x] 17. Check and fix all TypeScript type definitions
+
+  - Review all files involved in the refactoring for type safety
+  - Files to review:
+    - `apps/server/src/utils/EventProcessor.ts` - Verify XXHashAPI usage and return types
+    - `apps/server/src/utils/ProviderManager.ts` - Verify GeoEventProvider and GeoEventProviderClass types
+    - `apps/server/src/utils/RequestHandler.ts` - Verify NextApiRequest/Response types
+    - `apps/server/src/utils/EventId.ts` - Verify XXHashAPI and return types
+    - `apps/server/src/utils/OperationResult.ts` - Verify metric types and merge return type
+    - `apps/server/src/Services/GeoEvent/GeoEventService.ts` - Verify GeoEvent interface and return types
+    - `apps/server/src/Services/GeoEvent/GeoEventRepository.ts` - Verify Prisma types and query returns
+    - `apps/server/src/Services/GeoEventProvider/GeoEventProviderService.ts` - Verify OperationResult and provider types
+    - `apps/server/src/Services/GeoEventProvider/GeoEventProviderRepository.ts` - Verify GeoEventProvider types
+    - `apps/server/src/Services/SiteAlert/SiteAlertService.ts` - Verify batch processing types
+    - `apps/server/src/Services/SiteAlert/SiteAlertRepository.ts` - Verify PostGIS and Prisma types
+    - `apps/server/src/pages/api/cron/geo-event-fetcher.ts` - Verify NextApiRequest/Response types
+  - _Requirements: Type-safe implementation across all refactored code_
+
+- [x] 17.1 Fix EventProcessor type definitions
+
+  - Ensure `generateChecksums()` returns `Map<GeoEvent, string>`
+  - Ensure `filterDuplicates()` returns `GeoEvent[]`
+  - Ensure `filterInMemory()` returns `GeoEvent[]`
+  - Add proper type annotations for all parameters
+  - Verify XXHashAPI initialization and usage
+  - _Requirements: Type-safe event processing_
+
+- [x] 17.2 Fix ProviderManager type definitions
+
+  - Ensure `selectProviders()` returns `GeoEventProvider[]`
+  - Ensure `createProvider()` returns `GeoEventProviderClass`
+  - Add proper type annotations for GeoEventProvider parameter
+  - Verify GeoEventProviderConfig type usage
+  - _Requirements: Type-safe provider management_
+
+- [x] 17.3 Fix RequestHandler type definitions
+
+  - Ensure `validateCron()` returns `boolean`
+  - Ensure `parseLimit()` returns `number`
+  - Ensure `buildSuccess()` returns proper response object type
+  - Ensure `buildUnauthorized()` returns proper response object type
+  - Add proper type annotations for NextApiRequest parameter
+  - _Requirements: Type-safe request handling_
+
+- [x] 17.4 Fix EventId type definitions
+
+  - Ensure `generate()` returns `string`
+  - Ensure `equals()` returns `boolean`
+  - Add proper type annotations for all constructor parameters
+  - Verify XXHashAPI parameter type
+  - _Requirements: Type-safe event identity_
+
+- [x] 17.5 Fix OperationResult type definitions
+
+  - Ensure all add methods accept `number` parameter
+  - Ensure `merge()` returns `OperationResult`
+  - Ensure `toJSON()` returns proper object type with all metrics
+  - Ensure `empty()` static method returns `OperationResult`
+  - Add proper type annotations for all methods
+  - _Requirements: Type-safe operation results_
+
+- [x] 17.6 Fix GeoEventService type definitions
+
+  - Ensure `deduplicateAndSave()` returns `Promise<{created: number; new: number}>`
+  - Verify GeoEvent interface usage
+  - Verify EventProcessor type usage
+  - Add proper type annotations for all parameters
+  - _Requirements: Type-safe event service_
+
+- [x] 17.7 Fix GeoEventRepository type definitions
+
+  - Ensure `fetchExistingIds()` returns `Promise<string[]>`
+  - Ensure `bulkCreate()` returns `Promise<number>`
+  - Ensure `findUnprocessedByProvider()` returns `Promise<GeoEvent[]>`
+  - Ensure `markAsProcessed()` returns `Promise<void>`
+  - Ensure `markStaleAsProcessed()` returns `Promise<void>`
+  - Verify Prisma client type usage
+  - _Requirements: Type-safe database operations_
+
+- [x] 17.8 Fix GeoEventProviderService type definitions
+
+  - Ensure `processProviders()` returns `Promise<OperationResult>`
+  - Ensure `processEachProvider()` returns `Promise<OperationResult>`
+  - Verify ProviderManager type usage
+  - Verify GeoEventProvider type usage
+  - Add proper type annotations for all parameters
+  - _Requirements: Type-safe provider orchestration_
+
+- [x] 17.9 Fix GeoEventProviderRepository type definitions
+
+  - Ensure `findEligibleProviders()` returns `Promise<GeoEventProvider[]>`
+  - Ensure `updateLastRun()` returns `Promise<void>`
+  - Verify Prisma client type usage
+  - Add proper type annotations for all parameters
+  - _Requirements: Type-safe provider repository_
+
+- [x] 17.10 Fix SiteAlertService type definitions
+
+  - Ensure `createAlertsForProvider()` returns `Promise<number>`
+  - Ensure `processBatch()` returns `Promise<number>`
+  - Verify batch size type usage
+  - Verify GeoEventProviderClientId type usage
+  - Add proper type annotations for all parameters
+  - _Requirements: Type-safe alert service_
+
+- [x] 17.11 Fix SiteAlertRepository type definitions
+
+  - Ensure `createAlertsForGeostationary()` returns `Promise<number>`
+  - Ensure `createAlertsForPolar()` returns `Promise<number>`
+  - Verify PostGIS query types
+  - Verify Prisma transaction types
+  - Add proper type annotations for all parameters
+  - _Requirements: Type-safe alert repository_
+
+- [x] 17.12 Fix handler type definitions
+
+  - Ensure all imports have proper types
+  - Verify NextApiRequest and NextApiResponse types
+  - Verify OperationResult type usage
+  - Verify RequestHandler type usage
+  - Add proper type annotations for all variables
+  - _Requirements: Type-safe API handler_
+
+- [x] 17.13 Verify no `any` types remain in refactored code
+
+  - Search for `any` type usage in all refactored files
+  - Replace with proper type definitions
+  - Add type guards where necessary
+  - Document any unavoidable `any` types with comments
+  - _Requirements: Eliminate unsafe type usage_
+
+- [x] 17.14 Add JSDoc type annotations to all public methods
+
+  - Add JSDoc comments with `@param` and `@returns` type annotations
+  - Document all public methods in consolidated utilities
+  - Document all public methods in services
+  - Document all public methods in repositories
+  - _Requirements: Clear type documentation_
+
+- [x] 17.15 Run TypeScript compiler to verify all types
+
+  - Run `tsc --noEmit` to check for type errors
+  - Verify no type mismatches in imports
+  - Verify no missing type definitions
+  - Verify no circular type dependencies
+  - _Requirements: Type-safe compilation_

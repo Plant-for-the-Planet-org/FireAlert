@@ -28,10 +28,12 @@ graph TB
         Refactored[Refactored Implementation]
     end
 
-    subgraph "Handler Utilities"
-        CronVal[CronValidator]
-        ReqParser[RequestParser]
-        RespBuilder[ResponseBuilder]
+    subgraph "Consolidated Utilities"
+        ReqHandler[RequestHandler<br/>Validation, Parsing, Response]
+        EventProc[EventProcessor<br/>Checksums & Deduplication]
+        ProvMgr[ProviderManager<br/>Selection & Creation]
+        BatchProc[BatchProcessor]
+        Queue[PQueue<br/>Concurrency Control]
     end
 
     subgraph "Service Layer"
@@ -41,23 +43,14 @@ graph TB
     end
 
     subgraph "Repository Layer"
-        ProviderRepo[GeoEventProviderRepository]
-        GeoEventRepo[GeoEventRepository]
-        SiteAlertRepo[SiteAlertRepository]
+        ProviderRepo[GeoEventProviderRepository<br/>Services/GeoEventProvider/]
+        GeoEventRepo[GeoEventRepository<br/>Services/GeoEvent/]
+        SiteAlertRepo[SiteAlertRepository<br/>Services/SiteAlert/]
     end
 
-    subgraph "Utility Layer"
-        ChecksumGen[ChecksumGenerator]
-        DupFilter[DuplicateFilter]
-        BatchProc[BatchProcessor]
-        ProviderSel[ProviderSelector]
-        ProviderFact[GeoEventProviderFactory]
-        Queue[PQueue<br/>Concurrency Control]
-    end
-
-    subgraph "Domain Layer"
-        Checksum[GeoEventChecksum]
-        Result[ProcessingResult]
+    subgraph "Domain Models"
+        EventId[EventId<br/>Event Identity]
+        OpResult[OperationResult<br/>Metrics Aggregation]
     end
 
     subgraph "External Systems"
@@ -70,20 +63,18 @@ graph TB
     FeatureFlag -->|false| Legacy
     FeatureFlag -->|true| Refactored
 
-    Refactored --> CronVal
-    Refactored --> ReqParser
-    Refactored --> RespBuilder
+    Refactored --> ReqHandler
     Refactored --> ProviderSvc
 
     ProviderSvc --> GeoEventSvc
     ProviderSvc --> SiteAlertSvc
     ProviderSvc --> ProviderRepo
-    ProviderSvc --> ProviderFact
+    ProviderSvc --> ProvMgr
     ProviderSvc --> Queue
+    ProviderSvc --> OpResult
 
     GeoEventSvc --> GeoEventRepo
-    GeoEventSvc --> ChecksumGen
-    GeoEventSvc --> DupFilter
+    GeoEventSvc --> EventProc
     GeoEventSvc --> BatchProc
 
     SiteAlertSvc --> SiteAlertRepo
@@ -94,10 +85,8 @@ graph TB
     GeoEventRepo --> DB
     SiteAlertRepo --> DB
 
-    ChecksumGen --> Checksum
-    ProviderSvc --> Result
-
-    ProviderFact --> NASA
+    EventProc --> EventId
+    ProvMgr --> NASA
     ProviderFact --> GOES
 
     style Handler fill:#e1f5fe
@@ -427,10 +416,10 @@ graph TB
         Handler[geo-event-fetcher.ts]
     end
 
-    subgraph "Handler Utils"
-        CronVal[CronValidator]
-        ReqParser[RequestParser]
-        RespBuilder[ResponseBuilder]
+    subgraph "Consolidated Utilities"
+        ReqHandler[RequestHandler]
+        EventProc[EventProcessor]
+        ProvMgr[ProviderManager]
     end
 
     subgraph "Top-Level Service"
@@ -448,18 +437,14 @@ graph TB
         SiteAlertRepo[SiteAlertRepository]
     end
 
-    subgraph "Utilities"
-        ChecksumGen[ChecksumGenerator]
-        DupFilter[DuplicateFilter]
+    subgraph "Generic Utilities"
         BatchProc[BatchProcessor]
-        ProviderSel[ProviderSelector]
-        ProviderFact[GeoEventProviderFactory]
         Queue[PQueue]
     end
 
     subgraph "Domain Models"
-        Checksum[GeoEventChecksum]
-        Result[ProcessingResult]
+        EventId[EventId]
+        OpResult[OperationResult]
     end
 
     subgraph "External"
@@ -467,21 +452,18 @@ graph TB
         XXHash[hash-wasm<br/>XXHash3]
     end
 
-    Handler --> CronVal
-    Handler --> ReqParser
-    Handler --> RespBuilder
+    Handler --> ReqHandler
     Handler --> ProviderSvc
 
     ProviderSvc --> ProviderRepo
     ProviderSvc --> GeoEventSvc
     ProviderSvc --> SiteAlertSvc
-    ProviderSvc --> ProviderFact
+    ProviderSvc --> ProvMgr
     ProviderSvc --> Queue
-    ProviderSvc --> Result
+    ProviderSvc --> OpResult
 
     GeoEventSvc --> GeoEventRepo
-    GeoEventSvc --> ChecksumGen
-    GeoEventSvc --> DupFilter
+    GeoEventSvc --> EventProc
     GeoEventSvc --> BatchProc
 
     SiteAlertSvc --> SiteAlertRepo
@@ -492,9 +474,9 @@ graph TB
     GeoEventRepo --> Prisma
     SiteAlertRepo --> Prisma
 
-    ChecksumGen --> Checksum
-    ChecksumGen --> XXHash
-    Checksum --> XXHash
+    EventProc --> EventId
+    EventProc --> XXHash
+    EventId --> XXHash
 
     style Handler fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style ProviderSvc fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px

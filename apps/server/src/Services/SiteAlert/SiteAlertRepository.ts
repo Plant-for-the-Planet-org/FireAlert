@@ -1,5 +1,5 @@
 import {type PrismaClient, Prisma} from '@prisma/client';
-import {logger} from '../server/logger';
+import {logger} from '../../server/logger';
 
 /**
  * Repository for SiteAlert data access operations.

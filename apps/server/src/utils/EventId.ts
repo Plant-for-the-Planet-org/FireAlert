@@ -4,7 +4,7 @@ import {type XXHashAPI} from 'hash-wasm';
  * Value object for generating consistent event identifiers using XXHash3.
  * Immutable class that encapsulates the logic for creating checksums from GeoEvent data.
  */
-export class GeoEventChecksum {
+export class EventId {
   constructor(
     private readonly type: string,
     private readonly latitude: number,
@@ -30,11 +30,11 @@ export class GeoEventChecksum {
   }
 
   /**
-   * Compares this checksum with another for equality.
-   * @param other - Another GeoEventChecksum instance
-   * @returns True if both checksums represent the same event
+   * Compares this event ID with another for equality.
+   * @param other - Another EventId instance
+   * @returns True if both IDs represent the same event
    */
-  equals(other: GeoEventChecksum): boolean {
+  equals(other: EventId): boolean {
     return (
       this.type === other.type &&
       this.latitude === other.latitude &&

@@ -1,6 +1,6 @@
-import {SiteAlertRepository} from '../repositories/SiteAlertRepository';
-import {GeoEventRepository} from '../repositories/GeoEventRepository';
-import {BatchProcessor} from '../utils/BatchProcessor';
+import {type SiteAlertRepository} from './SiteAlertRepository';
+import {type GeoEventRepository} from '../GeoEvent/GeoEventRepository';
+import {type BatchProcessor} from '../../utils/BatchProcessor';
 
 /**
  * Service for coordinating site alert creation workflow.

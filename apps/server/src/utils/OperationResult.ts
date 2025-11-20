@@ -1,8 +1,9 @@
 /**
- * Result object for aggregating processing metrics across all operations.
+ * Result object for aggregating operation metrics across all processing steps.
  * Provides a consistent way to track events processed, created, alerts generated, and errors.
+ * Generic enough to be reused across different operation types.
  */
-export class ProcessingResult {
+export class OperationResult {
   private eventsProcessed: number = 0;
   private eventsCreated: number = 0;
   private alertsCreated: number = 0;
@@ -37,11 +38,11 @@ export class ProcessingResult {
   }
 
   /**
-   * Merges another ProcessingResult into this one.
-   * @param other - Another ProcessingResult to merge
-   * @returns This ProcessingResult instance for chaining
+   * Merges another OperationResult into this one.
+   * @param other - Another OperationResult to merge
+   * @returns This OperationResult instance for chaining
    */
-  merge(other: ProcessingResult): ProcessingResult {
+  merge(other: OperationResult): OperationResult {
     this.eventsProcessed += other.eventsProcessed;
     this.eventsCreated += other.eventsCreated;
     this.alertsCreated += other.alertsCreated;
@@ -67,9 +68,9 @@ export class ProcessingResult {
   }
 
   /**
-   * Creates an empty ProcessingResult.
+   * Creates an empty OperationResult.
    */
-  static empty(): ProcessingResult {
-    return new ProcessingResult();
+  static empty(): OperationResult {
+    return new OperationResult();
   }
 }

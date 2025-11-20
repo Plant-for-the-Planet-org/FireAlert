@@ -42,56 +42,52 @@ async function refactoredImplementation(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  const {CronValidator} = await import('../../../handlers/utils/CronValidator');
-  const {RequestParser} = await import('../../../handlers/utils/RequestParser');
-  const {ResponseBuilder} = await import(
-    '../../../handlers/utils/ResponseBuilder'
-  );
+  const {RequestHandler} = await import('../../../utils/RequestHandler');
   const {GeoEventProviderRepository} = await import(
-    '../../../repositories/GeoEventProviderRepository'
+    '../../../Services/GeoEventProvider/GeoEventProviderRepository'
   );
   const {GeoEventRepository} = await import(
-    '../../../repositories/GeoEventRepository'
+    '../../../Services/GeoEvent/GeoEventRepository'
   );
   const {SiteAlertRepository} = await import(
-    '../../../repositories/SiteAlertRepository'
+    '../../../Services/SiteAlert/SiteAlertRepository'
   );
-  const {GeoEventService} = await import('../../../Services/GeoEventService');
-  const {SiteAlertService} = await import('../../../Services/SiteAlertService');
+  const {GeoEventService} = await import(
+    '../../../Services/GeoEvent/GeoEventService'
+  );
+  const {SiteAlertService} = await import(
+    '../../../Services/SiteAlert/SiteAlertService'
+  );
   const {GeoEventProviderService} = await import(
-    '../../../Services/GeoEventProviderService'
+    '../../../Services/GeoEventProvider/GeoEventProviderService'
   );
-  const {ChecksumGenerator} = await import('../../../utils/ChecksumGenerator');
-  const {DuplicateFilter} = await import('../../../utils/DuplicateFilter');
+  const {EventProcessor} = await import('../../../utils/EventProcessor');
+  const {ProviderManager} = await import('../../../utils/ProviderManager');
   const {BatchProcessor} = await import('../../../utils/BatchProcessor');
-  const {ProviderSelector} = await import('../../../utils/ProviderSelector');
-  const {GeoEventProviderFactory} = await import(
-    '../../../utils/GeoEventProviderFactory'
-  );
   const {PQueue} = await import('../../../utils/PQueue');
-  const {ProcessingResult} = await import('../../../domain/ProcessingResult');
+  const {OperationResult} = await import('../../../utils/OperationResult');
 
   // 1. Validate cron key
-  if (!CronValidator.validate(req)) {
-    return res.status(403).json(ResponseBuilder.unauthorized());
+  if (!RequestHandler.validateCron(req)) {
+    return res.status(403).json(RequestHandler.buildUnauthorized());
   }
 
   // 2. Parse request parameters
-  const limit = RequestParser.parseLimit(req);
+  const limit = RequestHandler.parseLimit(req);
 
   // 3. Find eligible providers
   const providerRepo = new GeoEventProviderRepository(prisma);
   const eligible = await providerRepo.findEligibleProviders(limit);
 
   // 4. Shuffle and select providers
-  const providerSelector = new ProviderSelector();
-  const selected = providerSelector.shuffleAndSelect(eligible, limit);
+  const providerManager = new ProviderManager();
+  const selected = providerManager.selectProviders(eligible, limit);
 
   if (selected.length === 0) {
     logger('No eligible providers to process', 'info');
     return res
       .status(200)
-      .json(ResponseBuilder.success(ProcessingResult.empty()));
+      .json(RequestHandler.buildSuccess(OperationResult.empty()));
   }
 
   logger(
@@ -100,16 +96,15 @@ async function refactoredImplementation(
   );
 
   // 5. Initialize services with dependency injection
-  const checksumGenerator = new ChecksumGenerator();
-  await checksumGenerator.initialize();
+  const eventProcessor = new EventProcessor();
+  await eventProcessor.initialize();
 
   const geoEventRepo = new GeoEventRepository(prisma);
   const siteAlertRepo = new SiteAlertRepository(prisma);
 
   const geoEventService = new GeoEventService(
     geoEventRepo,
-    checksumGenerator,
-    new DuplicateFilter(),
+    eventProcessor,
     new BatchProcessor(),
   );
 
@@ -125,7 +120,7 @@ async function refactoredImplementation(
     providerRepo,
     geoEventService,
     siteAlertService,
-    new GeoEventProviderFactory(),
+    providerManager,
     queue,
   );
 
@@ -133,7 +128,7 @@ async function refactoredImplementation(
   const result = await providerService.processProviders(selected, 3);
 
   // 7. Return response
-  res.status(200).json(ResponseBuilder.success(result));
+  res.status(200).json(RequestHandler.buildSuccess(result));
 }
 
 /**
