@@ -20,6 +20,7 @@ const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
 });
 
+// console.log('Config.NEXT_API_URL', Config.NEXT_API_URL);
 export const createTRPCClientOptions: CreateTRPCClientOptions<AppRouter> = {
   links: [
     httpBatchLink({
