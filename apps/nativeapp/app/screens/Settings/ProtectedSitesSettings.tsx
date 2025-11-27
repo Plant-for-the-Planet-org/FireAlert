@@ -1,6 +1,6 @@
 import {useNavigation} from '@react-navigation/native';
 import {useQueryClient} from '@tanstack/react-query';
-import React, {useMemo, useState} from 'react';
+import React, {useState} from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -101,13 +101,11 @@ export default function ProtectedSitesSettings({
     },
   });
 
-  const deleteProtectedSiteButtonIsLoading = useMemo(() => {
-    return deleteProtectedSite.isLoading;
-  }, [deleteProtectedSite.isLoading]);
+  const deleteProtectedSiteButtonIsLoading =
+    deleteProtectedSite.status === 'pending';
 
-  const deleteProtectedSiteButtonIsDisabled = useMemo(() => {
-    return deleteProtectedSite.isLoading;
-  }, [deleteProtectedSite.isLoading]);
+  const deleteProtectedSiteButtonIsDisabled =
+    deleteProtectedSite.status === 'pending';
 
   const handleSiteInformation = (item: any) => {
     console.log('item', item);

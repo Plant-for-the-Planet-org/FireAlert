@@ -365,17 +365,17 @@ const Home = ({navigation, route}) => {
     },
   });
 
-  const deleteSiteButtonIsLoading = useMemo(() => {
-    return deleteSite.isLoading || deleteProtectedSite.isLoading;
-  }, [deleteSite.isLoading, deleteProtectedSite.isLoading]);
+  const deleteSiteButtonIsLoading =
+    deleteSite.status === 'pending' || deleteProtectedSite.status === 'pending';
 
-  const deleteSiteButtonIsDisabled = useMemo(() => {
-    // Disable if loading or if it's a project site (synced from pp.eco)
+  const deleteSiteButtonIsDisabled = (() => {
     const isProjectSite = !!(selectedSite as any)?.site?.project?.id;
     return (
-      deleteSite.isLoading || deleteProtectedSite.isLoading || isProjectSite
+      deleteSite.status === 'pending' ||
+      deleteProtectedSite.status === 'pending' ||
+      isProjectSite
     );
-  }, [deleteSite.isLoading, deleteProtectedSite.isLoading, selectedSite]);
+  })();
 
   const pauseAlertForProtectedSite = (
     trpc.site as any
@@ -507,6 +507,26 @@ const Home = ({navigation, route}) => {
       deleteSite.mutate({json: {siteId: siteId}});
     }
   };
+  // const handleDeleteSite = (siteId: string) => {
+  //   if (!siteId) return;
+
+  //   const foundInProtectedSites = protectedSites?.json?.data?.find(
+  //     site => site.id === siteId,
+  //   );
+
+  //   if (foundInProtectedSites) {
+  //     deleteProtectedSite.mutate({
+  //       json: {
+  //         params: {
+  //           siteRelationId: foundInProtectedSites.siteRelationId,
+  //           siteId: siteId,
+  //         },
+  //       },
+  //     });
+  //   } else {
+  //     deleteSite.mutate({json: {siteId: siteId}});
+  //   }
+  // };
 
   // recenter the mapmap to the current coordinates of user location
   const onPressMyLocationIcon = (

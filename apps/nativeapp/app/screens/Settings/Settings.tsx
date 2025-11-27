@@ -234,14 +234,12 @@ const Settings = () => {
     },
   });
 
-  const deleteSiteButtonIsLoading = useMemo(() => {
-    return deleteSite.isLoading;
-  }, [deleteSite.isLoading]);
+  const deleteSiteButtonIsLoading = deleteSite.status === 'pending';
 
-  const deleteSiteButtonIsDisabled = useMemo(() => {
+  const deleteSiteButtonIsDisabled = (() => {
     const isProjectSite = !!selectedSiteInfo?.project?.id;
-    return deleteSite.isLoading || isProjectSite;
-  }, [deleteSite.isLoading, selectedSiteInfo]);
+    return deleteSite.status === 'pending' || isProjectSite;
+  })();
 
   const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
     retryDelay: 3000,
