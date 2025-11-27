@@ -3277,32 +3277,37 @@
   resolved "https://registry.yarnpkg.com/@tmcw/togeojson/-/togeojson-7.1.2.tgz#2d53ac80986d18fc3bbadec708492319cb7b3cd3"
   integrity sha512-QKnFs9DAuqqBVj4d6c69tV1Dj2TspSBTqffivoN0YoBCVdP/JY1+WaYCJbzU49RkoU5NOSOJ3jtFHCdEUVh21A==
 
-"@trpc/client@^10.9.0":
+"@trpc/client@^10.45.0":
   version "10.45.2"
   resolved "https://registry.yarnpkg.com/@trpc/client/-/client-10.45.2.tgz#15f9ba81303bf3417083fc6bb742e4e86b49da90"
   integrity sha512-ykALM5kYWTLn1zYuUOZ2cPWlVfrXhc18HzBDyRhoPYN0jey4iQHEFSEowfnhg1RvYnrAVjNBgHNeSAXjrDbGwg==
 
-"@trpc/client@^11.0.0-rc.638":
+"@trpc/client@^11.7.2":
   version "11.7.2"
   resolved "https://registry.yarnpkg.com/@trpc/client/-/client-11.7.2.tgz#8453748c822c4a5444aee45edee86081805af5c6"
   integrity sha512-OQxqUMfpDvjcszo9dbnqWQXnW2L5IbrKSz2H7l8s+mVM3EvYw7ztQ/gjFIN3iy0NcamiQfd4eE6qjcb9Lm+63A==
 
-"@trpc/next@^10.40.0":
+"@trpc/next@^10.45.0":
   version "10.45.2"
   resolved "https://registry.yarnpkg.com/@trpc/next/-/next-10.45.2.tgz#852ce3bce9fe7114287920abd55c5cedbe5365ac"
   integrity sha512-RSORmfC+/nXdmRY1pQ0AalsVgSzwNAFbZLYHiTvPM5QQ8wmMEHilseCYMXpu0se/TbPt9zVR6Ka2d7O6zxKkXg==
 
-"@trpc/react-query@^11.0.0-rc.638":
+"@trpc/react-query@^10.45.0":
+  version "10.45.2"
+  resolved "https://registry.yarnpkg.com/@trpc/react-query/-/react-query-10.45.2.tgz#22564b370a1fb8920ba3a1554f4149a151039198"
+  integrity sha512-BAqb9bGZIscroradlNx+Cc9522R+idY3BOSf5z0jHUtkxdMbjeGKxSSMxxu7JzoLqSIEC+LVzL3VvF8sdDWaZQ==
+
+"@trpc/react-query@^11.7.2":
   version "11.7.2"
   resolved "https://registry.yarnpkg.com/@trpc/react-query/-/react-query-11.7.2.tgz#fd8f0090c9c021082eafd6c6a933ab02610084f9"
   integrity sha512-IcLDMqx2mvlGRxkr0/m37TtPvRQ8nonITH3EwYv436x0Igx8eduR9z4tdgGBsjJY9e5W1G7cZ4zKCwrizSimFQ==
 
-"@trpc/server@^10.9.0":
+"@trpc/server@^10.45.0":
   version "10.45.2"
   resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.45.2.tgz#5f2778c4810f93b5dc407146334f8da70a0b51fb"
   integrity sha512-wOrSThNNE4HUnuhJG6PfDRp4L2009KDVxsd+2VYH8ro6o/7/jwYZ8Uu5j+VaW+mOmc8EHerHzGcdbGNQSAUPgg==
 
-"@trpc/server@^11.0.0-rc.638":
+"@trpc/server@^11.7.2":
   version "11.7.2"
   resolved "https://registry.yarnpkg.com/@trpc/server/-/server-11.7.2.tgz#4ab897689ec91d0d213d6dc6a79ac1dcde782513"
   integrity sha512-AgB26PXY69sckherIhCacKLY49rxE2XP5h38vr/KMZTbLCL1p8IuIoKPjALTcugC2kbyQ7Lbqo2JDVfRSmPmfQ==
