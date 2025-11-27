@@ -788,7 +788,6 @@ export const siteRouter = createTRPCRouter({
   deleteProtectedSite: protectedProcedure
     .input(deleteProtectedSiteSchema)
     .mutation(async ({ctx, input}) => {
-      console.log('deleteProtectedSite', input);
       const siteRelationId = input.params.siteRelationId;
       const siteId = input.params.siteId;
       const userId = ctx.user!.id;

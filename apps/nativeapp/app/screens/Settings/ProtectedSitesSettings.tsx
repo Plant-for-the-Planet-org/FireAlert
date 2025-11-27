@@ -1,6 +1,6 @@
 import {useNavigation} from '@react-navigation/native';
 import {useQueryClient} from '@tanstack/react-query';
-import React, {useRef, useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -84,16 +84,6 @@ export default function ProtectedSitesSettings({
 
   const deleteProtectedSite = trpc.site.deleteProtectedSite.useMutation({
     retryDelay: 3000,
-    onMutate: () => {
-      setIsDeletingProtected(true);
-      if (deleteProtectedTimeout.current) {
-        clearTimeout(deleteProtectedTimeout.current);
-      }
-      deleteProtectedTimeout.current = setTimeout(() => {
-        setIsDeletingProtected(false);
-      }, 15000);
-      setRefreshing(true);
-    },
     onSuccess: async (res, req) => {
       await queryClient.invalidateQueries([
         ['site', 'getProtectedSites'],
@@ -104,22 +94,20 @@ export default function ProtectedSitesSettings({
         {input: ['alerts', 'getAlerts'], type: 'query'},
       ]);
       setSitesInfoModal(false);
-      setRefreshing(false);
-      if (deleteProtectedTimeout.current) {
-        clearTimeout(deleteProtectedTimeout.current);
-      }
-      setIsDeletingProtected(false);
-      toast.show('Deleted', {type: 'success'});
+      toast.show('Protected site deleted', {type: 'success'});
     },
     onError: () => {
-      setRefreshing(false);
-      if (deleteProtectedTimeout.current) {
-        clearTimeout(deleteProtectedTimeout.current);
-      }
-      setIsDeletingProtected(false);
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  const deleteProtectedSiteButtonIsLoading = useMemo(() => {
+    return deleteProtectedSite.isLoading;
+  }, [deleteProtectedSite.isLoading]);
+
+  const deleteProtectedSiteButtonIsDisabled = useMemo(() => {
+    return deleteProtectedSite.isLoading;
+  }, [deleteProtectedSite.isLoading]);
 
   const handleSiteInformation = (item: any) => {
     console.log('item', item);
@@ -260,7 +248,7 @@ export default function ProtectedSitesSettings({
           </TouchableOpacity>
 
           <TouchableOpacity
-            disabled={deleteProtectedSite?.isLoading || isDeletingProtected}
+            disabled={deleteProtectedSiteButtonIsDisabled}
             onPress={() => {
               deleteProtectedSite.mutate({
                 json: {
@@ -271,13 +259,18 @@ export default function ProtectedSitesSettings({
                 },
               });
             }}
-            style={[settingsStyles.btn]}>
-            {deleteProtectedSite?.isLoading || isDeletingProtected ? (
+            style={[
+              settingsStyles.btn,
+              deleteProtectedSiteButtonIsDisabled && settingsStyles.btnDisabled,
+            ]}>
+            {deleteProtectedSiteButtonIsLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <TrashOutlineIcon />
             )}
-            <Text style={settingsStyles.siteActionText}>Delete Site</Text>
+            <Text style={settingsStyles.siteActionText}>
+              Delete Protected Area
+            </Text>
           </TouchableOpacity>
         </View>
       </BottomSheet>

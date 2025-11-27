@@ -192,15 +192,6 @@ const Settings = () => {
 
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
-    onMutate: () => {
-      setIsDeletingSite(true);
-      if (deleteSiteTimeout.current) {
-        clearTimeout(deleteSiteTimeout.current);
-      }
-      deleteSiteTimeout.current = setTimeout(() => {
-        setIsDeletingSite(false);
-      }, 15000);
-    },
     onSuccess: (res, req) => {
       queryClient.setQueryData(
         [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
@@ -236,19 +227,21 @@ const Settings = () => {
             : null,
       );
       setSitesInfoModal(false);
-      if (deleteSiteTimeout.current) {
-        clearTimeout(deleteSiteTimeout.current);
-      }
-      setIsDeletingSite(false);
+      toast.show('Site deleted', {type: 'success'});
     },
     onError: () => {
-      if (deleteSiteTimeout.current) {
-        clearTimeout(deleteSiteTimeout.current);
-      }
-      setIsDeletingSite(false);
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  const deleteSiteButtonIsLoading = useMemo(() => {
+    return deleteSite.isLoading;
+  }, [deleteSite.isLoading]);
+
+  const deleteSiteButtonIsDisabled = useMemo(() => {
+    const isProjectSite = !!selectedSiteInfo?.project?.id;
+    return deleteSite.isLoading || isProjectSite;
+  }, [deleteSite.isLoading, selectedSiteInfo]);
 
   const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
     retryDelay: 3000,
@@ -1412,14 +1405,15 @@ const Settings = () => {
             </TouchableOpacity>
             {selectedSiteInfo?.project === null && (
               <TouchableOpacity
-                disabled={deleteSite?.isLoading || isDeletingSite}
+                disabled={deleteSiteButtonIsDisabled}
                 onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
                 style={[
                   styles.btn,
+                  deleteSiteButtonIsDisabled && styles.btnDisabled,
                   selectedSiteInfo?.project !== null &&
-                    styles.borderolorGrayLightest,
+                    styles.borderColorGrayLightest,
                 ]}>
-                {deleteSite?.isLoading ? (
+                {deleteSiteButtonIsLoading ? (
                   <ActivityIndicator color={Colors.PRIMARY} />
                 ) : (
                   <>
@@ -2007,6 +2001,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: Colors.GRADIENT_PRIMARY,
+  },
+  btnDisabled: {
+    opacity: 0.5,
   },
   siteActionText: {
     marginLeft: 30,

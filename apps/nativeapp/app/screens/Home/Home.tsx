@@ -23,7 +23,14 @@ import {
 } from 'react-native';
 import {useAuth0} from 'react-native-auth0';
 // import Clipboard from '@react-native-clipboard/clipboard';
-import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
 
@@ -185,7 +192,7 @@ const Home = ({navigation, route}) => {
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
       }, 1000);
     }
-  }, [isCameraRefVisible, siteInfo?.siteInfo]);
+  }, [isCameraRefVisible, setSelected, siteInfo?.bboxGeo, siteInfo?.siteInfo]);
 
   useEffect(() => {
     if (
@@ -263,6 +270,37 @@ const Home = ({navigation, route}) => {
     },
   });
 
+  const updateSite = trpc.site.updateSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
+            : null,
+      );
+      if (req?.json?.body.hasOwnProperty('isMonitored')) {
+        setSelectedSite({site: res?.json?.data});
+      } else {
+        setSelectedSite({});
+        setSelectedArea(null);
+      }
+      setSiteNameModalVisible(false);
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
   const deleteSite = trpc.site.deleteSite.useMutation({
     retryDelay: 3000,
     onSuccess: (res, req) => {
@@ -307,37 +345,6 @@ const Home = ({navigation, route}) => {
     },
   });
 
-  const updateSite = trpc.site.updateSite.useMutation({
-    retryDelay: 3000,
-    onSuccess: (res, req) => {
-      queryClient.setQueryData(
-        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
-        oldData =>
-          oldData
-            ? {
-                ...oldData,
-                json: {
-                  ...oldData?.json,
-                  data: oldData?.json?.data?.map(item =>
-                    item.id === res?.json?.data?.id ? res?.json?.data : item,
-                  ),
-                },
-              }
-            : null,
-      );
-      if (req?.json?.body.hasOwnProperty('isMonitored')) {
-        setSelectedSite({site: res?.json?.data});
-      } else {
-        setSelectedSite({});
-        setSelectedArea(null);
-      }
-      setSiteNameModalVisible(false);
-    },
-    onError: () => {
-      toast.show('something went wrong', {type: 'danger'});
-    },
-  });
-
   const deleteProtectedSite = trpc.site.deleteProtectedSite.useMutation({
     retryDelay: 3000,
     onSuccess: async () => {
@@ -357,6 +364,18 @@ const Home = ({navigation, route}) => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  const deleteSiteButtonIsLoading = useMemo(() => {
+    return deleteSite.isLoading || deleteProtectedSite.isLoading;
+  }, [deleteSite.isLoading, deleteProtectedSite.isLoading]);
+
+  const deleteSiteButtonIsDisabled = useMemo(() => {
+    // Disable if loading or if it's a project site (synced from pp.eco)
+    const isProjectSite = !!(selectedSite as any)?.site?.project?.id;
+    return (
+      deleteSite.isLoading || deleteProtectedSite.isLoading || isProjectSite
+    );
+  }, [deleteSite.isLoading, deleteProtectedSite.isLoading, selectedSite]);
 
   const pauseAlertForProtectedSite = (
     trpc.site as any
@@ -505,13 +524,13 @@ const Home = ({navigation, route}) => {
   };
 
   // only for the first time map will follow the user's current location by default
-  const onUpdateUserLocation = (
-    userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined,
-  ) => {
-    if (isInitial && userLocation) {
-      onPressMyLocationIcon(userLocation);
-    }
-  };
+  const onUpdateUserLocation = useCallback(
+    (userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined) => {
+      if (isInitial && userLocation) {
+        onPressMyLocationIcon(userLocation);
+      }
+    },
+  );
 
   const onPressLocationAlertPrimaryBtn = () => {
     setIsLocationAlertShow(false);
@@ -1243,23 +1262,20 @@ const Home = ({navigation, route}) => {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            disabled={
-              deleteSite?.isLoading ||
-              deleteProtectedSite?.isLoading ||
-              !!selectedSite?.site?.project?.id
-            }
-            onPress={() => handleDeleteSite(selectedSite?.site?.id)}
+            disabled={deleteSiteButtonIsDisabled}
+            onPress={() => handleDeleteSite((selectedSite as any)?.site?.id)}
             style={[
               styles.simpleBtn,
-              selectedSite?.site?.project?.id && {
+              deleteSiteButtonIsDisabled && styles.simpleBtnDisabled,
+              (selectedSite as any)?.site?.project?.id && {
                 borderColor: Colors.GRAY_LIGHTEST,
               },
             ]}>
-            {deleteSite?.isLoading || deleteProtectedSite?.isLoading ? (
+            {deleteSiteButtonIsLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <>
-                {selectedSite?.site?.project?.id ? (
+                {(selectedSite as any)?.site?.project?.id ? (
                   <DisabledTrashOutlineIcon />
                 ) : (
                   <TrashOutlineIcon />
@@ -1267,7 +1283,7 @@ const Home = ({navigation, route}) => {
                 <Text
                   style={[
                     styles.siteActionText,
-                    selectedSite?.site?.project?.id && {
+                    (selectedSite as any)?.site?.project?.id && {
                       color: Colors.GRAY_LIGHTEST,
                     },
                   ]}>
@@ -1486,6 +1502,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: Colors.GRADIENT_PRIMARY,
+  },
+  simpleBtnDisabled: {
+    opacity: 0.5,
   },
   siteActionText: {
     marginLeft: 30,
