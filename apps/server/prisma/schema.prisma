@@ -60,6 +60,7 @@ model AlertMethod {
     verificationRequest VerificationRequest?
 
     @@unique([destination, userId, method])
+    @@index([userId])
 }
 
 model Site {
@@ -85,6 +86,9 @@ model Site {
     project            Project?                 @relation(fields: [projectId], references: [id])
     user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
     siteRelations      SiteRelation[]
+
+    @@index([userId])
+    @@index([detectionGeometry], type: Gist)
 }
 
 model Project {
@@ -141,6 +145,8 @@ model SiteAlert {
     data          Json?
     notifications Notification[]
     site          Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+    @@index([isProcessed, eventDate])
 }
 
 model Notification {
@@ -148,6 +154,7 @@ model Notification {
     siteAlertId String
     alertMethod String
     destination String
+    createdAt   DateTime  @default(now())
     sentAt      DateTime?
     isDelivered Boolean   @default(false)
     isSkipped   Boolean   @default(false)

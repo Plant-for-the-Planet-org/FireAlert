@@ -12,12 +12,7 @@ import bbox from '@turf/bbox';
 // @ts-ignore - no type definitions available
 import rewind from '@mapbox/geojson-rewind';
 import {point, polygon, multiPolygon} from '@turf/helpers';
-import {
-  AddIcon,
-  MapOutlineIcon,
-  DisabledTrashOutlineIcon,
-  TrashOutlineIcon,
-} from '../../assets/svgs';
+import {AddIcon, MapOutlineIcon, TrashOutlineIcon} from '../../assets/svgs';
 import {BottomSheet, Switch} from '../../components';
 import {trpc} from '../../services/trpc';
 import {Colors} from '../../styles';
@@ -40,9 +35,6 @@ export default function ProtectedSitesSettings({
   const queryClient = useQueryClient();
   const [sitesInfoModal, setSitesInfoModal] = useState<boolean>(false);
   const [selectedSiteInfo, setSelectedSiteInfo] = useState<any | null>(null);
-  const [isDeletingProtected, setIsDeletingProtected] =
-    useState<boolean>(false);
-  const deleteProtectedTimeout = useRef<any>(null);
 
   const {data: protectedSites} = (trpc.site as any).getProtectedSites.useQuery(
     ['site', 'getProtectedSites'],
@@ -52,11 +44,7 @@ export default function ProtectedSitesSettings({
       staleTime: 'Infinity',
       cacheTime: 'Infinity',
       keepPreviousData: true,
-      onSuccess: () => {
-        setRefreshing(false);
-      },
       onError: () => {
-        setRefreshing(false);
         toast.show('something went wrong', {type: 'danger'});
       },
     },
@@ -289,9 +277,7 @@ export default function ProtectedSitesSettings({
             ) : (
               <TrashOutlineIcon />
             )}
-            <Text style={settingsStyles.siteActionText}>
-              Delete Protected Area
-            </Text>
+            <Text style={settingsStyles.siteActionText}>Delete Site</Text>
           </TouchableOpacity>
         </View>
       </BottomSheet>

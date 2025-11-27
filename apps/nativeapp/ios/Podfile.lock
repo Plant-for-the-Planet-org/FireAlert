@@ -58,9 +58,9 @@ PODS:
     - MapboxMobileEvents (= 2.0.0)
     - Turf (= 2.8.0)
   - MapboxMobileEvents (2.0.0)
-  - OneSignalXCFramework (5.2.14):
-    - OneSignalXCFramework/OneSignalComplete (= 5.2.14)
-  - OneSignalXCFramework/OneSignal (5.2.14):
+  - OneSignalXCFramework (5.2.15):
+    - OneSignalXCFramework/OneSignalComplete (= 5.2.15)
+  - OneSignalXCFramework/OneSignal (5.2.15):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalLiveActivities
@@ -68,38 +68,38 @@ PODS:
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalComplete (5.2.14):
+  - OneSignalXCFramework/OneSignalComplete (5.2.15):
     - OneSignalXCFramework/OneSignal
     - OneSignalXCFramework/OneSignalInAppMessages
     - OneSignalXCFramework/OneSignalLocation
-  - OneSignalXCFramework/OneSignalCore (5.2.14)
-  - OneSignalXCFramework/OneSignalExtension (5.2.14):
+  - OneSignalXCFramework/OneSignalCore (5.2.15)
+  - OneSignalXCFramework/OneSignalExtension (5.2.15):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalInAppMessages (5.2.14):
+  - OneSignalXCFramework/OneSignalInAppMessages (5.2.15):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalOutcomes
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLiveActivities (5.2.14):
+  - OneSignalXCFramework/OneSignalLiveActivities (5.2.15):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLocation (5.2.14):
+  - OneSignalXCFramework/OneSignalLocation (5.2.15):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
     - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalNotifications (5.2.14):
+  - OneSignalXCFramework/OneSignalNotifications (5.2.15):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalExtension
     - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalOSCore (5.2.14):
+  - OneSignalXCFramework/OneSignalOSCore (5.2.15):
     - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalOutcomes (5.2.14):
+  - OneSignalXCFramework/OneSignalOutcomes (5.2.15):
     - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalUser (5.2.14):
+  - OneSignalXCFramework/OneSignalUser (5.2.15):
     - OneSignalXCFramework/OneSignalCore
     - OneSignalXCFramework/OneSignalNotifications
     - OneSignalXCFramework/OneSignalOSCore
@@ -1904,8 +1904,8 @@ PODS:
     - React
   - react-native-netinfo (11.4.1):
     - React-Core
-  - react-native-onesignal (5.2.13):
-    - OneSignalXCFramework (= 5.2.14)
+  - react-native-onesignal (5.2.14):
+    - OneSignalXCFramework (= 5.2.15)
     - React (< 1.0.0, >= 0.13.0)
   - react-native-safe-area-context (5.6.2):
     - React-Core
@@ -2433,7 +2433,7 @@ PODS:
     - React
     - React-Core
     - Turf
-  - RNScreens (4.17.1):
+  - RNScreens (4.18.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2462,7 +2462,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNSVG (15.14.0):
+  - RNSVG (15.15.0):
     - React-Core
   - SimpleKeychain (1.2.0)
   - SocketRocket (0.7.1)
@@ -2770,7 +2770,7 @@ SPEC CHECKSUMS:
   MapboxCoreMaps: 35685edba03e44468aed57c3dfd7f8795edafda8
   MapboxMaps: f87023cf0d72b180b40ea0b6fb4b2d7db6b73b71
   MapboxMobileEvents: d044b9edbe0ec7df60f6c2c9634fe9a7f449266b
-  OneSignalXCFramework: 7112f3e89563e41ebc23fe807788f11985ac541c
+  OneSignalXCFramework: ea9e14a95b92ad48d9b35037cbae88a9542bdea3
   RCT-Folly: 846fda9475e61ec7bcbf8a3fe81edfcaeb090669
   RCTDeprecation: c0ed3249a97243002615517dff789bf4666cf585
   RCTRequired: 58719f5124f9267b5f9649c08bf23d9aea845b23
@@ -2808,7 +2808,7 @@ SPEC CHECKSUMS:
   react-native-document-viewer: 3c1ee085db876e395f8378b491bb3cb477242d0a
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
-  react-native-onesignal: 0829ce2a504db26dd80eaf14d4e0211ea626fe62
+  react-native-onesignal: b68c981956150f288c1585889871affcef3c0b8b
   react-native-safe-area-context: 6c8805194166a9d6b3e53ba69ca76756c9bfb052
   react-native-splash-screen: 95994222cc95c236bd3cdc59fe45ed5f27969594
   React-NativeModulesApple: 8c7eb6057b00c191a11ad5ced41826ec5a0e4d78
@@ -2845,13 +2845,13 @@ SPEC CHECKSUMS:
   RNDeviceInfo: bcce8752b5043a623fe3c26789679b473f705d3c
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
   rnmapbox-maps: 1dc1a727163de4ff050a2d067b1470a97cf1981c
-  RNScreens: 95c4eeb47fc95bf0ad8a22f528370fcf80d27231
-  RNSVG: ad69b385e35653fd9694935c48840117e96ccc1d
+  RNScreens: 66511ce6211630d9fb1141bcd5b2ae269d8d1ccb
+  RNSVG: 7c0130308bacee76b280102b2d8c66c277d95ba7
   SimpleKeychain: 768cf43ae778b1c21816e94dddf01bb8ee96a075
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Turf: aa2ede4298009639d10db36aba1a7ebaad072a5e
   Yoga: 9b30b783a17681321b52ac507a37219d7d795ace
 
-PODFILE CHECKSUM: a037a785f0957e7eb7526dc32c3a1192e99cc698
+PODFILE CHECKSUM: 44ce36f7072a850a8a5381f3dc932b5fcf5c1c63
 
 COCOAPODS: 1.16.2

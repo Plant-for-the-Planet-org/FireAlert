@@ -72,5 +72,6 @@ target 'FireAlert' do
 end
 
 target 'OneSignalNotificationServiceExtension' do
+  platform :ios, '15.1'
   pod 'OneSignalXCFramework', '>= 5.0.0', '< 6.0'
 end

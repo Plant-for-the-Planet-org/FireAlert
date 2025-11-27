@@ -117,8 +117,6 @@ const Settings = () => {
   const [selectedSiteInfo, setSelectedSiteInfo] = useState<boolean | null>(
     null,
   );
-  const [isDeletingSite, setIsDeletingSite] = useState<boolean>(false);
-  const deleteSiteTimeout = useRef<any>(null);
 
   const toast = useToast();
   const modalToast = useRef();
@@ -129,17 +127,14 @@ const Settings = () => {
     data: sites,
     refetch: refetchSites,
     isSuccess: sitesSuccess,
+    isFetching: isFetchingSites,
   } = trpc.site.getSites.useQuery(['site', 'getSites'], {
     enabled: true,
     retryDelay: 3000,
     staleTime: 'Infinity',
     cacheTime: 'Infinity',
     keepPreviousData: true,
-    onSuccess: () => {
-      setRefreshing(false);
-    },
     onError: () => {
-      setRefreshing(false);
       toast.show('something went wrong', {type: 'danger'});
     },
   });
@@ -149,18 +144,17 @@ const Settings = () => {
     [sites],
   );
 
-  const {data: alertPreferences, refetch: refetchAlertPreferences} =
-    trpc.alertMethod.getAlertMethods.useQuery(undefined, {
-      enabled: sitesSuccess,
-      retryDelay: 3000,
-      onSuccess: () => {
-        setRefreshing(false);
-      },
-      onError: () => {
-        setRefreshing(false);
-        toast.show('something went wrong', {type: 'danger'});
-      },
-    });
+  const {
+    data: alertPreferences,
+    refetch: refetchAlertPreferences,
+    isFetching: isFetchingAlertPreferences,
+  } = trpc.alertMethod.getAlertMethods.useQuery(undefined, {
+    enabled: sitesSuccess,
+    retryDelay: 3000,
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
   const formattedAlertPreferences = useMemo(
     () => categorizedRes(alertPreferences?.json?.data || [], 'method'),
     [alertPreferences],
@@ -551,11 +545,23 @@ const Settings = () => {
 
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    refetchSites();
-    refetchAlertPreferences();
+    try {
+      await Promise.all([refetchSites(), refetchAlertPreferences()]);
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
   }, [refetchSites, refetchAlertPreferences]);
+
+  // Auto-stop refreshing when queries complete
+  useEffect(() => {
+    if (refreshing && !isFetchingSites && !isFetchingAlertPreferences) {
+      setRefreshing(false);
+    }
+  }, [refreshing, isFetchingSites, isFetchingAlertPreferences]);
 
   return (
     <SafeAreaView style={styles.container}>
