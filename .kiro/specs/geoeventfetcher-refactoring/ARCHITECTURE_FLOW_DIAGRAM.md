@@ -353,12 +353,11 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    Start([Start Alert Creation]) --> MarkStale[Mark Events >24hrs<br/>as Processed]
-
-    MarkStale --> InitLoop[Initialize Loop<br/>moreToProcess = true]
+    Start([Start Alert Creation]) --> InitLoop[Initialize Loop<br/>moreToProcess = true]
 
     InitLoop --> CheckMore{More to<br/>Process?}
-    CheckMore -->|No| End([Return Total Alerts])
+    CheckMore -->|No| MarkStale[Mark Events >24hrs<br/>as Processed]
+    MarkStale --> End([Return Total Alerts])
 
     CheckMore -->|Yes| CheckType{Provider<br/>Type?}
 
@@ -404,6 +403,7 @@ flowchart TD
     style PolarQuery fill:#b2dfdb
     style GeoInsert fill:#c5e1a5
     style PolarInsert fill:#c5e1a5
+    style MarkStale fill:#fff9c4
 ```
 
 ---
