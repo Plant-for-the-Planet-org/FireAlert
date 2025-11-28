@@ -1,8 +1,9 @@
-import {
-  type GeoEventProviderConfig,
-  type GeoEventProviderClientId,
-  type GeoEventProviderConfigGeneral,
-  type GeoEventProviderClass,
+import type {
+  GeoEventProviderConfig,
+  GeoEventProviderClientId,
+  GeoEventProviderConfigGeneral,
+  GeoEventProviderClass,
+  GeoEventProviderClient,
 } from '../../../Interfaces/GeoEventProvider';
 import type {
   ConfidenceLevels,
@@ -97,29 +98,26 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
       };
     };
 
-    return new Promise<GeoEvent[]>(async (resolve, reject) => {
-      try {
-        const url = this.getUrl(
-          clientApiKey,
-          geoEventProviderClientId as GeoEventProviderClientId,
-        );
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const csv = await response.text();
+    try {
+      const url = this.getUrl(
+        clientApiKey,
+        geoEventProviderClientId as GeoEventProviderClientId,
+      );
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const csv = await response.text();
 
+      return new Promise<GeoEvent[]>((resolve, reject) => {
         const parser = parse(csv, {columns: true});
-
         const records: GeoEvent[] = [];
-        let recordCount = 0;
 
         parser
           .on('readable', () => {
-            let record: DataRecord;
-            while ((record = parser.read())) {
-              records.push(normalize(record, record.instrument));
-              recordCount++;
+            let record: DataRecord | null;
+            while ((record = parser.read()) != null) {
+              records.push(normalize(record, record.instrument as string));
             }
           })
           .on('end', () => {
@@ -128,10 +126,10 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
           .on('error', error => {
             reject(new Error('Error parsing CSV file: ' + error.message));
           });
-      } catch (error) {
-        reject(error);
-      }
-    });
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
   getUrl(clientApiKey: string, clientId: GeoEventProviderClientId): string {
@@ -170,10 +168,10 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
     }
 
     return {
-      client: config.client,
-      bbox: config.bbox,
-      slice: config.slice,
-      apiUrl: config.apiUrl,
+      client: config.client as GeoEventProviderClient,
+      bbox: config.bbox as string,
+      slice: config.slice as string,
+      apiUrl: config.apiUrl as string,
     };
   }
 }
