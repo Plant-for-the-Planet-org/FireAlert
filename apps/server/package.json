@@ -54,7 +54,7 @@
     "react-map-gl": "7.1.0-beta.3",
     "superjson": "1.9.1",
     "twilio": "^4.11.0",
-    "validator": "^13.9.0",
+    "validator": "^13.15.22",
     "zod": "^3.22.3"
   },
   "devDependencies": {
