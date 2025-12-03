@@ -12,7 +12,7 @@
     "lint": "dotenv -e ../../.env next lint",
     "start": "dotenv -e ../../.env next start",
     "heroku-start": "next start -p $PORT",
-    "db:migrate": "dotenv -e ../../.env npx prisma migrate dev --name note-entity --create-only && npx prisma generate",
+    "db:migrate": "dotenv -e ../../.env npx prisma migrate dev",
     "db:push": "dotenv -e ../../.env npx prisma db push",
     "db:pull": "dotenv -e ../../.env npx prisma db pull",
     "db:deploy": "dotenv -e ../../.env npx prisma migrate deploy",
