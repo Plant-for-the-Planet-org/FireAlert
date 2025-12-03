@@ -178,7 +178,7 @@ export const siteRouter = createTRPCRouter({
         console.log(error);
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: `${error}`,
+          message: `${error as string}`,
         });
       }
     }),
@@ -305,7 +305,7 @@ export const siteRouter = createTRPCRouter({
           data: {site, siteRelation},
         };
       } catch (error) {
-        console.log({error});
+        console.log({error as string});
 
         if (error instanceof TRPCError) {
           throw error;
@@ -357,7 +357,7 @@ export const siteRouter = createTRPCRouter({
         console.log(error);
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: `${error}`,
+          message: `${error as string}`,
         });
       }
     }),
@@ -396,7 +396,7 @@ export const siteRouter = createTRPCRouter({
       console.log(error);
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: `${error}`,
+        message: `${error as string}`,
       });
     }
   }),
@@ -437,7 +437,7 @@ export const siteRouter = createTRPCRouter({
       console.log(error);
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: `${error}`,
+        message: `${error as string}`,
       });
     }
   }),

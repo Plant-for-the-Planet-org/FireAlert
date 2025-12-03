@@ -13,7 +13,7 @@ export const reviewStatusSchema = z.enum([
  * Schema for getting a single incident by ID
  */
 export const getIncidentSchema = z.object({
-  incidentId: z.string().cuid(),
+  incidentId: z.string().cuid({message: 'Invalid CUID'}),
 });
 
 /**

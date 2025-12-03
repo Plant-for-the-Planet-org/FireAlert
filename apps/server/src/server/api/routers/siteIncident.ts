@@ -10,6 +10,7 @@ import {createTRPCRouter, protectedProcedure} from '../trpc';
 import {siteIncidentService} from '../../../Services/SiteIncident/SiteIncidentService';
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
+import {logger} from '../../../server/logger';
 
 export const siteIncidentRouter = createTRPCRouter({
   /**
@@ -18,23 +19,29 @@ export const siteIncidentRouter = createTRPCRouter({
   getIncident: protectedProcedure
     .input(getIncidentSchema)
     .query(async ({ctx, input}) => {
-      const incident = await getIncidentById(input.incidentId);
+      try {
+        // logger(`getIncident `, 'debug');
+        const incident = await getIncidentById(input.incidentId);
 
-      if (!incident) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Incident not found',
+        if (!incident) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Incident not found',
+          });
+        }
+
+        // Check user has permission to view this site
+        await checkUserHasSitePermission({
+          ctx,
+          siteId: incident.siteId,
+          userId: ctx.user!.id,
         });
+
+        return incident;
+      } catch (error) {
+        console.error('Error in getIncident:', error);
+        throw error;
       }
-
-      // Check user has permission to view this site
-      await checkUserHasSitePermission({
-        ctx,
-        siteId: incident.siteId,
-        userId: ctx.user!.id,
-      });
-
-      return incident;
     }),
 
   /**

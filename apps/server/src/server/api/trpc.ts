@@ -9,6 +9,7 @@ import superjson from 'superjson';
 import {ZodError} from 'zod';
 import {prisma} from '../../server/db';
 import {decodeToken} from '../../utils/routers/trpc';
+import {logger} from '../logger';
 
 type CreateContextOptions = {
   req: NextApiRequest;
@@ -35,6 +36,7 @@ export const createTRPCContext = (
 ) => {
   const {req} = opts;
 
+  logger(`createTRPCContext `, 'info');
   return createInnerTRPCContext({
     req,
     user,

@@ -106,6 +106,7 @@ yarn server db:push
 ### Monitoring & Debugging
 
 - **`NEXT_PUBLIC_SENTRY_DSN`**: Sentry Data Source Name for error tracking and monitoring
+- **`SENTRY_IGNORE_API_RESOLUTION_ERROR`**: Suppress Sentry API resolution errors (true/false). Set to `true` to ignore API resolution errors in development, `false` to log them for debugging Sentry configuration issues
 - **`NODE_ENV`**: Node.js environment mode ('development', 'production', or 'test')
 - **`PUBLIC_API_CACHING`**: Enable/disable API response caching (true/false)
 
