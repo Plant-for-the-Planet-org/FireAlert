@@ -50,17 +50,70 @@ yarn server db:push
 
 ## Environment Variables
 
-- **Database**: `DATABASE_URL`, `DATABASE_PRISMA_URL`, `DATABASE_URL_NON_POOLING` for PostgreSQL connections with pooling and migration support
-- **Auth0**: `AUTH0_DOMAIN`, `AUTH0_ISSUER`, `NEXT_AUTH0_CLIENT_ID`, `NEXT_AUTH0_CLIENT_SECRET` for authentication integration
-- **NextAuth**: `NEXTAUTH_SECRET`, `NEXTAUTH_URL` for session management
-- **Mapbox**: `MAPBOXGL_ACCCESS_TOKEN`, `MAPBOXGL_DOWNLOAD_TOKEN` for map services and tile downloads
-- **Twilio**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_WHATSAPP_NUMBER` for SMS and WhatsApp notifications
-- **OneSignal**: `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY` for push notifications
-- **Email**: `SMTP_URL`, `EMAIL_FROM` for email notifications via Nodemailer
-- **Monitoring**: `NEXT_PUBLIC_SENTRY_DSN` for error tracking
-- **FIRMS**: `FIRMS_MAP_KEY`, `ENABLE_FIRMS_MAP_KEY` for NASA fire data access
-- **WhatsApp**: `WHATSAPP_ENDPOINT_URL`, `WHATSAPP_ENDPOINT_AUTH_TOKEN` for WhatsApp integration
-- **Features**: `ENABLE_INCIDENT_NOTIFICATIONS`, `ENABLE_ENHANCED_STATUS_TRACKING`, `NOTIFICATION_MODE` for feature flags
+### Database Configuration
+
+- **`DATABASE_URL`**: PostgreSQL connection string with connection pooling for general database operations
+- **`DATABASE_PRISMA_URL`**: Prisma-specific database connection URL (typically same as DATABASE_URL)
+- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling, required for Prisma migrations and schema operations
+- **`DATABASE_URL_NON_POOLING_SHADOW`**: Shadow database URL for Prisma migration testing and validation
+
+### Authentication & Authorization
+
+- **`RN_AUTH0_CLIENT_ID`**: Auth0 client ID for React Native mobile app authentication
+- **`RN_AUTH0_DOMAIN`**: Auth0 domain for React Native mobile app (e.g., accounts.plant-for-the-planet.org)
+- **`NEXT_AUTH0_CLIENT_ID`**: Auth0 client ID for Next.js web application
+- **`NEXT_AUTH0_CLIENT_SECRET`**: Auth0 client secret for Next.js server-side authentication
+- **`AUTH0_DOMAIN`**: Full Auth0 domain URL (e.g., https://accounts.plant-for-the-planet.org)
+- **`AUTH0_ISSUER`**: Auth0 token issuer identifier (e.g., urn:plant-for-the-planet)
+- **`NEXTAUTH_SECRET`**: Secret key for NextAuth.js session encryption (generate with `openssl rand -base64 32`)
+- **`NEXTAUTH_URL`**: Base URL of the Next.js application for NextAuth callbacks
+
+### Mapping Services
+
+- **`MAPBOXGL_ACCCESS_TOKEN`**: Mapbox access token for map rendering and tile services
+- **`MAPBOXGL_DOWNLOAD_TOKEN`**: Mapbox token for downloading map tiles and assets
+
+### Notification Services
+
+#### Twilio (SMS & WhatsApp)
+
+- **`TWILIO_ACCOUNT_SID`**: Twilio account identifier for SMS and WhatsApp services
+- **`TWILIO_AUTH_TOKEN`**: Twilio authentication token for API access
+- **`TWILIO_PHONE_NUMBER`**: Twilio phone number for sending SMS notifications
+- **`TWILIO_WHATSAPP_NUMBER`**: Twilio WhatsApp-enabled number for WhatsApp notifications
+
+#### OneSignal (Push Notifications)
+
+- **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification delivery
+- **`ONESIGNAL_REST_API_KEY`**: OneSignal REST API key for server-side push notification operations
+
+#### Email (SMTP)
+
+- **`SMTP_URL`**: SMTP server connection URL (format: smtp://username:password@host:port)
+- **`EMAIL_FROM`**: Default sender email address and display name for outgoing emails
+
+#### WhatsApp Integration
+
+- **`WHATSAPP_ENDPOINT_URL`**: Custom WhatsApp webhook endpoint for message delivery
+- **`WHATSAPP_ENDPOINT_AUTH_TOKEN`**: Authentication token for WhatsApp webhook endpoint
+
+### External Integrations
+
+- **`PLANET_API_URL`**: Plant-for-the-Planet platform API URL for project and site synchronization
+- **`FIRMS_MAP_KEY`**: NASA FIRMS (Fire Information for Resource Management System) API key for fire data access
+- **`SLACK_KEY_SITE_NOTIFICATIONS`**: Slack webhook URL for internal site notification alerts
+
+### Monitoring & Debugging
+
+- **`NEXT_PUBLIC_SENTRY_DSN`**: Sentry Data Source Name for error tracking and monitoring
+- **`NODE_ENV`**: Node.js environment mode ('development', 'production', or 'test')
+- **`PUBLIC_API_CACHING`**: Enable/disable API response caching (true/false)
+
+### Feature Flags
+
+- **`USE_REFACTORED_PIPELINE`**: Enable new service layer architecture for geo-event processing ('true'/'false')
+- **`ENABLE_INCIDENT_NOTIFICATIONS`**: Enable fire incident tracking and notification system ('true'/'false')
+- **`INCIDENT_INACTIVITY_HOURS`**: Hours of inactivity before closing a fire incident (default: 6)
 
 ## Environment Configuration
 
