@@ -45,4 +45,8 @@ check.ts
 # Sentry Auth Token
 .sentryclirc
 
+# Turborepo local build cache
 .turbo
+
+# Prisma generated types >= 7
+prisma/generated
