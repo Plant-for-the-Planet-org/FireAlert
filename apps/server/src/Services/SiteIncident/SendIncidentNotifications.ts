@@ -8,7 +8,7 @@ import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
-import type {NotificationStatus} from '@prisma/client';
+import type {NotificationStatus, SiteAlert, Site, Prisma} from '@prisma/client';
 
 const ALERT_SMS_DISABLED = env.ALERT_SMS_DISABLED;
 const ALERT_WHATSAPP_DISABLED = env.ALERT_WHATSAPP_DISABLED;
@@ -17,6 +17,16 @@ const ALERT_WHATSAPP_DISABLED = env.ALERT_WHATSAPP_DISABLED;
  * Service for sending incident boundary notifications (START and END)
  * Processes notifications with SCHEDULED status and delivers them through configured alert methods
  */
+
+// Helper function to safely convert any to string
+function ensureString(value: unknown): string {
+  return String(value);
+}
+
+// Helper function to safely convert any to NotificationStatus
+function ensureNotificationStatus(value: unknown): NotificationStatus {
+  return value as NotificationStatus;
+}
 
 interface IncidentMetadata {
   type: 'INCIDENT_START' | 'INCIDENT_END';
@@ -27,19 +37,37 @@ interface IncidentMetadata {
   durationMinutes?: number;
 }
 
+type IncidentMessageInput = {
+  latitude: number;
+  longitude: number;
+  eventDate: Date;
+  confidence: string;
+};
+
+type IncidentMessageOutput = {
+  message: string;
+  subject: string;
+  url: string;
+};
+
+type NotificationWithIncidentRelations = Prisma.NotificationGetPayload<{
+  include: {
+    siteAlert: {
+      include: {
+        site: true;
+      };
+    };
+  };
+}>;
+
 /**
  * Constructs appropriate message for START or END incident notifications
  */
 function constructIncidentMessage(
   metadata: IncidentMetadata,
   alertMethod: AlertMethodMethod,
-  siteAlert: {
-    latitude: number;
-    longitude: number;
-    eventDate: Date;
-    confidence: string;
-  },
-): {message: string; subject: string; url: string} {
+  siteAlert: IncidentMessageInput,
+): IncidentMessageOutput {
   const {type, siteName, detectionCount, durationMinutes} = metadata;
   const {latitude, longitude, eventDate} = siteAlert;
 
@@ -157,7 +185,7 @@ export async function sendIncidentNotifications(
 
   while (continueProcessing) {
     // Get notifications with SCHEDULED status
-    const notifications = await prisma.notification.findMany({
+    const notifications = (await prisma.notification.findMany({
       where: {
         isSkipped: false,
         isDelivered: false,
@@ -175,7 +203,7 @@ export async function sendIncidentNotifications(
         },
       },
       take: take,
-    });
+    })) as NotificationWithIncidentRelations[];
 
     // If no notifications are found, exit the loop
     if (notifications.length === 0) {
@@ -200,103 +228,129 @@ export async function sendIncidentNotifications(
     }[] = [];
 
     await Promise.all(
-      notifications.map(async notification => {
-        try {
-          const {id, destination, siteAlert, metadata, notificationStatus} =
-            notification;
-          const alertMethod = notification.alertMethod as AlertMethodMethod;
-
-          if (!metadata || !notificationStatus) {
-            logger(
-              `Notification ${id} missing metadata or status, skipping`,
-              'warn',
+      notifications.map(
+        async (notification: NotificationWithIncidentRelations) => {
+          const {id, destination, siteAlert} = notification;
+          const id_typed: string = id;
+          const destination_typed: string = ensureString(destination);
+          try {
+            const alertMethod_str: string = ensureString(
+              notification.alertMethod,
             );
-            return;
-          }
+            const alertMethod_typed: AlertMethodMethod =
+              alertMethod_str as AlertMethodMethod;
+            const metadata_typed: IncidentMetadata | null =
+              notification.metadata as IncidentMetadata | null;
+            const notificationStatus_typed: NotificationStatus | null =
+              ensureNotificationStatus(
+                notification.notificationStatus,
+              ) as NotificationStatus | null;
 
-          const incidentMetadata = metadata as unknown as IncidentMetadata;
-          const {
-            id: alertId,
-            confidence,
-            data,
-            type,
-            longitude,
-            latitude,
-            eventDate,
-            site,
-          } = siteAlert;
+            if (!metadata_typed || !notificationStatus_typed) {
+              logger(
+                `Notification ${id_typed} missing metadata or status, skipping`,
+                'warn',
+              );
+              return;
+            }
 
-          // Construct incident-specific message
-          const {message, subject, url} = constructIncidentMessage(
-            incidentMetadata,
-            alertMethod,
-            {latitude, longitude, eventDate, confidence},
-          );
-
-          const notificationParameters: NotificationParameters = {
-            id: id,
-            message: message,
-            subject: subject,
-            url: url,
-            alert: {
+            const incidentMetadata: IncidentMetadata = metadata_typed;
+            const siteAlertWithSite = siteAlert as SiteAlert & {site: Site};
+            const {
               id: alertId,
-              type: type,
-              confidence: confidence,
-              source: 'INCIDENT',
-              date: eventDate,
-              longitude: longitude,
-              latitude: latitude,
-              distance: 0,
-              siteId: site.id,
-              siteName: site.name || 'Unknown Site',
-              data: data as DataRecord,
-            },
-          };
+              confidence,
+              data,
+              type,
+              longitude,
+              latitude,
+              eventDate,
+              site,
+            } = siteAlertWithSite;
+            const alertId_typed: string = alertId;
 
-          const notifier = NotifierRegistry.get(alertMethod);
-          const isDelivered = await notifier.notify(
-            destination,
-            notificationParameters,
-            options,
-          );
+            // Construct incident-specific message
+            const {message, subject, url} = constructIncidentMessage(
+              incidentMetadata,
+              alertMethod_typed,
+              {
+                latitude,
+                longitude,
+                eventDate,
+                confidence,
+              },
+            );
 
-          if (isDelivered === true) {
-            successfulNotificationIds.push(id);
-            successfulDestinations.push(destination);
+            const notificationParameters: NotificationParameters = {
+              id: id_typed,
+              message: message,
+              subject: subject,
+              url: url,
+              alert: {
+                id: alertId_typed,
+                type: type,
+                confidence: confidence,
+                source: 'INCIDENT',
+                date: eventDate,
+                longitude: longitude,
+                latitude: latitude,
+                distance: 0,
+                siteId: site.id,
+                siteName: site.name || 'Unknown Site',
+                data: data as DataRecord,
+              },
+            };
 
-            // Determine new status based on current status
-            const newStatus: NotificationStatus =
-              notificationStatus === 'START_SCHEDULED'
-                ? 'START_SENT'
-                : 'END_SENT';
+            const notifier = NotifierRegistry.get(alertMethod_typed);
+            const isDelivered = await notifier.notify(
+              destination_typed,
+              notificationParameters,
+              options,
+            );
 
-            notificationStatusUpdates.push({id, status: newStatus});
-            successCount++;
+            if (isDelivered === true) {
+              successfulNotificationIds.push(id_typed);
+              successfulDestinations.push(destination_typed);
+
+              // Determine new status based on current status
+              const newStatus: NotificationStatus =
+                notificationStatus_typed === 'START_SCHEDULED'
+                  ? ('START_SENT' as const)
+                  : ('END_SENT' as const);
+
+              notificationStatusUpdates.push({id: id_typed, status: newStatus});
+              successCount++;
+            }
+          } catch (error) {
+            logger(
+              `Error processing incident notification ${id_typed}: ${
+                (error as Error)?.message
+              }`,
+              'error',
+            );
           }
-        } catch (error) {
-          logger(
-            `Error processing incident notification ${notification.id}: ${
-              (error as Error)?.message
-            }`,
-            'error',
-          );
-        }
-      }),
+        },
+      ),
     );
 
     // Update successful notifications
     if (successfulNotificationIds.length > 0) {
       // Update each notification with its specific status
       await Promise.all(
-        notificationStatusUpdates.map(update =>
-          prisma.notification.update({
-            where: {id: update.id},
-            data: {
-              isDelivered: true,
-              sentAt: new Date(),
-              notificationStatus: update.status,
-            },
-          }),
+        notificationStatusUpdates.map(
+          (update: {id: string; status: NotificationStatus}) => {
+            const status_typed: NotificationStatus = ensureNotificationStatus(
+              update.status,
+            );
+            const updateId_typed: string = ensureString(update.id);
+            return prisma.notification.update({
+              where: {id: updateId_typed},
+              data: {
+                isDelivered: true,
+                sentAt: new Date(),
+                notificationStatus: status_typed,
+              },
+            });
+          },
         ),
       );
 
@@ -311,12 +365,13 @@ export async function sendIncidentNotifications(
 
     // Handle failed notifications - mark them as skipped
     const unsuccessfulNotifications = notifications.filter(
-      ({id}) => !successfulNotificationIds.includes(id),
+      ({id}: NotificationWithIncidentRelations) =>
+        !successfulNotificationIds.includes(id),
     );
 
     if (unsuccessfulNotifications.length > 0) {
       const unsuccessfulNotificationIds = unsuccessfulNotifications.map(
-        ({id}) => id,
+        ({id}: NotificationWithIncidentRelations) => ensureString(id),
       );
 
       await prisma.notification.updateMany({

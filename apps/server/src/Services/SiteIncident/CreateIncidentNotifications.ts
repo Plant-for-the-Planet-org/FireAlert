@@ -8,6 +8,16 @@ import type {NotificationStatus} from '@prisma/client';
  * Processes unprocessed SiteIncidents and creates notifications for each verified and enabled alert method
  */
 
+// Helper function to safely convert any to string
+function ensureString(value: unknown): string {
+  return String(value);
+}
+
+// Helper function to safely convert any to NotificationStatus
+function ensureNotificationStatus(value: unknown): NotificationStatus {
+  return value as NotificationStatus;
+}
+
 type NotificationQueueItem = {
   incidentId: string;
   siteId: string;
@@ -35,6 +45,27 @@ type NotificationToBeCreated = {
 
 type ActiveAlertMethodCount = Record<string, number>;
 
+type AlertMethodInfo = {
+  method: string;
+  destination: string;
+  isEnabled: boolean;
+  isVerified: boolean;
+};
+
+type UserWithAlertMethods = {
+  alertMethods: AlertMethodInfo[];
+};
+
+type SiteRelationWithUser = {
+  user: UserWithAlertMethods;
+};
+
+type SiteWithRelations = {
+  name: string | null;
+  user: UserWithAlertMethods | null;
+  siteRelations: SiteRelationWithUser[];
+};
+
 type UnprocessedIncident = {
   id: string;
   siteId: string;
@@ -42,27 +73,7 @@ type UnprocessedIncident = {
   startSiteAlertId: string;
   startedAt: Date;
   endedAt: Date | null;
-  site: {
-    name: string | null;
-    user: {
-      alertMethods: {
-        method: string;
-        destination: string;
-        isEnabled: boolean;
-        isVerified: boolean;
-      }[];
-    } | null;
-    siteRelations: {
-      user: {
-        alertMethods: {
-          method: string;
-          destination: string;
-          isEnabled: boolean;
-          isVerified: boolean;
-        }[];
-      };
-    }[];
-  };
+  site: SiteWithRelations;
   _count: {
     siteAlerts: number;
   };
@@ -121,8 +132,9 @@ function processIncidentChunk(incidentChunk: UnprocessedIncident[]): {
 
   // Process each incident and add to notification queue
   for (const incident of incidentChunk) {
-    const siteId = incident.siteId;
+    const siteId_loop: string = incident.siteId;
     const alertMethods = incident.site.user?.alertMethods || [];
+    const siteId = siteId_loop;
 
     // Initialize notificationMethodCounter for each unique site
     if (uniqueSiteIdsForNewIncidents.has(siteId)) {
@@ -145,32 +157,45 @@ function processIncidentChunk(incidentChunk: UnprocessedIncident[]): {
 
     // Determine notification type based on incident state
     const notificationType: NotificationStatus = incident.isActive
-      ? 'START_SCHEDULED'
-      : 'END_SCHEDULED';
+      ? ('START_SCHEDULED' as const)
+      : ('END_SCHEDULED' as const);
 
     // Add notifications to queue for each verified and enabled alert method
     if (alertMethods && alertMethods.length > 0) {
       alertMethods.forEach(alertMethod => {
         if (alertMethod.isVerified && alertMethod.isEnabled) {
-          notificationDataQueue.push({
-            incidentId: incident.id,
-            siteId: incident.siteId,
+          const method_typed: string = ensureString(alertMethod.method);
+          const destination_typed: string = ensureString(
+            alertMethod.destination,
+          );
+          const incidentId_typed: string = ensureString(incident.id);
+          const siteId_typed: string = ensureString(incident.siteId);
+          const startSiteAlertId_typed: string = ensureString(
+            incident.startSiteAlertId,
+          );
+          const queueItem: NotificationQueueItem = {
+            incidentId: incidentId_typed,
+            siteId: siteId_typed,
             notificationType,
-            alertMethod: alertMethod.method,
-            destination: alertMethod.destination,
-            siteAlertId: incident.startSiteAlertId,
-          });
+            alertMethod: method_typed,
+            destination: destination_typed,
+            siteAlertId: startSiteAlertId_typed,
+          };
+          notificationDataQueue.push(queueItem);
         }
       });
     }
 
-    processedIncidents.push(incident.id);
+    const incident_id: string = incident.id;
+    processedIncidents.push(incident_id);
   }
 
   // Create notifications based on method availability
   for (const notification of notificationDataQueue) {
-    const siteId = notification.siteId;
-    const method = notification.alertMethod;
+    const siteId_notif: string = notification.siteId;
+    const siteId = siteId_notif;
+    const method_notif: string = notification.alertMethod;
+    const method: string = method_notif;
 
     // Check if method count is sufficient
     const isMethodCountSufficient =
@@ -193,23 +218,31 @@ function processIncidentChunk(incidentChunk: UnprocessedIncident[]): {
       }
 
       // Prepare notification data
+      const incidentMetadata = {
+        type:
+          notification.notificationType === 'START_SCHEDULED'
+            ? ('INCIDENT_START' as const)
+            : ('INCIDENT_END' as const),
+        incidentId: notification.incidentId,
+        siteId: notification.siteId,
+        siteName: incident.site.name || 'Unknown Site',
+        detectionCount: incident._count.siteAlerts,
+        durationMinutes,
+      } satisfies NotificationToBeCreated['metadata'];
+
+      const siteAlertId_typed: string = ensureString(notification.siteAlertId);
+      const destination_notification: string = ensureString(
+        notification.destination,
+      );
+      const notificationType_typed: NotificationStatus =
+        ensureNotificationStatus(notification.notificationType);
       const createNotificationData: NotificationToBeCreated = {
-        siteAlertId: notification.siteAlertId,
+        siteAlertId: siteAlertId_typed,
         alertMethod: method,
-        destination: notification.destination,
+        destination: destination_notification,
         isDelivered: false,
-        notificationStatus: notification.notificationType,
-        metadata: {
-          type:
-            notification.notificationType === 'START_SCHEDULED'
-              ? 'INCIDENT_START'
-              : 'INCIDENT_END',
-          incidentId: notification.incidentId,
-          siteId: notification.siteId,
-          siteName: incident.site.name || 'Unknown Site',
-          detectionCount: incident._count.siteAlerts,
-          durationMinutes,
-        },
+        notificationStatus: notificationType_typed,
+        metadata: incidentMetadata,
       };
 
       notificationsToBeCreated.push(createNotificationData);
@@ -236,7 +269,7 @@ export async function createIncidentNotifications(): Promise<number> {
     logger('Starting incident notification creation', 'info');
 
     // Get all unprocessed incidents
-    const unprocessedIncidents = await prisma.siteIncident.findMany({
+    const queryResults = await prisma.siteIncident.findMany({
       where: {
         isProcessed: false,
       },
@@ -289,25 +322,46 @@ export async function createIncidentNotifications(): Promise<number> {
       orderBy: [{siteId: 'asc'}, {startedAt: 'asc'}],
     });
 
+    const unprocessedIncidents: UnprocessedIncident[] = queryResults.map(
+      result => ({
+        id: result.id,
+        siteId: result.siteId,
+        isActive: result.isActive,
+        startSiteAlertId: result.startSiteAlertId,
+        startedAt: result.startedAt,
+        endedAt: result.endedAt,
+        site: {
+          name: result.site.name,
+          user: result.site.user,
+          siteRelations: result.site.siteRelations,
+        },
+        _count: result._count,
+      }),
+    );
+
     // Handle protected sites (where site.user is null)
-    unprocessedIncidents.forEach(incident => {
+    const processedIncidents = unprocessedIncidents.map(incident => {
       if (!incident.site.user) {
-        incident.site.user = {
-          alertMethods: incident.site.siteRelations.flatMap(
-            sr => sr.user.alertMethods,
-          ),
+        return {
+          ...incident,
+          site: {
+            ...incident.site,
+            user: {
+              alertMethods: incident.site.siteRelations.flatMap(
+                sr => sr.user.alertMethods,
+              ),
+            },
+          },
         };
       }
+      return incident;
     });
 
-    logger(
-      `Found ${unprocessedIncidents.length} unprocessed incidents`,
-      'info',
-    );
+    logger(`Found ${processedIncidents.length} unprocessed incidents`, 'info');
 
     // Process incidents in chunks
     const incidentsInChunks = createNestedChunksForUnprocessedIncidents(
-      unprocessedIncidents,
+      processedIncidents,
       30,
     );
 
