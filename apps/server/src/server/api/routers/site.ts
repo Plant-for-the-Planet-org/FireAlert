@@ -305,8 +305,6 @@ export const siteRouter = createTRPCRouter({
           data: {site, siteRelation},
         };
       } catch (error) {
-        console.log({error as string});
-
         if (error instanceof TRPCError) {
           throw error;
         }

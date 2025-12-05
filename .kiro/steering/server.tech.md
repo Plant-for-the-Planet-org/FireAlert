@@ -52,10 +52,34 @@ yarn server db:push
 
 ### Database Configuration
 
-- **`DATABASE_URL`**: PostgreSQL connection string with connection pooling for general database operations
-- **`DATABASE_PRISMA_URL`**: Prisma-specific database connection URL (typically same as DATABASE_URL)
-- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling, required for Prisma migrations and schema operations
-- **`DATABASE_URL_NON_POOLING_SHADOW`**: Shadow database URL for Prisma migration testing and validation
+The application supports multiple database configurations for different environments. Uncomment the appropriate set based on your needs:
+
+#### Production/Development (Supabase)
+
+- **`DATABASE_URL`**: PostgreSQL connection string with connection pooling for general database operations. Points to Supabase pooler for production/staging environments
+- **`DATABASE_PRISMA_URL`**: Prisma-specific database connection URL (typically same as DATABASE_URL for pooled connections)
+- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling, required for Prisma migrations and schema operations. Essential for running `yarn server db:migrate` and `yarn server db:deploy`
+- **`DATABASE_URL_NON_POOLING_SHADOW`**: Shadow database URL for Prisma migration testing and validation during development
+
+#### Local Development (Default Database)
+
+Uncomment these variables to connect to a local PostgreSQL instance running on port 54320 with the default `postgres` database:
+
+- **`DATABASE_URL`**: `postgres://postgres:password@localhost:54320/postgres`
+- **`DATABASE_PRISMA_URL`**: `postgres://postgres:password@localhost:54320/postgres`
+- **`DATABASE_URL_NON_POOLING`**: `postgres://postgres:password@localhost:54320/postgres`
+- **`DATABASE_URL_NON_POOLING_SHADOW`**: `postgres://postgres:password@localhost:54320/postgres`
+
+#### Local Development (FireIncident Database)
+
+Uncomment these variables to connect to a local PostgreSQL instance with a dedicated `fire-incidents` database for testing fire incident tracking features:
+
+- **`DATABASE_URL`**: `postgres://postgres:password@localhost:54320/fire-incidents`
+- **`DATABASE_PRISMA_URL`**: `postgres://postgres:password@localhost:54320/fire-incidents`
+- **`DATABASE_URL_NON_POOLING`**: `postgres://postgres:password@localhost:54320/fire-incidents`
+- **`DATABASE_URL_NON_POOLING_SHADOW`**: `postgres://postgres:password@localhost:54320/fire-incidents`
+
+**Note**: Only one set of database configuration variables should be active (uncommented) at a time. The local configurations assume PostgreSQL with PostGIS extension is running locally, typically via Docker or Supabase local development setup.
 
 ### Authentication & Authorization
 

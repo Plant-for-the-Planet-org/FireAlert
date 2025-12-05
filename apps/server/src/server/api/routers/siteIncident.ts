@@ -6,7 +6,7 @@ import {
   updateIncidentReviewStatusSchema,
   closeIncidentSchema,
 } from '../zodSchemas/siteIncident.schema';
-import {createTRPCRouter, protectedProcedure} from '../trpc';
+import {createTRPCRouter, protectedProcedure, publicProcedure} from '../trpc';
 import {siteIncidentService} from '../../../Services/SiteIncident/SiteIncidentService';
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
@@ -14,7 +14,88 @@ import {logger} from '../../../server/logger';
 
 export const siteIncidentRouter = createTRPCRouter({
   /**
-   * Get a single incident by ID
+   * Get a single incident by ID (public endpoint for sharing)
+   */
+  getIncidentPublic: publicProcedure
+    .input(getIncidentSchema)
+    .query(async ({ctx, input}) => {
+      try {
+        const incident = await ctx.prisma.siteIncident.findUnique({
+          where: {id: input.incidentId},
+          include: {
+            site: {
+              select: {
+                id: true,
+                name: true,
+                geometry: true,
+                project: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+            startSiteAlert: {
+              select: {
+                id: true,
+                eventDate: true,
+                latitude: true,
+                longitude: true,
+                detectedBy: true,
+                confidence: true,
+              },
+            },
+            latestSiteAlert: {
+              select: {
+                id: true,
+                eventDate: true,
+                latitude: true,
+                longitude: true,
+                detectedBy: true,
+                confidence: true,
+              },
+            },
+            siteAlerts: {
+              select: {
+                id: true,
+                eventDate: true,
+                latitude: true,
+                longitude: true,
+                detectedBy: true,
+                confidence: true,
+              },
+              orderBy: {
+                eventDate: 'asc',
+              },
+            },
+          },
+        });
+
+        if (!incident) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Incident not found',
+          });
+        }
+
+        return {
+          status: 'success',
+          data: incident,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Something went wrong!',
+        });
+      }
+    }),
+
+  /**
+   * Get a single incident by ID (protected endpoint)
    */
   getIncident: protectedProcedure
     .input(getIncidentSchema)
