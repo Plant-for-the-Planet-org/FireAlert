@@ -6,19 +6,18 @@
     "schema": "./prisma/schema.prisma"
   },
   "scripts": {
-    "build": "yarn db:deploy && dotenv -e ../../.env next build",
-    "dev": "dotenv -e ../../.env next dev",
-    "postinstall": "cd ../../ && npx prisma generate",
-    "lint": "dotenv -e ../../.env next lint",
-    "start": "dotenv -e ../../.env next start",
-    "heroku-start": "next start -p $PORT",
-    "db:migrate": "dotenv -e ../../.env npx prisma migrate dev --name note-entity --create-only && npx prisma generate",
-    "db:push": "dotenv -e ../../.env npx prisma db push",
-    "db:pull": "dotenv -e ../../.env npx prisma db pull",
-    "db:deploy": "dotenv -e ../../.env npx prisma migrate deploy",
-    "db:reset": "dotenv -e ../../.env npx prisma migrate reset",
-    "db:generate": "dotenv -e ../../.env npx prisma generate",
-    "db:studio": "dotenv -e ../../.env npx prisma studio"
+    "postinstall": "npx prisma generate",
+    "build": "yarn db:deploy && next build",
+    "dev": "next dev",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate dev",
+    "db:deploy": "npx prisma migrate deploy",
+    "db:reset": "npx prisma migrate reset",
+    "db:push": "npx prisma db push",
+    "db:pull": "npx prisma db pull",
+    "db:studio": "npx prisma studio"
   },
   "dependencies": {
     "@google/earthengine": "^0.1.396",
