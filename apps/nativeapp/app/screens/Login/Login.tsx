@@ -34,7 +34,7 @@ const Login = () => {
 
   useEffect(() => {
     if (error) {
-      if (error.code === 'unauthorized') {
+      if (error?.code === 'unauthorized' || error?.code === 'access_denied') {
         setShowVerifyAccModal(true);
       }
     }
@@ -49,10 +49,7 @@ const Login = () => {
           scope: 'openid email profile offline_access',
           audience: 'urn:plant-for-the-planet',
         },
-        {
-          ephemeralSession: false,
-          useLegacyCallbackUrl: true,
-        },
+        {ephemeralSession: false, useLegacyCallbackUrl: true},
       );
 
       if (authCred) {
@@ -70,10 +67,11 @@ const Login = () => {
         dispatch(getUserDetails(request));
       } else {
         setIsLoading(false);
-        toast.show('Login Failed');
+        toast.show('Login Failed.');
       }
-    } catch (error) {
-      toast.show('Login Failed');
+    } catch (err) {
+      console.log({err});
+      toast.show('Login Failed. Something went wrong.');
     }
   };
 
