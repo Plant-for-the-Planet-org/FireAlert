@@ -80,6 +80,12 @@ const server = z.object({
 
   // NASA FIRMS API key for accessing fire/heat anomaly data. Optional - falls back to provider config if not set.
   FIRMS_MAP_KEY: z.string().optional(),
+
+  // Provider processing concurrency limit. Defaults to 3 for optimal performance vs resource usage.
+  PROVIDER_CONCURRENCY: z
+    .string()
+    .default('3')
+    .transform(val => parseInt(val, 10)),
 });
 
 /**
@@ -132,6 +138,7 @@ const processEnv = {
   NOTIFICATION_BATCH_SIZE: process.env.NOTIFICATION_BATCH_SIZE,
   USE_REFACTORED_PIPELINE: process.env.USE_REFACTORED_PIPELINE,
   FIRMS_MAP_KEY: process.env.FIRMS_MAP_KEY,
+  PROVIDER_CONCURRENCY: process.env.PROVIDER_CONCURRENCY,
 };
 
 // Don't touch the part below
