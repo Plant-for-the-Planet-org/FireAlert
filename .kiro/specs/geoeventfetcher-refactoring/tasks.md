@@ -742,3 +742,423 @@
   - Verify no missing type definitions
   - Verify no circular type dependencies
   - _Requirements: Type-safe compilation_
+
+## Phase 11: Performance Metrics & Observability
+
+- [ ] 18. Add comprehensive performance metrics to processing pipeline
+
+  - Implement detailed timing and performance tracking throughout the system
+  - Enable identification of bottlenecks and system health monitoring
+  - _Requirements: Observability for performance analysis_
+
+- [x] 18.1 Create PerformanceMetrics domain model
+
+  - Create `apps/server/src/utils/PerformanceMetrics.ts`
+  - Implement `startTimer(label: string): void` for starting named timers
+  - Implement `endTimer(label: string): number` returning duration in milliseconds
+  - Implement `recordMetric(label: string, value: number): void` for custom metrics
+  - Implement `getMetrics(): object` returning all recorded metrics
+  - Implement `merge(other: PerformanceMetrics): PerformanceMetrics` for combining results
+  - Support nested timing (e.g., provider → chunks → deduplication)
+  - _Requirements: Metrics tracking infrastructure_
+
+- [ ]\* 18.2 Write unit tests for PerformanceMetrics
+
+  - Test timer start/end functionality
+  - Test duration calculation accuracy
+  - Test metric recording and retrieval
+  - Test merge functionality with multiple metrics
+  - Test nested timer scenarios
+  - _Requirements: Verify metrics collection logic_
+
+- [x] 18.3 Integrate PerformanceMetrics into OperationResult
+
+  - Update `apps/server/src/utils/OperationResult.ts`
+  - Add `metrics?: PerformanceMetrics` field to store performance data
+  - Update `toJSON()` to include metrics breakdown in response
+  - Implement `setMetrics(metrics: PerformanceMetrics): void` method
+  - _Requirements: Include metrics in operation results_
+
+- [x] 18.4 Add timing to GeoEventProviderService
+
+  - Update `apps/server/src/Services/GeoEventProvider/GeoEventProviderService.ts`
+  - Add metrics tracking in `processProviders()` for total duration
+  - Track per-provider processing time in `processProvider()`
+  - Track event fetching time from provider API
+  - Track chunk processing time (per chunk)
+  - Track alert creation time
+  - Track database update time
+  - Aggregate metrics across all providers
+  - _Requirements: Provider-level performance visibility_
+
+- [x] 18.5 Add timing to GeoEventService
+
+  - Update `apps/server/src/Services/GeoEvent/GeoEventService.ts`
+  - Track checksum generation time in `deduplicateAndSave()`
+  - Track database fetch time for existing IDs
+  - Track duplicate filtering time (DB + in-memory)
+  - Track bulk insert time
+  - _Requirements: Event processing performance visibility_
+
+- [x] 18.6 Add timing to SiteAlertService
+
+  - Update `apps/server/src/Services/SiteAlert/SiteAlertService.ts`
+  - Track mark stale time in `createAlertsForProvider()`
+  - Track per-batch alert creation time in `processBatch()`
+  - Track total alert creation time
+  - Track provider-specific query execution time
+  - _Requirements: Alert creation performance visibility_
+
+- [x] 18.7 Update RequestHandler response formatting
+
+  - Update `apps/server/src/utils/RequestHandler.ts`
+  - Modify `buildSuccess()` to include metrics breakdown in response
+  - Include total_duration_ms, provider_processing details, avg_chunk_duration_ms
+  - Include slowest_chunk_ms and other performance indicators
+  - _Requirements: Expose metrics in API response_
+
+- [x] 18.8 Add performance-based logging
+
+  - Update logging in `GeoEventProviderService.ts`
+  - Log at INFO level for providers taking >5 seconds
+  - Log at INFO level for chunks taking >2 seconds
+  - Log at INFO level for alert creation taking >3 seconds
+  - Log at WARN level for providers taking >30 seconds
+  - Log at WARN level for any operation timing out
+  - Include timing details in all performance-related logs
+  - _Requirements: Performance monitoring and alerting_
+
+- [x] 18.9 Verify metrics output in API response
+
+  - Test that metrics are correctly included in success response
+  - Verify metrics structure matches expected format
+  - Test metrics aggregation across multiple providers
+  - Validate timing accuracy
+  - _Requirements: Metrics visibility in production_
+
+## Phase 12: Performance Audit & Bottleneck Analysis
+
+- [ ] 19. Audit and optimize database query performance
+
+  - Identify and fix database query bottlenecks
+  - Optimize indexes and query patterns
+  - _Requirements: Database performance optimization_
+
+- [x] 19.1 Verify database indexes
+
+  - Check `apps/server/prisma/schema.prisma` for existing indexes
+  - Verify indexes on `GeoEventProvider.geoEventProviderId`
+  - Verify indexes on `GeoEvent.eventDate`
+  - Verify indexes on `GeoEvent.id`
+  - Verify spatial indexes on `Site.detectionGeometry` (GIST)
+  - Run SQL query to list all indexes: `SELECT tablename, indexname, indexdef FROM pg_indexes WHERE tablename IN ('Site', 'GeoEvent', 'GeoEventProvider')`
+  - Document findings in performance audit report
+  - _Requirements: Verify database optimization_
+
+- [x] 19.2 Optimize fetchExistingIds query
+
+  - Review `apps/server/src/Services/GeoEvent/GeoEventRepository.ts` `fetchExistingIds()` method
+  - Analyze current 30-hour time window for duplicate checking
+  - Evaluate if time window can be reduced to 6-12 hours for active providers
+  - Implement query once before chunking instead of per-chunk
+  - Pass existing IDs through pipeline to avoid re-querying
+  - Update `GeoEventService.deduplicateAndSave()` to accept pre-fetched IDs
+  - Add metrics to track query execution time
+  - _Requirements: Reduce database query count_
+
+- [ ] 19.3 Profile spatial join queries
+
+  - Review `apps/server/src/Services/SiteAlert/SiteAlertRepository.ts` alert creation queries
+  - Run EXPLAIN ANALYZE on `createAlertsForGeostationary()` query
+  - Run EXPLAIN ANALYZE on `createAlertsForPolar()` query
+  - Document query execution plans
+  - Identify missing indexes or inefficient joins
+  - Consider if Site data can be cached (if Sites don't change frequently)
+  - Add query timing metrics
+  - _Requirements: Identify spatial query bottlenecks_
+
+- [x] 19.4 Make PQueue concurrency configurable
+
+  - Update `apps/server/src/pages/api/cron/geo-event-fetcher.ts`
+  - Add `PROVIDER_CONCURRENCY` environment variable (default: 3)
+  - Update `env.mjs` to include new environment variable
+  - Use configurable concurrency in PQueue initialization
+  - Document concurrency tuning recommendations
+  - _Requirements: Flexible concurrency control_
+
+- [ ] 19.5 Analyze ChecksumGenerator initialization
+
+  - Review `apps/server/src/utils/EventProcessor.ts` (formerly ChecksumGenerator)
+  - Measure XXHash3 initialization time
+  - Determine if initialization is expensive per request
+  - Consider singleton pattern or lazy initialization if needed
+  - Add timing metrics for initialization
+  - Document findings
+  - _Requirements: Verify hasher initialization performance_
+
+- [ ] 19.6 Monitor memory usage during processing
+
+  - Add memory usage logging in `GeoEventProviderService.processProvider()`
+  - Log heap usage before and after event fetching
+  - Log heap usage before and after chunking
+  - Set alerts for heap usage >500MB
+  - Track memory growth patterns
+  - Document memory usage findings
+  - _Requirements: Memory usage monitoring_
+
+- [ ] 19.7 Analyze transaction overhead
+
+  - Review `apps/server/src/Services/SiteAlert/SiteAlertRepository.ts` transaction usage
+  - Measure transaction overhead per batch
+  - Evaluate if multiple small batches can be combined
+  - Verify transaction isolation level is appropriate
+  - Document transaction performance findings
+  - _Requirements: Transaction performance analysis_
+
+- [x] 19.8 Create performance audit report
+
+  - Document all findings from performance audit
+  - Include before/after metrics for any optimizations applied
+  - List identified bottlenecks and their impact
+  - Provide recommendations for infrastructure changes
+  - Include database tuning recommendations
+  - _Requirements: Comprehensive performance documentation_
+
+## Phase 13: Code Optimizations & Advanced Performance Improvements
+
+- [x] 20. Implement advanced performance optimizations
+
+  - Apply high-priority optimizations identified in audit
+  - Maintain code quality and correctness
+  - _Requirements: Performance improvement implementation_
+
+- [ ] 20.1 Implement batch provider updates
+
+  - Update `apps/server/src/Services/GeoEventProvider/GeoEventProviderRepository.ts`
+  - Add `updateLastRunBatch()` method for batch updates
+  - Collect all provider updates during processing
+  - Execute single batch update at end instead of individual updates
+  - Update `GeoEventProviderService.processProviders()` to use batch updates
+  - _Requirements: Reduce database write operations_
+
+- [x] 20.2 Implement single existing IDs query
+
+  - Update `apps/server/src/Services/GeoEvent/GeoEventService.ts`
+  - Modify `deduplicateAndSave()` to accept optional pre-fetched IDs
+  - Update `GeoEventProviderService.processProvider()` to fetch IDs once
+  - Pass fetched IDs to all chunks to avoid re-querying
+  - Add metrics to track query reduction
+  - _Requirements: Reduce duplicate checking queries_
+
+- [ ] 20.3 Implement early exit strategies
+
+  - Update `GeoEventService.deduplicateAndSave()` to skip bulk insert if no unique events
+  - Update `SiteAlertService.createAlertsForProvider()` to exit loop if no unprocessed events
+  - Add logging for early exits
+  - _Requirements: Skip unnecessary operations_
+
+- [ ] 20.4 Implement provider-level skip logic
+
+  - Update `GeoEventProviderService.processProvider()`
+  - If provider returns 0 events, log and skip subsequent processing
+  - Track providers with consistent 0 events
+  - Consider temporary backoff for inactive providers
+  - _Requirements: Skip processing for inactive providers_
+
+- [ ] 20.5 Optimize logging strategy
+
+  - Review logging throughout refactored code
+  - Use DEBUG level for chunk-level details
+  - Use INFO level for provider-level operations
+  - Use WARN level for performance issues
+  - Batch related logs where possible
+  - Consider structured logging (JSON) for better parsing
+  - _Requirements: Optimized logging for performance_
+
+- [ ] 20.6 Implement array operation micro-optimizations
+
+  - Review `OperationResult.merge()` and similar array operations
+  - Replace multiple reduce calls with single-pass operations
+  - Minimize object creation in hot paths (inside loops)
+  - Document any micro-optimizations applied
+  - _Requirements: Code-level performance improvements_
+
+- [x] 20.7 Verify Prisma prepared statements
+
+  - Review Prisma client configuration
+  - Verify prepared statements are enabled for repeated queries
+  - Check connection pooling settings
+  - Document Prisma optimization findings
+  - _Requirements: Database driver optimization_
+
+- [x] 20.8 Implement optional Site data caching
+
+  - Create `apps/server/src/utils/SiteCache.ts` (optional optimization)
+  - Implement in-memory cache for Site geometries
+  - Set TTL to 5 minutes for cache invalidation
+  - Only implement if profiling shows Site queries are bottleneck
+  - Add cache hit/miss metrics
+  - _Requirements: Optional caching for frequently accessed data_
+
+- [x] 20.9 Implement optional provider config caching
+
+  - Update `apps/server/src/utils/ProviderManager.ts`
+  - Cache parsed provider configs with provider ID as key
+  - Avoid re-parsing JSON config on every provider process
+  - Add cache invalidation strategy
+  - Add metrics for cache effectiveness
+  - _Requirements: Reduce config parsing overhead_
+
+- [x] 20.10 Evaluate parallel chunk processing
+
+  - Analyze if chunks can be processed in parallel safely
+  - Review duplicate detection for race conditions
+  - If safe, implement parallel processing option
+  - Make parallel processing configurable via environment variable
+  - Document decision and trade-offs
+  - _Requirements: Evaluate parallelization opportunities_
+
+- [x] 20.11 Create performance optimization summary
+
+  - Document all optimizations implemented
+  - Include before/after metrics for each optimization
+  - Calculate cumulative performance improvement
+  - List optimizations that were evaluated but not implemented (with reasons)
+  - Provide recommendations for future optimizations
+  - _Requirements: Comprehensive optimization documentation_
+
+## Phase 14: Performance Validation & Benchmarking
+
+- [ ] 21. Validate performance improvements and establish baselines
+
+  - Benchmark refactored implementation against legacy
+  - Verify no performance regressions
+  - Establish performance baselines for future comparisons
+  - _Requirements: Performance validation_
+
+- [ ] 21.1 Create performance benchmarking suite
+
+  - Create test data with various event volumes (1k, 10k, 50k, 100k events)
+  - Create test scenarios for different provider types
+  - Document benchmarking methodology
+  - _Requirements: Reproducible performance testing_
+
+- [ ] 21.2 Benchmark provider processing time
+
+  - Measure processing time per provider with different event volumes
+  - Compare refactored vs legacy implementation
+  - Track time for: fetching, deduplication, alert creation
+  - Document results in performance report
+  - _Requirements: Provider-level performance comparison_
+
+- [ ] 21.3 Benchmark memory usage
+
+  - Monitor heap usage during processing of large event batches
+  - Compare refactored vs legacy implementation
+  - Verify memory stays under 512MB for 50k events
+  - Document memory usage patterns
+  - _Requirements: Memory efficiency validation_
+
+- [ ] 21.4 Benchmark database query performance
+
+  - Measure query count and execution time
+  - Compare refactored vs legacy implementation
+  - Verify query count reduction >40%
+  - Document database performance improvements
+  - _Requirements: Database optimization validation_
+
+- [ ] 21.5 Benchmark alert creation performance
+
+  - Measure alert creation time for different event volumes
+  - Compare GEOSTATIONARY vs POLAR provider performance
+  - Track deduplication ratio
+  - Track alert creation success rate
+  - _Requirements: Alert creation performance validation_
+
+- [ ] 21.6 Create performance baseline report
+
+  - Document all benchmark results
+  - Include before/after comparisons
+  - Calculate performance improvement percentages
+  - Identify any performance regressions
+  - Provide recommendations for further optimization
+  - _Requirements: Comprehensive performance documentation_
+
+- [ ] 21.7 Verify no increase in duplicate events
+
+  - Run comparison tests with same input data
+  - Verify refactored implementation creates same number of alerts
+  - Verify no duplicate alerts are created
+  - Verify deduplication accuracy is maintained
+  - _Requirements: Correctness validation_
+
+- [ ] 21.8 Monitor production metrics post-deployment
+
+  - Track provider processing time in production
+  - Monitor memory usage patterns
+  - Track database query performance
+  - Monitor error rates and alert creation success
+  - Compare against established baselines
+  - _Requirements: Production performance monitoring_
+
+## Phase 15: Final Validation & Documentation
+
+- [ ] 22. Final validation and comprehensive documentation
+
+  - Ensure all optimizations are working correctly
+  - Document complete system for future maintenance
+  - _Requirements: Production-ready system_
+
+- [ ] 22.1 Run full integration test suite
+
+  - Execute all integration tests with refactored implementation
+  - Verify all tests pass
+  - Check for any performance regressions in tests
+  - _Requirements: Test suite validation_
+
+- [ ] 22.2 Verify feature flag functionality
+
+  - Test switching between old and new implementation
+  - Verify rollback procedure works correctly
+  - Document feature flag usage and rollback steps
+  - _Requirements: Safe deployment capability_
+
+- [ ] 22.3 Update comprehensive system documentation
+
+  - Update `ARCHITECTURE_FLOW_DIAGRAM.md` with performance metrics
+  - Document performance optimization decisions
+  - Add performance tuning guide for operators
+  - Document metrics interpretation guide
+  - _Requirements: Complete system documentation_
+
+- [ ] 22.4 Create performance tuning guide
+
+  - Document how to interpret performance metrics
+  - Provide recommendations for different workload scenarios
+  - Document environment variable tuning options
+  - Include troubleshooting guide for performance issues
+  - _Requirements: Operational guidance_
+
+- [ ] 22.5 Create migration guide for operators
+
+  - Document deployment procedure with feature flag
+  - Include rollback procedure
+  - Document monitoring points and alerts
+  - Include performance baseline expectations
+  - _Requirements: Deployment guidance_
+
+- [ ] 22.6 Final code review and cleanup
+
+  - Review all refactored code for quality
+  - Ensure consistent code style and patterns
+  - Verify all comments and documentation are accurate
+  - Remove any debug code or temporary changes
+  - _Requirements: Production-ready code quality_
+
+- [ ] 22.7 Prepare for production deployment
+
+  - Verify all environment variables are documented
+  - Ensure feature flag is properly configured
+  - Verify monitoring and alerting are in place
+  - Create deployment checklist
+  - _Requirements: Ready for production release_
