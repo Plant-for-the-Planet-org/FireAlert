@@ -46,9 +46,9 @@ export class RequestHandler {
   }
 
   /**
-   * Builds a success response with operation results.
+   * Builds a success response with operation results and detailed metrics.
    * @param result - The OperationResult containing metrics
-   * @returns Response object with success message and metrics
+   * @returns Response object with success message and detailed metrics breakdown
    */
   static buildSuccess(result: OperationResult): {
     message: string;
@@ -56,13 +56,88 @@ export class RequestHandler {
     eventsCreated: number;
     alertsCreated: number;
     errors: string[];
+    metrics?: {
+      total_duration_ms?: number;
+      provider_processing?: any;
+      avg_chunk_duration_ms?: number;
+      slowest_chunk_ms?: number;
+      memory_usage?: {
+        start_mb?: number;
+        end_mb?: number;
+      };
+      [key: string]: any;
+    };
     status: number;
   } {
-    return {
+    const response = {
       message: 'Geo-event-fetcher Cron job executed successfully',
       ...result.toJSON(),
       status: 200,
     };
+
+    // Enhance metrics formatting for better readability
+    const metrics = result.getMetrics();
+    if (metrics && !metrics.isEmpty()) {
+      const metricsData = metrics.getMetrics() as any;
+
+      // Format the metrics for better API response structure
+      const formattedMetrics: any = {};
+
+      // Extract key timing metrics
+      if (metricsData.total_processing_ms) {
+        formattedMetrics.total_duration_ms = metricsData.total_processing_ms;
+      }
+
+      if (metricsData.provider_processing) {
+        formattedMetrics.provider_processing = metricsData.provider_processing;
+      }
+
+      if (metricsData.avg_chunk_duration_ms) {
+        formattedMetrics.avg_chunk_duration_ms =
+          metricsData.avg_chunk_duration_ms;
+      }
+
+      if (metricsData.slowest_chunk_ms) {
+        formattedMetrics.slowest_chunk_ms = metricsData.slowest_chunk_ms;
+      }
+
+      // Format memory usage
+      if (metricsData.start_memory_mb || metricsData.end_memory_mb) {
+        formattedMetrics.memory_usage = {};
+        if (metricsData.start_memory_mb) {
+          formattedMetrics.memory_usage.start_mb = metricsData.start_memory_mb;
+        }
+        if (metricsData.end_memory_mb) {
+          formattedMetrics.memory_usage.end_mb = metricsData.end_memory_mb;
+        }
+      }
+
+      // Include providers processed count
+      if (metricsData.providers_processed) {
+        formattedMetrics.providers_processed = metricsData.providers_processed;
+      }
+
+      // Add any other metrics that don't fit the above categories
+      Object.keys(metricsData).forEach(key => {
+        if (
+          ![
+            'total_processing_ms',
+            'provider_processing',
+            'avg_chunk_duration_ms',
+            'slowest_chunk_ms',
+            'start_memory_mb',
+            'end_memory_mb',
+            'providers_processed',
+          ].includes(key)
+        ) {
+          formattedMetrics[key] = metricsData[key];
+        }
+      });
+
+      response.metrics = formattedMetrics;
+    }
+
+    return response;
   }
 
   /**

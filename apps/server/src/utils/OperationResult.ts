@@ -1,13 +1,17 @@
+import {PerformanceMetrics} from './PerformanceMetrics';
+
 /**
  * Result object for aggregating operation metrics across all processing steps.
  * Provides a consistent way to track events processed, created, alerts generated, and errors.
  * Generic enough to be reused across different operation types.
+ * Now includes performance metrics for timing and system health tracking.
  */
 export class OperationResult {
   private eventsProcessed: number = 0;
   private eventsCreated: number = 0;
   private alertsCreated: number = 0;
   private errors: Error[] = [];
+  private metrics?: PerformanceMetrics;
 
   /**
    * Adds to the count of events processed.
@@ -38,6 +42,22 @@ export class OperationResult {
   }
 
   /**
+   * Sets the performance metrics for this operation.
+   * @param metrics - PerformanceMetrics instance containing timing data
+   */
+  setMetrics(metrics: PerformanceMetrics): void {
+    this.metrics = metrics;
+  }
+
+  /**
+   * Gets the performance metrics for this operation.
+   * @returns PerformanceMetrics instance or undefined if not set
+   */
+  getMetrics(): PerformanceMetrics | undefined {
+    return this.metrics;
+  }
+
+  /**
    * Merges another OperationResult into this one.
    * @param other - Another OperationResult to merge
    * @returns This OperationResult instance for chaining
@@ -47,6 +67,14 @@ export class OperationResult {
     this.eventsCreated += other.eventsCreated;
     this.alertsCreated += other.alertsCreated;
     this.errors.push(...other.errors);
+
+    // Merge performance metrics if both have them
+    if (this.metrics && other.metrics) {
+      this.metrics = this.metrics.merge(other.metrics);
+    } else if (other.metrics) {
+      this.metrics = other.metrics;
+    }
+
     return this;
   }
 
@@ -58,13 +86,21 @@ export class OperationResult {
     eventsCreated: number;
     alertsCreated: number;
     errors: string[];
+    metrics?: object;
   } {
-    return {
+    const result: any = {
       eventsProcessed: this.eventsProcessed,
       eventsCreated: this.eventsCreated,
       alertsCreated: this.alertsCreated,
       errors: this.errors.map(e => e.message),
     };
+
+    // Include metrics if available
+    if (this.metrics && !this.metrics.isEmpty()) {
+      result.metrics = this.metrics.getMetrics();
+    }
+
+    return result;
   }
 
   /**

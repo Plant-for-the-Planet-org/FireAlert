@@ -114,7 +114,8 @@ async function refactoredImplementation(
     new BatchProcessor(),
   );
 
-  const queue = new PQueue({concurrency: 3}); // Concurrency limit of 3
+  const concurrency = env.PROVIDER_CONCURRENCY || 3; // Configurable concurrency
+  const queue = new PQueue({concurrency});
 
   const providerService = new GeoEventProviderService(
     providerRepo,
@@ -124,8 +125,10 @@ async function refactoredImplementation(
     queue,
   );
 
+  logger(`Using provider concurrency: ${concurrency}`, 'info');
+
   // 6. Process providers with concurrency control
-  const result = await providerService.processProviders(selected, 3);
+  const result = await providerService.processProviders(selected, concurrency);
 
   // 7. Return response
   res.status(200).json(RequestHandler.buildSuccess(result));

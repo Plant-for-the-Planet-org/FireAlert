@@ -1,6 +1,8 @@
 import {type SiteAlertRepository} from './SiteAlertRepository';
 import {type GeoEventRepository} from '../GeoEvent/GeoEventRepository';
 import {type BatchProcessor} from '../../utils/BatchProcessor';
+import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
+import {logger} from '../../server/logger';
 
 /**
  * Service for coordinating site alert creation workflow.
@@ -30,13 +32,16 @@ export class SiteAlertService {
     clientId: string,
     slice: string,
   ): Promise<number> {
-    // Mark events >24hrs as processed AFTER creating alerts
-    await this.geoEventRepository.markStaleAsProcessed(24);
+    const metrics = new PerformanceMetrics();
+    metrics.startTimer('alert_creation_total');
+    metrics.recordMemorySnapshot('alert_start');
 
     const isGeostationary = clientId === 'GEOSTATIONARY';
     const batchSize = isGeostationary ? 500 : 1000;
     let totalAlerts = 0;
     let moreToProcess = true;
+    let batchCount = 0;
+    const batchDurations: number[] = [];
 
     while (moreToProcess) {
       const unprocessed =
@@ -50,7 +55,10 @@ export class SiteAlertService {
         continue;
       }
 
+      batchCount++;
+      const batchStart = Date.now();
       const eventIds = unprocessed.map(e => e.id);
+
       const count = await this.processBatch(
         eventIds,
         providerId,
@@ -58,8 +66,51 @@ export class SiteAlertService {
         slice,
         isGeostationary,
       );
+
+      const batchDuration = Date.now() - batchStart;
+      batchDurations.push(batchDuration);
       totalAlerts += count;
+
+      logger(
+        `Alert batch ${batchCount} completed in ${batchDuration}ms: ` +
+          `${unprocessed.length} events → ${count} alerts (${clientId})`,
+        'debug',
+      );
     }
+
+    // Mark events >24hrs as processed AFTER creating alerts
+    metrics.startTimer('mark_stale');
+    await this.geoEventRepository.markStaleAsProcessed(24);
+    const markStaleTime = metrics.endTimer('mark_stale');
+
+    const totalDuration = metrics.endTimer('alert_creation_total');
+    metrics.recordMemorySnapshot('alert_end');
+
+    // Record metrics
+    metrics.recordMetric('total_alerts_created', totalAlerts);
+    metrics.recordMetric('batches_processed', batchCount);
+    metrics.recordMetric('batch_size_used', batchSize);
+    metrics.recordMetric('provider_type', isGeostationary ? 1 : 0); // 1 for geo, 0 for polar
+
+    if (batchDurations.length > 0) {
+      metrics.recordMetric(
+        'avg_batch_duration_ms',
+        PerformanceMetrics.calculateAverage(batchDurations),
+      );
+      metrics.recordMetric(
+        'slowest_batch_ms',
+        PerformanceMetrics.findMax(batchDurations),
+      );
+      metrics.recordNestedMetric('batch_durations', batchDurations);
+    }
+
+    // Log performance information
+    logger(
+      `Alert creation completed in ${totalDuration}ms: ` +
+        `${batchCount} batches → ${totalAlerts} alerts (${clientId}, ` +
+        `mark_stale: ${markStaleTime}ms)`,
+      'debug',
+    );
 
     return totalAlerts;
   }
@@ -82,20 +133,42 @@ export class SiteAlertService {
     slice: string,
     isGeostationary: boolean,
   ): Promise<number> {
+    const metrics = new PerformanceMetrics();
+    metrics.startTimer('batch_processing');
+
+    let alertCount: number;
+
     if (isGeostationary) {
-      return await this.repository.createAlertsForGeostationary(
+      metrics.startTimer('geostationary_query');
+      alertCount = await this.repository.createAlertsForGeostationary(
         eventIds,
         providerId,
         clientId,
         slice,
       );
+      metrics.endTimer('geostationary_query');
     } else {
-      return await this.repository.createAlertsForPolar(
+      metrics.startTimer('polar_query');
+      alertCount = await this.repository.createAlertsForPolar(
         eventIds,
         providerId,
         clientId,
         slice,
+      );
+      metrics.endTimer('polar_query');
+    }
+
+    const batchDuration = metrics.endTimer('batch_processing');
+
+    // Log slow batch processing
+    if (batchDuration > 3000) {
+      // >3 seconds
+      logger(
+        `SLOW BATCH: ${clientId} batch with ${eventIds.length} events took ${batchDuration}ms`,
+        'warn',
       );
     }
+
+    return alertCount;
   }
 }
