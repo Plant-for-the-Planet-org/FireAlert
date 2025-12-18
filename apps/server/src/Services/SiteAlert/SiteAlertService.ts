@@ -1,6 +1,5 @@
 import {type SiteAlertRepository} from './SiteAlertRepository';
 import {type GeoEventRepository} from '../GeoEvent/GeoEventRepository';
-import {type BatchProcessor} from '../../utils/BatchProcessor';
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
 import {logger} from '../../server/logger';
 
@@ -12,15 +11,19 @@ export class SiteAlertService {
   constructor(
     private readonly repository: SiteAlertRepository,
     private readonly geoEventRepository: GeoEventRepository,
-    private readonly batchProcessor: BatchProcessor,
   ) {}
 
   /**
    * Creates alerts for all unprocessed events from a provider.
    * Process:
-   * 1. Mark events >24hrs as processed
-   * 2. Process unprocessed events in batches
-   * 3. Use provider-specific logic (GEOSTATIONARY vs POLAR)
+   * 1. Process unprocessed events in batches
+   * 2. Use provider-specific logic (GEOSTATIONARY vs POLAR)
+   * 3. Mark processed events after alert creation
+   *
+   * NOTE: V0 calls markStaleAsProcessed at the start, but this causes issues
+   * with historical NASA FIRMS data where eventDate is the actual fire detection
+   * time (often >24hrs ago). V3 skips this step - events are marked as processed
+   * after alerts are created from them.
    *
    * @param providerId - The provider ID
    * @param clientId - The client ID (determines batch size and logic)
@@ -36,6 +39,18 @@ export class SiteAlertService {
     metrics.startTimer('alert_creation_total');
     metrics.recordMemorySnapshot('alert_start');
 
+    // NOTE: V0 calls markStaleAsProcessed here, but it causes issues with historical
+    // NASA FIRMS data where eventDate is the actual fire detection time (often >24hrs ago).
+    // This would mark newly fetched events as stale immediately.
+    //
+    // V0 "works" because:
+    // 1. It processes events in the same transaction as marking them
+    // 2. The POLAR branch has a bug that updates ALL events, not just the batch
+    //
+    // V3 approach: Skip markStaleAsProcessed entirely. Events are marked as processed
+    // after alerts are created from them. Truly stale events (from failed runs) will
+    // be processed on the next run or can be handled by a separate cleanup job.
+
     const isGeostationary = clientId === 'GEOSTATIONARY';
     const batchSize = isGeostationary ? 500 : 1000;
     let totalAlerts = 0;
@@ -50,6 +65,11 @@ export class SiteAlertService {
           batchSize,
         );
 
+      logger(
+        `[ALERT DEBUG] Provider ${providerId} (${clientId}): Found ${unprocessed.length} unprocessed events (batch size: ${batchSize})`,
+        'debug',
+      );
+
       if (unprocessed.length === 0) {
         moreToProcess = false;
         continue;
@@ -58,6 +78,11 @@ export class SiteAlertService {
       batchCount++;
       const batchStart = Date.now();
       const eventIds = unprocessed.map(e => e.id);
+
+      logger(
+        `[ALERT DEBUG] Provider ${providerId} (${clientId}): Processing batch ${batchCount} with ${eventIds.length} event IDs`,
+        'debug',
+      );
 
       const count = await this.processBatch(
         eventIds,
@@ -72,16 +97,11 @@ export class SiteAlertService {
       totalAlerts += count;
 
       logger(
-        `Alert batch ${batchCount} completed in ${batchDuration}ms: ` +
+        `[ALERT DEBUG] Alert batch ${batchCount} completed in ${batchDuration}ms: ` +
           `${unprocessed.length} events → ${count} alerts (${clientId})`,
         'debug',
       );
     }
-
-    // Mark events >24hrs as processed AFTER creating alerts
-    metrics.startTimer('mark_stale');
-    await this.geoEventRepository.markStaleAsProcessed(24);
-    const markStaleTime = metrics.endTimer('mark_stale');
 
     const totalDuration = metrics.endTimer('alert_creation_total');
     metrics.recordMemorySnapshot('alert_end');
@@ -107,8 +127,7 @@ export class SiteAlertService {
     // Log performance information
     logger(
       `Alert creation completed in ${totalDuration}ms: ` +
-        `${batchCount} batches → ${totalAlerts} alerts (${clientId}, ` +
-        `mark_stale: ${markStaleTime}ms)`,
+        `${batchCount} batches → ${totalAlerts} alerts (${clientId})`,
       'debug',
     );
 

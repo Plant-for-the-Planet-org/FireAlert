@@ -24,6 +24,11 @@ export class SiteAlertRepository {
     clientId: string,
     slice: string,
   ): Promise<number> {
+    logger(
+      `[REPO DEBUG] createAlertsForGeostationary: Processing ${eventIds.length} event IDs for provider ${providerId} (${clientId}), slice: ${slice}`,
+      'debug',
+    );
+
     try {
       const siteAlertCreationQuery = Prisma.sql`INSERT INTO "SiteAlert" (id, TYPE, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
       SELECT
@@ -125,7 +130,13 @@ export class SiteAlertRepository {
         updateGeostationarySiteAlertIsProcessedToTrue,
       );
 
-      return results[0] as number;
+      const alertsCreated = results[0];
+      logger(
+        `[REPO DEBUG] createAlertsForGeostationary: Created ${alertsCreated} alerts from ${eventIds.length} events`,
+        'debug',
+      );
+
+      return alertsCreated;
     } catch (error) {
       logger(
         `Failed to create SiteAlerts for GEOSTATIONARY. Error: ${error}`,
@@ -151,6 +162,11 @@ export class SiteAlertRepository {
     clientId: string,
     slice: string,
   ): Promise<number> {
+    logger(
+      `[REPO DEBUG] createAlertsForPolar: Processing ${eventIds.length} event IDs for provider ${providerId} (${clientId}), slice: ${slice}`,
+      'debug',
+    );
+
     try {
       const siteAlertCreationQuery = Prisma.sql`INSERT INTO "SiteAlert" (id, TYPE, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
   
@@ -234,7 +250,13 @@ export class SiteAlertRepository {
         this.prisma.$executeRaw(updateGeoEventIsProcessedToTrue),
       ]);
 
-      return results[0] as number;
+      const alertsCreated = results[0];
+      logger(
+        `[REPO DEBUG] createAlertsForPolar: Created ${alertsCreated} alerts from ${eventIds.length} events`,
+        'debug',
+      );
+
+      return alertsCreated;
     } catch (error) {
       logger(`Failed to create SiteAlerts for POLAR. Error: ${error}`, 'error');
       return 0;

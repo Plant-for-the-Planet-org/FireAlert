@@ -108,11 +108,7 @@ async function refactoredImplementation(
     new BatchProcessor(),
   );
 
-  const siteAlertService = new SiteAlertService(
-    siteAlertRepo,
-    geoEventRepo,
-    new BatchProcessor(),
-  );
+  const siteAlertService = new SiteAlertService(siteAlertRepo, geoEventRepo);
 
   const concurrency = env.PROVIDER_CONCURRENCY || 3; // Configurable concurrency
   const queue = new PQueue({concurrency});

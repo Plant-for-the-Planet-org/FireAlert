@@ -145,12 +145,13 @@ export class GeoEventRepository {
    *
    * @param hoursOld - Events older than this many hours will be marked as processed
    */
-  async markStaleAsProcessed(hoursOld: number): Promise<void> {
-    await this.prisma.$executeRaw`
+  async markStaleAsProcessed(hoursOld: number): Promise<number> {
+    const result = await this.prisma.$executeRaw`
       UPDATE "GeoEvent"
       SET "isProcessed" = true
       WHERE "isProcessed" = false
         AND "eventDate" < NOW() - INTERVAL '${hoursOld} HOURS';
     `;
+    return result as number;
   }
 }
