@@ -30,7 +30,7 @@
     "@trpc/client": "^10.45.0",
     "@trpc/next": "^10.45.0",
     "@trpc/react-query": "^10.45.0",
-    "@trpc/server": "^10.45.0",
+    "@trpc/server": "^10.45.3",
     "@types/md5": "^2.3.2",
     "@types/nodemailer": "^6.4.7",
     "csv-parse": "^5.3.9",

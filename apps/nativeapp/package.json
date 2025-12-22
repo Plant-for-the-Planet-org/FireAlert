@@ -29,7 +29,7 @@
     "@tmcw/togeojson": "^7.1.2",
     "@trpc/client": "^11.7.2",
     "@trpc/react-query": "^11.7.2",
-    "@trpc/server": "^11.7.2",
+    "@trpc/server": "^10.45.3",
     "@turf/area": "^7.2.0",
     "@turf/bbox": "^7.2.0",
     "@turf/centroid": "^7.2.0",
