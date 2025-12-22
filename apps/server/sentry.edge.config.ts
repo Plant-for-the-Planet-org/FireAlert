@@ -5,7 +5,11 @@
 
 import * as Sentry from '@sentry/nextjs';
 import {env} from './src/env.mjs';
+<<<<<<< HEAD
 // import {nodeProfilingIntegration} from '@sentry/profiling-node';
+=======
+// import {ProfilingIntegration} from '@sentry/profiling-node';
+>>>>>>> develop
 
 Sentry.init({
   dsn: env.NEXT_PUBLIC_SENTRY_DSN,
@@ -18,6 +22,13 @@ Sentry.init({
 
   profilesSampleRate: 1,
   integrations: [
-    // nodeProfilingIntegration()
+<<<<<<< HEAD
+    // Add profiling integration to list of integrations
+    // new ProfilingIntegration(),
+    // nodeProfilingIntegration(),
+=======
+    // TODO: Add profiling integration to list of integrations
+    // new ProfilingIntegration(),
+>>>>>>> develop
   ],
 });
