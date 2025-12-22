@@ -19,6 +19,7 @@ import {
   uploadIcon,
   polygonIcon,
   locationIcon,
+  protectedAreaIcon,
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {plusIcon} from '../../assets/svgs/plusIcon';
@@ -103,6 +104,14 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
       title: 'Upload Polygon',
       onPress: () => {
         navigation.navigate('UploadPolygon');
+        onPressCallback();
+      },
+    },
+    {
+      svgXML: protectedAreaIcon,
+      title: 'Protected Area',
+      onPress: () => {
+        navigation.navigate('ProtectedAreas');
         onPressCallback();
       },
     },
@@ -210,6 +219,7 @@ const BottomBar = ({...props}) => {
           style={styles.bottomBar}>
           <Path {...{d}} fill={Colors.WHITE} />
         </Svg>
+
         {/* add button */}
         <TouchableOpacity
           activeOpacity={0.9}
@@ -253,6 +263,7 @@ const BottomBar = ({...props}) => {
         </TouchableOpacity>
         <SafeAreaView style={styles.safeArea} />
       </View>
+
       {showAddOptions ? (
         <AddOptions onReqClose={onAddPress} onPressCallback={onAddPress} />
       ) : (
@@ -272,8 +283,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   bottomBarContainer: {
-    bottom: 0,
     position: 'absolute',
+    bottom: 0,
+    // bottom: 34,
+    // ...Platform.select({
+    //   ios: {
+    //     bottom: 34,
+    //   },
+    //   android: {
+    //     bottom: 0,
+    //   },
+    // }),
   },
   menuDash: {
     height: 3,
@@ -332,9 +352,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    // bottom: 24,
     alignItems: 'center',
     justifyContent: 'flex-end',
-    height,
+    // height,
+    // ...Platform.select({
+    //   ios: {
+    //     bottom: 24,
+    //   },
+    //   android: {
+    //     bottom: 0,
+    //   },
+    // }),
   },
   addOptionsContainer: {
     width: 229,

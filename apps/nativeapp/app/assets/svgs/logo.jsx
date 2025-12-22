@@ -1,5 +1,5 @@
-import * as React from "react"
-import Svg, { Path, G, Defs, ClipPath } from "react-native-svg"
+import * as React from 'react';
+import Svg, {Path, G, Defs, ClipPath} from 'react-native-svg';
 
 function Logo(props) {
   return (
@@ -9,8 +9,7 @@ function Logo(props) {
       viewBox="0 0 172 161"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      {...props}
-    >
+      {...props}>
       <Path
         d="M75.787 16.559c4.688-7.6 15.738-7.6 20.426 0l52.978 85.891c4.931 7.995-.82 18.3-10.213 18.3H33.022c-9.393 0-15.144-10.305-10.213-18.3l52.978-85.891z"
         fill="#fff"
@@ -37,7 +36,7 @@ function Logo(props) {
         </ClipPath>
       </Defs>
     </Svg>
-  )
+  );
 }
 
-export default Logo
+export default Logo;
