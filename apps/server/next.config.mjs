@@ -38,16 +38,24 @@ const config = {
     removeConsole: process.env.NODE_ENV === "production"
   },
 };
-export default withSentryConfig(config, {
-// For all available options, see:
-// https://github.com/getsentry/sentry-webpack-plugin#options
+export default withSentryConfig(
+  config,
+  {
+    // For all available options, see:
+    // https://github.com/getsentry/sentry-webpack-plugin#options
 
-// Suppresses source map uploading logs during build
-silent: true,
+    // Suppresses source map uploading logs during build
+    silent: true,
 
-org: "plant-for-the-planet",
-project: "firealert",
-}, {
+    // Don't fail the build if Sentry's API (sentry-cli) has an issue
+    // e.g. 504 gateway timeout while finalizing a release.
+    // The build will still succeed; only source map upload/release finalization is skipped.
+    // suppressErrors: true,
+
+    org: "plant-for-the-planet",
+    project: "firealert",
+  },
+  {
 // For all available options, see:
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
