@@ -21,8 +21,6 @@ export default function NoResult() {
 
 const styles = StyleSheet.create({
   container: {
-    // borderColor: 'red',
-    // borderWidth: 1,
     flex: 1,
     paddingHorizontal: 4,
   },

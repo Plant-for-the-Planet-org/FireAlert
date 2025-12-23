@@ -2082,6 +2082,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 40,
+    marginBottom: IS_ANDROID ? 16 : 0,
   },
   versionText: {
     textAlign: 'center',
