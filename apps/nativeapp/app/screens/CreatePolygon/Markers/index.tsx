@@ -1,11 +1,11 @@
 import * as React from 'react';
 import MapboxGL from '@rnmapbox/maps';
-import Config from 'react-native-config';
 import {useEffect, useRef, useState} from 'react';
 
 import {Colors} from '../../../styles';
-import MarkerSVG from '../markerSVG';
 import {toLetters} from '../../../utils/mapMarkingCoordinate';
+import MarkerSVG from '../MarkerSVG/index.tsx';
+import {Config} from '../../../../config.ts';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 

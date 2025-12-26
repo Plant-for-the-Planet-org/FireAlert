@@ -3,7 +3,6 @@ import {
   BottomTabBarProps,
   createBottomTabNavigator,
 } from '@react-navigation/bottom-tabs';
-
 import {BottomBar} from '../../components';
 import {Home, Settings} from '../../screens';
 

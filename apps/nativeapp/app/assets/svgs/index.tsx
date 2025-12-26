@@ -27,6 +27,13 @@ import {polygonIcon} from './polygonIcon';
 import PencilIcon from './pencilIcon.jsx';
 import {uploadIcon} from './uploadIcon.js';
 import {locationIcon} from './locationIcon';
+import {
+  protectedAreaIcon,
+  noResultIcon,
+  recentSearchApplyIcon,
+  recentSearchClearIcon,
+  protectedAreaSearchResultIcon,
+} from './protectedAreaIcon.js';
 import UploadCloud from './uploadCloud.jsx';
 import WarningIcon from './warningIcon.jsx';
 import DistanceIcon from './distanceIcon.jsx';
@@ -86,6 +93,11 @@ export {
   WarningIcon,
   LocationWave,
   locationIcon,
+  protectedAreaIcon,
+  noResultIcon,
+  recentSearchApplyIcon,
+  recentSearchClearIcon,
+  protectedAreaSearchResultIcon,
   GlobeWebIcon,
   BlueFireIcon,
   DistanceIcon,
