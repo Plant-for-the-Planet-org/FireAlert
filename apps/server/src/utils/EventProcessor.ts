@@ -1,4 +1,4 @@
-import {createXXHash3, type XXHashAPI} from 'hash-wasm';
+import {createXXHash3, type IHasher} from 'hash-wasm';
 import {type GeoEventInterface as GeoEvent} from '../Interfaces/GeoEvent';
 import {EventId} from './EventId';
 
@@ -7,7 +7,7 @@ import {EventId} from './EventId';
  * Handles both single event and batch event operations.
  */
 export class EventProcessor {
-  private hasher: XXHashAPI | null = null;
+  private hasher: IHasher | null = null;
 
   /**
    * Initializes the XXHash3 hasher.

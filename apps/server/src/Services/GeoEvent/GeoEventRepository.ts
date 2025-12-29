@@ -25,11 +25,12 @@ export class GeoEventRepository {
     sinceHours = 12, // Reduced from 30 to 12 hours for better performance
   ): Promise<string[]> {
     // Use raw query for better performance with proper index usage
+    const hours = Math.max(1, Math.floor(sinceHours));
     const result = await this.prisma.$queryRaw<Array<{id: string}>>`
       SELECT id 
       FROM "GeoEvent" 
       WHERE "geoEventProviderId" = ${providerId}
-        AND "eventDate" >= (NOW() - INTERVAL '${sinceHours} HOURS')
+        AND "eventDate" >= (NOW() - INTERVAL '1 HOUR' * ${hours})
       ORDER BY "eventDate" DESC
     `;
 

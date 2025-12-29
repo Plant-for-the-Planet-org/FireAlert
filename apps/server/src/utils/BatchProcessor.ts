@@ -15,6 +15,10 @@ export class BatchProcessor {
     batchSize: number,
     handler: (batch: T[]) => Promise<R>,
   ): Promise<R[]> {
+    if (batchSize <= 0) {
+      throw new Error('batchSize must be a positive number');
+    }
+
     const batches: T[][] = [];
     for (let i = 0; i < items.length; i += batchSize) {
       batches.push(items.slice(i, i + batchSize));
@@ -36,6 +40,9 @@ export class BatchProcessor {
     batchSize: number,
     handler: (batch: T[]) => Promise<R>,
   ): Promise<R[]> {
+    if (batchSize <= 0) {  
+      throw new Error('batchSize must be a positive number');  
+    }  
     const results: R[] = [];
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);

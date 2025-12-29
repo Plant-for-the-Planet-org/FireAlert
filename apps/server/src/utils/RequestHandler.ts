@@ -74,7 +74,10 @@ export class RequestHandler {
     }
 
     const cronKey = req.query['cron_key'];
-    return cronKey === env.CRON_KEY;
+    // return cronKey === env.CRON_KEY;
+    // Handle both string and array cases  
+    const keyValue = Array.isArray(cronKey) ? cronKey[0] : cronKey;  
+    return keyValue === env.CRON_KEY;  
   }
 
   /**

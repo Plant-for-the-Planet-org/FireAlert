@@ -172,7 +172,7 @@ export class GeoEventProviderService {
         // OPTIMIZATION: Pre-fetch existing IDs once for all chunks
         metrics.startTimer('prefetch_existing_ids');
         const existingIdsResult =
-          await this.geoEventService.repository.fetchExistingIdsWithTiming(
+          await this.geoEventService.fetchExistingIdsForOptimization(
             geoEventProviderId,
             12,
           );

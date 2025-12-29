@@ -1,4 +1,4 @@
-import {type XXHashAPI} from 'hash-wasm';
+import {type IHasher } from 'hash-wasm';
 
 /**
  * Value object for generating consistent event identifiers using XXHash3.
@@ -17,7 +17,7 @@ export class EventId {
    * @param hasher - The XXHash3 hasher instance
    * @returns Hexadecimal string representation of the checksum
    */
-  generate(hasher: XXHashAPI): string {
+  generate(hasher: IHasher): string {
     hasher.init();
     return hasher
       .update(

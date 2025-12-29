@@ -11,10 +11,23 @@ import {logger} from '../../server/logger';
  */
 export class GeoEventService {
   constructor(
-    public readonly repository: GeoEventRepository, // Made public for optimization access
+    private readonly repository: GeoEventRepository, // Made public for optimization access
     private readonly eventProcessor: EventProcessor,
     private readonly batchProcessor: BatchProcessor,
   ) {}
+
+  
+  /**  
+   * Exposes fetchExistingIdsWithTiming for optimization in provider orchestration.  
+   * Allows pre-fetching IDs once per provider instead of per chunk.  
+   */  
+  async fetchExistingIdsForOptimization(  
+    providerId: string,  
+    sinceHours = 12  
+  ): Promise<{ids: string[]; queryTimeMs: number; count: number}> {  
+    return await this.repository.fetchExistingIdsWithTiming(providerId, sinceHours);  
+  }  
+
 
   /**
    * Deduplicates events and saves new ones to the database.

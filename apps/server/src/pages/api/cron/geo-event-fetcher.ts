@@ -336,14 +336,19 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
   });
   processedProviders += activeProviders.length;
 
-  await Promise.all(promises).catch((error: unknown) =>
-    logger(
-      `Something went wrong before creating notifications. ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      'error',
-    ),
-  );
+
+  try {  
+    await Promise.all(promises);  
+  } catch (error: unknown) {  
+    logger(  
+      `Something went wrong before creating notifications. ${  
+        error instanceof Error ? error.message : String(error)  
+      }`,  
+      'error',  
+    );  
+    // Consider returning partial success or error status  
+  }  
+
 
   res.status(200).json({
     message: 'Geo-event-fetcher Cron job executed successfully',

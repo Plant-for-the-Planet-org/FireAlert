@@ -85,7 +85,13 @@ const server = z.object({
   PROVIDER_CONCURRENCY: z
     .string()
     .default('3')
-    .transform(val => parseInt(val, 10)),
+    .transform(val => {
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        throw new Error('PROVIDER_CONCURRENCY must be a positive integer');
+      }
+      return parsed;
+    }),
 });
 
 /**
