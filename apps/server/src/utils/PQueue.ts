@@ -8,6 +8,9 @@ export class PQueue {
   private queue: Array<() => Promise<void>> = [];
 
   constructor(options: {concurrency: number}) {
+    if (!Number.isInteger(options.concurrency) || options.concurrency < 1) {
+      throw new RangeError('concurrency must be a positive integer');
+    }
     this.concurrency = options.concurrency;
   }
 

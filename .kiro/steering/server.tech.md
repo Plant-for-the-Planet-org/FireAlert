@@ -120,7 +120,7 @@ yarn server db:push
   - `INCIDENT_ONLY`: Only send notifications for new incidents
   - Other modes may include per-event or aggregated notifications
 - **`USE_REFACTORED_PIPELINE`**: Toggle between legacy and refactored geo-event-fetcher implementations
-  - `'true'`: Use new service layer architecture with dependency injection
+  - `'true'`: Use new service layer architecture with dependency injection (currently enabled)
   - `'false'`: Use legacy inline implementation
   - Enables safe rollout and rollback capability for the refactored pipeline
   - Note: Values must be strings (`'true'` or `'false'`), not booleans
