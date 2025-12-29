@@ -59,10 +59,6 @@ export class GeoEventService {
     if (preFetchedIds) {
       existingIds = preFetchedIds;
       dbFetchDuration = 0; // No DB query needed
-      logger(
-        `Using pre-fetched ${existingIds.length} existing IDs for provider ${providerId}`,
-        'debug',
-      );
     } else {
       metrics.startTimer('db_fetch_existing');
       const fetchResult = await this.repository.fetchExistingIdsWithTiming(
@@ -97,7 +93,6 @@ export class GeoEventService {
 
     // Early exit if no unique events
     if (uniqueEvents.length === 0) {
-      logger(`No unique events to insert for provider ${providerId}`, 'debug');
       return {
         created: 0,
         new: 0,
@@ -123,16 +118,6 @@ export class GeoEventService {
       events.length > 0
         ? Math.round((1 - uniqueEvents.length / events.length) * 100) / 100
         : 0,
-    );
-
-    // Log performance information
-    logger(
-      `Deduplication completed in ${totalDuration}ms: ` +
-        `${events.length} input → ${uniqueEvents.length} unique → ${created} created ` +
-        `(checksum: ${checksumDuration}ms, db_fetch: ${dbFetchDuration}ms, ` +
-        `db_filter: ${dbFilterDuration}ms, mem_filter: ${memoryFilterDuration}ms, ` +
-        `insert: ${insertDuration}ms)`,
-      'debug',
     );
 
     return {

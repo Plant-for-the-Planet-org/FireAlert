@@ -24,11 +24,6 @@ export class SiteAlertRepository {
     clientId: string,
     slice: string,
   ): Promise<number> {
-    logger(
-      `[REPO DEBUG] createAlertsForGeostationary: Processing ${eventIds.length} event IDs for provider ${providerId} (${clientId}), slice: ${slice}`,
-      'debug',
-    );
-
     try {
       const siteAlertCreationQuery = Prisma.sql`INSERT INTO "SiteAlert" (id, TYPE, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
       SELECT
@@ -131,10 +126,6 @@ export class SiteAlertRepository {
       );
 
       const alertsCreated = results[0];
-      logger(
-        `[REPO DEBUG] createAlertsForGeostationary: Created ${alertsCreated} alerts from ${eventIds.length} events`,
-        'debug',
-      );
 
       return alertsCreated;
     } catch (error) {
@@ -162,11 +153,6 @@ export class SiteAlertRepository {
     clientId: string,
     slice: string,
   ): Promise<number> {
-    logger(
-      `[REPO DEBUG] createAlertsForPolar: Processing ${eventIds.length} event IDs for provider ${providerId} (${clientId}), slice: ${slice}`,
-      'debug',
-    );
-
     try {
       const siteAlertCreationQuery = Prisma.sql`INSERT INTO "SiteAlert" (id, TYPE, "isProcessed", "eventDate", "detectedBy", confidence, latitude, longitude, "siteId", "data", "distance")
   
@@ -251,10 +237,6 @@ export class SiteAlertRepository {
       ]);
 
       const alertsCreated = results[0];
-      logger(
-        `[REPO DEBUG] createAlertsForPolar: Created ${alertsCreated} alerts from ${eventIds.length} events`,
-        'debug',
-      );
 
       return alertsCreated;
     } catch (error) {

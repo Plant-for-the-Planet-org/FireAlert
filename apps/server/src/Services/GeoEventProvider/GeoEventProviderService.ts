@@ -141,6 +141,11 @@ export class GeoEventProviderService {
         breadcrumbPrefix = `Geostationary Satellite ${clientApiKey}:`;
       }
 
+      logger(
+        `Processing provider: ${breadcrumbPrefix}`,
+        'info',
+      );
+
       // Fetch latest geo events from provider
       metrics.startTimer('fetch_events');
       const geoEventProvider = this.providerManager.createProvider(provider);
@@ -152,6 +157,11 @@ export class GeoEventProviderService {
         lastRun,
       );
       const fetchDuration = metrics.endTimer('fetch_events');
+
+      logger(
+        `Fetching time took ${fetchDuration}ms`,
+        'debug',
+      );
 
       logger(
         `${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`,
@@ -169,21 +179,11 @@ export class GeoEventProviderService {
         const preFetchedIds = existingIdsResult.ids;
         const prefetchDuration = metrics.endTimer('prefetch_existing_ids');
 
-        logger(
-          `${breadcrumbPrefix} Pre-fetched ${preFetchedIds.length} existing IDs in ${prefetchDuration}ms`,
-          'debug',
-        );
-
         // Process events in chunks to prevent memory issues
         metrics.startTimer('chunk_processing');
         const chunkSize = 2000;
         const batchProcessor = new BatchProcessor();
         const chunkDurations: number[] = [];
-
-        logger(
-          `${breadcrumbPrefix} Processing ${geoEvents.length} events in chunks of ${chunkSize}`,
-          'info',
-        );
 
         let chunkIndex = 0;
         const chunkResults = await batchProcessor.processSequentially(
@@ -192,10 +192,6 @@ export class GeoEventProviderService {
           async chunk => {
             chunkIndex++;
             const chunkStart = Date.now();
-            logger(
-              `${breadcrumbPrefix} Processing chunk ${chunkIndex} with ${chunk.length} events`,
-              'debug',
-            );
 
             // Pass pre-fetched IDs to avoid re-querying for each chunk
             const chunkResult = await this.geoEventService.deduplicateAndSave(
@@ -211,15 +207,10 @@ export class GeoEventProviderService {
             if (chunkDuration > 2000) {
               // >2 seconds
               logger(
-                `INFO: Chunk ${chunkIndex} took ${chunkDuration}ms (>2s threshold)`,
+                `Chunk ${chunkIndex} took ${chunkDuration}ms (>2s threshold)`,
                 'info',
               );
             }
-
-            logger(
-              `${breadcrumbPrefix} Chunk ${chunkIndex} completed in ${chunkDuration}ms - Created: ${chunkResult.created}, New: ${chunkResult.new}`,
-              'debug',
-            );
 
             return chunkResult;
           },
@@ -241,11 +232,12 @@ export class GeoEventProviderService {
         result.addEventsProcessed(geoEvents.length);
         result.addEventsCreated(totalCreated);
 
-        logger(`${breadcrumbPrefix} Found ${totalNew} new Geo Events`, 'info');
         logger(
-          `${breadcrumbPrefix} Created ${totalCreated} Geo Events`,
-          'info',
+          `GeoEvent process: processed ${geoEvents.length} events in ${chunkResults.length} chunks, created ${totalCreated}, time took ${chunkProcessingDuration}ms, prefetch: ${prefetchDuration}ms, existing IDs: ${preFetchedIds.length}`,
+          'debug',
         );
+
+        logger(`${breadcrumbPrefix} Created ${totalCreated} GeoEvents`, 'info');
       }
 
       // Create site alerts
@@ -267,7 +259,7 @@ export class GeoEventProviderService {
       }
 
       result.addAlertsCreated(alertCount);
-      logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts.`, 'info');
+      logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts`, 'info');
 
       // Update lastRun timestamp
       metrics.startTimer('db_update');

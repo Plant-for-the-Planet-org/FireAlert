@@ -65,11 +65,6 @@ export class SiteAlertService {
           batchSize,
         );
 
-      logger(
-        `[ALERT DEBUG] Provider ${providerId} (${clientId}): Found ${unprocessed.length} unprocessed events (batch size: ${batchSize})`,
-        'debug',
-      );
-
       if (unprocessed.length === 0) {
         moreToProcess = false;
         continue;
@@ -78,11 +73,6 @@ export class SiteAlertService {
       batchCount++;
       const batchStart = Date.now();
       const eventIds = unprocessed.map(e => e.id);
-
-      logger(
-        `[ALERT DEBUG] Provider ${providerId} (${clientId}): Processing batch ${batchCount} with ${eventIds.length} event IDs`,
-        'debug',
-      );
 
       const count = await this.processBatch(
         eventIds,
@@ -95,12 +85,6 @@ export class SiteAlertService {
       const batchDuration = Date.now() - batchStart;
       batchDurations.push(batchDuration);
       totalAlerts += count;
-
-      logger(
-        `[ALERT DEBUG] Alert batch ${batchCount} completed in ${batchDuration}ms: ` +
-          `${unprocessed.length} events → ${count} alerts (${clientId})`,
-        'debug',
-      );
     }
 
     const totalDuration = metrics.endTimer('alert_creation_total');
@@ -124,10 +108,9 @@ export class SiteAlertService {
       metrics.recordNestedMetric('batch_durations', batchDurations);
     }
 
-    // Log performance information
+    // Add detailed SiteAlert processing log
     logger(
-      `Alert creation completed in ${totalDuration}ms: ` +
-        `${batchCount} batches → ${totalAlerts} alerts (${clientId})`,
+      `SiteAlert process: processed GeoEvents in ${batchCount} batches, created ${totalAlerts} alerts, time took ${totalDuration}ms, batch size: ${batchSize}, provider type: ${isGeostationary ? 'GEOSTATIONARY' : 'POLAR'}`,
       'debug',
     );
 

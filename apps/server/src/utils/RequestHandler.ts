@@ -1,6 +1,61 @@
 import {type NextApiRequest} from 'next';
 import {env} from '../env.mjs';
-import {OperationResult} from './OperationResult';
+import {type OperationResult} from './OperationResult';
+import {logger} from '../server/logger';
+
+/**
+ * Type definitions for metrics data structure
+ */
+interface ProviderMetrics {
+  provider_start_memory_mb?: number;
+  fetch_events_ms?: number;
+  prefetch_existing_ids_ms?: number;
+  chunk_processing_ms?: number;
+  chunks_processed?: number;
+  prefetch_duration_ms?: number;
+  existing_ids_prefetched?: number;
+  alert_creation_ms?: number;
+  db_update_ms?: number;
+  provider_total_ms?: number;
+  provider_end_memory_mb?: number;
+  chunk_durations?: number[];
+}
+
+interface MetricsData {
+  total_processing_ms?: number;
+  providers_processed?: number;
+  avg_chunk_duration_ms?: number;
+  slowest_chunk_ms?: number;
+  start_memory_mb?: number;
+  end_memory_mb?: number;
+  provider_processing?: Record<string, ProviderMetrics>;
+  [key: string]: unknown;
+}
+
+/**
+ * Type guard to check if an object has the expected metrics structure
+ */
+function isMetricsData(obj: unknown): obj is MetricsData {
+  return typeof obj === 'object' && obj !== null;
+}
+
+/**
+ * Safely gets a numeric value from metrics data
+ */
+function getNumericValue(data: MetricsData, key: keyof MetricsData): number | undefined {
+  const value = data[key];
+  return typeof value === 'number' ? value : undefined;
+}
+
+/**
+ * Safely gets a string or number value for display
+ */
+function getDisplayValue(value: unknown): string | number {
+  if (typeof value === 'number' || typeof value === 'string') {
+    return value;
+  }
+  return 'N/A';
+}
 
 /**
  * Consolidated utility for handling HTTP requests and responses.
@@ -46,98 +101,61 @@ export class RequestHandler {
   }
 
   /**
-   * Builds a success response with operation results and detailed metrics.
+   * Builds a success response matching legacy format.
+   * Logs all metrics information to terminal/BetterStack instead of including in response.
    * @param result - The OperationResult containing metrics
-   * @returns Response object with success message and detailed metrics breakdown
+   * @returns Simple response object matching legacy format
    */
   static buildSuccess(result: OperationResult): {
     message: string;
-    eventsProcessed: number;
-    eventsCreated: number;
     alertsCreated: number;
-    errors: string[];
-    metrics?: {
-      total_duration_ms?: number;
-      provider_processing?: any;
-      avg_chunk_duration_ms?: number;
-      slowest_chunk_ms?: number;
-      memory_usage?: {
-        start_mb?: number;
-        end_mb?: number;
-      };
-      [key: string]: any;
-    };
+    processedProviders: number;
     status: number;
   } {
-    const response = {
-      message: 'Geo-event-fetcher Cron job executed successfully',
-      ...result.toJSON(),
-      status: 200,
-    };
-
-    // Enhance metrics formatting for better readability
+    const resultData = result.toJSON();
+    
+    // Log all metrics information to terminal/BetterStack
     const metrics = result.getMetrics();
+    let metricsData: MetricsData = {};
+    
     if (metrics && !metrics.isEmpty()) {
-      const metricsData = metrics.getMetrics() as any;
-
-      // Format the metrics for better API response structure
-      const formattedMetrics: any = {};
-
-      // Extract key timing metrics
-      if (metricsData.total_processing_ms) {
-        formattedMetrics.total_duration_ms = metricsData.total_processing_ms;
-      }
-
-      if (metricsData.provider_processing) {
-        formattedMetrics.provider_processing = metricsData.provider_processing;
-      }
-
-      if (metricsData.avg_chunk_duration_ms) {
-        formattedMetrics.avg_chunk_duration_ms =
-          metricsData.avg_chunk_duration_ms;
-      }
-
-      if (metricsData.slowest_chunk_ms) {
-        formattedMetrics.slowest_chunk_ms = metricsData.slowest_chunk_ms;
-      }
-
-      // Format memory usage
-      if (metricsData.start_memory_mb || metricsData.end_memory_mb) {
-        formattedMetrics.memory_usage = {};
-        if (metricsData.start_memory_mb) {
-          formattedMetrics.memory_usage.start_mb = metricsData.start_memory_mb;
-        }
-        if (metricsData.end_memory_mb) {
-          formattedMetrics.memory_usage.end_mb = metricsData.end_memory_mb;
+      const rawMetrics = metrics.getMetrics();
+      if (isMetricsData(rawMetrics)) {
+        metricsData = rawMetrics;
+        
+        // Log comprehensive metrics information in consolidated format
+        const totalDuration = getNumericValue(metricsData, 'total_processing_ms');
+        const providersProcessed = getNumericValue(metricsData, 'providers_processed');
+        // const avgChunkDuration = getNumericValue(metricsData, 'avg_chunk_duration_ms');
+        // const slowestChunk = getNumericValue(metricsData, 'slowest_chunk_ms');
+        const startMemory = getNumericValue(metricsData, 'start_memory_mb');
+        const endMemory = getNumericValue(metricsData, 'end_memory_mb');
+        
+        // Single line summary
+        logger(
+          `GEO-EVENT-FETCHER SUMMARY: Events Processed: ${resultData.eventsProcessed}, Created: ${resultData.eventsCreated}, Alerts: ${resultData.alertsCreated}, Duration: ${totalDuration || 'N/A'}ms, Providers: ${providersProcessed || 0}, Memory: ${getDisplayValue(startMemory)}MB → ${getDisplayValue(endMemory)}MB`,
+          'debug',
+        );
+        
+        // Log provider-specific metrics (one line per provider)
+        if (metricsData.provider_processing) {
+          Object.entries(metricsData.provider_processing).forEach(([providerId, providerMetrics]) => {
+            logger(
+              `Provider ${providerId}: Fetch: ${providerMetrics.fetch_events_ms || 'N/A'}ms, Processing: ${providerMetrics.chunk_processing_ms || 'N/A'}ms, Alerts: ${providerMetrics.alert_creation_ms || 'N/A'}ms, Total: ${providerMetrics.provider_total_ms || 'N/A'}ms, Chunks: ${providerMetrics.chunks_processed || 0}`,
+              'debug',
+            );
+          });
         }
       }
-
-      // Include providers processed count
-      if (metricsData.providers_processed) {
-        formattedMetrics.providers_processed = metricsData.providers_processed;
-      }
-
-      // Add any other metrics that don't fit the above categories
-      Object.keys(metricsData).forEach(key => {
-        if (
-          ![
-            'total_processing_ms',
-            'provider_processing',
-            'avg_chunk_duration_ms',
-            'slowest_chunk_ms',
-            'start_memory_mb',
-            'end_memory_mb',
-            'providers_processed',
-          ].includes(key)
-        ) {
-          formattedMetrics[key] = metricsData[key];
-        }
-      });
-
-      response.metrics = formattedMetrics;
     }
 
-    return response;
+    // Return simple response matching legacy format
+    return {
+      message: 'Geo-event-fetcher Cron job executed successfully',
+      alertsCreated: resultData.alertsCreated,
+      processedProviders: getNumericValue(metricsData, 'providers_processed') || 0,
+      status: 200,
+    };
   }
 
   /**
