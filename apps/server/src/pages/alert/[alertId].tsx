@@ -12,6 +12,10 @@ import {AlertId} from '../../Components/AlertId/AlertId';
 import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
 import {appRouter} from '../../server/api/root';
 import {api} from '../../utils/api';
+import type {AlertData, AlertIdProps, GeoJSONGeometry} from '../../types/alert.types';
+import type {GeoEventProviderClientId} from '../../Interfaces/GeoEventProvider';
+import {prisma} from '../../server/db';
+import type {NextApiRequest} from 'next';
 
 function getTimePassedSince(date: Date): {
   days: number;
@@ -47,7 +51,7 @@ function formatDateString(dateString: string): string {
   return formattedDate;
 }
 
-function getIdentityGroup(identityKey: string): string | null {
+function getIdentityGroup(identityKey: GeoEventProviderClientId | string): string | null {
   const identityMap = new Map<string, string>([
     ['MODIS_NRT', 'MODIS'],
     ['VIIRS_NOAA20_NRT', 'VIIRS'],
@@ -86,7 +90,7 @@ export default function Alert(
 
   const {data} = alertQuery;
 
-  const alert = data.data;
+  const alert: AlertData = data.data;
   const timePassed = getTimePassedSince(alert.eventDate);
   let timeAgo: string;
 
@@ -98,14 +102,34 @@ export default function Alert(
     timeAgo = `${timePassed.minutes} minutes ago`;
   }
   const formattedDateString = formatDateString(alert.localEventDate);
-  const confidence = alert.confidence as string;
+  const confidence = String(alert.confidence);
   const detectedBy = getIdentityGroup(alert.detectedBy);
-  const latitude = `${alert.latitude}`;
-  const longitude = `${alert.longitude}`;
-  const polygon = alert.site.geometry;
+  const latitude = String(alert.latitude);
+  const longitude = String(alert.longitude);
+  
+  // Ensure polygon is a valid GeoJSON geometry
+  const siteGeometry = alert.site.geometry;
+  const polygon: GeoJSONGeometry = (() => {
+    if (typeof siteGeometry === 'object' && siteGeometry !== null) {
+      const geom = siteGeometry as Record<string, unknown>;
+      if (
+        typeof geom.type === 'string' &&
+        Array.isArray(geom.coordinates) &&
+        (geom.type === 'Point' || geom.type === 'Polygon' || geom.type === 'MultiPolygon')
+      ) {
+        return siteGeometry as GeoJSONGeometry;
+      }
+    }
+    // Fallback to Point if invalid
+    return {
+      type: 'Point',
+      coordinates: [alert.longitude, alert.latitude],
+    };
+  })();
+  
   const siteId = alert.site.id;
 
-  const alertData = {
+  const alertData: AlertIdProps = {
     timeAgo,
     formattedDateString,
     confidence,
@@ -124,16 +148,34 @@ export default function Alert(
 }
 
 export async function getStaticProps(
-  context: GetStaticPropsContext<{id: string}>,
+  context: GetStaticPropsContext<{alertId: string}>,
 ) {
+  // Create a minimal context for static props (public procedure doesn't require auth)
+  const mockReq = {
+    headers: {},
+    url: '',
+  } as unknown as NextApiRequest;
+
   const helpers = createServerSideHelpers({
     router: appRouter,
-    ctx: {},
+    ctx: {
+      req: mockReq,
+      prisma,
+      user: null,
+      isAdmin: false,
+      isImpersonatedUser: false,
+    },
     transformer: superjson,
   });
-  const id = context.params?.alertId as string;
+  const id = context.params?.alertId;
+  
+  if (!id || typeof id !== 'string') {
+    return {
+      notFound: true,
+    };
+  }
 
-  const alertData = await helpers.alert.getAlert.prefetch({id});
+  await helpers.alert.getAlert.prefetch({id});
 
   return {
     props: {
@@ -144,7 +186,7 @@ export async function getStaticProps(
   };
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
+export const getStaticPaths: GetStaticPaths = () => {
   return {
     paths: [],
     fallback: 'blocking',

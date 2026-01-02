@@ -8,10 +8,10 @@ import vector from '../../../public/alertPage/Vector.png'
 import { highlightWave } from '../../../../nativeapp/app/assets/animation/lottie'
 import Lottie from 'react-lottie';
 import classes from './MapComponent.module.css'
-import { type AlertData } from './AlertId';
+import type { AlertIdProps, GeoJSONGeometry } from '../../types/alert.types';
 
 interface Props {
-    alertData: AlertData;
+    alertData: AlertIdProps;
 }
 
 const getZoomLevel = (bbox: [number, number, number, number]) => {
@@ -48,36 +48,57 @@ const getZoomLevel = (bbox: [number, number, number, number]) => {
 };
 
 // Function to calculate the bounding box of a polygon
-const calculateBbox = (coords) => {
-    return coords.reduce(([minLon, minLat, maxLon, maxLat], [lon, lat]) =>
-        [Math.min(minLon, lon), Math.min(minLat, lat), Math.max(maxLon, lon), Math.max(maxLat, lat)],
+const calculateBbox = (coords: [number, number][]): [number, number, number, number] => {
+    return coords.reduce<[number, number, number, number]>(
+        ([minLon, minLat, maxLon, maxLat], [lon, lat]) =>
+            [Math.min(minLon, lon), Math.min(minLat, lat), Math.max(maxLon, lon), Math.max(maxLat, lat)],
         [Infinity, Infinity, -Infinity, -Infinity]
     );
 };
 
 const MapComponent: FC<Props> = ({ alertData }) => {
-    let polygon = alertData.polygon;
+    // Type guard to ensure polygon is a valid GeoJSON geometry
+    const polygon: GeoJSONGeometry = (() => {
+        if (typeof alertData.polygon === 'object' && alertData.polygon !== null) {
+            const geom = alertData.polygon as Record<string, unknown>;
+            if (
+                typeof geom.type === 'string' &&
+                Array.isArray(geom.coordinates) &&
+                (geom.type === 'Point' || geom.type === 'Polygon' || geom.type === 'MultiPolygon')
+            ) {
+                return alertData.polygon as GeoJSONGeometry;
+            }
+        }
+        // Fallback to Point if invalid
+        return {
+            type: 'Point',
+            coordinates: [parseFloat(alertData.longitude), parseFloat(alertData.latitude)],
+        };
+    })();
 
     // Convert polygon data to GeoJSON format
     const polygonGeoJSON = {
-        type: "Feature",
+        type: "Feature" as const,
         geometry: polygon
     };
 
     // Calculate the bounding box and center point of the polygon
-    let bbox;
+    let bbox: [number, number, number, number] | undefined;
     if (polygon.type === 'Polygon') {
         bbox = calculateBbox(polygon.coordinates[0]);
     } else if (polygon.type === 'MultiPolygon') {
-        bbox = polygon.coordinates.reduce((bbox, polyCoords) => {
-            const polyBbox = calculateBbox(polyCoords[0]);
-            return [
-                Math.min(bbox[0], polyBbox[0]),
-                Math.min(bbox[1], polyBbox[1]),
-                Math.max(bbox[2], polyBbox[2]),
-                Math.max(bbox[3], polyBbox[3]),
-            ];
-        }, [Infinity, Infinity, -Infinity, -Infinity]);
+        bbox = polygon.coordinates.reduce<[number, number, number, number]>(
+            (bbox, polyCoords) => {
+                const polyBbox = calculateBbox(polyCoords[0]);
+                return [
+                    Math.min(bbox[0], polyBbox[0]),
+                    Math.min(bbox[1], polyBbox[1]),
+                    Math.max(bbox[2], polyBbox[2]),
+                    Math.max(bbox[3], polyBbox[3]),
+                ];
+            },
+            [Infinity, Infinity, -Infinity, -Infinity]
+        );
     }
     // When the site is a point, then polygon.type is a "Point".
     // For site which is a point, we do not need to find the bbox. Thus, bbox is undefined.
