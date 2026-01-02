@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import type {FC} from 'react';
 import {useState, useEffect} from 'react';
+import type {AlertThemeConfig} from './alertTheme.utils';
 import classes from './AlertId.module.css';
 
 export interface CollapsibleAlertCardProps {
@@ -18,6 +19,7 @@ export interface CollapsibleAlertCardProps {
   isExpanded?: boolean;
   onToggle?: () => void;
   onClick?: () => void;
+  themeConfig?: AlertThemeConfig;
 }
 
 export const CollapsibleAlertCard: FC<CollapsibleAlertCardProps> = ({
@@ -35,6 +37,7 @@ export const CollapsibleAlertCard: FC<CollapsibleAlertCardProps> = ({
   isExpanded,
   onToggle,
   onClick,
+  themeConfig,
 }) => {
   const [internalCollapsed, setInternalCollapsed] = useState(collapsed);
 
@@ -70,16 +73,27 @@ export const CollapsibleAlertCard: FC<CollapsibleAlertCardProps> = ({
     }
   };
 
+  const googleMapUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
+
+  // Use theme config if provided, otherwise use default
+  // Cards always use satellite icon (alertIcon.svg), not fire icons
+  const iconPath = '/alertPage/alertIcon.svg';
+  const backgroundColor = themeConfig?.backgroundColor;
+  const textColor = themeConfig?.textColor;
+
   return (
     <div className={`${classes.alertInfoSubContainer} ${className ?? ''}`}>
       <div className={classes.alertInfoFirstDiv}>
         <div
           className={classes.detectionInfo}
           onClick={onClick ? handleCardClick : undefined}
-          style={onClick ? {cursor: 'pointer'} : undefined}>
+          style={{
+            ...(onClick ? {cursor: 'pointer'} : {}),
+            ...(backgroundColor ? {backgroundColor} : {}),
+          }}>
           <div className={classes.alertIconWrapper}>
             <Image
-              src="/alertPage/alertIcon.svg"
+              src={iconPath}
               width={45}
               height={45}
               alt="Alert Icon"
@@ -87,19 +101,26 @@ export const CollapsibleAlertCard: FC<CollapsibleAlertCardProps> = ({
             />
           </div>
           <div className={classes.detectionInfoWrapper}>
-            <div className={classes.detectedByText}>
+            <div 
+              className={classes.detectedByText}
+              style={textColor ? {color: textColor} : undefined}>
               DETECTED BY {detectedBy}
             </div>
             <div className={classes.detectedInfoInner}>
-              <p className={classes.detectedDateWrapper}>
-                <span className={classes.detectedDays}>{timeAgo}</span>
-                <span className={classes.detectedDateText}>
-                  {' '}
+              <div className={classes.detectedDateWrapper}>
+                <div 
+                  className={classes.detectedDays}
+                  style={textColor ? {color: textColor} : undefined}>
+                  {timeAgo}
+                </div>
+                <div className={classes.detectedDateText}>
                   ({formattedDateString})
-                </span>
-              </p>
+                </div>
+              </div>
               <p className={classes.alertConfidence}>
-                <span className={classes.alertConfidenceValue}>
+                <span 
+                  className={classes.alertConfidenceValue}
+                  style={textColor ? {color: textColor} : undefined}>
                   {confidence}
                 </span>
                 <span className={classes.alertConfidenceText}>
@@ -168,6 +189,17 @@ export const CollapsibleAlertCard: FC<CollapsibleAlertCardProps> = ({
                 <span> radius around the location.</span>
               </p>
             </div>
+          </div>
+          <br/>
+          <div className={classes.buttonDiv}>
+            <button
+              className={classes.googleMapsButton}
+              onClick={() => window.open(googleMapUrl, '_blank')}
+              type="button">
+              <div className={classes.openInGoogleMapsText}>
+                Open in Google Maps
+              </div>
+            </button>
           </div>
         </div>
       )}

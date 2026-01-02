@@ -6,6 +6,7 @@ import type {
   GetStaticPropsContext,
   InferGetStaticPropsType,
 } from 'next';
+import Head from 'next/head';
 import ErrorPage from 'next/error';
 import superjson from 'superjson';
 import {AlertId} from '../../Components/AlertId/AlertId';
@@ -128,6 +129,7 @@ export default function Alert(
   })();
   
   const siteId = alert.site.id;
+  const siteName = alert.site.name;
 
   const alertData: AlertIdProps = {
     timeAgo,
@@ -140,10 +142,77 @@ export default function Alert(
     siteId,
   };
 
+  // Generate dynamic title based on alert data
+  const generateTitle = (): string => {
+    if (!siteName) {
+      return 'Fire Alert';
+    }
+
+    // Check if alert is from today
+    const today = new Date();
+    const eventDate = new Date(alert.eventDate);
+    const isToday =
+      today.getFullYear() === eventDate.getFullYear() &&
+      today.getMonth() === eventDate.getMonth() &&
+      today.getDate() === eventDate.getDate();
+
+    // Convert 24-hour time to 12-hour format with AM/PM
+    const formatTime = (dateString: string): string => {
+      const timeMatch = dateString.match(/at (\d{1,2}):(\d{2})/);
+      if (!timeMatch) return '';
+      
+      let hours = parseInt(timeMatch[1], 10);
+      const minutes = timeMatch[2];
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 should be 12
+      
+      return `${hours}:${minutes} ${ampm}`;
+    };
+
+    // Format date-time to be more human readable
+    const formatDateTime = (dateString: string): string => {
+      // Parse the date string (format: "DD MMM YYYY at HH:MM")
+      const dateMatch = dateString.match(/(\d{1,2}) (\w{3}) (\d{4}) at (\d{1,2}):(\d{2})/);
+      if (!dateMatch) return dateString;
+      
+      const day = dateMatch[1];
+      const month = dateMatch[2];
+      const year = dateMatch[3];
+      let hours = parseInt(dateMatch[4], 10);
+      const minutes = dateMatch[5];
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 should be 12
+      
+      return `${month} ${day}, ${year} at ${hours}:${minutes} ${ampm}`;
+    };
+
+    if (isToday) {
+      // Format: <satellite> detected fire at <time> in <Site.name>
+      const satellite = alert.detectedBy; // Use raw GeoEventProviderClientId
+      const time = formatTime(alert.localEventDate);
+      return `${satellite} detected fire at ${time} in ${siteName}`;
+    } else {
+      // Format: Fire in <Site.name> on <date-time>
+      const dateTime = formatDateTime(alert.localEventDate);
+      return `Fire in ${siteName} on ${dateTime}`;
+    }
+  };
+
+  const pageTitle = generateTitle();
+
   return (
-    <div>
-      <AlertId alertData={alertData} />
-    </div>
+    <>
+      <Head>
+        <title>{pageTitle}</title>
+      </Head>
+      <div>
+        <AlertId alertData={alertData} />
+      </div>
+    </>
   );
 }
 

@@ -2,6 +2,8 @@ import type { FC } from 'react';
 import { useState } from 'react';
 import type { AlertForSiteData } from '../../types/alert.types';
 import { CollapsibleAlertCard } from './CollapsibleAlertCard';
+import { getAlertTheme, getDaysSince } from './alertTheme.utils';
+import { DURATION_OPTIONS } from './durationOptions.utils';
 import classes from './AlertId.module.css';
 
 function getTimePassedSince(date: Date): {
@@ -57,6 +59,7 @@ export interface HistoricAlertCardsProps {
   onCopyCoordinates: (latitude: string, longitude: string) => void;
   isCoordinatesCopied: boolean;
   onBack: () => void;
+  onExpandedAlertChange?: (alertId: string | null) => void;
 }
 
 export const HistoricAlertCards: FC<HistoricAlertCardsProps> = ({
@@ -66,19 +69,33 @@ export const HistoricAlertCards: FC<HistoricAlertCardsProps> = ({
   onCopyCoordinates,
   isCoordinatesCopied,
   onBack,
+  onExpandedAlertChange,
 }) => {
   const [expandedAlertId, setExpandedAlertId] = useState<string | null>(null);
 
   const handleAlertClick = (alertId: string) => {
-    setExpandedAlertId(expandedAlertId === alertId ? null : alertId);
+    const newExpandedId = expandedAlertId === alertId ? null : alertId;
+    setExpandedAlertId(newExpandedId);
+    if (onExpandedAlertChange) {
+      onExpandedAlertChange(newExpandedId);
+    }
   };
 
   const handleToggle = (alertId: string) => {
-    setExpandedAlertId(expandedAlertId === alertId ? null : alertId);
+    const newExpandedId = expandedAlertId === alertId ? null : alertId;
+    setExpandedAlertId(newExpandedId);
+    if (onExpandedAlertChange) {
+      onExpandedAlertChange(newExpandedId);
+    }
   };
 
+  // Sort alerts by eventDate descending (newest first)
+  const sortedAlerts = [...alerts].sort((a, b) => {
+    return new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime();
+  });
+
   return (
-    <div>
+    <>
       <div className={`${classes.alertInfoSubContainer} ${classes.alertInfoSubContainerHorizontal}`}>
         <div className={classes.iconButtonDiv}>
           <button
@@ -93,14 +110,17 @@ export const HistoricAlertCards: FC<HistoricAlertCardsProps> = ({
             className={`${classes.googleMapsButton} ${classes.durationSelect} `}
             value={selectedDuration}
             onChange={e => onDurationChange(Number(e.target.value))}>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
+            {DURATION_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      <div >
-        {alerts.map(alert => {
+      <>
+        {sortedAlerts.map(alert => {
           const timePassed = getTimePassedSince(alert.eventDate);
           let timeAgo: string;
 
@@ -119,6 +139,10 @@ export const HistoricAlertCards: FC<HistoricAlertCardsProps> = ({
           const longitude = String(alert.longitude);
           const isExpanded = expandedAlertId === alert.id;
 
+          // Calculate days since alert and get theme configuration
+          const daysSince = getDaysSince(alert.eventDate);
+          const themeConfig = getAlertTheme(daysSince);
+
           return (
             <CollapsibleAlertCard
               key={alert.id}
@@ -135,11 +159,12 @@ export const HistoricAlertCards: FC<HistoricAlertCardsProps> = ({
               onClick={() => handleAlertClick(alert.id)}
               onCopyCoordinates={onCopyCoordinates}
               isCoordinatesCopied={isCoordinatesCopied}
+              themeConfig={themeConfig}
             />
           );
         })}
-      </div>
-    </div>
+      </>
+    </>
   );
 };
 

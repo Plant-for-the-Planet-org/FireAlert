@@ -1,1 +1,4 @@
-apps/server/**
+!apps/server/src/pages/alert/*
+!apps/server/src/Components/AlertId/*
+
+apps/server/*
