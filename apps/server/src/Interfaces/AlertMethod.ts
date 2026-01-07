@@ -1,5 +1,5 @@
-import {TRPCContext} from './Context';
-import {AlertMethod} from '@prisma/client';
+import type {TRPCContext} from './Context';
+import type {AlertMethod} from '@prisma/client';
 
 export enum AlertMethodMethod {
   email = 'email',

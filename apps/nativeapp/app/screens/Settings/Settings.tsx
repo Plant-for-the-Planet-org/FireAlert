@@ -83,6 +83,7 @@ import {
 import {useSelector} from 'react-redux';
 import {RootState} from '../../redux/store';
 import {useNavigation} from '@react-navigation/native';
+import {useOneSignalState} from '../../hooks/notification/useOneSignalState';
 // import {PromptInAppUpdatePanel} from '../../PromptInAppUpdate';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -93,6 +94,7 @@ const IS_ANDROID = Platform.OS === 'android';
 const Settings = () => {
   const navigation = useNavigation();
   const {alertMethods} = useSelector((state: RootState) => state.settingsSlice);
+  const oneSignalDeviceState = useOneSignalState();
 
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
@@ -165,6 +167,7 @@ const Settings = () => {
       const {deviceId} = await getDeviceInfo();
       // const {userId} = await OneSignal.getDeviceState(); // Old SDK
       const userId = await OneSignal.User.pushSubscription.getIdAsync();
+      console.log('pushSubscription.getIdAsync', userId);
 
       const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
         el => userId === el?.destination && el.deviceId === deviceId,

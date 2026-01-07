@@ -17,6 +17,7 @@ import {useAppDispatch, useAppSelector} from '../hooks/redux/reduxHooks';
 import useOneSignal from '../hooks/notification/useOneSignal';
 import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';
 import {Config} from '../../config';
+import {NotificationHandlers} from '../services/OneSignal';
 
 const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
 
@@ -25,20 +26,21 @@ export default function AppNavigator() {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const {getCredentials, clearSession, clearCredentials} = useAuth0();
-  useOneSignal(onesignalAppId, {
-    onReceived: notification => {
-      // Handle received notification
-      console.log('Notification received:', notification);
-    },
-    onOpened: openResult => {
-      // Handle notification opened
-      console.log('Notification opened:', openResult);
-    },
-    onIds: device => {
-      // Save device ID for sending personalized notifications
-      console.log('Device info:', device);
-    },
-  });
+
+  // Memoize handlers to prevent infinite re-renders in useOneSignal
+  const notificationHandlers = React.useMemo<NotificationHandlers>(
+    () => ({
+      onReceived: notification => {
+        console.log('[OneSignal] Notification received:', notification);
+      },
+      onOpened: openResult => {
+        console.log('[OneSignal] Notification opened:', openResult);
+      },
+    }),
+    [],
+  );
+
+  useOneSignal(onesignalAppId, notificationHandlers);
 
   const handleUrl = url => {
     console.log(url, 'url');
