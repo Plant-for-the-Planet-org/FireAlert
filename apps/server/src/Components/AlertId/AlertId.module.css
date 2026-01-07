@@ -11,7 +11,7 @@
 .AlertId {
   position: relative;
   width: 80%;
-  height: 433px;
+  height: 500px;
   border-radius: 14px;
   background-color: #fff;
   overflow: hidden;
@@ -40,22 +40,27 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* justify-content: center; */
   align-items: center;
-  padding: 0 17px;
+  padding: 16px;
+  overflow-y: scroll;
 }
 .alertInfoSubContainer {
-  height: 75%;
+  /* height: 75%; */
   width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 18px;
-  margin-top: 20px;
+  padding: 16px;
 }
-.alertInfoFirstDiv{
-  width:100%;
+
+.alertInfoSubContainerHorizontal {
+  flex-direction: row;
+}
+
+.alertInfoFirstDiv {
+  width: 100%;
 }
 .detectionInfo {
   width: 100%;
@@ -65,6 +70,23 @@
   overflow: hidden;
   display: flex;
   align-items: center;
+  position: relative;
+}
+.collapseButton {
+  /* position: absolute;
+  top: 20px;
+  right: 20px; */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #4f4f4f;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+.collapseButton:hover {
+  background-color: rgba(79, 79, 79, 0.1);
 }
 .alertIconWrapper {
   object-fit: contain;
@@ -76,6 +98,7 @@
 .detectionInfoWrapper {
   margin-left: 10px;
   display: flex;
+  flex-grow: 1;
   flex-direction: column;
   justify-content: space-between;
 }
@@ -83,17 +106,17 @@
   color: #4f4f4f;
   font-size: 10px;
   font-weight: 600;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: Open Sans, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
 }
-.detectedInfoInner{
+.detectedInfoInner {
   display: flex;
   flex-direction: column;
 }
 .detectedDateWrapper {
   font-size: 18px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: Open Sans, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
   margin-top: 5px;
   margin-bottom: 5px;
 }
@@ -113,16 +136,16 @@
   color: #4f4f4f;
   font-size: 14px;
   font-weight: 600;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: Open Sans, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
 }
 .alertConfidenceText {
   color: #4f4f4f;
   font-size: 14px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: Open Sans, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
 }
-.alertInfoSecondDiv{
+.alertInfoSecondDiv {
   width: 100%;
   align-items: center;
 }
@@ -141,11 +164,11 @@
   justify-content: space-between;
   align-items: center;
 }
-.eightyPercentSectionLocation{
+.eightyPercentSectionLocation {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  width:80%;
+  width: 80%;
   align-items: center;
 }
 .pinIconWrapper {
@@ -166,8 +189,8 @@
   color: #4f4f4f;
   font-size: 8px;
   font-weight: bold;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: Open Sans, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
   position: relative;
   width: min-content;
   height: min-content;
@@ -177,8 +200,8 @@
 .alertCoordinates {
   color: #4f4f4f;
   font-size: 16px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: Open Sans, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
   position: relative;
   width: min-content;
   height: min-content;
@@ -196,14 +219,14 @@
   height: 31px;
   opacity: 0.95;
 }
-.copyIconParent:hover .copyIcon{
+.copyIconParent:hover .copyIcon {
   opacity: 1;
 }
 .copyIconClicked {
   transform: scale(0.9);
   transition: transform 0.1s;
 }
-.copyIconParent:hover .copyIconClicked{
+.copyIconParent:hover .copyIconClicked {
   opacity: 1;
 }
 .actionParent {
@@ -219,11 +242,11 @@
   justify-content: space-between;
   align-items: center;
 }
-.eightyPercentSectionAction{
+.eightyPercentSectionAction {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  width:80%;
+  width: 80%;
   align-items: center;
 }
 .radarIconWrapper {
@@ -235,10 +258,10 @@
 }
 .actionLabel {
   font-size: 16px;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: Open Sans, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
   flex-grow: 1;
-  margin-top:0;
+  margin-top: 0;
   margin-bottom: 0;
   color: #4f4f4f;
   position: relative;
@@ -250,14 +273,62 @@
 .actionText2 {
   font-weight: bold;
 }
-.buttonDiv{
-  height:25%;
+
+.buttonDiv {
+  /* height: 25%; */
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
 }
+
+.mapPrimary {
+  text-align: center;
+  display: block;
+}
+
+.mapSecondary {
+  text-align: center;
+  display: none;
+}
+
+/* only between 814px–1024px */
+@media (min-width: 814px) and (max-width: 1024px) {
+  .mapPrimary {
+    display: none;
+  }
+
+  .mapSecondary {
+    display: block;
+  }
+}
+
+.selectDiv {
+  width: 144px;
+  height: 48px;
+  display: flex;
+  justify-content: end;
+  align-items: center;
+}
+
+.iconButtonDiv {
+  width: 48px;
+  height: 48px;
+  display: flex;
+}
+
+.iconButton {
+  flex-grow: 1;
+  border-radius: 14px;
+  background-color: #e86f56;
+  transition: background-color 0.3s, color 0.3s, outline 0.3s;
+}
+
+.iconButtonText {
+  padding: 0;
+  margin: 0;
+}
+
 .googleMapsButton {
   width: 70.5%;
   padding: 3% 5%;
@@ -265,6 +336,15 @@
   background-color: #e86f56;
   border-width: 0;
   transition: background-color 0.3s, color 0.3s, outline 0.3s;
+}
+
+.durationSelect {
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  border-color: #e86f56;;
+  border-radius: 24px;
+  border-width: 2px;
 }
 
 .googleMapsButton:hover {
@@ -278,8 +358,8 @@
   color: #fff;
   font-size: 18px;
   font-weight: 700;
-  font-family: Open Sans, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: Open Sans, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
   z-index: 0;
   white-space: nowrap;
   flex-direction: column;
@@ -290,14 +370,14 @@
   color: #e86f56;
 }
 
-@media (max-width: 1067px){
+@media (max-width: 1067px) {
   .AlertId {
     height: 478px;
   }
 }
 
 /* Tablet View */
-@media (max-width: 1024px) { 
+@media (max-width: 1024px) {
   .AlertId {
     position: relative;
     width: 75%;
@@ -317,36 +397,36 @@
     height: 47%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    /* justify-content: center; */
     align-items: center;
     padding: 0 5px;
   }
-  .alertInfoSubContainer{
-    padding:5px 10px;
+  .alertInfoSubContainer {
+    padding: 5px 10px;
     margin-top: 10px;
   }
-  .detectionInfo{
+  .detectionInfo {
     padding: 15px;
   }
-  .detectionInfoWrapper{
+  .detectionInfoWrapper {
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: column;
     flex-grow: 1;
   }
-  .detectedByText{
+  .detectedByText {
     padding-top: 7px;
   }
-  .alertInfoSecondDiv{
+  .alertInfoSecondDiv {
     display: flex;
   }
-  .alertLocationParent{
+  .alertLocationParent {
     margin-right: 10px;
   }
-  .eightyPercentSectionAction{
+  .eightyPercentSectionAction {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    width:100%;
+    width: 100%;
     align-items: center;
   }
   .googleMapsButton {
@@ -357,7 +437,7 @@
     transition: background-color 0.3s, color 0.3s, outline 0.3s; /* Add transition for smooth hover effect */
   }
   .googleMapsButton:hover {
-    background-color:#e86f56;
+    background-color: #e86f56;
   }
   .googleMapsButton .openInGoogleMapsText {
     color: #e86f56;
@@ -371,7 +451,6 @@
 @media (max-width: 813px) {
   .AlertId {
     height: 650px;
-
   }
   .mapView {
     width: 100%;
@@ -381,14 +460,14 @@
     width: 100%;
     height: 55%;
   }
-  .alertInfoSubContainer{
+  .alertInfoSubContainer {
     margin-bottom: 10px;
   }
-  .alertInfoSecondDiv{
+  .alertInfoSecondDiv {
     flex-direction: column;
     margin-left: 10px;
   }
-  .actionParent{
+  .actionParent {
     margin-right: 10px;
   }
   .googleMapsButton {
@@ -396,47 +475,47 @@
   }
 }
 
-@media (max-width:681px) {
-  .AlertId{
+@media (max-width: 681px) {
+  .AlertId {
     width: 90%;
   }
 }
 
-@media (max-width:590px) {
-  .AlertId{
+@media (max-width: 590px) {
+  .AlertId {
     min-height: 690px;
   }
 }
 
-@media (max-width:567px) {
-  .detectionInfo{
+@media (max-width: 567px) {
+  .detectionInfo {
     padding: 15px;
     flex-grow: 1;
   }
 }
 
-@media (max-width:513px) {
-  .AlertId{
+@media (max-width: 513px) {
+  .AlertId {
     min-height: 725px;
   }
-  .detectionInfo{
+  .detectionInfo {
     flex-grow: 1;
   }
 }
 
-@media (max-width:487px){
-  .AlertId{
+@media (max-width: 487px) {
+  .AlertId {
     min-height: 750px;
   }
-  .detectionInfoWrapper{
+  .detectionInfoWrapper {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
   }
 }
 
-@media (max-width:441px) {
-  .AlertId{
+@media (max-width: 441px) {
+  .AlertId {
     min-height: 750px;
   }
   .alertIcon {
@@ -445,8 +524,8 @@
   }
 }
 
-@media (max-width:401px) {
-  .AlertId{
+@media (max-width: 401px) {
+  .AlertId {
     min-height: 767px;
   }
   .alertIcon {
@@ -455,9 +534,9 @@
   }
 }
 
-@media (max-width:350px) {
-  .AlertId{
-    width:95%;
+@media (max-width: 350px) {
+  .AlertId {
+    width: 95%;
     max-height: 90vh;
     min-height: 604px;
   }
@@ -466,28 +545,28 @@
   }
   .alertInfo {
     height: 55%;
-    padding:0;
+    padding: 0;
   }
   .alertIcon {
     width: 30px;
     height: 30px;
   }
-  .alertLocationParent{
-    padding:5px;
+  .alertLocationParent {
+    padding: 5px;
   }
-  .actionParent{
-    padding:5px;
+  .actionParent {
+    padding: 5px;
   }
-  .detectionInfo{
-    padding:0;
+  .detectionInfo {
+    padding: 0;
   }
-  .alertIconWrapper{
+  .alertIconWrapper {
     display: none;
   }
-  .pinIconWrapper{
+  .pinIconWrapper {
     display: none;
   }
-  .radarIconWrapper{
+  .radarIconWrapper {
     display: none;
   }
   .detectedByText {
@@ -496,8 +575,22 @@
   .detectedDateWrapper {
     font-size: 14px;
   }
-  .detectionInfoWrapper{
-    padding:5px;
+  .detectionInfoWrapper {
+    padding: 5px;
+  }
+}
+
+.block {
+  display: block;
+}
+
+.sm_hidden {
+  display: none;
+}
+
+@media screen and (max-width: 768px) {
+  .sm_hidden {
+    display: block;
   }
 }
 
