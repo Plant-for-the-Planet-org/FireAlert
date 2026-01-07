@@ -94,7 +94,7 @@ class EmailNotifier implements Notifier {
         unsubscribeUrl: unsubscribeUrl,
       }),
     };
-    console.log(mailOptions.html);
+    // console.log(mailOptions.html);
 
     // Send the email
     try {
