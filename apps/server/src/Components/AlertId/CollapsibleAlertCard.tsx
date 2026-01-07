@@ -141,6 +141,7 @@ export const CollapsibleAlertCard: FC<CollapsibleAlertCardProps> = ({
         </div>
       </div>
       {!isCollapsed && (
+        <>
         <div className={classes.alertInfoSecondDiv}>
           <div className={classes.alertLocationParent}>
             <div className={classes.eightyPercentSectionLocation}>
@@ -191,7 +192,7 @@ export const CollapsibleAlertCard: FC<CollapsibleAlertCardProps> = ({
             </div>
           </div>
           <br/>
-          <div className={classes.buttonDiv}>
+          <div className={`${classes.buttonDiv} ${classes.mapPrimary}`}>
             <button
               className={classes.googleMapsButton}
               onClick={() => window.open(googleMapUrl, '_blank')}
@@ -202,6 +203,17 @@ export const CollapsibleAlertCard: FC<CollapsibleAlertCardProps> = ({
             </button>
           </div>
         </div>
+        <div className={`${classes.buttonDiv} ${classes.mapSecondary}`}>
+          <button
+            className={classes.googleMapsButton}
+            onClick={() => window.open(googleMapUrl, '_blank')}
+            type="button">
+            <div className={classes.openInGoogleMapsText}>
+              Open in Google Maps
+            </div>
+          </button>
+        </div>
+        </>
       )}
     </div>
   );

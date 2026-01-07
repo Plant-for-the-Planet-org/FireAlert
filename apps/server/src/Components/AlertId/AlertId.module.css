@@ -282,11 +282,32 @@
   align-items: center;
 }
 
+.mapPrimary {
+  text-align: center;
+  display: block;
+}
+
+.mapSecondary {
+  text-align: center;
+  display: none;
+}
+
+/* only between 814px–1024px */
+@media (min-width: 814px) and (max-width: 1024px) {
+  .mapPrimary {
+    display: none;
+  }
+
+  .mapSecondary {
+    display: block;
+  }
+}
+
 .selectDiv {
   width: 144px;
   height: 48px;
   display: flex;
-  justify-content: center;
+  justify-content: end;
   align-items: center;
 }
 
@@ -389,7 +410,7 @@
   }
   .detectionInfoWrapper {
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: column;
     flex-grow: 1;
   }
   .detectedByText {
@@ -558,3 +579,18 @@
     padding: 5px;
   }
 }
+
+.block {
+  display: block;
+}
+
+.sm_hidden {
+  display: none;
+}
+
+@media screen and (max-width: 768px) {
+  .sm_hidden {
+    display: block;
+  }
+}
+

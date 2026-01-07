@@ -101,7 +101,7 @@ export const AlertId: FC<Props> = memo(function AlertIdWeb({
                   </div>
                 </button>
               </div>
-              <br/>
+              <br className={`${classes.block} ${classes.sm_hidden}`} />
             </>
           ) : (
             filteredAlerts && (
