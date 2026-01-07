@@ -312,13 +312,13 @@ export const deviceVerification = async (
 
   // call OneSignal API to send the notification
   // This calls latest api endpoint with legacy key.
-  const playerIdUrl = `https://api.onesignal.com/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`;
-  // the legacy api endpoint was `https://onesignal.com/api/v1/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`;
+  // const playerIdUrl = `https://api.onesignal.com/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`;
+  const playerIdUrl = `https://onesignal.com/api/v1/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`; // Legacy API URL
   const response = await fetch(playerIdUrl, {
     method: 'GET',
     headers: {
-      // Authorization: `Basic ${env.ONESIGNAL_REST_API_KEY}`, // Legacy API Key
-      Authorization: `key ${env.ONESIGNAL_REST_API_KEY}`,
+      Authorization: `Basic ${env.ONESIGNAL_REST_API_KEY}`, // Legacy API Key
+      // Authorization: `key ${env.ONESIGNAL_REST_API_KEY}`,
       'Content-Type': 'application/json; charset=utf-8',
     },
   });
