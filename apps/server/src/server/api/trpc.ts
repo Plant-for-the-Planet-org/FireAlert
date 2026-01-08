@@ -60,6 +60,13 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 
 export const createTRPCRouter = t.router;
 
+// Sentry middleware for tRPC
+const sentryMiddleware = t.middleware(
+  Sentry.trpcMiddleware({
+    attachRpcInput: true,
+  }),
+);
+
 const passCtxToNext = t.middleware(async ({ctx, next}) => {
   return next({
     ctx,
@@ -73,11 +80,7 @@ const passCtxToNext = t.middleware(async ({ctx, next}) => {
 // 3) user: impersonatedUserData, isAdmin: true, isImpersonatedUser: true -> admin is trying to access impersonated User's data
 // 4) user: user, isAdmin: false, isImpersonatedUser: false -> All other normal api calls
 
-const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
-  // Add Sentry Handlera to middleware
-  Sentry.Handlers.trpcMiddleware({
-    attachRpcInput: true,
-  });
+const ensureUserIsAuthed = t.middleware(async ({ctx, next, path, type}) => {
   // Decode the token
   const {decodedToken, access_token} = await decodeToken(ctx);
   // Find the user associated with the token
@@ -192,8 +195,12 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   });
 });
 
-export const publicProcedure = t.procedure.use(passCtxToNext);
-export const protectedProcedure = t.procedure.use(ensureUserIsAuthed);
+export const publicProcedure = t.procedure
+  .use(sentryMiddleware)
+  .use(passCtxToNext);
+export const protectedProcedure = t.procedure
+  .use(sentryMiddleware)
+  .use(ensureUserIsAuthed);
 
 export type InnerTRPCContext = ReturnType<typeof createInnerTRPCContext>;
 export type MiddlewareEnsureUserIsAuthed = typeof ensureUserIsAuthed;

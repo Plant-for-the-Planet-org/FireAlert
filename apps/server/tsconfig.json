@@ -5,7 +5,7 @@
     "paths": {
       "*": ["types/*"]
     },
-  
+
     "checkJs": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -13,12 +13,6 @@
     "moduleResolution": "node",
     "isolatedModules": true
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.js"],
+  "exclude": ["node_modules"]
 }
