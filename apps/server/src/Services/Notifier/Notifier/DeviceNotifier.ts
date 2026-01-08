@@ -75,17 +75,14 @@ class DeviceNotifier implements Notifier {
     // call OneSignal API to send the notification
     // This calls legacy api endpoint
     const response = await fetch('https://onesignal.com/api/v1/notifications', {
-      /* This using Legacy API. For Latest use https://api.onesignal.com/notifications read more at the docs */
+      // For Latest use https://api.onesignal.com/notifications read more at the docs 
       method: 'POST',
       headers: {
-        Authorization: `Basic ${env.ONESIGNAL_REST_API_KEY}`, // Legacy API Key
-        // Authorization: `key ${env.ONESIGNAL_REST_API_KEY}`, // TODO: Latest Versions
+        Authorization: `Basic ${env.ONESIGNAL_REST_API_KEY}`,
         'Content-Type': 'application/json; charset=utf-8',
       },
       body: JSON.stringify(payload),
     });
-
-    // console.log(response);
 
     if (!response.ok) {
       logger(
