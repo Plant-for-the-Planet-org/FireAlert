@@ -3,6 +3,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import React, {useState} from 'react';
 import {
   ActivityIndicator,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -201,8 +202,9 @@ export default function ProtectedSitesSettings({
           ]}>
           <View>
             <Text style={settingsStyles.emptySiteText}>
-              Monitor National Parks, Public Forests{'\n'}
-              and Conservation Areas near you.
+              Monitor National Parks,{'\n'}
+              Public Forests and {'\n'}
+              Conservation Areas near you.
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -220,7 +222,12 @@ export default function ProtectedSitesSettings({
               </Text>
             </TouchableOpacity>
           </View>
-          <View style={settingsStyles.locWaveCon}>{/*<LocationWave />*/}</View>
+          <View style={settingsStyles.locWaveCon}>
+            <Image
+              source={require('../../assets/images/protected-areas-hero.png')}
+              style={styles.heroImage}
+            />
+          </View>
         </View>
       )}
       {/* Site information modal */}
@@ -244,7 +251,6 @@ export default function ProtectedSitesSettings({
             <MapOutlineIcon />
             <Text style={settingsStyles.siteActionText}>View on Map</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             disabled={deleteProtectedSiteButtonIsDisabled}
             onPress={() => {
@@ -279,5 +285,10 @@ export default function ProtectedSitesSettings({
 const styles = StyleSheet.create({
   addProtectedSiteBtn: {
     width: 166,
+  },
+  heroImage: {
+    width: 160,
+    height: 115,
+    resizeMode: 'contain',
   },
 });
