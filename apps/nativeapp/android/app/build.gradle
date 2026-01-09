@@ -48,7 +48,7 @@ react {
     //   Use absolute path to hermesc binary to avoid path resolution issues
     def hermescPath = file("../../../../node_modules/react-native/sdks/hermesc/%OS-BIN%/hermesc").absolutePath
     hermesCommand = hermescPath
-    
+
     //   The list of flags to pass to the Hermes compiler. By default is "-O", "-output-source-map"
     // hermesFlags = ["-O", "-output-source-map"]
 
@@ -84,8 +84,8 @@ android {
         applicationId "eco.pp.firealert"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "1.6"
+        versionCode 18
+        versionName "1.7"
 
         manifestPlaceholders = [
             auth0Domain:   "accounts.plant-for-the-planet.org",

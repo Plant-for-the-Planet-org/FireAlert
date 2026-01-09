@@ -1,5 +1,5 @@
 import {TRPCError} from '@trpc/server';
-import {type TRPCContext} from '../../Interfaces/Context';
+import type {TRPCContext} from '../../Interfaces/Context';
 import {
   type CheckUserHasAlertMethodPermissionArgs,
   type CtxWithAlertMethod,
@@ -311,11 +311,11 @@ export const deviceVerification = async (
   // else return error
 
   // call OneSignal API to send the notification
-  const playerIdUrl = `https://onesignal.com/api/v1/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`; 
+  const playerIdUrl = `https://onesignal.com/api/v1/players/${destination}?app_id=${env.ONESIGNAL_APP_ID}`;
   const response = await fetch(playerIdUrl, {
     method: 'GET',
     headers: {
-      Authorization: `Basic ${env.ONESIGNAL_REST_API_KEY}`, 
+      Authorization: `Basic ${env.ONESIGNAL_REST_API_KEY}`,
       'Content-Type': 'application/json; charset=utf-8',
     },
   });

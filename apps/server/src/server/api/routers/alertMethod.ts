@@ -1,25 +1,25 @@
 import {TRPCError} from '@trpc/server';
 import {parsePhoneNumberFromString} from 'libphonenumber-js';
+import type {UserPlan} from '../../../../src/Interfaces/AlertMethod';
+import {env} from '../../../../src/env.mjs';
+import {logger} from '../../../../src/server/logger';
+import {isPhoneNumberRestricted} from '../../../../src/utils/notification/restrictedSMS';
+import {
+  checkUserHasAlertMethodPermission,
+  deviceVerification,
+  findAlertMethod,
+  findVerificationRequest,
+  handlePendingVerification,
+  limitAlertMethodBasedOnPlan,
+  returnAlertMethod,
+} from '../../../utils/routers/alertMethod';
+import {createTRPCRouter, protectedProcedure, publicProcedure} from '../trpc';
 import {
   createAlertMethodSchema,
   params,
   updateAlertMethodSchema,
   verifySchema,
 } from '../zodSchemas/alertMethod.schema';
-import {createTRPCRouter, protectedProcedure, publicProcedure} from '../trpc';
-import {
-  findAlertMethod,
-  findVerificationRequest,
-  checkUserHasAlertMethodPermission,
-  returnAlertMethod,
-  handlePendingVerification,
-  deviceVerification,
-  limitAlertMethodBasedOnPlan,
-} from '../../../utils/routers/alertMethod';
-import {logger} from '../../../../src/server/logger';
-import {isPhoneNumberRestricted} from '../../../../src/utils/notification/restrictedSMS';
-import {UserPlan} from '../../../../src/Interfaces/AlertMethod';
-import {env} from '../../../../src/env.mjs';
 
 export const alertMethodRouter = createTRPCRouter({
   //Todo: Abstract the functions in SendVerification and createAlertMethod to a separate file so that it can be reused in the verify function.
