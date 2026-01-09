@@ -89,8 +89,8 @@ yarn server db:push
 
 #### Push Notifications (OneSignal)
 
-- **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification delivery
-- **`ONESIGNAL_REST_API_KEY`**: OneSignal REST API key for server-side push notification operations
+- **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification delivery to mobile devices. This ID identifies the specific OneSignal app configuration and must match the app ID configured in the mobile application. Used for device verification and push notification targeting.
+- **`ONESIGNAL_REST_API_KEY`**: OneSignal REST API key for server-side push notification operations. This key enables the server to send push notifications, verify device subscriptions, and manage user segments. Required for device alert method verification and notification delivery.
 
 #### WhatsApp Integration
 
