@@ -19,6 +19,8 @@ import {trpc} from '../../services/trpc';
 import {Colors} from '../../styles';
 import {styles as settingsStyles} from './Settings';
 
+const protected_areas_hero = require('../../assets/images/protected-areas-hero.png');
+
 type Props = {
   radiusLoaderArr: any;
   setRadiusLoaderArr: any;
@@ -223,10 +225,7 @@ export default function ProtectedSitesSettings({
             </TouchableOpacity>
           </View>
           <View style={settingsStyles.locWaveCon}>
-            <Image
-              source={require('../../assets/images/protected-areas-hero.png')}
-              style={styles.heroImage}
-            />
+            <Image source={protected_areas_hero} style={styles.heroImage} />
           </View>
         </View>
       )}
