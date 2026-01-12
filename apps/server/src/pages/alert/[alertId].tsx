@@ -2,7 +2,7 @@
 
 import { createServerSideHelpers } from '@trpc/react-query/server';
 import { api } from '../../utils/api';
-import { GetStaticPropsContext, GetStaticPaths, InferGetStaticPropsType } from 'next';
+import type { GetStaticPropsContext, GetStaticPaths, InferGetStaticPropsType } from 'next';
 import { AlertId } from '../../Components/AlertId/AlertId';
 import { appRouter } from '../../server/api/root';
 import superjson from 'superjson';

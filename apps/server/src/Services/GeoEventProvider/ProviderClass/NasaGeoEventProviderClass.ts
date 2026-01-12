@@ -1,14 +1,19 @@
-import {
-  type GeoEventProviderConfig,
-  type GeoEventProviderClientId,
-  type GeoEventProviderConfigGeneral,
-  type GeoEventProviderClass,
+import type {
+  GeoEventProviderConfig,
+  GeoEventProviderClientId,
+  GeoEventProviderConfigGeneral,
+  GeoEventProviderClass,
+  GeoEventProviderClient,
 } from '../../../Interfaces/GeoEventProvider';
-import {type geoEventInterface as GeoEvent} from '../../../Interfaces/GeoEvent';
+import type {
+  ConfidenceLevels,
+  GeoEventInterface as GeoEvent,
+} from '../../../Interfaces/GeoEvent';
 import {parse} from 'csv-parse';
 import {AlertType} from '../../../Interfaces/SiteAlert';
 import type DataRecord from '../../../Interfaces/DataRecord';
 import {Confidence} from '../../../Interfaces/GeoEvent';
+import {env} from '../../../env.mjs';
 
 interface NasaGeoEventProviderConfig extends GeoEventProviderConfig {
   apiUrl: string;
@@ -46,11 +51,6 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
       const minutes = time % 100; // Extract minutes from the time
       const date = new Date(Date.UTC(year, month - 1, day, hours, minutes)); // Create a Date object in UTC
 
-      interface ConfidenceLevels {
-        [key: string]: {
-          [key: string]: string;
-        };
-      }
       const confidenceLevels: ConfidenceLevels = {
         MODIS: {
           h: Confidence.High,
@@ -98,29 +98,26 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
       };
     };
 
-    return new Promise<GeoEvent[]>(async (resolve, reject) => {
-      try {
-        const url = this.getUrl(
-          clientApiKey,
-          geoEventProviderClientId as GeoEventProviderClientId,
-        );
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const csv = await response.text();
+    try {
+      const url = this.getUrl(
+        clientApiKey,
+        geoEventProviderClientId as GeoEventProviderClientId,
+      );
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const csv = await response.text();
 
+      return new Promise<GeoEvent[]>((resolve, reject) => {
         const parser = parse(csv, {columns: true});
-
         const records: GeoEvent[] = [];
-        let recordCount = 0;
 
         parser
           .on('readable', () => {
-            let record: DataRecord;
-            while ((record = parser.read())) {
-              records.push(normalize(record, record.instrument));
-              recordCount++;
+            let record: DataRecord | null;
+            while ((record = parser.read()) != null) {
+              records.push(normalize(record, record.instrument as string));
             }
           })
           .on('end', () => {
@@ -129,25 +126,19 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
           .on('error', error => {
             reject(new Error('Error parsing CSV file: ' + error.message));
           });
-      } catch (error) {
-        reject(error);
-      }
-    });
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
   getUrl(clientApiKey: string, clientId: GeoEventProviderClientId): string {
     const {apiUrl, bbox} = this.getConfig();
-    // If Date isn't passed API returns most recent data
+    // Use FIRMS_MAP_KEY from environment if available, otherwise fall back to clientApiKey parameter
+    const apiKey = env.FIRMS_MAP_KEY ?? clientApiKey;
     // const currentDate = new Date().toISOString().split("T")[0];
-
-    // If Current time is within 12AM UTC to 2AM UTC - then dayRange would be passed 2 & 1 otherwise.
-    let dayRange = 1;
-    const now = new Date();
-    const utcHours = now.getUTCHours();
-    if (utcHours >= 0 && utcHours < 2) {
-      dayRange = 2;
-    }
-    return `${apiUrl}/api/area/csv/${clientApiKey}/${clientId}/${bbox}/${dayRange}/`;
+    // If Date isn't passed API returns most recent data
+    return `${apiUrl}/api/area/csv/${apiKey}/${clientId}/${bbox}/1/`;
   }
 
   getConfig(): NasaGeoEventProviderConfig {
@@ -177,10 +168,10 @@ class NasaGeoEventProviderClass implements GeoEventProviderClass {
     }
 
     return {
-      client: config.client,
-      bbox: config.bbox,
-      slice: config.slice,
-      apiUrl: config.apiUrl,
+      client: config.client as GeoEventProviderClient,
+      bbox: config.bbox as string,
+      slice: config.slice as string,
+      apiUrl: config.apiUrl as string,
     };
   }
 }

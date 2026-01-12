@@ -29,7 +29,7 @@ import {
 import {
   PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from '../home/permissionAlert/locationPermissionAlerts';
+} from '../Home/PermissionAlert/LocationPermissionAlerts';
 
 import {
   DropDown,
@@ -46,6 +46,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {locationPermission} from '../../utils/permissions';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {useNavigation} from '@react-navigation/native';
 
 const IS_ANDROID = Platform.OS === 'android';
 
@@ -69,7 +70,8 @@ const images: Record<CompassImage, ImageSourcePropType> = {
   compass1: require('../../assets/images/compassImage.png'),
 };
 
-const SelectLocation = ({navigation}) => {
+const SelectLocation = () => {
+  const navigation = useNavigation();
   const {state} = useMapLayers(MapLayerContext);
   const {mapInfo} = useContext(BottomBarContext);
   const [visible, setVisible] = useState<boolean>(false);
@@ -119,15 +121,18 @@ const SelectLocation = ({navigation}) => {
     let highlightSiteInfo = siteInfo;
     let bboxGeo = bbox(point(siteInfo?.geometry.coordinates));
     highlightSiteInfo = siteInfo?.geometry;
-    navigation.navigate('Home', {
-      bboxGeo,
-      siteInfo: [
-        {
-          type: 'Feature',
-          geometry: highlightSiteInfo,
-          properties: {site: siteInfo},
-        },
-      ],
+    navigation.navigate('BottomTab', {
+      screen: 'Home',
+      params: {
+        bboxGeo,
+        siteInfo: [
+          {
+            type: 'Feature',
+            geometry: highlightSiteInfo,
+            properties: {site: siteInfo},
+          },
+        ],
+      },
     });
   };
 

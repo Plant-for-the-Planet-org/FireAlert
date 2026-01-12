@@ -50,95 +50,80 @@ yarn server db:push
 
 ## Environment Variables
 
-### Database Configuration
-
-The application supports multiple database configurations for different environments. Uncomment the appropriate set based on your needs:
-
-#### Production/Development (Supabase)
-
-- **`DATABASE_URL`**: PostgreSQL connection string with connection pooling for general database operations. Points to Supabase pooler for production/staging environments
-- **`DATABASE_PRISMA_URL`**: Prisma-specific database connection URL (typically same as DATABASE_URL for pooled connections)
-- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling, required for Prisma migrations and schema operations. Essential for running `yarn server db:migrate` and `yarn server db:deploy`
-- **`DATABASE_URL_NON_POOLING_SHADOW`**: Shadow database URL for Prisma migration testing and validation during development
-
-#### Local Development (Default Database)
-
-Uncomment these variables to connect to a local PostgreSQL instance running on port 54320 with the default `postgres` database:
-
-- **`DATABASE_URL`**: `postgres://postgres:password@localhost:54320/postgres`
-- **`DATABASE_PRISMA_URL`**: `postgres://postgres:password@localhost:54320/postgres`
-- **`DATABASE_URL_NON_POOLING`**: `postgres://postgres:password@localhost:54320/postgres`
-- **`DATABASE_URL_NON_POOLING_SHADOW`**: `postgres://postgres:password@localhost:54320/postgres`
-
-#### Local Development (FireIncident Database)
-
-Uncomment these variables to connect to a local PostgreSQL instance with a dedicated `fire-incidents` database for testing fire incident tracking features:
-
-- **`DATABASE_URL`**: `postgres://postgres:password@localhost:54320/fire-incidents`
-- **`DATABASE_PRISMA_URL`**: `postgres://postgres:password@localhost:54320/fire-incidents`
-- **`DATABASE_URL_NON_POOLING`**: `postgres://postgres:password@localhost:54320/fire-incidents`
-- **`DATABASE_URL_NON_POOLING_SHADOW`**: `postgres://postgres:password@localhost:54320/fire-incidents`
-
-**Note**: Only one set of database configuration variables should be active (uncommented) at a time. The local configurations assume PostgreSQL with PostGIS extension is running locally, typically via Docker or Supabase local development setup.
-
 ### Authentication & Authorization
 
 - **`RN_AUTH0_CLIENT_ID`**: Auth0 client ID for React Native mobile app authentication
-- **`RN_AUTH0_DOMAIN`**: Auth0 domain for React Native mobile app (e.g., accounts.plant-for-the-planet.org)
-- **`NEXT_AUTH0_CLIENT_ID`**: Auth0 client ID for Next.js web application
-- **`NEXT_AUTH0_CLIENT_SECRET`**: Auth0 client secret for Next.js server-side authentication
-- **`AUTH0_DOMAIN`**: Full Auth0 domain URL (e.g., https://accounts.plant-for-the-planet.org)
-- **`AUTH0_ISSUER`**: Auth0 token issuer identifier (e.g., urn:plant-for-the-planet)
-- **`NEXTAUTH_SECRET`**: Secret key for NextAuth.js session encryption (generate with `openssl rand -base64 32`)
-- **`NEXTAUTH_URL`**: Base URL of the Next.js application for NextAuth callbacks
+- **`RN_AUTH0_DOMAIN`**: Auth0 domain for mobile app authentication (e.g., `accounts.plant-for-the-planet.org`)
+- **`NEXT_AUTH0_CLIENT_ID`**: Auth0 client ID for Next.js web application authentication
+- **`NEXT_AUTH0_CLIENT_SECRET`**: Auth0 client secret for server-side authentication flows
+- **`AUTH0_DOMAIN`**: Full Auth0 domain URL for web application (e.g., `https://accounts.plant-for-the-planet.org`)
+- **`AUTH0_ISSUER`**: Auth0 issuer identifier for token validation (e.g., `urn:plant-for-the-planet`)
+- **`NEXTAUTH_SECRET`**: Secret key for NextAuth.js session encryption and JWT signing
+- **`NEXTAUTH_URL`**: Base URL for NextAuth.js callbacks and redirects (e.g., `http://localhost:3000`)
 
-### Mapping Services
+### Database Configuration
 
-- **`MAPBOXGL_ACCCESS_TOKEN`**: Mapbox access token for map rendering and tile services
+- **`DATABASE_URL`**: Primary PostgreSQL connection string with connection pooling for application queries
+- **`DATABASE_PRISMA_URL`**: Prisma-specific database connection string (typically same as DATABASE_URL)
+- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling, required for Prisma migrations
+- **`DATABASE_URL_NON_POOLING_SHADOW`**: Shadow database connection for Prisma migration validation and testing
+
+### Mapping & Geospatial
+
+- **`MAPBOXGL_ACCCESS_TOKEN`**: Mapbox API access token for map rendering and tile services
 - **`MAPBOXGL_DOWNLOAD_TOKEN`**: Mapbox token for downloading map tiles and assets
 
 ### Notification Services
 
-#### Twilio (SMS & WhatsApp)
+#### SMS & Voice (Twilio)
 
-- **`TWILIO_ACCOUNT_SID`**: Twilio account identifier for SMS and WhatsApp services
-- **`TWILIO_AUTH_TOKEN`**: Twilio authentication token for API access
+- **`TWILIO_ACCOUNT_SID`**: Twilio account identifier for SMS and voice services
+- **`TWILIO_AUTH_TOKEN`**: Twilio authentication token for API requests
 - **`TWILIO_PHONE_NUMBER`**: Twilio phone number for sending SMS notifications
-- **`TWILIO_WHATSAPP_NUMBER`**: Twilio WhatsApp-enabled number for WhatsApp notifications
-
-#### OneSignal (Push Notifications)
-
-- **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification delivery
-- **`ONESIGNAL_REST_API_KEY`**: OneSignal REST API key for server-side push notification operations
+- **`TWILIO_WHATSAPP_NUMBER`**: Twilio WhatsApp-enabled number for WhatsApp messages
 
 #### Email (SMTP)
 
-- **`SMTP_URL`**: SMTP server connection URL (format: smtp://username:password@host:port)
+- **`SMTP_URL`**: SMTP server connection URL for email delivery (format: `smtp://username:password@host:port`)
 - **`EMAIL_FROM`**: Default sender email address and display name for outgoing emails
+
+#### Push Notifications (OneSignal)
+
+- **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification delivery to mobile devices. This ID identifies the specific OneSignal app configuration and must match the app ID configured in the mobile application. Used for device verification and push notification targeting.
+- **`ONESIGNAL_REST_API_KEY`**: OneSignal REST API key for server-side push notification operations. This key enables the server to send push notifications, verify device subscriptions, and manage user segments. Required for device alert method verification and notification delivery.
 
 #### WhatsApp Integration
 
-- **`WHATSAPP_ENDPOINT_URL`**: Custom WhatsApp webhook endpoint for message delivery
-- **`WHATSAPP_ENDPOINT_AUTH_TOKEN`**: Authentication token for WhatsApp webhook endpoint
+- **`WHATSAPP_ENDPOINT_URL`**: Webhook endpoint URL for WhatsApp message delivery
+- **`WHATSAPP_ENDPOINT_AUTH_TOKEN`**: Authentication token for WhatsApp webhook requests
 
 ### External Integrations
 
-- **`PLANET_API_URL`**: Plant-for-the-Planet platform API URL for project and site synchronization
-- **`FIRMS_MAP_KEY`**: NASA FIRMS (Fire Information for Resource Management System) API key for fire data access
+- **`PLANET_API_URL`**: Plant-for-the-Planet platform API base URL for project synchronization
+- **`FIRMS_MAP_KEY`**: NASA FIRMS (Fire Information for Resource Management System) API key for accessing fire/heat anomaly data
 - **`SLACK_KEY_SITE_NOTIFICATIONS`**: Slack webhook URL for internal site notification alerts
 
-### Monitoring & Debugging
+### Monitoring & Error Tracking
 
-- **`NEXT_PUBLIC_SENTRY_DSN`**: Sentry Data Source Name for error tracking and monitoring
-- **`SENTRY_IGNORE_API_RESOLUTION_ERROR`**: Suppress Sentry API resolution errors (true/false). Set to `true` to ignore API resolution errors in development, `false` to log them for debugging Sentry configuration issues
-- **`NODE_ENV`**: Node.js environment mode ('development', 'production', or 'test')
-- **`PUBLIC_API_CACHING`**: Enable/disable API response caching (true/false)
+- **`NEXT_PUBLIC_SENTRY_DSN`**: Sentry Data Source Name for error tracking and monitoring (public, exposed to client)
+
+### Application Configuration
+
+- **`NODE_ENV`**: Node.js environment mode (`development`, `production`, `test`)
+- **`PUBLIC_API_CACHING`**: Enable/disable API response caching (`true`/`false`)
 
 ### Feature Flags
 
-- **`USE_REFACTORED_PIPELINE`**: Enable new service layer architecture for geo-event processing ('true'/'false')
-- **`ENABLE_INCIDENT_NOTIFICATIONS`**: Enable fire incident tracking and notification system ('true'/'false')
-- **`INCIDENT_INACTIVITY_HOURS`**: Hours of inactivity before closing a fire incident (default: 6)
+- **`ENABLE_INCIDENT_NOTIFICATIONS`**: Enable/disable incident-based notification system (`true`/`false`)
+- **`ENABLE_ENHANCED_STATUS_TRACKING`**: Enable enhanced status tracking for notifications with detailed delivery states (`true`/`false`)
+- **`NOTIFICATION_MODE`**: Controls notification behavior mode:
+  - `INCIDENT_ONLY`: Only send notifications for new incidents
+  - Other modes may include per-event or aggregated notifications
+- **`USE_REFACTORED_PIPELINE`**: Toggle between legacy and refactored geo-event-fetcher implementations
+  - `'true'`: Use new service layer architecture with dependency injection (currently enabled)
+  - `'false'`: Use legacy inline implementation
+  - Enables safe rollout and rollback capability for the refactored pipeline
+  - Note: Values must be strings (`'true'` or `'false'`), not booleans
 
 ## Environment Configuration
 
