@@ -9,6 +9,32 @@ export class SiteAlertRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   /**
+   * Finds SiteAlerts by their associated GeoEvent IDs.
+   * Used for incident processing after alert creation.
+   *
+   * @param eventIds - Array of GeoEvent IDs
+   * @returns Array of SiteAlerts
+   */
+  async findAlertsByEventIds(eventIds: string[]): Promise<any[]> {
+    try {
+      const alerts = await this.prisma.$queryRaw`
+        SELECT sa.*
+        FROM "SiteAlert" sa
+        INNER JOIN "GeoEvent" ge ON 
+          sa.latitude = ge.latitude 
+          AND sa.longitude = ge.longitude 
+          AND sa."eventDate" = ge."eventDate"
+        WHERE ge.id IN (${Prisma.join(eventIds)})
+        ORDER BY sa."createdAt" DESC
+      `;
+      return alerts;
+    } catch (error) {
+      logger(`Failed to find alerts by event IDs. Error: ${error}`, 'error');
+      return [];
+    }
+  }
+
+  /**
    * Creates site alerts for GEOSTATIONARY providers using spatial joins.
    * GEOSTATIONARY providers have different slice membership logic.
    *

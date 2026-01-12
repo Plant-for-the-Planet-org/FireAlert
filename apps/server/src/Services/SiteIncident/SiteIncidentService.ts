@@ -1,324 +1,295 @@
-import {prisma} from '../../server/db';
+import {type SiteAlert, type SiteIncident} from '@prisma/client';
 import {logger} from '../../server/logger';
-import {TRPCError} from '@trpc/server';
-import type {SiteAlert, GeoEvent, SiteIncident} from '@prisma/client';
+import {
+  type SiteIncidentInterface,
+  type IncidentMetrics,
+} from '../../Interfaces/SiteIncident';
+import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
+import {type SiteIncidentRepository} from './SiteIncidentRepository';
+import {type IncidentResolver} from './IncidentResolver';
 
 /**
- * Service for managing SiteIncident lifecycle and operations
+ * SiteIncidentService orchestrates the incident lifecycle
+ * Handles creation, association, and resolution of fire incidents
  */
 export class SiteIncidentService {
+  private metrics: PerformanceMetrics;
+
+  constructor(
+    private readonly repository: SiteIncidentRepository,
+    private readonly resolver: IncidentResolver,
+    private readonly inactiveHours: number = 6,
+  ) {
+    this.metrics = new PerformanceMetrics();
+  }
+
   /**
-   * Creates a new incident or updates an existing active incident for a site
-   *
-   * @param siteId - The ID of the site
-   * @param siteAlert - The SiteAlert that triggered this incident
-   * @param geoEvent - The GeoEvent associated with the alert
-   * @returns The created or updated SiteIncident
-   * @throws TRPCError if site doesn't exist or validation fails
+   * Processes a new SiteAlert for incident creation or association
+   * @param alert - The new SiteAlert
+   * @returns Associated or created SiteIncident
    */
-  async createOrUpdateIncident(
-    siteId: string,
-    siteAlert: SiteAlert,
-    _geoEvent: GeoEvent,
-  ): Promise<SiteIncident> {
+  async processNewSiteAlert(alert: SiteAlert): Promise<SiteIncidentInterface> {
+    // Validate input
+    if (!alert || !alert.id || !alert.siteId) {
+      const error = new Error(
+        'Invalid SiteAlert: missing required fields (id, siteId)',
+      );
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    this.metrics.startTimer('process_alert_total');
+
     try {
-      // Verify site exists
-      const site = await prisma.site.findUnique({
-        where: {id: siteId},
-      });
+      logger(
+        `Processing new SiteAlert ${alert.id} for site ${alert.siteId}`,
+        'debug',
+      );
 
-      if (!site) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Site with id ${siteId} not found`,
-        });
-      }
+      // Check for active incident
+      this.metrics.startTimer('find_active_incident');
+      const activeIncident = await this.repository.findActiveBySiteId(
+        alert.siteId,
+      );
+      this.metrics.endTimer('find_active_incident');
 
-      // Check for existing active incident
-      const activeIncident = await this.getActiveIncidentForSite(siteId);
+      let incident: SiteIncident;
 
       if (activeIncident) {
-        // Update existing incident
-        const updatedIncident = await prisma.siteIncident.update({
-          where: {id: activeIncident.id},
-          data: {
-            latestSiteAlertId: siteAlert.id,
-            endSiteAlertId: siteAlert.id,
-            updatedAt: new Date(),
-          },
-        });
-
-        // Associate the alert with the incident
-        await prisma.siteAlert.update({
-          where: {id: siteAlert.id},
-          data: {siteIncidentId: activeIncident.id},
-        });
-
+        // Associate with existing incident
         logger(
-          `Updated SiteIncident ${activeIncident.id} with new alert ${siteAlert.id}`,
-          'info',
+          `Associating alert ${alert.id} with existing incident ${activeIncident.id}`,
+          'debug',
         );
 
-        return updatedIncident;
+        this.metrics.startTimer('associate_alert');
+        incident = await this.repository.associateAlert(
+          activeIncident.id,
+          alert.id,
+        );
+        this.metrics.endTimer('associate_alert');
+
+        logger(
+          `Associated alert ${alert.id} with incident ${incident.id}`,
+          'debug',
+        );
       } else {
         // Create new incident
-        const newIncident = await prisma.siteIncident.create({
-          data: {
-            siteId,
-            startSiteAlertId: siteAlert.id,
-            latestSiteAlertId: siteAlert.id,
-            endSiteAlertId: siteAlert.id,
-            startedAt: new Date(),
-            isActive: true,
-            isProcessed: false,
-            reviewStatus: 'to_review',
-          },
-        });
-
-        // Associate the alert with the incident
-        await prisma.siteAlert.update({
-          where: {id: siteAlert.id},
-          data: {siteIncidentId: newIncident.id},
-        });
-
         logger(
-          `Created new SiteIncident ${newIncident.id} for site ${siteId}`,
-          'info',
+          `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
+          'debug',
         );
 
-        return newIncident;
+        this.metrics.startTimer('create_incident');
+        incident = await this.repository.createIncident({
+          siteId: alert.siteId,
+          startSiteAlertId: alert.id,
+          latestSiteAlertId: alert.id,
+          startedAt: new Date(),
+        });
+        this.metrics.endTimer('create_incident');
+
+        logger(
+          `Created new incident ${incident.id} for site ${alert.siteId}`,
+          'debug',
+        );
       }
+
+      const totalDuration = this.metrics.endTimer('process_alert_total');
+      this.recordMetrics('process_alert', totalDuration);
+
+      return incident as SiteIncidentInterface;
     } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
       logger(
-        `Failed to create or update incident for site ${siteId}: ${String(
-          error,
-        )}`,
+        `Error processing alert ${alert.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         'error',
       );
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to create or update incident',
-        cause: error,
-      });
+      throw error;
     }
   }
 
   /**
-   * Closes incidents that have been inactive for the specified threshold
-   *
-   * @param inactivityThresholdHours - Number of hours of inactivity before closing
-   * @returns Array of closed incidents
+   * Resolves all inactive incidents
+   * @returns Number of resolved incidents
    */
-  async closeInactiveIncidents(
-    inactivityThresholdHours: number,
-  ): Promise<SiteIncident[]> {
+  async resolveInactiveIncidents(): Promise<number> {
+    this.metrics.startTimer('resolve_inactive_total');
+
     try {
-      if (inactivityThresholdHours <= 0) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Inactivity threshold must be positive',
-        });
-      }
-
-      const thresholdDate = new Date();
-      thresholdDate.setHours(
-        thresholdDate.getHours() - inactivityThresholdHours,
-      );
-
-      // Find active incidents with no recent alerts
-      const inactiveIncidents = await prisma.siteIncident.findMany({
-        where: {
-          isActive: true,
-          updatedAt: {
-            lt: thresholdDate,
-          },
-        },
-        include: {
-          latestSiteAlert: true,
-        },
-      });
-
-      const closedIncidents: SiteIncident[] = [];
-
-      for (const incident of inactiveIncidents) {
-        const closed = await prisma.siteIncident.update({
-          where: {id: incident.id},
-          data: {
-            isActive: false,
-            isProcessed: false,
-            endedAt: new Date(),
-          },
-        });
-
-        closedIncidents.push(closed);
-        logger(`Closed inactive incident ${incident.id}`, 'info');
-      }
-
-      return closedIncidents;
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-      logger(`Failed to close inactive incidents: ${String(error)}`, 'error');
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to close inactive incidents',
-        cause: error,
-      });
-    }
-  }
-
-  /**
-   * Gets the active incident for a site, if one exists
-   *
-   * @param siteId - The ID of the site
-   * @returns The active SiteIncident or null
-   */
-  async getActiveIncidentForSite(siteId: string): Promise<SiteIncident | null> {
-    try {
-      const incident = await prisma.siteIncident.findFirst({
-        where: {
-          siteId,
-          isActive: true,
-        },
-        orderBy: {
-          startedAt: 'desc',
-        },
-      });
-
-      return incident;
-    } catch (error) {
       logger(
-        `Failed to get active incident for site ${siteId}: ${String(error)}`,
-        'error',
+        `Starting resolution of inactive incidents (>${this.inactiveHours}h)`,
+        'debug',
       );
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to get active incident',
-        cause: error,
-      });
-    }
-  }
 
-  /**
-   * Gets incidents for a site within a date range
-   *
-   * @param siteId - The ID of the site
-   * @param startDate - Start of date range
-   * @param endDate - End of date range
-   * @returns Array of SiteIncidents
-   */
-  async getIncidentsByDateRange(
-    siteId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<SiteIncident[]> {
-    try {
-      if (startDate > endDate) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Start date must be before end date',
-        });
+      // Find inactive incidents
+      this.metrics.startTimer('find_inactive');
+      const inactiveIncidents = await this.repository.findInactiveIncidents(
+        this.inactiveHours,
+      );
+      this.metrics.endTimer('find_inactive');
+
+      if (inactiveIncidents.length === 0) {
+        logger('No inactive incidents to resolve', 'debug');
+        return 0;
       }
 
-      const incidents = await prisma.siteIncident.findMany({
-        where: {
-          siteId,
-          startedAt: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        orderBy: {
-          startedAt: 'desc',
-        },
-        include: {
-          site: true,
-          startSiteAlert: true,
-          latestSiteAlert: true,
-          endSiteAlert: true,
-          siteAlerts: {
-            orderBy: {
-              eventDate: 'asc',
-            },
-          },
-        },
-      });
-
-      return incidents;
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
       logger(
-        `Failed to get incidents for site ${siteId}: ${String(error)}`,
-        'error',
+        `Found ${inactiveIncidents.length} inactive incidents to resolve`,
+        'debug',
       );
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to get incidents',
-        cause: error,
-      });
-    }
-  }
 
-  /**
-   * Updates the review status of an incident
-   *
-   * @param incidentId - The ID of the incident
-   * @param status - The new review status
-   * @returns The updated SiteIncident
-   * @throws TRPCError if incident doesn't exist or status is invalid
-   */
-  async updateReviewStatus(
-    incidentId: string,
-    status: 'to_review' | 'in_review' | 'reviewed',
-  ): Promise<SiteIncident> {
-    try {
-      const validStatuses = ['to_review', 'in_review', 'reviewed'];
-      if (!validStatuses.includes(status)) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Invalid review status. Must be one of: ${validStatuses.join(
-            ', ',
-          )}`,
-        });
+      // Validate incidents
+      const validIncidents = inactiveIncidents.filter(incident =>
+        this.resolver.validateIncident(incident),
+      );
+
+      if (validIncidents.length === 0) {
+        logger('No valid incidents to resolve', 'warn');
+        return 0;
       }
 
-      const incident = await prisma.siteIncident.update({
-        where: {id: incidentId},
-        data: {
-          reviewStatus: status,
-          updatedAt: new Date(),
-        },
+      // Batch resolve
+      this.metrics.startTimer('batch_resolve');
+      const result = await this.resolver.batchResolveIncidents(validIncidents);
+      this.metrics.endTimer('batch_resolve');
+
+      const totalDuration = this.metrics.endTimer('resolve_inactive_total');
+      this.recordMetrics('resolve_inactive', totalDuration, {
+        resolvedCount: result.resolvedCount,
+        errorCount: result.errors.length,
       });
 
       logger(
-        `Updated review status for incident ${incidentId} to ${status}`,
+        `Resolution complete: ${result.resolvedCount}/${validIncidents.length} resolved in ${totalDuration}ms`,
         'info',
       );
 
-      return incident;
+      return result.resolvedCount;
     } catch (error) {
-      if (error instanceof TRPCError) {
-        throw error;
-      }
       logger(
-        `Failed to update review status for incident ${incidentId}: ${String(
-          error,
-        )}`,
+        `Error resolving inactive incidents: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         'error',
       );
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to update review status',
-        cause: error,
-      });
+      throw error;
     }
   }
-}
 
-export const siteIncidentService = new SiteIncidentService();
+  /**
+   * Associates an alert with an incident
+   * @param alert - The SiteAlert to associate
+   * @param incident - The SiteIncident to associate with
+   */
+  async associateAlertWithIncident(
+    alert: SiteAlert,
+    incident: SiteIncidentInterface,
+  ): Promise<void> {
+    // Validate inputs
+    if (!alert || !alert.id) {
+      const error = new Error('Invalid SiteAlert: missing id');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!incident || !incident.id) {
+      const error = new Error('Invalid SiteIncident: missing id');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      logger(
+        `Associating alert ${alert.id} with incident ${incident.id}`,
+        'debug',
+      );
+
+      await this.repository.associateAlert(incident.id, alert.id);
+
+      logger(
+        `Successfully associated alert ${alert.id} with incident ${incident.id}`,
+        'debug',
+      );
+    } catch (error) {
+      logger(
+        `Error associating alert ${alert.id} with incident ${incident.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Gets an incident by ID
+   * @param id - Incident ID
+   * @returns Incident or null
+   */
+  async getIncidentById(id: string): Promise<SiteIncidentInterface | null> {
+    // Validate input
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      const error = new Error(
+        'Invalid incident ID: must be a non-empty string',
+      );
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      return (await this.repository.getIncidentById(
+        id,
+      )) as SiteIncidentInterface | null;
+    } catch (error) {
+      logger(
+        `Error getting incident ${id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Records performance metrics
+   * @param operation - Operation name
+   * @param duration - Duration in milliseconds
+   * @param additionalMetrics - Additional metrics to record
+   */
+  private recordMetrics(
+    operation: string,
+    duration: number,
+    additionalMetrics?: Record<string, number>,
+  ): void {
+    this.metrics.recordMetric(`${operation}_duration_ms`, duration);
+
+    if (additionalMetrics) {
+      Object.entries(additionalMetrics).forEach(([key, value]) => {
+        this.metrics.recordMetric(`${operation}_${key}`, value);
+      });
+    }
+
+    logger(`${operation} completed in ${duration}ms`, 'debug');
+  }
+
+  /**
+   * Gets current metrics
+   * @returns Performance metrics
+   */
+  getMetrics(): IncidentMetrics {
+    return {
+      totalDurationMs: 0,
+      operationCount: 0,
+    };
+  }
+
+  /**
+   * Resets metrics
+   */
+  resetMetrics(): void {
+    this.metrics = new PerformanceMetrics();
+  }
+}
