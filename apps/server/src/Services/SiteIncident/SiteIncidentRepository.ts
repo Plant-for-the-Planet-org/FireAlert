@@ -12,7 +12,7 @@ import {
  * Handles all database interactions for incident management
  */
 export class SiteIncidentRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(public readonly prisma: PrismaClient) {}
 
   /**
    * Finds an active SiteIncident for a given site

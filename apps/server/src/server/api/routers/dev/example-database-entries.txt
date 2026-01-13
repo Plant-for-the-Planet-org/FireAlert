@@ -1,0 +1,33 @@
+GeoEvent
+  {
+    "id": "f04598edd9138ee1",
+    "type": "fire",
+    "latitude": 25.35233,
+    "longitude": 50.19958,
+    "eventDate": "2025-12-30 00:34:00.000",
+    "geometry": "POINT (50.19958 25.35233)",
+    "confidence": "medium",
+    "isProcessed": true,
+    "geoEventProviderClientId": "MODIS_NRT",
+    "geoEventProviderId": "46",
+    "radius": 0,
+    "slice": "53",
+    "data": {"frp": "57.78", "scan": "2.96", "track": "1.64", "version": "6.1NRT", "acq_date": "2025-12-30", "acq_time": "34", "daynight": "N", "latitude": "25.35233", "longitude": "50.19958", "satellite": "Aqua", "bright_t31": "281.89", "brightness": "307.59", "confidence": "72", "instrument": "MODIS"}
+  },
+
+
+SiteAlert
+  {
+    "id": "18ff3252-6d8c-491e-a1a8-12cda601f6fc",
+    "siteId": "cmj9qdbfq0005drntft81wrdh",
+    "type": "fire",
+    "latitude": 23.77074,
+    "longitude": 86.21133,
+    "eventDate": "2025-12-29 09:11:00.000",
+    "detectedBy": "MODIS_NRT",
+    "confidence": "medium",
+    "isProcessed": false,
+    "deletedAt": null,
+    "distance": 0,
+    "data": {"frp": "6.49", "scan": "1.07", "track": "1.03", "version": "6.1NRT", "acq_date": "2025-12-29", "acq_time": "911", "daynight": "D", "latitude": "23.77074", "longitude": "86.21133", "satellite": "Aqua", "bright_t31": "298", "brightness": "308.34", "confidence": "66", "instrument": "MODIS"}
+  },

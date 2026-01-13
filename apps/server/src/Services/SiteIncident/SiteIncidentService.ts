@@ -292,4 +292,156 @@ export class SiteIncidentService {
   resetMetrics(): void {
     this.metrics = new PerformanceMetrics();
   }
+
+  /**
+   * Gets the active incident for a site
+   * @param siteId - Site ID
+   * @returns Active incident or null
+   */
+  async getActiveIncidentForSite(siteId: string): Promise<SiteIncident | null> {
+    // Validate input
+    if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
+      const error = new Error('Invalid siteId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      return await this.repository.findActiveBySiteId(siteId);
+    } catch (error) {
+      logger(
+        `Error getting active incident for site ${siteId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Gets incidents for a site within a date range
+   * @param siteId - Site ID
+   * @param startDate - Start date
+   * @param endDate - End date
+   * @returns Array of incidents
+   */
+  async getIncidentsByDateRange(
+    siteId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<SiteIncident[]> {
+    // Validate inputs
+    if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
+      const error = new Error('Invalid siteId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!startDate || !(startDate instanceof Date)) {
+      const error = new Error('Invalid startDate: must be a valid Date');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!endDate || !(endDate instanceof Date)) {
+      const error = new Error('Invalid endDate: must be a valid Date');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (startDate > endDate) {
+      const error = new Error(
+        'Invalid date range: startDate must be before endDate',
+      );
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      logger(
+        `Getting incidents for site ${siteId} between ${startDate.toISOString()} and ${endDate.toISOString()}`,
+        'debug',
+      );
+
+      const incidents = await this.repository.prisma.siteIncident.findMany({
+        where: {
+          siteId,
+          startedAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        orderBy: {
+          startedAt: 'desc',
+        },
+      });
+
+      logger(
+        `Found ${incidents.length} incidents for site ${siteId} in date range`,
+        'debug',
+      );
+
+      return incidents;
+    } catch (error) {
+      logger(
+        `Error getting incidents by date range for site ${siteId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Updates the review status of an incident
+   * @param incidentId - Incident ID
+   * @param status - New review status
+   * @returns Updated incident
+   */
+  async updateReviewStatus(
+    incidentId: string,
+    status: string,
+  ): Promise<SiteIncident> {
+    // Validate inputs
+    if (
+      !incidentId ||
+      typeof incidentId !== 'string' ||
+      incidentId.trim().length === 0
+    ) {
+      const error = new Error('Invalid incidentId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!status || typeof status !== 'string' || status.trim().length === 0) {
+      const error = new Error('Invalid status: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      logger(
+        `Updating review status for incident ${incidentId} to ${status}`,
+        'debug',
+      );
+
+      const updatedIncident = await this.repository.updateIncident(incidentId, {
+        reviewStatus: status,
+      });
+
+      logger(`Updated review status for incident ${incidentId}`, 'debug');
+
+      return updatedIncident;
+    } catch (error) {
+      logger(
+        `Error updating review status for incident ${incidentId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
 }

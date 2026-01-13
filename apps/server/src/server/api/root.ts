@@ -6,6 +6,7 @@ import {userRouter} from './routers/user';
 import {projectRouter} from './routers/project';
 import {geoEventProviderRouter} from './routers/geoEventProvider';
 import {siteIncidentRouter} from './routers/siteIncident';
+import {devRouter} from './routers/dev/dev';
 
 /**
  * This is the primary router for your server.
@@ -20,6 +21,7 @@ export const appRouter = createTRPCRouter({
   project: projectRouter,
   geoEventProvider: geoEventProviderRouter,
   siteIncident: siteIncidentRouter,
+  dev: devRouter,
 });
 
 // export type definition of API
