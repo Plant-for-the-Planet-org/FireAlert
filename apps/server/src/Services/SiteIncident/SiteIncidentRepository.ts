@@ -102,6 +102,11 @@ export class SiteIncidentRepository {
           isActive: true,
           isProcessed: false,
           reviewStatus: 'to_review',
+          siteAlerts: {
+            connect: {
+              id: data.startSiteAlertId,
+            },
+          },
         },
       });
 
@@ -339,6 +344,11 @@ export class SiteIncidentRepository {
         data: {
           latestSiteAlertId: alertId,
           updatedAt: new Date(),
+          siteAlerts: {
+            connect: {
+              id: alertId,
+            },
+          },
         },
       });
 
