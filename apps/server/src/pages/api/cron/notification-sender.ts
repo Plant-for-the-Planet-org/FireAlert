@@ -1,6 +1,6 @@
 import {type NextApiRequest, type NextApiResponse} from 'next';
 import {env} from '../../../env.mjs';
-import sendNotifications from '../../../Services/Notifications/SendNotifications';
+import {SendIncidentNotifications} from '../../../Services/Notifications/SendIncidentNotifications';
 import {logger} from '../../../../src/server/logger';
 
 export default async function notificationSender(
@@ -19,7 +19,7 @@ export default async function notificationSender(
   logger(`Running Notification Sender.`, 'info');
 
   try {
-    const notificationsSent = await sendNotifications({req});
+    const notificationsSent = await SendIncidentNotifications.run(req);
 
     if (notificationsSent === 0) {
       // No notifications were needed to be sent, but the job executed successfully

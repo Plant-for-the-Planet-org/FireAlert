@@ -45,21 +45,6 @@ This task list tracks the implementation of the notification system updates defi
   - Update `apps/server/src/pages/api/cron/notification-sender.ts`
   - Replace/Update legacy logic to use `SendIncidentNotifications.run()`
 
-## Phase 4: Mocking & Verification (Testing)
-
-- [ ] 4.1 Implement Mock Trpc Endpoints
-
-  - Update or Create `apps/server/src/server/api/routers/siteIncidentNotifications.ts` (or similar)
-  - `mockCreateNotifications`: Expose Creator service Logic
-  - `mockSendNotifications`: Expose Sender service Logic
-
-- [ ] 4.2 Manual Verification
-  - Create a test `SiteIncident` via Rails console or script
-  - Trigger `mockCreateNotifications`
-  - Verify `Notification` records in DB
-  - Trigger `mockSendNotifications`
-  - Verify delivery (logs or actual receipt)
-
 ## Notes
 
 - Follow strict TypeScript configuration (no `any`).

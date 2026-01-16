@@ -8,13 +8,14 @@ import {
   mockCreateIncidentNotificationsSchema,
   mockSendIncidentNotificationsSchema,
 } from '../zodSchemas/siteIncident.schema';
+import {NotificationStatus} from '@prisma/client';
 import {createTRPCRouter, protectedProcedure, publicProcedure} from '../trpc';
 import {siteIncidentService} from '../../../Services/SiteIncident/SiteIncidentService';
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
 import {logger} from '../../../server/logger';
-import {createIncidentNotifications} from '../../../Services/SiteIncident/CreateIncidentNotifications';
-import {sendIncidentNotifications} from '../../../Services/SiteIncident/SendIncidentNotifications';
+import {CreateIncidentNotifications} from '../../../Services/Notifications/CreateIncidentNotifications';
+import {SendIncidentNotifications} from '../../../Services/Notifications/SendIncidentNotifications';
 
 export const siteIncidentRouter = createTRPCRouter({
   /**
@@ -290,15 +291,17 @@ export const siteIncidentRouter = createTRPCRouter({
         const processedIncidentIds = incidents.map(i => i.id);
 
         // Call the create notifications service
-        const notificationsCreated = await createIncidentNotifications();
+        const notificationsCreated = await CreateIncidentNotifications.run();
 
         // Get method counts from created notifications
         const notifications = await ctx.prisma.notification.findMany({
           where: {
-            metadata: {
-              path: ['incidentId'],
-              in: processedIncidentIds,
-            },
+            OR: processedIncidentIds.map(id => ({
+              metadata: {
+                path: ['incidentId'],
+                equals: id,
+              },
+            })),
           },
           select: {
             alertMethod: true,
@@ -350,6 +353,7 @@ export const siteIncidentRouter = createTRPCRouter({
           isDelivered: boolean;
           sentAt: null;
           notificationStatus?: {in: string[]};
+          notificationStatus?: {in: NotificationStatus[]};
           metadata?: {
             path: string[];
             equals?: string;
@@ -366,12 +370,15 @@ export const siteIncidentRouter = createTRPCRouter({
           whereConditions.notificationStatus = {
             in:
               input.notificationType === 'START'
-                ? ['START_SCHEDULED']
-                : ['END_SCHEDULED'],
+                ? [NotificationStatus.START_SCHEDULED]
+                : [NotificationStatus.END_SCHEDULED],
           };
         } else {
           whereConditions.notificationStatus = {
-            in: ['START_SCHEDULED', 'END_SCHEDULED'],
+            in: [
+              NotificationStatus.START_SCHEDULED,
+              NotificationStatus.END_SCHEDULED,
+            ],
           };
         }
 
@@ -401,9 +408,7 @@ export const siteIncidentRouter = createTRPCRouter({
         const notificationCount = notificationsBefore.length;
 
         // Call the send notifications service
-        const notificationsSent = await sendIncidentNotifications({
-          req: ctx.req,
-        });
+        const notificationsSent = await SendIncidentNotifications.run(ctx.req);
 
         // Get processed incident IDs
         const processedIncidentIds = Array.from(
