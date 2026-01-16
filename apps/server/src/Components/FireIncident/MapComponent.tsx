@@ -1,23 +1,34 @@
-import 'maplibre-gl/dist/maplibre-gl.css';
-import Image from 'next/image';
-import React, {FC} from 'react';
-import Lottie from 'react-lottie';
+import React from 'react';
+import {FC} from 'react';
 import Map, {
-  FullscreenControl,
-  Layer,
-  MapRef,
-  Marker,
   NavigationControl,
   ScaleControl,
+  FullscreenControl,
+  MapRef,
+  Marker,
   Source,
+  Layer,
 } from 'react-map-gl/maplibre';
-import {highlightWave} from '../../../../nativeapp/app/assets/animation/lottie';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import mapStyle from '../../data/mapStyleOutput.json';
-import {type AlertData} from './AlertId';
-import classes from './MapComponent.module.css';
+import Image from 'next/image';
+import vector from '../../../public/alertPage/Vector.png';
+// @ts-ignore
+import {highlightWave} from '../../../../nativeapp/app/assets/animation/lottie';
+import Lottie from 'react-lottie';
+import {Prisma} from '@prisma/client';
+
+export interface MapMarker {
+  latitude: number;
+  longitude: number;
+  id: string;
+}
 
 interface Props {
-  alertData: AlertData;
+  polygon: Prisma.JsonValue;
+  markers: MapMarker[];
+  selectedMarkerId?: string;
+  onMarkerClick?: (id: string) => void;
 }
 
 const getZoomLevel = (bbox: [number, number, number, number]) => {
@@ -54,9 +65,9 @@ const getZoomLevel = (bbox: [number, number, number, number]) => {
 };
 
 // Function to calculate the bounding box of a polygon
-const calculateBbox = coords => {
+const calculateBbox = (coords: any) => {
   return coords.reduce(
-    ([minLon, minLat, maxLon, maxLat], [lon, lat]) => [
+    ([minLon, minLat, maxLon, maxLat]: number[], [lon, lat]: number[]) => [
       Math.min(minLon, lon),
       Math.min(minLat, lat),
       Math.max(maxLon, lon),
@@ -66,9 +77,12 @@ const calculateBbox = coords => {
   );
 };
 
-const MapComponent: FC<Props> = ({alertData}) => {
-  let polygon = alertData.polygon;
-
+const MapComponent: FC<Props> = ({
+  polygon,
+  markers,
+  selectedMarkerId,
+  onMarkerClick,
+}) => {
   // Convert polygon data to GeoJSON format
   const polygonGeoJSON = {
     type: 'Feature',
@@ -76,10 +90,14 @@ const MapComponent: FC<Props> = ({alertData}) => {
   };
 
   // Calculate the bounding box and center point of the polygon
-  let bbox;
-  if (polygon.type === 'Polygon') {
+  let bbox: any;
+  // @ts-ignore
+  if (polygon?.type === 'Polygon') {
+    // @ts-ignore
     bbox = calculateBbox(polygon.coordinates[0]);
-  } else if (polygon.type === 'MultiPolygon') {
+    // @ts-ignore
+  } else if (polygon?.type === 'MultiPolygon') {
+    // @ts-ignore
     bbox = polygon.coordinates.reduce(
       (bbox, polyCoords) => {
         const polyBbox = calculateBbox(polyCoords[0]);
@@ -98,9 +116,14 @@ const MapComponent: FC<Props> = ({alertData}) => {
 
   // So, if bbox is defined, then we calculate the center and zoom,
   // Else we calculate center as (longitude, latitude) and make zoom as the be a default value of 13
+
+  // Default center from first marker if available, else 0,0
+  const defaultCenter =
+    markers.length > 0 ? [markers[0].longitude, markers[0].latitude] : [0, 0];
+
   const center = bbox
     ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]
-    : [parseFloat(alertData.longitude), parseFloat(alertData.latitude)];
+    : defaultCenter;
 
   // Calculate the zoom level based on the size of the bounding box
   const zoom = bbox ? getZoomLevel(bbox) : 13;
@@ -115,7 +138,7 @@ const MapComponent: FC<Props> = ({alertData}) => {
   const onMapLoad = React.useCallback(async () => {
     const map = mapRef?.current?.getMap();
     map?.setStyle(mapStyle);
-  }, [mapStyle]);
+  }, []);
 
   const defaultLottieOptions = {
     loop: true,
@@ -132,36 +155,53 @@ const MapComponent: FC<Props> = ({alertData}) => {
       style={{width: '100%', height: '100%'}}
       mapStyle={mapStyle}
       scrollZoom={false}>
-      <Marker longitude={center[0]} latitude={center[1]} anchor="bottom">
-        <div className={classes.vectorAnimationContainer}>
-          <Image
-            width={24}
-            height={24}
-            src="/alertPage/orange-fire-icon.svg"
-            alt="Map Focus"
-            className={classes.vector}
-          />
-          <div className={classes.lottieAnimation}>
-            <Lottie options={defaultLottieOptions} />
+      {markers.map(marker => (
+        <Marker
+          key={marker.id}
+          longitude={marker.longitude}
+          latitude={marker.latitude}
+          anchor="bottom"
+          onClick={e => {
+            e.originalEvent.stopPropagation();
+            if (onMarkerClick) onMarkerClick(marker.id);
+          }}>
+          <div className="relative w-[30px] h-[30px] flex justify-center items-center cursor-pointer">
+            <Image
+              width={24}
+              height={24}
+              src="/alertPage/orange-fire-icon.svg"
+              alt="Map Focus"
+              className="absolute top-0 w-full h-auto"
+            />
+            {selectedMarkerId === marker.id && (
+              <div className="absolute top-[42%] left-[10%] scale-[5]">
+                <Lottie options={defaultLottieOptions} />
+              </div>
+            )}
           </div>
-        </div>
-      </Marker>
-      {polygon.type !== 'Point' && (
+        </Marker>
+      ))}
+
+      {/* @ts-ignore */}
+      {polygon?.type !== 'Point' && (
+        // @ts-ignore
         <Source id="polygon" type="geojson" data={polygonGeoJSON}>
           <Layer
-            id={`${polygon.type}-fill`}
+            // @ts-ignore
+            id={`${polygon?.type}-fill`}
             type="fill"
             paint={{
-              'fill-color': '#e86f56', // White color
+              'fill-color': '#e86f56',
               'fill-opacity': 0.1,
             }}
           />
           <Layer
-            id={`${polygon.type}-line`}
+            // @ts-ignore
+            id={`${polygon?.type}-line`}
             type="line"
             paint={{
               'line-width': 2,
-              'line-color': '#e86f56', // White color
+              'line-color': '#e86f56',
               'line-opacity': 1,
             }}
           />

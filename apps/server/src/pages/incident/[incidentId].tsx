@@ -1,19 +1,28 @@
 // To access this page visit: ${URL}/incident/${incidentId}
 
 import {createServerSideHelpers} from '@trpc/react-query/server';
-import {api, type RouterOutputs} from '../../utils/api';
-import type {
+import {api} from '../../utils/api';
+import {
   GetStaticPropsContext,
   GetStaticPaths,
   InferGetStaticPropsType,
 } from 'next';
-import {IncidentId} from '../../Components/IncidentId/IncidentId';
 import {appRouter} from '../../server/api/root';
 import superjson from 'superjson';
 import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
 import ErrorPage from 'next/error';
+import Head from 'next/head';
+import dynamic from 'next/dynamic';
+import {Prisma} from '@prisma/client';
+import {DetectionInfo} from '../../Components/FireIncident/DetectionInfo';
+import {LocationInfo} from '../../Components/FireIncident/LocationInfo';
+import {ActionInfo} from '../../Components/FireIncident/ActionInfo';
+import {GoogleMapsButton} from '../../Components/FireIncident/GoogleMapsButton';
 
-type IncidentResponse = RouterOutputs['siteIncident']['getIncidentPublic'];
+const MapComponent = dynamic(
+  () => import('../../Components/FireIncident/MapComponent'),
+  {ssr: false},
+);
 
 function getTimePassedSince(date: Date): {
   days: number;
@@ -25,6 +34,7 @@ function getTimePassedSince(date: Date): {
   const millisecondsPerHour = 60 * 60 * 1000;
   const millisecondsPerMinute = 60 * 1000;
 
+  // Calculate the difference in days, hours, and minutes
   const timeDiff = now.getTime() - date.getTime();
   const daysPassed = Math.floor(timeDiff / millisecondsPerDay);
   const hoursPassed = Math.floor(timeDiff / millisecondsPerHour);
@@ -33,9 +43,7 @@ function getTimePassedSince(date: Date): {
   return {days: daysPassed, hours: hoursPassed, minutes: minutesPassed};
 }
 
-function formatDateString(dateString: string): string {
-  const date = new Date(dateString);
-
+function formatDateString(date: Date): string {
   const day = date.getDate();
   const month = date.toLocaleString('default', {month: 'short'});
   const year = date.getFullYear();
@@ -48,17 +56,32 @@ function formatDateString(dateString: string): string {
   return formattedDate;
 }
 
-const Incident = (props: InferGetStaticPropsType<typeof getStaticProps>) => {
-  const {id} = props;
+function getIdentityGroup(identityKey: string): string | null {
+  const identityMap = new Map<string, string>([
+    ['MODIS_NRT', 'MODIS'],
+    ['VIIRS_NOAA20_NRT', 'VIIRS'],
+    ['VIIRS_SNPP_NRT', 'VIIRS'],
+    ['LANDSAT_NRT', 'LANDSAT'],
+    ['GEOSTATIONARY', 'GEOSTATIONARY'],
+    ['MODIS_SP', 'MODIS'],
+    ['VIIRS_SNPP_SP', 'VIIRS'],
+  ]);
+  return identityMap.get(identityKey) ?? null;
+}
+
+const IncidentPage = (
+  props: InferGetStaticPropsType<typeof getStaticProps>,
+) => {
+  const {incidentId} = props;
   const incidentQuery = api.siteIncident.getIncidentPublic.useQuery(
-    {incidentId: id},
+    {incidentId},
     {retry: 0},
   );
 
   if (incidentQuery.isError) {
     const error = incidentQuery.error;
     let message = error?.shape?.message || 'Unknown error';
-    const httpStatus = error?.data?.httpStatus || 500;
+    let httpStatus = error?.data?.httpStatus || 500;
     if (httpStatus === 503) {
       message = 'Server under Maintenance. Please check back in a few minutes.';
     }
@@ -69,55 +92,99 @@ const Incident = (props: InferGetStaticPropsType<typeof getStaticProps>) => {
   }
 
   if (incidentQuery.status !== 'success') {
-    return <>Loading...</>;
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
-  const response = incidentQuery.data;
-  const incident = response.data;
+  const {data} = incidentQuery;
+  const incident = data.data; // siteIncidentRouter returns { status: 'success', data: incident }
 
-  const startTime = getTimePassedSince(incident.startedAt);
-  let startTimeAgo: string;
+  // Use latestSiteAlert for display data if available, or startSiteAlert
+  const displayAlert = incident.latestSiteAlert || incident.startSiteAlert;
 
-  if (startTime.days > 0) {
-    startTimeAgo = `${startTime.days} days ago`;
-  } else if (startTime.hours > 0) {
-    startTimeAgo = `${startTime.hours} hours ago`;
+  if (!displayAlert) {
+    return (
+      <ErrorDisplay
+        message="No alert data found for this incident"
+        httpStatus={404}
+      />
+    );
+  }
+
+  const timePassed = getTimePassedSince(displayAlert.eventDate);
+  let timeAgo: string;
+
+  if (timePassed.days > 0) {
+    timeAgo = `${timePassed.days} days ago`;
+  } else if (timePassed.hours > 0) {
+    timeAgo = `${timePassed.hours} hours ago`;
   } else {
-    startTimeAgo = `${startTime.minutes} minutes ago`;
+    timeAgo = `${timePassed.minutes} minutes ago`;
   }
 
-  const formattedStartDate = formatDateString(incident.startedAt.toString());
-  const formattedEndDate = incident.endedAt
-    ? formatDateString(incident.endedAt.toString())
-    : null;
+  const formattedDateString = formatDateString(displayAlert.eventDate);
 
-  const alertCount = incident.siteAlerts.length;
-  const isActive = incident.isActive;
-  const reviewStatus = incident.reviewStatus;
-  const siteName = incident.site.name;
+  const confidence = displayAlert.confidence as string;
+  const detectedBy =
+    getIdentityGroup(displayAlert.detectedBy) || displayAlert.detectedBy;
+  const latitude = `${displayAlert.latitude}`;
+  const longitude = `${displayAlert.longitude}`;
   const polygon = incident.site.geometry;
 
-  // Get coordinates from the latest alert or start alert
-  const latestAlert = incident.latestSiteAlert || incident.startSiteAlert;
-  const latitude = latestAlert ? `${latestAlert.latitude}` : '';
-  const longitude = latestAlert ? `${latestAlert.longitude}` : '';
+  const markers = [
+    {
+      latitude: parseFloat(`${displayAlert.latitude}`), // ensure string is parsed
+      longitude: parseFloat(`${displayAlert.longitude}`),
+      id: displayAlert.id,
+    },
+  ];
 
-  const incidentData = {
-    startTimeAgo,
-    formattedStartDate,
-    formattedEndDate,
-    alertCount,
-    isActive,
-    reviewStatus,
-    siteName,
-    latitude,
-    longitude,
-    polygon,
-  };
+  const googleMapUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
 
   return (
-    <div>
-      <IncidentId incidentData={incidentData} />
+    <div
+      id="incident-page"
+      className="w-screen min-h-screen bg-neutral-300 flex justify-center items-center overflow-visible relative">
+      <Head>
+        <title>Incident Details</title>
+      </Head>
+
+      {/* Card Container */}
+      <div className="relative w-11/12 lg:w-4/5 max-w-5xl bg-white rounded-2xl overflow-hidden flex flex-col lg:flex-row items-center my-5 min-h-[604px] md:min-h-[650px] lg:h-[433px] lg:min-h-0">
+        {/* Map View - Left/Top */}
+        <div className="relative w-full h-1/2 md:h-1/2 lg:w-1/2 lg:h-full items-center justify-center">
+          <div id="map" className="w-full h-full items-center">
+            <MapComponent
+              polygon={polygon as Prisma.JsonValue}
+              markers={markers}
+              selectedMarkerId={displayAlert.id}
+            />
+          </div>
+        </div>
+
+        {/* Alert Info - Right/Bottom */}
+        <div className="w-full h-1/2 md:h-1/2 lg:w-1/2 lg:h-full flex flex-col justify-center items-center px-1 sm:px-4 py-1.5 lg:py-0">
+          {/* Sub Container */}
+          <div className="h-full w-full flex flex-col justify-between items-center p-1.5 sm:p-2.5 lg:p-4.5 mt-2.5 lg:mt-5 mb-2.5 lg:mb-0 lg:h-3/4">
+            <DetectionInfo
+              detectedBy={detectedBy}
+              timeAgo={timeAgo}
+              formattedDateString={formattedDateString}
+              confidence={confidence}
+            />
+
+            <div className="w-full flex flex-col sm:flex-row items-center mt-2.5 lg:mt-0">
+              <LocationInfo latitude={latitude} longitude={longitude} />
+              <ActionInfo />
+            </div>
+          </div>
+
+          <GoogleMapsButton googleMapUrl={googleMapUrl} />
+        </div>
+      </div>
     </div>
   );
 };
@@ -130,24 +197,28 @@ export async function getStaticProps(
     ctx: {},
     transformer: superjson,
   });
-  const id = context.params?.incidentId as string;
+  const incidentId = context.params?.incidentId as string;
 
-  await helpers.siteIncident.getIncidentPublic.prefetch({incidentId: id});
+  try {
+    await helpers.siteIncident.getIncidentPublic.prefetch({incidentId});
+  } catch (e) {
+    console.error('Error prefetching incident', e);
+  }
 
   return {
     props: {
       trpcState: helpers.dehydrate(),
-      id,
+      incidentId,
     },
     revalidate: 1,
   };
 }
 
-export const getStaticPaths: GetStaticPaths = () => {
+export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [],
     fallback: 'blocking',
   };
 };
 
-export default Incident;
+export default IncidentPage;
