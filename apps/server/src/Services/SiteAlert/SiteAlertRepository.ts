@@ -17,7 +17,7 @@ export class SiteAlertRepository {
    */
   async findAlertsByEventIds(eventIds: string[]): Promise<any[]> {
     try {
-      const alerts = await this.prisma.$queryRaw`
+      const alerts = (await this.prisma.$queryRaw`
         SELECT sa.*
         FROM "SiteAlert" sa
         INNER JOIN "GeoEvent" ge ON 
@@ -25,8 +25,8 @@ export class SiteAlertRepository {
           AND sa.longitude = ge.longitude 
           AND sa."eventDate" = ge."eventDate"
         WHERE ge.id IN (${Prisma.join(eventIds)})
-        ORDER BY sa."createdAt" DESC
-      `;
+        ORDER BY sa."eventDate" DESC
+      `) as any[];
       return alerts;
     } catch (error) {
       logger(`Failed to find alerts by event IDs. Error: ${error}`, 'error');

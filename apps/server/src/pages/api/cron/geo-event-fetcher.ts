@@ -3,9 +3,9 @@
 
 import {type NextApiRequest, type NextApiResponse} from 'next';
 import {type GeoEventProvider} from '@prisma/client';
-import {prisma} from '../../../../src/server/db';
-import {logger} from '../../../../src/server/logger';
-import {env} from '../../../env.mjs';
+import {prisma} from '@/server/db';
+import {logger} from '@/server/logger';
+import {env} from '@/env.mjs';
 import {
   type ProviderConfig,
   type ProcessedGeoEventResult,

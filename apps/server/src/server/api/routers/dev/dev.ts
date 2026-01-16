@@ -1,6 +1,6 @@
 import {createTRPCRouter, protectedProcedure} from '../../trpc';
-import {geoEventRouter} from './geo-event';
-import {siteAlertRouter} from './site-alert';
+import {geoEventRouter} from '@/server/api/routers/dev/geo-event';
+import {siteAlertRouter} from '@/server/api/routers/dev/site-alert';
 
 /**
  * Development-only router that combines geo-event and site-alert functionality

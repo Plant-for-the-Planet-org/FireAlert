@@ -1,5 +1,4 @@
 import {type PrismaClient} from '@prisma/client';
-import {logger} from '../../../server/logger';
 
 /**
  * Base class for development data generation services
@@ -41,22 +40,22 @@ export abstract class BaseDataService {
     lat: number,
     lng: number,
     providerClientId: string,
-  ): any {
-    const baseData = {
-      frp: (Math.random() * 60).toFixed(2), // Fire Radiative Power
-      scan: (Math.random() * 3).toFixed(2),
-      track: (Math.random() * 2).toFixed(2),
+  ): Record<string, string | number | boolean> {
+    const baseData: Record<string, string | number | boolean> = {
+      frp: parseFloat((Math.random() * 60).toFixed(2)),
+      scan: parseFloat((Math.random() * 3).toFixed(2)),
+      track: parseFloat((Math.random() * 2).toFixed(2)),
       version: '6.1NRT',
-      acq_date: new Date().toISOString().split('T')[0],
+      acq_date: new Date().toISOString().split('T')[0] || '',
       acq_time: Math.floor(Math.random() * 2400)
         .toString()
         .padStart(4, '0'),
       daynight: Math.random() > 0.5 ? 'N' : 'D',
-      latitude: lat.toFixed(5),
-      longitude: lng.toFixed(5),
+      latitude: parseFloat(lat.toFixed(5)),
+      longitude: parseFloat(lng.toFixed(5)),
       satellite: Math.random() > 0.5 ? 'Aqua' : 'Terra',
-      bright_t31: (280 + Math.random() * 20).toFixed(2),
-      brightness: (300 + Math.random() * 20).toFixed(2),
+      bright_t31: parseFloat((280 + Math.random() * 20).toFixed(2)),
+      brightness: parseFloat((300 + Math.random() * 20).toFixed(2)),
       confidence: Math.floor(Math.random() * 100).toString(),
       instrument: 'MODIS',
     };
@@ -78,52 +77,32 @@ export abstract class BaseDataService {
    * Get available GeoEvent providers
    */
   async getAvailableProviders() {
-    try {
-      return await this.prisma.geoEventProvider.findMany({
-        where: {isActive: true},
-        select: {
-          id: true,
-          name: true,
-          clientId: true,
-          type: true,
-        },
-      });
-    } catch (error) {
-      logger(
-        `Error fetching providers: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        'error',
-      );
-      throw error;
-    }
+    const providers = await this.prisma.geoEventProvider.findMany({
+      where: {isActive: true},
+      select: {
+        id: true,
+        name: true,
+        clientId: true,
+        type: true,
+      },
+    });
+    return providers;
   }
 
   /**
    * Get user's sites for testing
    */
   async getUserSites(userId: string) {
-    try {
-      return await this.prisma.site.findMany({
-        where: {
-          userId,
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-          name: true,
-          latitude: true,
-          longitude: true,
-        },
-      });
-    } catch (error) {
-      logger(
-        `Error fetching user sites: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        'error',
-      );
-      throw error;
-    }
+    const sites = await this.prisma.site.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+    return sites;
   }
 }

@@ -1,6 +1,6 @@
 import {type PrismaClient} from '@prisma/client';
-import {BaseDataService} from './BaseDataService';
-import {logger} from '../../../server/logger';
+import {BaseDataService} from '@/Services/dev/BaseDataService';
+import {logger} from '@/server/logger';
 
 export class GeoEventService extends BaseDataService {
   constructor(prisma: PrismaClient) {
@@ -20,7 +20,7 @@ export class GeoEventService extends BaseDataService {
       // Get a random provider if not specified
       let providerId = data.geoEventProviderId;
       if (!providerId) {
-        const providers = await this.getAvailableProviders();
+        const providers = await super.getAvailableProviders();
 
         if (providers.length === 0) {
           throw new Error('No active GeoEvent providers found');
@@ -28,6 +28,9 @@ export class GeoEventService extends BaseDataService {
 
         const randomProvider =
           providers[Math.floor(Math.random() * providers.length)];
+        if (!randomProvider) {
+          throw new Error('Failed to select random provider');
+        }
         providerId = randomProvider.id;
       }
 
@@ -48,7 +51,6 @@ export class GeoEventService extends BaseDataService {
           latitude: data.latitude,
           longitude: data.longitude,
           eventDate,
-          geometry: `POINT (${data.longitude} ${data.latitude})`,
           confidence: this.getRandomConfidence(),
           isProcessed: false,
           geoEventProviderClientId: provider.clientId,
@@ -66,13 +68,17 @@ export class GeoEventService extends BaseDataService {
       logger(`Created test GeoEvent: ${geoEvent.id}`, 'info');
       return geoEvent;
     } catch (error) {
-      logger(
-        `Error creating test GeoEvent: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        'error',
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      logger(`Error creating test GeoEvent: ${errorMessage}`, 'error');
       throw error;
     }
+  }
+
+  /**
+   * Get available GeoEvent providers
+   */
+  async getAvailableProviders() {
+    return super.getAvailableProviders();
   }
 }

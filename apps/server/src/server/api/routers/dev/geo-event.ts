@@ -1,9 +1,9 @@
 import {TRPCError} from '@trpc/server';
-import {createTRPCRouter, protectedProcedure} from '../../trpc';
-import {GeoEventService} from '../../../Services/dev/GeoEventService';
-import {logger} from '../../../../server/logger';
+import {createTRPCRouter, protectedProcedure} from '@/server/api/trpc';
+import {GeoEventService} from '@/Services/dev/GeoEventService';
+import {logger} from '@/server/logger';
 import {z} from 'zod';
-import {idSchema} from '../zodSchemas/alert.schema';
+import {idSchema} from '@/server/api/zodSchemas/alert.schema';
 
 const createGeoEventSchema = z.object({
   latitude: z.number().min(-90).max(90),
