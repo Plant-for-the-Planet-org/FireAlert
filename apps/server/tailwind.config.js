@@ -32,6 +32,7 @@ module.exports = {
         alert: '#e74c3c',
         gray: {
           'page-bg': '#D5D5D5',
+          'card-border': '#D9D9D9',
           light: '#E6E9EC',
           medium: '#E1E2E2',
           dark: '#D3D3D3',

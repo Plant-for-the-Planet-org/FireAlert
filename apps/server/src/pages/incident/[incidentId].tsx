@@ -13,12 +13,13 @@ import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
 import ErrorPage from 'next/error';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import {Prisma} from '@prisma/client';
 import {DetectionInfo} from '../../Components/FireIncident/DetectionInfo';
 import {LocationInfo} from '../../Components/FireIncident/LocationInfo';
 import {ActionInfo} from '../../Components/FireIncident/ActionInfo';
 import {GoogleMapsButton} from '../../Components/FireIncident/GoogleMapsButton';
+import {IncidentSummary} from '../../Components/FireIncident/IncidentSummary';
 import {AlertTheme} from '../../Components/FireIncident/MapComponent';
+import {useState, useEffect} from 'react';
 
 const MapComponent = dynamic(
   () => import('../../Components/FireIncident/MapComponent'),
@@ -92,12 +93,30 @@ const IncidentPage = (
     {retry: 0},
   );
 
+  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (incidentQuery.status === 'success' && !selectedAlertId) {
+      const initialAlert =
+        incidentQuery.data.data.latestSiteAlert ||
+        incidentQuery.data.data.startSiteAlert;
+      if (initialAlert) {
+        setSelectedAlertId(initialAlert.id);
+      }
+    }
+  }, [incidentQuery.status, incidentQuery.data, selectedAlertId]);
+
   if (incidentQuery.isError) {
     const error = incidentQuery.error;
-    let message = error?.shape?.message || 'Unknown error';
-    let httpStatus = error?.data?.httpStatus || 500;
+    const message = error?.shape?.message || 'Unknown error';
+    const httpStatus = error?.data?.httpStatus || 500;
     if (httpStatus === 503) {
-      message = 'Server under Maintenance. Please check back in a few minutes.';
+      return (
+        <ErrorDisplay
+          message="Server under Maintenance. Please check back in a few minutes."
+          httpStatus={httpStatus}
+        />
+      );
     }
     if (httpStatus === 404) {
       return <ErrorPage statusCode={httpStatus} />;
@@ -116,8 +135,11 @@ const IncidentPage = (
   const {data} = incidentQuery;
   const incident = data.data; // siteIncidentRouter returns { status: 'success', data: incident }
 
-  // Use latestSiteAlert for display data if available, or startSiteAlert
-  const displayAlert = incident.latestSiteAlert || incident.startSiteAlert;
+  // Use selectedAlertId if it matches an alert in siteAlerts, otherwise fallback
+  const displayAlert =
+    incident.siteAlerts.find(a => a.id === selectedAlertId) ||
+    incident.latestSiteAlert ||
+    incident.startSiteAlert;
 
   if (!displayAlert) {
     return (
@@ -160,48 +182,77 @@ const IncidentPage = (
 
   const googleMapUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
 
+  const startAlert = incident.startSiteAlert;
+  const latestAlert = incident.latestSiteAlert || incident.startSiteAlert;
+
   return (
     <div id="incident-page">
       <Head>
         <title>Incident Details</title>
       </Head>
 
-      <div className="w-screen min-h-screen bg-gray-page-bg flex justify-center items-center overflow-visible relative">
-        {/* Card Container */}
-        <div className="relative w-11/12 lg:w-4/5 max-w-5xl bg-white rounded-2xl overflow-hidden flex flex-col lg:flex-row items-center my-5 min-h-[604px] md:min-h-[650px] lg:h-[433px] lg:min-h-0">
-          {/* Map View - Left/Top */}
-          <div className="relative w-full h-1/2 md:h-1/2 lg:w-1/2 lg:h-full items-center justify-center">
-            <div id="map" className="w-full h-full items-center">
-              <MapComponent
-                polygon={
-                  polygon as React.ComponentProps<
-                    typeof MapComponent
-                  >['polygon']
-                }
-                markers={markers}
-                selectedMarkerId={displayAlert.id}
-              />
-            </div>
-          </div>
-
-          {/* Alert Info - Right/Bottom */}
-          <div className="w-full h-1/2 md:h-1/2 lg:w-1/2 lg:h-full flex flex-col justify-center items-center px-1 sm:px-4 py-1.5 lg:py-0">
-            {/* Sub Container */}
-            <div className="h-full w-full flex flex-col justify-between items-center p-1.5 sm:p-2.5 lg:p-4.5 mt-2.5 lg:mt-5 mb-2.5 lg:mb-0 lg:h-3/4">
-              <DetectionInfo
-                detectedBy={detectedBy}
-                timeAgo={timeAgo}
-                formattedDateString={formattedDateString}
-                confidence={confidence}
-              />
-
-              <div className="w-full flex flex-col sm:flex-row items-center mt-2.5 lg:mt-0">
-                <LocationInfo latitude={latitude} longitude={longitude} />
-                <ActionInfo />
+      <div className="w-screen min-h-screen bg-gray-page-bg flex flex-col justify-center items-center overflow-auto py-10">
+        <div className="w-11/12 lg:w-4/5 max-w-5xl">
+          {/* Main Interactive Card */}
+          <div className="relative w-full bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col lg:flex-row items-stretch lg:h-[433px] overflow-hidden">
+            {/* Map View - Left/Top */}
+            <div className="relative w-full h-80 md:h-[400px] lg:h-auto lg:w-1/2">
+              <div id="map" className="w-full h-full">
+                <MapComponent
+                  polygon={
+                    polygon as React.ComponentProps<
+                      typeof MapComponent
+                    >['polygon']
+                  }
+                  markers={markers}
+                  selectedMarkerId={displayAlert.id}
+                  onMarkerClick={id => setSelectedAlertId(id)}
+                />
               </div>
             </div>
 
-            <GoogleMapsButton googleMapUrl={googleMapUrl} />
+            {/* Alert Info - Right/Bottom */}
+            <div className="w-full lg:w-1/2 flex flex-col gap-4 justify-between p-4 lg:p-8 bg-white overflow-y-scroll">
+              <div className="flex flex-col gap-4">
+                {/* Incident Summary Card */}
+                {startAlert && (
+                  <IncidentSummary
+                    isActive={incident.isActive}
+                    startAlert={{
+                      id: startAlert.id,
+                      eventDate: new Date(startAlert.eventDate),
+                      latitude: Number(startAlert.latitude),
+                      longitude: Number(startAlert.longitude),
+                    }}
+                    latestAlert={{
+                      id: latestAlert.id,
+                      eventDate: new Date(latestAlert.eventDate),
+                      latitude: Number(latestAlert.latitude),
+                      longitude: Number(latestAlert.longitude),
+                    }}
+                    allAlerts={incident.siteAlerts.map(a => ({
+                      id: a.id,
+                      eventDate: new Date(a.eventDate),
+                      latitude: Number(a.latitude),
+                      longitude: Number(a.longitude),
+                    }))}
+                  />
+                )}
+                <DetectionInfo
+                  detectedBy={detectedBy}
+                  timeAgo={timeAgo}
+                  formattedDateString={formattedDateString}
+                  confidence={confidence}
+                />
+
+                <div className="flex flex-col sm:flex-row md:flex-col space-y-4">
+                  <LocationInfo latitude={latitude} longitude={longitude} />
+                  <ActionInfo />
+                </div>
+              </div>
+
+              <GoogleMapsButton googleMapUrl={googleMapUrl} />
+            </div>
           </div>
         </div>
       </div>
@@ -214,7 +265,13 @@ export async function getStaticProps(
 ) {
   const helpers = createServerSideHelpers({
     router: appRouter,
-    ctx: {},
+    ctx: {
+      req: {} as any,
+      prisma: {} as any,
+      user: null,
+      isAdmin: false,
+      isImpersonatedUser: false,
+    },
     transformer: superjson,
   });
   const incidentId = context.params?.incidentId as string;

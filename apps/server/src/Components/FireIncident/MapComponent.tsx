@@ -81,7 +81,7 @@ const getZoomLevel = (bbox: BBox): number => {
   let calculatedZoom = Math.min(latZoom, lonZoom, ZOOM_MAX);
 
   // Subtract a small constant to slightly decrease zoom level
-  calculatedZoom -= 2.5;
+  calculatedZoom -= 4;
 
   return calculatedZoom;
 };
