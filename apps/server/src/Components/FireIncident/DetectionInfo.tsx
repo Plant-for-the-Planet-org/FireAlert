@@ -9,12 +9,12 @@ interface DetectionInfoProps {
   confidence: string;
 }
 
-export const DetectionInfo: React.FC<DetectionInfoProps> = ({
+export function DetectionInfo({
   detectedBy,
   timeAgo,
   formattedDateString,
   confidence,
-}) => {
+}: DetectionInfoProps) {
   return (
     <div className="w-full">
       <div className="w-full p-5 lg:p-5 rounded-xl bg-red-100/10 flex items-center overflow-hidden flex-col sm:flex-row lg:flex-row">
@@ -51,4 +51,4 @@ export const DetectionInfo: React.FC<DetectionInfoProps> = ({
       </div>
     </div>
   );
-};
+}

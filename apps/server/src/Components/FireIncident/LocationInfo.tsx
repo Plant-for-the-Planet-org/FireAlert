@@ -8,10 +8,7 @@ interface LocationInfoProps {
   longitude: string;
 }
 
-export const LocationInfo: React.FC<LocationInfoProps> = ({
-  latitude,
-  longitude,
-}) => {
+export function LocationInfo({latitude, longitude}: LocationInfoProps) {
   const [isCoordinatesCopied, setIsCoordinatesCopied] = useState(false);
 
   const handleCopyCoordinates = () => {
@@ -54,4 +51,4 @@ export const LocationInfo: React.FC<LocationInfoProps> = ({
       </div>
     </div>
   );
-};
+}

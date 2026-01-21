@@ -26,7 +26,6 @@
     "@planet-sdk/common": "^0.1.11",
     "@prisma/client": "^5.0.0",
     "@sentry/nextjs": "^10.25.0",
-    "@tailwindcss/postcss": "^4.0.0",
     "@tanstack/react-query": "^4.20.2",
     "@trpc/client": "^10.9.0",
     "@trpc/next": "^10.40.0",
@@ -36,6 +35,7 @@
     "@types/nodemailer": "^6.4.7",
     "auth0": "^3.3.0",
     "csv-parse": "^5.3.9",
+    "date-fns": "^4.1.0",
     "geo-tz": "^7.0.7",
     "hash-wasm": "^4.9.0",
     "i18n-iso-countries": "^7.14.0",
@@ -55,7 +55,6 @@
     "react-lottie": "^1.2.3",
     "react-map-gl": "7.1.0-beta.3",
     "superjson": "1.9.1",
-    "tailwindcss": "^4.0.0",
     "twilio": "^4.11.0",
     "validator": "^13.9.0",
     "zod": "^3.22.3"

@@ -2,7 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import radarIcon from '../../../public/alertPage/radarIcon.svg';
 
-export const ActionInfo: React.FC = () => {
+export function ActionInfo() {
   return (
     <div className="w-full flex flex-row p-1.5 lg:p-3.5 outline outline-1 outline-gray-medium rounded-xl bg-white/10 overflow-hidden justify-between items-center mt-2.5 sm:mt-2.5 lg:mt-0">
       <div className="flex flex-row justify-between w-full sm:w-4/5 items-center">
@@ -17,4 +17,4 @@ export const ActionInfo: React.FC = () => {
       </div>
     </div>
   );
-};
+}

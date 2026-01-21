@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["BETTERSTACK", "firealert", "Logtail", "MODIS", "VIIRS"]
+  "cSpell.words": ["BETTERSTACK", "firealert", "Logtail", "MODIS", "VIIRS"],
+  "java.compile.nullAnalysis.mode": "disabled"
 }

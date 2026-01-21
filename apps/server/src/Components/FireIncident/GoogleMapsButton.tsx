@@ -4,9 +4,7 @@ interface GoogleMapsButtonProps {
   googleMapUrl: string;
 }
 
-export const GoogleMapsButton: React.FC<GoogleMapsButtonProps> = ({
-  googleMapUrl,
-}) => {
+export function GoogleMapsButton({googleMapUrl}: GoogleMapsButtonProps) {
   return (
     <div className="h-1/4 w-full flex justify-center items-center mb-5">
       <button
@@ -18,4 +16,4 @@ export const GoogleMapsButton: React.FC<GoogleMapsButtonProps> = ({
       </button>
     </div>
   );
-};
+}

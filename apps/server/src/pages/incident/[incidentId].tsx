@@ -18,6 +18,7 @@ import {DetectionInfo} from '../../Components/FireIncident/DetectionInfo';
 import {LocationInfo} from '../../Components/FireIncident/LocationInfo';
 import {ActionInfo} from '../../Components/FireIncident/ActionInfo';
 import {GoogleMapsButton} from '../../Components/FireIncident/GoogleMapsButton';
+import {AlertTheme} from '../../Components/FireIncident/MapComponent';
 
 const MapComponent = dynamic(
   () => import('../../Components/FireIncident/MapComponent'),
@@ -41,6 +42,19 @@ function getTimePassedSince(date: Date): {
   const minutesPassed = Math.floor(timeDiff / millisecondsPerMinute);
 
   return {days: daysPassed, hours: hoursPassed, minutes: minutesPassed};
+}
+
+function getDaysSince(date: Date): number {
+  const now = new Date();
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  const timeDiff = now.getTime() - date.getTime();
+  return Math.floor(timeDiff / millisecondsPerDay);
+}
+
+function getAlertTheme(days: number): AlertTheme {
+  if (days === 0) return 'orange';
+  if (days > 0 && days <= 3) return 'brown';
+  return 'gray';
 }
 
 function formatDateString(date: Date): string {
@@ -134,55 +148,61 @@ const IncidentPage = (
   const longitude = `${displayAlert.longitude}`;
   const polygon = incident.site.geometry;
 
-  const markers = [
-    {
-      latitude: parseFloat(`${displayAlert.latitude}`), // ensure string is parsed
-      longitude: parseFloat(`${displayAlert.longitude}`),
-      id: displayAlert.id,
-    },
-  ];
+  const markers = incident.siteAlerts.map(alert => {
+    const days = getDaysSince(alert.eventDate);
+    return {
+      latitude: Number(alert.latitude),
+      longitude: Number(alert.longitude),
+      id: alert.id,
+      theme: getAlertTheme(days),
+    };
+  });
 
   const googleMapUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
 
   return (
-    <div
-      id="incident-page"
-      className="w-screen min-h-screen bg-neutral-300 flex justify-center items-center overflow-visible relative">
+    <div id="incident-page">
       <Head>
         <title>Incident Details</title>
       </Head>
 
-      {/* Card Container */}
-      <div className="relative w-11/12 lg:w-4/5 max-w-5xl bg-white rounded-2xl overflow-hidden flex flex-col lg:flex-row items-center my-5 min-h-[604px] md:min-h-[650px] lg:h-[433px] lg:min-h-0">
-        {/* Map View - Left/Top */}
-        <div className="relative w-full h-1/2 md:h-1/2 lg:w-1/2 lg:h-full items-center justify-center">
-          <div id="map" className="w-full h-full items-center">
-            <MapComponent
-              polygon={polygon as Prisma.JsonValue}
-              markers={markers}
-              selectedMarkerId={displayAlert.id}
-            />
-          </div>
-        </div>
-
-        {/* Alert Info - Right/Bottom */}
-        <div className="w-full h-1/2 md:h-1/2 lg:w-1/2 lg:h-full flex flex-col justify-center items-center px-1 sm:px-4 py-1.5 lg:py-0">
-          {/* Sub Container */}
-          <div className="h-full w-full flex flex-col justify-between items-center p-1.5 sm:p-2.5 lg:p-4.5 mt-2.5 lg:mt-5 mb-2.5 lg:mb-0 lg:h-3/4">
-            <DetectionInfo
-              detectedBy={detectedBy}
-              timeAgo={timeAgo}
-              formattedDateString={formattedDateString}
-              confidence={confidence}
-            />
-
-            <div className="w-full flex flex-col sm:flex-row items-center mt-2.5 lg:mt-0">
-              <LocationInfo latitude={latitude} longitude={longitude} />
-              <ActionInfo />
+      <div className="w-screen min-h-screen bg-gray-page-bg flex justify-center items-center overflow-visible relative">
+        {/* Card Container */}
+        <div className="relative w-11/12 lg:w-4/5 max-w-5xl bg-white rounded-2xl overflow-hidden flex flex-col lg:flex-row items-center my-5 min-h-[604px] md:min-h-[650px] lg:h-[433px] lg:min-h-0">
+          {/* Map View - Left/Top */}
+          <div className="relative w-full h-1/2 md:h-1/2 lg:w-1/2 lg:h-full items-center justify-center">
+            <div id="map" className="w-full h-full items-center">
+              <MapComponent
+                polygon={
+                  polygon as React.ComponentProps<
+                    typeof MapComponent
+                  >['polygon']
+                }
+                markers={markers}
+                selectedMarkerId={displayAlert.id}
+              />
             </div>
           </div>
 
-          <GoogleMapsButton googleMapUrl={googleMapUrl} />
+          {/* Alert Info - Right/Bottom */}
+          <div className="w-full h-1/2 md:h-1/2 lg:w-1/2 lg:h-full flex flex-col justify-center items-center px-1 sm:px-4 py-1.5 lg:py-0">
+            {/* Sub Container */}
+            <div className="h-full w-full flex flex-col justify-between items-center p-1.5 sm:p-2.5 lg:p-4.5 mt-2.5 lg:mt-5 mb-2.5 lg:mb-0 lg:h-3/4">
+              <DetectionInfo
+                detectedBy={detectedBy}
+                timeAgo={timeAgo}
+                formattedDateString={formattedDateString}
+                confidence={confidence}
+              />
+
+              <div className="w-full flex flex-col sm:flex-row items-center mt-2.5 lg:mt-0">
+                <LocationInfo latitude={latitude} longitude={longitude} />
+                <ActionInfo />
+              </div>
+            </div>
+
+            <GoogleMapsButton googleMapUrl={googleMapUrl} />
+          </div>
         </div>
       </div>
     </div>
