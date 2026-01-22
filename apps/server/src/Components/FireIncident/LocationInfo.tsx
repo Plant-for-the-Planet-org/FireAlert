@@ -38,7 +38,7 @@ export function LocationInfo({latitude, longitude}: LocationInfoProps) {
           LOCATION
         </p>
         <p className="text-base text-planet-dark-gray font-sans my-0">
-          {latitude}, {longitude}
+          {parseFloat(latitude).toFixed(6)}, {parseFloat(longitude).toFixed(6)}
         </p>
       </div>
       <div className="flex justify-center items-center">

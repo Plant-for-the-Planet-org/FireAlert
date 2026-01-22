@@ -233,8 +233,8 @@ const MapComponent: FC<Props> = ({
               className="absolute w-6 h-6 top-0"
             />
             {selectedMarkerId === marker.id && (
-              <div className="absolute top-[42%] left-[10%] scale-[5]">
-                <Lottie options={defaultLottieOptions} />
+              <div className="absolute top-[42%] left-[10%] scale-[5] pointer-events-none">
+                <Lottie options={defaultLottieOptions} isClickToPauseDisabled={true}  />
               </div>
             )}
           </div>
