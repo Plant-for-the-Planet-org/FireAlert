@@ -53,7 +53,24 @@ export default async function siteIncidentManager(
       env.INCIDENT_RESOLUTION_HOURS || 6,
     );
 
-    // 3. Backfill / Link Unassociated SiteAlerts
+    // 3. Resolve Inactive Incidents FIRST
+    // This closes incidents that haven't had activity for > 6 hours
+    // Must happen before processing unlinked alerts to prevent associating alerts with stale incidents
+    logger('Resolving inactive incidents...', 'debug');
+    let resolvedCount = 0;
+    try {
+      resolvedCount = await siteIncidentService.resolveInactiveIncidents();
+    } catch (error) {
+      logger(
+        `Error resolving incidents: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      // We don't throw here to allow the response to return partial success stats
+    }
+
+    // 4. Backfill / Link Unassociated SiteAlerts
     // Find alerts that have null siteIncidentId
     // We limit this to avoid timeouts if there are massive amounts of unlinked alerts
     const BATCH_SIZE = 50;
@@ -99,22 +116,6 @@ export default async function siteIncidentManager(
       }
     } else {
       logger('No unassociated SiteAlerts found.', 'debug');
-    }
-
-    // 4. Resolve Inactive Incidents
-    // This closes incidents that haven't had activity for > 6 hours
-    logger('Resolving inactive incidents...', 'debug');
-    let resolvedCount = 0;
-    try {
-      resolvedCount = await siteIncidentService.resolveInactiveIncidents();
-    } catch (error) {
-      logger(
-        `Error resolving incidents: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        'error',
-      );
-      // We don't throw here to allow the response to return partial success stats
     }
 
     const duration = Date.now() - start;

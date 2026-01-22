@@ -80,3 +80,9 @@ Objective: Verify manager can handle "piles" of unlinked data.
 3. Expected Result:
    - Manager stats show 'linkedCount: 10'.
    - All 10 alerts linked to the same incident (same site, same time window).
+
+
+```
+UPDATE "SiteIncident" SET "updatedAt" = NOW() - INTERVAL '7 hours' WHERE "siteId" = 'cmj9qdbfq0005drntft81wrdh';
+UPDATE "SiteAlert" SET "eventDate" = NOW() - INTERVAL '7 hours' WHERE "siteIncidentId" = '<incident_id>';
+```

@@ -56,23 +56,73 @@ export class SiteIncidentService {
       let incident: SiteIncident;
 
       if (activeIncident) {
-        // Associate with existing incident
-        logger(
-          `Associating alert ${alert.id} with existing incident ${activeIncident.id}`,
-          'debug',
-        );
+        // Defensive check: If incident should be resolved (stale), resolve it first
+        const now = new Date();
+        const inactiveMs =
+          now.getTime() - activeIncident.updatedAt.getTime();
+        const inactiveHours = inactiveMs / (1000 * 60 * 60);
 
-        this.metrics.startTimer('associate_alert');
-        incident = await this.repository.associateAlert(
-          activeIncident.id,
-          alert.id,
-        );
-        this.metrics.endTimer('associate_alert');
+        if (inactiveHours >= this.inactiveHours) {
+          logger(
+            `Active incident ${activeIncident.id} is stale (inactive for ${inactiveHours.toFixed(2)}h). Resolving before processing new alert.`,
+            'debug',
+          );
 
-        logger(
-          `Associated alert ${alert.id} with incident ${incident.id}`,
-          'debug',
-        );
+          // Resolve the stale incident
+          try {
+            await this.resolver.batchResolveIncidents([activeIncident]);
+            logger(
+              `Resolved stale incident ${activeIncident.id}`,
+              'debug',
+            );
+          } catch (error) {
+            logger(
+              `Error resolving stale incident ${activeIncident.id}: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+              'warn',
+            );
+            // Continue to create new incident even if resolution fails
+          }
+
+          // Create new incident for this alert
+          logger(
+            `Creating new incident for alert ${alert.id} on site ${alert.siteId} (previous incident was stale)`,
+            'debug',
+          );
+
+          this.metrics.startTimer('create_incident');
+          incident = await this.repository.createIncident({
+            siteId: alert.siteId,
+            startSiteAlertId: alert.id,
+            latestSiteAlertId: alert.id,
+            startedAt: new Date(),
+          });
+          this.metrics.endTimer('create_incident');
+
+          logger(
+            `Created new incident ${incident.id} for site ${alert.siteId}`,
+            'debug',
+          );
+        } else {
+          // Associate with existing incident (it's still active)
+          logger(
+            `Associating alert ${alert.id} with existing incident ${activeIncident.id}`,
+            'debug',
+          );
+
+          this.metrics.startTimer('associate_alert');
+          incident = await this.repository.associateAlert(
+            activeIncident.id,
+            alert.id,
+          );
+          this.metrics.endTimer('associate_alert');
+
+          logger(
+            `Associated alert ${alert.id} with incident ${incident.id}`,
+            'debug',
+          );
+        }
       } else {
         // Create new incident
         logger(

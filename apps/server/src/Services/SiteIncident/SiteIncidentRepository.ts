@@ -200,12 +200,12 @@ export class SiteIncidentRepository {
         where: {
           isActive: true,
           isProcessed: false,
-          startedAt: {
+          updatedAt: {
             lt: cutoffTime,
           },
         },
         orderBy: {
-          startedAt: 'asc',
+          updatedAt: 'asc',
         },
       });
 
@@ -262,6 +262,7 @@ export class SiteIncidentRepository {
               isActive: false,
               isProcessed: false,
               endedAt: new Date(),
+              endSiteAlertId: incident.latestSiteAlertId,
               updatedAt: new Date(),
             },
           });
