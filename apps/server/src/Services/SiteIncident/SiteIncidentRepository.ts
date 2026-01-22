@@ -199,7 +199,11 @@ export class SiteIncidentRepository {
       const incidents = await this.prisma.siteIncident.findMany({
         where: {
           isActive: true,
-          isProcessed: false,
+          // Note: We don't filter by isProcessed here because:
+          // - isProcessed: false means start notification not yet created/sent
+          // - isProcessed: true means start notification was created/sent
+          // Both cases should be resolved if inactive for 6+ hours
+          // Resolution will set isProcessed: false to allow end notification creation
           updatedAt: {
             lt: cutoffTime,
           },
