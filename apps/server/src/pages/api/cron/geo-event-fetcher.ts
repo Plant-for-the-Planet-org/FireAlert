@@ -150,22 +150,26 @@ async function refactoredImplementation(
   const result = await providerService.processProviders(selected, concurrency);
 
   // 7. Resolve inactive incidents
+  // TODO: This logic has been moved to site-incident-manager.ts.
+  // We are temporarily disabling it here to prevent redundant processing.
   let resolvedIncidents = 0;
-  try {
-    logger('Starting incident resolution phase', 'info');
-    resolvedIncidents = await siteIncidentService.resolveInactiveIncidents();
-    logger(
-      `Incident resolution complete: ${resolvedIncidents} incidents resolved`,
-      'info',
-    );
-  } catch (error) {
-    logger(
-      `Error during incident resolution: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      'error',
-    );
-    // Don't fail the entire CRON if incident resolution fails
+  if (false as boolean) {
+    try {
+      logger('Starting incident resolution phase', 'info');
+      resolvedIncidents = await siteIncidentService.resolveInactiveIncidents();
+      logger(
+        `Incident resolution complete: ${resolvedIncidents} incidents resolved`,
+        'info',
+      );
+    } catch (error) {
+      logger(
+        `Error during incident resolution: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      // Don't fail the entire CRON if incident resolution fails
+    }
   }
 
   // 8. Add incident metrics to result and return response

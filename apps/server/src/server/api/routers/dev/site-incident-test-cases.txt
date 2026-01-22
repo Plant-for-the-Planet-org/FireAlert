@@ -1,0 +1,82 @@
+SITE INCIDENT TEST SUITE
+=========================
+
+Site ID: cmj9qdbfq0005drntft81wrdh
+Coordinate: [86.39005, 23.67988]
+
+--------------------------------------------------------------------------------
+TEST CASE 1: INITIAL INCIDENT CREATION
+--------------------------------------------------------------------------------
+Objective: Verify that a single unlinked alert creates a new Active Incident.
+
+1. Generate Alert:
+   - Call: dev.siteAlert.create
+   - Input: { "siteId": "cmj9qdbfq0005drntft81wrdh", "latitude": 23.67988, "longitude": 86.39005 }
+2. Execute Manager:
+   - Call: GET /api/cron/site-incident-manager
+3. Expected Result:
+   - SiteIncident table has 1 new record.
+   - isActive = true, isProcessed = false.
+   - siteIncidentId in SiteAlert matches the Incident ID.
+
+--------------------------------------------------------------------------------
+TEST CASE 2: ALERT ASSOCIATION (WITHIN 6H WINDOW)
+--------------------------------------------------------------------------------
+Objective: Verify multiple alerts within the window are grouped.
+
+1. Prerequisites: Success of Test Case 1.
+2. Generate Bulk Alerts:
+   - Call: dev.siteAlert.createBulk
+   - Input: { "siteId": "cmj9qdbfq0005drntft81wrdh", "latitude": 23.681, "longitude": 86.391, "count": 2, "radiusKm": 0.5 }
+3. Execute Manager:
+   - Call: GET /api/cron/site-incident-manager
+4. Expected Result:
+   - Existing Incident's latestSiteAlertId is updated.
+   - Both new alerts have siteIncidentId set to the existing Incident ID.
+   - No new SiteIncident records are created.
+
+--------------------------------------------------------------------------------
+TEST CASE 3: INCIDENT RESOLUTION (INACTIVITY)
+--------------------------------------------------------------------------------
+Objective: Verify incidents close after 6 hours of silence.
+
+1. Setup Inactive State: 
+   - Wait 6+ hours OR manually update the 'updatedAt' and associated alert dates of the incident in DB.
+2. Execute Manager:
+   - Call: GET /api/cron/site-incident-manager
+3. Expected Result:
+   - SiteIncident record isActive = false.
+   - endedAt is set to CURRENT_TIMESTAMP.
+   - isProcessed = false (ready for end notification CRON).
+
+--------------------------------------------------------------------------------
+TEST CASE 4: TIME-OVERLAP BOUNDARY (NEW INCIDENT START)
+--------------------------------------------------------------------------------
+Objective: Verify that an alert after the 6h window starts a new incident.
+
+1. Generate Old Alert:
+   - Call: dev.siteAlert.create
+   - Input: { "siteId": "cmj9qdbfq0005drntft81wrdh", "latitude": 23.679, "longitude": 86.390, "eventDate": "[7 HOURS AGO]" }
+2. Execute Manager:
+   - Call: GET /api/cron/site-incident-manager (This starts Incident A and immediately resolves it).
+3. Generate New Alert:
+   - Call: dev.siteAlert.create
+   - Input: { "siteId": "cmj9qdbfq0005drntft81wrdh", "latitude": 23.679, "longitude": 86.390 }
+4. Execute Manager:
+   - Call: GET /api/cron/site-incident-manager
+5. Expected Result:
+   - A second SiteIncident record is created.
+   - Incident A is closed.
+   - Incident B is active.
+
+--------------------------------------------------------------------------------
+TEST CASE 5: CLEAN BACKFILL
+--------------------------------------------------------------------------------
+Objective: Verify manager can handle "piles" of unlinked data.
+
+1. Generate 10 Alerts:
+   - Call: dev.siteAlert.createBulk (count: 10)
+2. Execute Manager.
+3. Expected Result:
+   - Manager stats show 'linkedCount: 10'.
+   - All 10 alerts linked to the same incident (same site, same time window).
