@@ -56,3 +56,22 @@ export const closeIncidentSchema = z.object({
  * Schema for validating inactivity threshold
  */
 export const inactivityThresholdSchema = z.number().positive().int();
+
+/**
+ * Schema for mock create incident notifications endpoint
+ */
+export const mockCreateIncidentNotificationsSchema = z.object({
+  incidentId: z.string().cuid().optional(),
+  siteId: z.string().cuid().optional(),
+  notificationType: z.enum(['START', 'END']).optional(),
+});
+
+/**
+ * Schema for mock send incident notifications endpoint
+ */
+export const mockSendIncidentNotificationsSchema = z.object({
+  incidentId: z.string().cuid().optional(),
+  siteId: z.string().cuid().optional(),
+  notificationType: z.enum(['START', 'END']).optional(),
+  batchSize: z.number().int().positive().optional().default(10),
+});
