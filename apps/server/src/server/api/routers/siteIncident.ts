@@ -7,10 +7,21 @@ import {
   closeIncidentSchema,
 } from '../zodSchemas/siteIncident.schema';
 import {createTRPCRouter, protectedProcedure, publicProcedure} from '../trpc';
-import {siteIncidentService} from '../../../Services/SiteIncident/SiteIncidentService';
+import {SiteIncidentService} from '../../../Services/SiteIncident/SiteIncidentService';
+import {SiteIncidentRepository} from '../../../Services/SiteIncident/SiteIncidentRepository';
+import {IncidentResolver} from '../../../Services/SiteIncident/IncidentResolver';
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
-import {logger} from '../../../server/logger';
+import {prisma} from '../../../server/db';
+
+// Initialize services
+const siteIncidentRepository = new SiteIncidentRepository(prisma);
+const incidentResolver = new IncidentResolver(siteIncidentRepository);
+const siteIncidentService = new SiteIncidentService(
+  siteIncidentRepository,
+  incidentResolver,
+  6, // Default 6 hours inactivity threshold
+);
 
 export const siteIncidentRouter = createTRPCRouter({
   /**
