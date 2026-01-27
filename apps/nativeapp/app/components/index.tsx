@@ -1,13 +1,13 @@
-import Switch from './switch/switch';
+import Switch from './switch/Switch';
 import AlertModal from './alertModal';
-import OtpInput from './otpInput/otpInput';
+import OtpInput from './otpInput/OtpInput';
 import DropDown from './dropDown/dropDown';
-import BottomBar from './bottomBar/bottomBar';
-import CustomButton from './button/customButton';
-import LayerModal from './layerModal/layerModal';
-import PhoneInput from './phoneInput/phoneInput';
-import FloatingInput from './inputs/floatingInput';
-import BottomSheet from './bottomSheet/bottomSheet';
+import BottomBar from './bottomBar/BottomBar';
+import CustomButton from './button/CustomButton';
+import LayerModal from './layerModal/LayerModal';
+import PhoneInput from './phoneInput/PhoneInput';
+import FloatingInput from './inputs/FloatingInput';
+import BottomSheet from './bottomSheet/BottomSheet';
 
 export {
   Switch,

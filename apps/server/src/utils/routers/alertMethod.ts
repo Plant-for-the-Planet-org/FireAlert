@@ -1,5 +1,5 @@
 import {TRPCError} from '@trpc/server';
-import {type TRPCContext} from '../../Interfaces/Context';
+import type {TRPCContext} from '../../Interfaces/Context';
 import {
   type CheckUserHasAlertMethodPermissionArgs,
   type CtxWithAlertMethod,
@@ -7,11 +7,7 @@ import {
   type LimitAlertMethodBasedOnPlanProps,
 } from '../../Interfaces/AlertMethod';
 import {generate5DigitOTP} from '../notification/otp';
-import {
-  type AlertMethod,
-  type Prisma,
-  type PrismaClient,
-} from '@prisma/client';
+import {type AlertMethod, type Prisma, type PrismaClient} from '@prisma/client';
 import {env} from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import {prisma} from '../../server/db';
@@ -22,13 +18,13 @@ export const limitSpecificAlertMethodPerUser = async ({
   ctx,
   userId,
   count,
-  method
+  method,
 }: LimitSpecificAlertMethods) => {
   const specificAlertMethodCount = await ctx.prisma.alertMethod.count({
     where: {
       userId,
       method,
-      deletedAt: null
+      deletedAt: null,
     },
   });
   if (specificAlertMethodCount >= count) {
@@ -36,53 +32,58 @@ export const limitSpecificAlertMethodPerUser = async ({
       code: 'FORBIDDEN',
       message: `You've exceeded the fair ${method} use limits of FireAlert. Please contact info@plant-for-the-planet to remove these limits for your account.`,
     });
-  };
+  }
 };
 
-export const limitAlertMethodBasedOnPlan = async (props: LimitAlertMethodBasedOnPlanProps) => {
+export const limitAlertMethodBasedOnPlan = async (
+  props: LimitAlertMethodBasedOnPlanProps,
+) => {
   const {ctx, userId, userPlan, method} = props;
-  
+
   let countLimit = 0;
 
-  if(userPlan === 'basic') {
-      switch (method) {
-          case 'email':
-              countLimit = 20;
-              break;
-          case 'sms':
-              countLimit = 5;
-              break;
-          case 'webhook':
-              countLimit = 20;
-              break;
-          case 'whatsapp':
-              countLimit = 5;
-              break;
-          default:
-              return; // Or handle any other cases as required
-      }
+  if (userPlan === 'basic') {
+    switch (method) {
+      case 'email':
+        countLimit = 20;
+        break;
+      case 'sms':
+        countLimit = 5;
+        break;
+      case 'webhook':
+        countLimit = 20;
+        break;
+      case 'whatsapp':
+        countLimit = 5;
+        break;
+      default:
+        return; // Or handle any other cases as required
+    }
   } else if (userPlan === 'custom') {
-      switch (method) {
-          case 'email':
-              countLimit = 50;
-              break;
-          case 'sms':
-              countLimit = 10;
-              break;
-          case 'webhook':
-              countLimit = 50;
-              break;
-          case 'whatsapp':
-              countLimit = 10;
-              break;
-          default:
-              return; // Or handle any other cases as required
-      }
+    switch (method) {
+      case 'email':
+        countLimit = 50;
+        break;
+      case 'sms':
+        countLimit = 10;
+        break;
+      case 'webhook':
+        countLimit = 50;
+        break;
+      case 'whatsapp':
+        countLimit = 10;
+        break;
+      default:
+        return; // Or handle any other cases as required
+    }
   }
-  await limitSpecificAlertMethodPerUser({ctx, userId, count: countLimit, method});
+  await limitSpecificAlertMethodPerUser({
+    ctx,
+    userId,
+    count: countLimit,
+    method,
+  });
 };
-
-
 
 // Compares the User in session or token with the AlertMethod that is being Read, Updated or Deleted
 export const checkUserHasAlertMethodPermission = async ({
@@ -298,7 +299,10 @@ export const deviceVerification = async (
 ): Promise<boolean> => {
   // Check if OneSignal is configured
   if (!env.ONESIGNAL_APP_ID || !env.ONESIGNAL_REST_API_KEY) {
-    logger(`Push notifications are disabled: OneSignal is not configured`, 'warn');
+    logger(
+      `Push notifications are disabled: OneSignal is not configured`,
+      'warn',
+    );
     return false;
   }
 
@@ -315,6 +319,7 @@ export const deviceVerification = async (
       'Content-Type': 'application/json; charset=utf-8',
     },
   });
+
   // we can check if id in response matches the destination to return true.
   if (response.ok) {
     return true;
@@ -343,9 +348,12 @@ export const handlePendingVerification = async (
     const notifier = NotifierRegistry.get(alertMethod.method);
     const params = {
       authenticationMessage: true,
-      otp: otp
-    }
-    sendVerificationCode = await notifier.notify(alertMethod.destination, params);
+      otp: otp,
+    };
+    sendVerificationCode = await notifier.notify(
+      alertMethod.destination,
+      params,
+    );
   } else {
     // Use NotifierRegistry to send the verification code
     const notifier = NotifierRegistry.get(alertMethod.method);

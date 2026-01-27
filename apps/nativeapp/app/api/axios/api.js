@@ -1,119 +1,57 @@
 import axios from 'axios';
-import Config from 'react-native-config';
 
 import ApiUrl from '../axios/url';
+import {Config} from '../../../config';
 
 axios.defaults.timeout = 30000;
 
+// console.log('Config.API_URL', Config.API_URL);
 export default function fireApi({method, URL, data, header, token}) {
-  if (URL === ApiUrl.userDetails) {
-    URL = Config.NEXT_API_URL + URL;
-  } else {
-    URL = URL;
+  const url = URL === ApiUrl.userDetails ? Config.API_URL + URL : URL;
+  const verb = method?.toLowerCase();
+
+  if (!verb || typeof axios[verb] !== 'function') {
+    throw new Error(`Unsupported HTTP method: ${method}`);
   }
-  if (method === 'POST') {
-    let headers = {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
-    };
-    if (token) {
-      headers = {
-        headers: {
-          ...headers.headers,
-          Authorization: `Bearer ${token}`,
-        },
-      };
-    }
-    if (header) {
-      headers = header;
-    }
-    return axios.post(URL, data, headers).then(
-      res => {
-        return res;
-      },
-      error => {
-        return axios.post(URL, data, headers);
-      },
-    );
-  } else if (method === 'GET') {
-    let headers = {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
-    };
-    if (token) {
-      headers = {
-        headers: {
-          ...headers.headers,
-          Authorization: `Bearer ${token}`,
-        },
-      };
-    }
-    if (header) {
-      headers = header;
-    }
-    return axios.get(URL, headers).then(
-      res => {
-        return res;
-      },
-      error => {
-        return axios.get(URL, headers);
-      },
-    );
-  } else if (method === 'DELETE') {
-    let headers = {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
-    };
-    if (token) {
-      headers = {
-        headers: {
-          ...headers.headers,
-          Authorization: `Bearer ${token}`,
-        },
-      };
-    }
-    if (header) {
-      headers = header;
-    }
-    return axios.delete(URL, headers).then(
-      res => {
-        return res;
-      },
-      error => {
-        return axios.delete(URL, headers);
-      },
-    );
-  } else if (method === 'PUT') {
-    let headers = {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
-    };
-    if (token) {
-      headers = {
-        headers: {
-          ...headers.headers,
-          Authorization: `Bearer ${token}`,
-        },
-      };
-    }
-    if (header) {
-      headers = header;
-    }
-    return axios.put(URL, data, headers).then(
-      res => {
-        return res;
-      },
-      error => {
-        return axios.put(URL, data, headers);
-      },
-    );
+
+  const baseHeaders = {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json',
+    },
+  };
+
+  if (token) {
+    baseHeaders.headers.Authorization = `Bearer ${token}`;
   }
+
+  const config = header || baseHeaders;
+  const needsPayload = ['post', 'put', 'patch'].includes(verb);
+
+  const request = () =>
+    needsPayload ? axios[verb](url, data, config) : axios[verb](url, config);
+
+  return request()
+    .then(response => {
+      console.log('response', response);
+      return response;
+    })
+    .catch(error => {
+      if (error.response) {
+        // The request was made and the server responded with a status code, that falls out of the range of 2xx
+        // console.log(error.response.data);
+        // console.log(error.response.status);
+        // console.log(error.response.headers);
+      } else if (error.request) {
+        // The request was made but no response was received
+        // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+        // console.log(error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        // console.log('Error', error.message);
+      }
+      console.log('fireApi error', error.config);
+      console.log('fireApi error response', error.toJSON());
+      request();
+    });
 }

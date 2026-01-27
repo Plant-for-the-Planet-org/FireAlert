@@ -27,7 +27,7 @@ import {
   CustomButton,
   FloatingInput,
 } from '../../components';
-import Map from './mapMarking/map';
+import Map from './MapMarking/Map';
 import {trpc} from '../../services/trpc';
 import {RADIUS_ARR} from '../../constants';
 import {useFetchSites} from '../../utils/api';
@@ -35,19 +35,21 @@ import {Colors, Typography} from '../../styles';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
-} from '../home/permissionAlert/locationPermissionAlerts';
+} from '../Home/PermissionAlert/LocationPermissionAlerts';
 import {locationPermission} from '../../utils/permissions';
 import {toLetters} from '../../utils/mapMarkingCoordinate';
 import distanceCalculator from '../../utils/distanceCalculator';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
+import {useNavigation} from '@react-navigation/native';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;
 const ANIMATION_DURATION = 1000;
 const activePolygonIndex: number = 0;
 
-const CreatePolygon = ({navigation}) => {
+const CreatePolygon = () => {
+  const navigation = useNavigation();
   const camera = useRef<MapboxGL.Camera | null>(null);
   const {mapInfo} = useContext(BottomBarContext);
 
@@ -113,16 +115,18 @@ const CreatePolygon = ({navigation}) => {
     let highlightSiteInfo = siteInfo;
     let bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
     highlightSiteInfo = siteInfo?.geometry;
-
-    navigation.navigate('Home', {
-      bboxGeo,
-      siteInfo: [
-        {
-          type: 'Feature',
-          geometry: highlightSiteInfo,
-          properties: {site: siteInfo},
-        },
-      ],
+    navigation.navigate('BottomTab', {
+      screen: 'Home',
+      params: {
+        bboxGeo,
+        siteInfo: [
+          {
+            type: 'Feature',
+            geometry: highlightSiteInfo,
+            properties: {site: siteInfo},
+          },
+        ],
+      },
     });
   };
 

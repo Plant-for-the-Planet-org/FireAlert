@@ -1,12 +1,12 @@
 import {
   Text,
   View,
-  Platform,
   Animated,
   Dimensions,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import * as shape from 'd3-shape';
 import Svg, {Path, SvgXml} from 'react-native-svg';
@@ -19,17 +19,18 @@ import {
   uploadIcon,
   polygonIcon,
   locationIcon,
+  protectedAreaIcon,
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {plusIcon} from '../../assets/svgs/plusIcon';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 
-let {width, height} = Dimensions.get('window');
 const IS_ANDROID = Platform.OS === 'android';
+let width = Dimensions.get('window').width;
 
 const buttonWidth = 60;
 const buttonGutter = 12;
-const extraHeight = IS_ANDROID ? 0 : 20;
+const extraHeight = IS_ANDROID ? 12 : 20;
 const tabbarHeight = 60 + extraHeight;
 
 const tabWidth = buttonWidth + buttonGutter * 2;
@@ -103,6 +104,14 @@ const AddOptions = ({onReqClose, onPressCallback}) => {
       title: 'Upload Polygon',
       onPress: () => {
         navigation.navigate('UploadPolygon');
+        onPressCallback();
+      },
+    },
+    {
+      svgXML: protectedAreaIcon,
+      title: 'Protected Area',
+      onPress: () => {
+        navigation.navigate('ProtectedAreas');
         onPressCallback();
       },
     },
@@ -202,7 +211,7 @@ const BottomBar = ({...props}) => {
   const inactiveTabStyle = {color: '#828282'};
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.bottomBarContainer}>
         <Svg
           width={width * 2 + tabWidth}
@@ -210,6 +219,7 @@ const BottomBar = ({...props}) => {
           style={styles.bottomBar}>
           <Path {...{d}} fill={Colors.WHITE} />
         </Svg>
+
         {/* add button */}
         <TouchableOpacity
           activeOpacity={0.9}
@@ -251,8 +261,9 @@ const BottomBar = ({...props}) => {
             </Text>
           </View>
         </TouchableOpacity>
-        <SafeAreaView style={styles.safeArea} />
+        {/* <SafeAreaView style={styles.safeArea} /> */}
       </View>
+
       {showAddOptions ? (
         <AddOptions onReqClose={onAddPress} onPressCallback={onAddPress} />
       ) : (
@@ -269,11 +280,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.WHITE,
   },
   bottomBar: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.TRANSPARENT,
   },
   bottomBarContainer: {
-    bottom: 0,
     position: 'absolute',
+    bottom: 0,
   },
   menuDash: {
     height: 3,
@@ -284,7 +295,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'flex-start',
     justifyContent: 'space-around',
-    marginBottom: IS_ANDROID ? 0 : 6,
+    marginBottom: 6,
   },
   firstDash: {
     width: 16,
@@ -334,7 +345,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'flex-end',
-    height,
   },
   addOptionsContainer: {
     width: 229,
