@@ -69,11 +69,21 @@ export const findProtectedSiteParams = z.object({
 export const createProtectedSiteSchema = z.object({
   remoteId: z.string(),
 });
-export const updateProtectedSiteSchema = z.object({
-  params: protectedSiteParams,
+export const pauseProtectedSiteAlertSchema = z.object({
+  params: z.object({
+    siteRelationId: z.string().cuid({message: 'Invalid CUID'}),
+    siteId: z.string().cuid({message: 'Invalid CUID'}),
+  }),
   body: z.object({
     isActive: z.boolean().optional(),
   }),
+});
+export const deleteProtectedSiteSchema = z.object({
+  params: z.object({
+    siteRelationId: z.string().cuid({message: 'Invalid CUID'}),
+    siteId: z.string().cuid({message: 'Invalid CUID'}),
+  }),
+  body: z.object({}).optional(),
 });
 
 export const params = z.object({

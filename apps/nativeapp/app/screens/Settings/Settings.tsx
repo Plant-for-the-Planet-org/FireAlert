@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import bbox from '@turf/bbox';
 import rewind from '@mapbox/geojson-rewind';
-import OneSignal from 'react-native-onesignal';
+import {OneSignal} from 'react-native-onesignal';
 import DeviceInfo from 'react-native-device-info';
 import Toast from 'react-native-toast-notifications';
 import {useQueryClient} from '@tanstack/react-query';
@@ -61,7 +61,7 @@ import {
   TrashOutlineIcon,
   VerificationWarning,
   DisabledTrashOutlineIcon,
-  WhatsAppIcon
+  WhatsAppIcon,
 } from '../../assets/svgs';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
@@ -74,13 +74,28 @@ import {extractCountryCode} from '../../utils/countryCodeFilter';
 // import {updateUserDetails} from '../../redux/slices/login/loginSlice';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
+import ProtectedSitesSettings from './ProtectedSitesSettings';
+import {
+  ComingSoonBadge,
+  DisabledBadge,
+  DisabledNotificationInfo,
+} from './Badges';
+import {useSelector} from 'react-redux';
+import {RootState} from '../../redux/store';
+import {useNavigation} from '@react-navigation/native';
+import {useOneSignalState} from '../../hooks/notification/useOneSignalState';
+// import {PromptInAppUpdatePanel} from '../../PromptInAppUpdate';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const IS_ANDROID = Platform.OS === 'android';
 
-const Settings = ({navigation}) => {
+const Settings = () => {
+  const navigation = useNavigation();
+  const {alertMethods} = useSelector((state: RootState) => state.settingsSlice);
+  const oneSignalDeviceState = useOneSignalState();
+
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
   const [siteName, setSiteName] = useState<string | null>('');
@@ -114,37 +129,34 @@ const Settings = ({navigation}) => {
     data: sites,
     refetch: refetchSites,
     isSuccess: sitesSuccess,
+    isFetching: isFetchingSites,
   } = trpc.site.getSites.useQuery(['site', 'getSites'], {
     enabled: true,
     retryDelay: 3000,
     staleTime: 'Infinity',
     cacheTime: 'Infinity',
     keepPreviousData: true,
-    onSuccess: () => {
-      setRefreshing(false);
-    },
     onError: () => {
-      setRefreshing(false);
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
   const groupOfSites = useMemo(
     () => groupSitesAsProject(sites?.json?.data || []),
     [sites],
   );
 
-  const {data: alertPreferences, refetch: refetchAlertPreferences} =
-    trpc.alertMethod.getAlertMethods.useQuery(undefined, {
-      enabled: sitesSuccess,
-      retryDelay: 3000,
-      onSuccess: () => {
-        setRefreshing(false);
-      },
-      onError: () => {
-        setRefreshing(false);
-        toast.show('something went wrong', {type: 'danger'});
-      },
-    });
+  const {
+    data: alertPreferences,
+    refetch: refetchAlertPreferences,
+    isFetching: isFetchingAlertPreferences,
+  } = trpc.alertMethod.getAlertMethods.useQuery(undefined, {
+    enabled: sitesSuccess,
+    retryDelay: 3000,
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
   const formattedAlertPreferences = useMemo(
     () => categorizedRes(alertPreferences?.json?.data || [], 'method'),
     [alertPreferences],
@@ -153,7 +165,10 @@ const Settings = ({navigation}) => {
   const deviceNotification = useCallback(async () => {
     try {
       const {deviceId} = await getDeviceInfo();
-      const {userId} = await OneSignal.getDeviceState();
+      // const {userId} = await OneSignal.getDeviceState(); // Old SDK
+      const userId = await OneSignal.User.pushSubscription.getIdAsync();
+      console.log('pushSubscription.getIdAsync', userId);
+
       const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
         el => userId === el?.destination && el.deviceId === deviceId,
       );
@@ -167,6 +182,7 @@ const Settings = ({navigation}) => {
           ...nonFilteredData,
         ].filter(el => el.deviceName !== '');
       }
+
       setDeviceAlertPreferences(formattedAlertPreferences?.device);
     } catch {
       setDeviceAlertPreferences([]);
@@ -214,11 +230,19 @@ const Settings = ({navigation}) => {
             : null,
       );
       setSitesInfoModal(false);
+      toast.show('Site deleted', {type: 'success'});
     },
     onError: () => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
+
+  const deleteSiteButtonIsLoading = deleteSite.status === 'pending';
+
+  const deleteSiteButtonIsDisabled = (() => {
+    const isProjectSite = !!selectedSiteInfo?.project?.id;
+    return deleteSite.status === 'pending' || isProjectSite;
+  })();
 
   const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
     retryDelay: 3000,
@@ -498,25 +522,40 @@ const Settings = ({navigation}) => {
       bboxGeo = bbox(polygon(siteInfo?.geometry.coordinates));
       highlightSiteInfo = siteInfo?.geometry;
     }
-    navigation.navigate('Home', {
-      bboxGeo,
-      siteInfo: [
-        {
-          type: 'Feature',
-          geometry: highlightSiteInfo,
-          properties: {site: siteInfo},
-        },
-      ],
+    navigation.navigate('BottomTab', {
+      screen: 'Home',
+      params: {
+        bboxGeo,
+        siteInfo: [
+          {
+            type: 'Feature',
+            geometry: highlightSiteInfo,
+            properties: {site: siteInfo},
+          },
+        ],
+      },
     });
   };
 
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    refetchSites();
-    refetchAlertPreferences();
+    try {
+      await Promise.all([refetchSites(), refetchAlertPreferences()]);
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
   }, [refetchSites, refetchAlertPreferences]);
+
+  // Auto-stop refreshing when queries complete
+  useEffect(() => {
+    if (refreshing && !isFetchingSites && !isFetchingAlertPreferences) {
+      setRefreshing(false);
+    }
+  }, [refreshing, isFetchingSites, isFetchingAlertPreferences]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -535,6 +574,8 @@ const Settings = ({navigation}) => {
             titleColor={Colors.GRADIENT_PRIMARY}
           />
         }>
+        {/* Prompt In App Update Panel */}
+        {/* <PromptInAppUpdatePanel /> */}
         {/* my projects */}
         <View style={[styles.myProjects, styles.commonPadding]}>
           <Text style={styles.mainHeading}>
@@ -639,15 +680,8 @@ const Settings = ({navigation}) => {
                         angle={135}
                         angleCenter={{x: 0.5, y: 0.5}}
                         colors={Colors.GREEN_GRADIENT_ARR}
-                        style={[
-                          styles.addSiteBtn,
-                          styles.justifyContentCenter,
-                        ]}>
-                        <Text
-                          style={[
-                            styles.emptySiteText,
-                            styles.paddingHorizontal0ColorWhite,
-                          ]}>
+                        style={[styles.visitPPecoBtn]}>
+                        <Text style={[styles.visitPPecoBtnText]}>
                           Visit pp.eco
                         </Text>
                       </LinearGradient>
@@ -754,6 +788,12 @@ const Settings = ({navigation}) => {
             </View>
           )}
         </View>
+        <ProtectedSitesSettings
+          radiusLoaderArr={radiusLoaderArr}
+          setRadiusLoaderArr={setRadiusLoaderArr}
+          setRefreshing={setRefreshing}
+          toast={toast}
+        />
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
@@ -762,8 +802,12 @@ const Settings = ({navigation}) => {
               <View style={styles.mobileContainer}>
                 <PhoneIcon />
                 <Text style={[styles.smallHeading]}>Mobile</Text>
+                {!alertMethods?.enabled.device && <DisabledBadge />}
               </View>
             </View>
+            {!alertMethods?.enabled.device && (
+              <DisabledNotificationInfo method="device" />
+            )}
             {deviceAlertPreferences?.length > 0 && (
               <View style={styles.emailContainer}>
                 {deviceAlertPreferences?.map((item, i) => (
@@ -832,11 +876,15 @@ const Settings = ({navigation}) => {
               <View style={styles.mobileContainer}>
                 <EmailIcon />
                 <Text style={[styles.smallHeading]}>Email</Text>
+                {!alertMethods?.enabled.email && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddEmail}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
+            {!alertMethods?.enabled.email && (
+              <DisabledNotificationInfo method="email" />
+            )}
             {formattedAlertPreferences?.email?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.email?.map((item, i) => (
@@ -903,11 +951,12 @@ const Settings = ({navigation}) => {
             )}
           </View>
           {/* whatsapp */}
-          <View style={styles.mySiteNameMainContainer}>
+          {/* <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
                 <Text style={styles.smallHeading}>WhatsApp</Text>
+                {!alertMethods?.enabled.whatsapp && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddWhatsapp}>
                 <AddIcon />
@@ -967,18 +1016,22 @@ const Settings = ({navigation}) => {
                 ))}
               </View>
             )}
-          </View>
+          </View> */}
           {/* sms */}
           <View style={styles.mySiteNameMainContainer}>
             <View style={styles.mySiteNameSubContainer}>
               <View style={styles.mobileContainer}>
                 <SmsIcon />
                 <Text style={styles.smallHeading}>SMS</Text>
+                {!alertMethods?.enabled.sms && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddSms}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
+            {!alertMethods?.enabled.sms && (
+              <DisabledNotificationInfo method="sms" />
+            )}
             {formattedAlertPreferences?.sms?.length > 0 && (
               <View style={styles.emailContainer}>
                 {formattedAlertPreferences?.sms?.map((item, i) => (
@@ -1050,6 +1103,7 @@ const Settings = ({navigation}) => {
               <View style={styles.mobileContainer}>
                 <GlobeWebIcon width={17} height={17} />
                 <Text style={styles.smallHeading}>Webhook</Text>
+                {!alertMethods?.enabled.webhook && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleWebhook}>
                 <AddIcon />
@@ -1158,9 +1212,10 @@ const Settings = ({navigation}) => {
         <View style={[styles.geostationaryMainContainer, styles.commonPadding]}>
           <View style={styles.comingSoonCon}>
             <Text style={styles.subHeading}>Geostationary</Text>
-            <View style={[styles.deviceTagCon, styles.comingSoon]}>
+            {/* <View style={[styles.deviceTagCon, styles.comingSoon]}>
               <Text style={styles.deviceTag}>Coming Soon</Text>
-            </View>
+            </View> */}
+            <ComingSoonBadge />
           </View>
           <Text style={styles.desc}>
             Quick detection but many false alarms [BETA]
@@ -1351,14 +1406,15 @@ const Settings = ({navigation}) => {
             </TouchableOpacity>
             {selectedSiteInfo?.project === null && (
               <TouchableOpacity
-                disabled={deleteSite?.isLoading}
+                disabled={deleteSiteButtonIsDisabled}
                 onPress={() => handleDeleteSite(selectedSiteInfo?.id)}
                 style={[
                   styles.btn,
+                  deleteSiteButtonIsDisabled && styles.btnDisabled,
                   selectedSiteInfo?.project !== null &&
                     styles.borderColorGrayLightest,
                 ]}>
-                {deleteSite?.isLoading ? (
+                {deleteSiteButtonIsLoading ? (
                   <ActivityIndicator color={Colors.PRIMARY} />
                 ) : (
                   <>
@@ -1490,7 +1546,7 @@ const Settings = ({navigation}) => {
 
 export default Settings;
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   marginRight5: {
     marginRight: 5,
   },
@@ -1656,7 +1712,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    // paddingVertical: 14,
   },
   dropDownRadiusMarginRight5PaddingVeritcal16: {
     flexDirection: 'row',
@@ -1723,6 +1779,7 @@ const styles = StyleSheet.create({
   },
   mySiteNameContainer: {
     paddingHorizontal: 16,
+    paddingVertical: 14,
     marginTop: 24,
     borderRadius: 12,
     flexDirection: 'row',
@@ -1946,6 +2003,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderColor: Colors.GRADIENT_PRIMARY,
   },
+  btnDisabled: {
+    opacity: 0.5,
+  },
   siteActionText: {
     marginLeft: 30,
     color: Colors.GRADIENT_PRIMARY,
@@ -2025,6 +2085,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 40,
+    marginBottom: IS_ANDROID ? 16 : 0,
   },
   versionText: {
     textAlign: 'center',
@@ -2042,12 +2103,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 4,
   },
-  deviceTag: {
-    textTransform: 'uppercase',
-    fontSize: Typography.FONT_SIZE_10,
-    fontWeight: Typography.FONT_WEIGHT_BOLD,
-    color: Colors.WHITE,
-  },
   comingSoonCon: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2055,6 +2110,12 @@ const styles = StyleSheet.create({
   comingSoon: {
     width: 93,
     marginLeft: 10,
+  },
+  deviceTag: {
+    textTransform: 'uppercase',
+    fontSize: Typography.FONT_SIZE_10,
+    fontWeight: Typography.FONT_WEIGHT_BOLD,
+    color: Colors.WHITE,
   },
   emptySiteCon: {
     justifyContent: 'space-between',
@@ -2082,13 +2143,29 @@ const styles = StyleSheet.create({
   justifyContentCenter: {
     justifyContent: 'center',
   },
+  visitPPecoBtn: {
+    width: 92,
+    borderRadius: 8,
+    marginTop: 12,
+    marginLeft: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  visitPPecoBtnText: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    fontSize: 12,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.WHITE,
+  },
   addSiteBtn: {
     backgroundColor: Colors.GRADIENT_PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 10,
-    width: 93,
+    width: 92,
     borderRadius: 8,
     marginTop: 12,
     marginLeft: 10,
