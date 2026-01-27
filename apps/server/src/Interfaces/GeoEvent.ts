@@ -1,7 +1,7 @@
-import DataRecord from './DataRecord';
+import type DataRecord from './DataRecord';
 import {type GeoEventProviderClientId} from './GeoEventProvider';
 
-export interface geoEventInterface {
+export interface GeoEventInterface {
   id?: string;
   type: 'fire';
   longitude: number;
@@ -27,6 +27,12 @@ export enum GeoEventDetectionInstrument {
   VIIRS = 'VIIRS',
   LANDSAT = 'LANDSAT',
   GEOSTATIONARY = 'GEOSTATIONARY',
+}
+
+export interface ConfidenceLevels {
+  [key: string]: {
+    [key: string]: string;
+  };
 }
 
 // Use enum like this:

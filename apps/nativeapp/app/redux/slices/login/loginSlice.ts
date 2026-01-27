@@ -1,8 +1,9 @@
 import {createSlice} from '@reduxjs/toolkit';
 import type {PayloadAction} from '@reduxjs/toolkit';
 
-import {AppDispatch, RootState} from '../../store';
+import {AppDispatch, RootState, store} from '../../store';
 import {ApiService} from '../../../api/apiCalls/apiCalls';
+import {setAlertMethodsEnabled} from './settingsSlice';
 
 interface LoginState {
   isLoggedIn: boolean;
@@ -55,6 +56,8 @@ export const getUserDetails = (request: any) => {
       if (res?.status === 200) {
         onSuccess();
         dispatch(updateUserDetails(res?.data?.result?.data?.json));
+
+        dispatch(setAlertMethodsEnabled(res?.data?.result?.data?.json));
       } else {
         onFail(res?.data?.message || 'Something went wrong');
       }
