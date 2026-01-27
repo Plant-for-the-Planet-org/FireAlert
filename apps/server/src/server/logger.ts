@@ -12,17 +12,24 @@ if (sourceToken) {
   loggerInstance = new Logtail(sourceToken);
 }
 
-export function logger(message: string, level: string) {
+type LoggerLevels = 'debug' | 'info' | 'warn' | 'error';
+
+export function logger(message: string, level: LoggerLevels) {
   if (loggerInstance) {
     switch (level) {
+      case 'debug':
+        loggerInstance.info(message).catch(err => {
+          console.log(err);
+        });
+        break;
       case 'info':
         loggerInstance.info(message).catch(err => {
-          console.error(err);
+          console.info(err);
         });
         break;
       case 'warn':
         loggerInstance.warn(message).catch(err => {
-          console.error(err);
+          console.warn(err);
         });
         break;
       case 'error':
@@ -31,7 +38,7 @@ export function logger(message: string, level: string) {
         });
         break;
       default:
-        console.error(`Invalid log level: ${level}`);
+        console.error(`Invalid log level: ${level as string}`);
     }
   } else {
     console.log(`[${level.toUpperCase()}] ${message}`);
