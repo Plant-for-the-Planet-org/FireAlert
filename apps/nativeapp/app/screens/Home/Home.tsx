@@ -1,86 +1,91 @@
+import rewind from '@mapbox/geojson-rewind';
+import MapboxGL from '@rnmapbox/maps';
+import {useQueryClient} from '@tanstack/react-query';
+import bbox from '@turf/bbox';
+import {multiPolygon, polygon} from '@turf/helpers';
+import Lottie from 'lottie-react-native';
+import moment from 'moment-timezone';
 import {
-  Text,
-  View,
-  Modal,
+  ActivityIndicator,
+  BackHandler,
+  Dimensions,
   Image,
+  ImageSourcePropType,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   StatusBar,
-  Dimensions,
   StyleSheet,
-  BackHandler,
+  Text,
   TouchableOpacity,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  ImageSourcePropType,
+  View,
 } from 'react-native';
-import bbox from '@turf/bbox';
-import moment from 'moment-timezone';
-import MapboxGL from '@rnmapbox/maps';
-import Auth0 from 'react-native-auth0';
-import Config from 'react-native-config';
-import Lottie from 'lottie-react-native';
-import rewind from '@mapbox/geojson-rewind';
-import {multiPolygon, polygon} from '@turf/helpers';
-import {useQueryClient} from '@tanstack/react-query';
-import Clipboard from '@react-native-clipboard/clipboard';
+import {useAuth0} from 'react-native-auth0';
+// import Clipboard from '@react-native-clipboard/clipboard';
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
-  DropDown,
-  LayerModal,
+  CopyIcon,
+  CrossIcon,
+  DisabledTrashOutlineIcon,
+  EyeIcon,
+  EyeOffIcon,
+  GreenMapOutline,
+  LayerIcon,
+  LocationPinIcon,
+  LogoutIcon,
+  MyLocIcon,
+  PencilIcon,
+  PencilRoundIcon,
+  PointSiteIcon,
+  RadarIcon,
+  SatelliteIcon,
+  SiteIcon,
+  TrashOutlineIcon,
+  TrashSolidIcon,
+  UserPlaceholder,
+} from '../../assets/svgs';
+import {
   AlertModal,
   BottomSheet,
   CustomButton,
+  DropDown,
   FloatingInput,
+  LayerModal,
 } from '../../components';
-import {
-  EyeIcon,
-  SiteIcon,
-  CopyIcon,
-  LayerIcon,
-  MyLocIcon,
-  RadarIcon,
-  CrossIcon,
-  LogoutIcon,
-  EyeOffIcon,
-  PencilIcon,
-  PointSiteIcon,
-  SatelliteIcon,
-  MapOutlineIcon,
-  TrashSolidIcon,
-  LocationPinIcon,
-  PencilRoundIcon,
-  UserPlaceholder,
-  GreenMapOutline,
-  TrashOutlineIcon,
-  DisabledTrashOutlineIcon,
-} from '../../assets/svgs';
 import {
   getUserDetails,
   updateIsLoggedIn,
 } from '../../redux/slices/login/loginSlice';
 import {
-  PermissionDeniedAlert,
   PermissionBlockedAlert,
-} from './permissionAlert/locationPermissionAlerts';
+  PermissionDeniedAlert,
+} from './PermissionAlert/LocationPermissionAlerts';
 
-import {trpc} from '../../services/trpc';
-import {useFetchSites} from '../../utils/api';
-import {Colors, Typography} from '../../styles';
-import {daysFromToday} from '../../utils/moment';
-import {clearAll} from '../../utils/localStorage';
-import {categorizedRes} from '../../utils/filters';
-import handleLink from '../../utils/browserLinking';
-import {getFireIcon} from '../../utils/getFireIcon';
-import {locationPermission} from '../../utils/permissions';
-import {useAppDispatch, useAppSelector} from '../../hooks';
 import {highlightWave} from '../../assets/animation/lottie';
-import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
+import {useAppDispatch, useAppSelector} from '../../hooks';
+import {trpc} from '../../services/trpc';
+import {Colors, Typography} from '../../styles';
+import {useFetchSites} from '../../utils/api';
+import handleLink from '../../utils/browserLinking';
+import {categorizedRes} from '../../utils/filters';
+import {getFireIcon} from '../../utils/getFireIcon';
+import {clearAll} from '../../utils/localStorage';
+import {daysFromToday} from '../../utils/moment';
+import {locationPermission} from '../../utils/permissions';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -109,6 +114,8 @@ const images: Record<CompassImage, ImageSourcePropType> = {
 const Home = ({navigation, route}) => {
   const siteInfo = route?.params;
   const {state} = useMapLayers(MapLayerContext);
+  const {clearSession, clearCredentials, error} = useAuth0();
+
   const {selected, setSelected, selectedSiteBar, passMapInfo} =
     useContext(BottomBarContext);
   const {userDetails, configData} = useAppSelector(
@@ -185,7 +192,7 @@ const Home = ({navigation, route}) => {
         setSelectedSite(siteInfo?.siteInfo[0]?.properties);
       }, 1000);
     }
-  }, [isCameraRefVisible, siteInfo?.siteInfo]);
+  }, [isCameraRefVisible, setSelected, siteInfo?.bboxGeo, siteInfo?.siteInfo]);
 
   useEffect(() => {
     if (
@@ -226,6 +233,18 @@ const Home = ({navigation, route}) => {
     },
   );
 
+  // Fetch protected sites to optionally highlight one on app open
+  const {data: protectedSites} = (trpc.site as any).getProtectedSites.useQuery(
+    ['site', 'getProtectedSites'],
+    {
+      enabled: true,
+      retryDelay: 3000,
+      staleTime: 'Infinity',
+      cacheTime: 'Infinity',
+      keepPreviousData: true,
+    },
+  );
+
   const formattedSites = useMemo(
     () => categorizedRes(sites?.json?.data || [], 'type'),
     [sites],
@@ -247,6 +266,37 @@ const Home = ({navigation, route}) => {
     onError: () => {
       setLoading(false);
       setProfileEditModal(false);
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const updateSite = trpc.site.updateSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: (res, req) => {
+      queryClient.setQueryData(
+        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
+        oldData =>
+          oldData
+            ? {
+                ...oldData,
+                json: {
+                  ...oldData?.json,
+                  data: oldData?.json?.data?.map(item =>
+                    item.id === res?.json?.data?.id ? res?.json?.data : item,
+                  ),
+                },
+              }
+            : null,
+      );
+      if (req?.json?.body.hasOwnProperty('isMonitored')) {
+        setSelectedSite({site: res?.json?.data});
+      } else {
+        setSelectedSite({});
+        setSelectedArea(null);
+      }
+      setSiteNameModalVisible(false);
+    },
+    onError: () => {
       toast.show('something went wrong', {type: 'danger'});
     },
   });
@@ -295,34 +345,65 @@ const Home = ({navigation, route}) => {
     },
   });
 
-  const updateSite = trpc.site.updateSite.useMutation({
+  const deleteProtectedSite = trpc.site.deleteProtectedSite.useMutation({
     retryDelay: 3000,
-    onSuccess: (res, req) => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries([
+        ['site', 'getProtectedSites'],
+        {input: ['site', 'getProtectedSites'], type: 'query'},
+      ]);
+      await queryClient.invalidateQueries([
+        ['alert', 'getAlerts'],
+        {input: ['alerts', 'getAlerts'], type: 'query'},
+      ]);
+      setSelectedSite({});
+      setSelectedArea(null);
+      toast.show('Deleted', {type: 'success'});
+    },
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
+    },
+  });
+
+  const deleteSiteButtonIsLoading =
+    deleteSite.status === 'pending' || deleteProtectedSite.status === 'pending';
+
+  const deleteSiteButtonIsDisabled = (() => {
+    const isProjectSite = !!(selectedSite as any)?.site?.project?.id;
+    return (
+      deleteSite.status === 'pending' ||
+      deleteProtectedSite.status === 'pending' ||
+      isProjectSite
+    );
+  })();
+
+  const pauseAlertForProtectedSite = (
+    trpc.site as any
+  ).pauseAlertForProtectedSite.useMutation({
+    retryDelay: 3000,
+    onSuccess: async (res, req) => {
       queryClient.setQueryData(
-        [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
-        oldData =>
-          oldData
+        [
+          ['site', 'getProtectedSites'],
+          {input: ['site', 'getProtectedSites'], type: 'query'},
+        ],
+        (oldData: any) => {
+          return oldData
             ? {
                 ...oldData,
                 json: {
                   ...oldData?.json,
-                  data: oldData?.json?.data?.map(item =>
+                  data: oldData?.json?.data?.map((item: any) =>
                     item.id === res?.json?.data?.id ? res?.json?.data : item,
                   ),
                 },
               }
-            : null,
+            : null;
+        },
       );
-      if (req?.json?.body.hasOwnProperty('isMonitored')) {
+      if (res?.json?.data.hasOwnProperty('isActive')) {
         setSelectedSite({site: res?.json?.data});
-      } else {
-        setSelectedSite({});
-        setSelectedArea(null);
       }
-      setSiteNameModalVisible(false);
-    },
-    onError: () => {
-      toast.show('something went wrong', {type: 'danger'});
     },
   });
 
@@ -379,9 +460,73 @@ const Home = ({navigation, route}) => {
     }
   };
 
-  const handleDeleteSite = (id: string) => {
-    deleteSite.mutate({json: {siteId: id}});
+  const handleUpdateMonitoringSite = ({
+    siteId,
+    isMonitoredUpdated,
+  }: {
+    siteId: string;
+    isMonitoredUpdated: boolean;
+  }) => {
+    const foundInProtectedSites = protectedSites?.json?.data?.find(
+      site => site.id === siteId,
+    );
+    const foundInSites = sites?.json?.data?.find(site => site.id === siteId);
+    if (foundInProtectedSites) {
+      const {siteRelationId: protectedSiteRelationId, isActive} =
+        foundInProtectedSites;
+      const isActiveUpdated = !isActive;
+      pauseAlertForProtectedSite.mutate({
+        json: {
+          params: {siteRelationId: protectedSiteRelationId, siteId: siteId},
+          body: {isActive: isActiveUpdated},
+        },
+      });
+    } else if (foundInSites) {
+      updateSite.mutate({
+        json: {
+          params: {siteId: siteId},
+          body: {isMonitored: isMonitoredUpdated},
+        },
+      });
+    }
   };
+
+  const handleDeleteSite = (siteId: string) => {
+    const foundInProtectedSites = protectedSites?.json?.data?.find(
+      site => site.id === siteId,
+    );
+    const foundInSites = sites?.json?.data?.find(site => site.id === siteId);
+    if (foundInProtectedSites) {
+      const protectedSiteRelationId = foundInProtectedSites?.siteRelationId;
+      deleteProtectedSite.mutate({
+        json: {
+          params: {siteRelationId: protectedSiteRelationId, siteId: siteId},
+        },
+      });
+    } else if (foundInSites) {
+      deleteSite.mutate({json: {siteId: siteId}});
+    }
+  };
+  // const handleDeleteSite = (siteId: string) => {
+  //   if (!siteId) return;
+
+  //   const foundInProtectedSites = protectedSites?.json?.data?.find(
+  //     site => site.id === siteId,
+  //   );
+
+  //   if (foundInProtectedSites) {
+  //     deleteProtectedSite.mutate({
+  //       json: {
+  //         params: {
+  //           siteRelationId: foundInProtectedSites.siteRelationId,
+  //           siteId: siteId,
+  //         },
+  //       },
+  //     });
+  //   } else {
+  //     deleteSite.mutate({json: {siteId: siteId}});
+  //   }
+  // };
 
   // recenter the mapmap to the current coordinates of user location
   const onPressMyLocationIcon = (
@@ -399,13 +544,13 @@ const Home = ({navigation, route}) => {
   };
 
   // only for the first time map will follow the user's current location by default
-  const onUpdateUserLocation = (
-    userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined,
-  ) => {
-    if (isInitial && userLocation) {
-      onPressMyLocationIcon(userLocation);
-    }
-  };
+  const onUpdateUserLocation = useCallback(
+    (userLocation: MapboxGL.Location | Geolocation.GeoPosition | undefined) => {
+      if (isInitial && userLocation) {
+        onPressMyLocationIcon(userLocation);
+      }
+    },
+  );
 
   const onPressLocationAlertPrimaryBtn = () => {
     setIsLocationAlertShow(false);
@@ -477,20 +622,19 @@ const Home = ({navigation, route}) => {
   };
 
   const handleLogout = () => {
-    try {
-      setProfileModalVisible(false);
-      const auth0 = new Auth0({
-        domain: Config.AUTH0_DOMAIN,
-        clientId: Config.AUTH0_CLIENT_ID,
-      });
-      auth0.webAuth.clearSession().then(async () => {
-        dispatch(updateIsLoggedIn(false));
-        queryClient.clear();
-        await clearAll();
-      });
-    } catch (e) {
-      console.log('Log out cancelled');
-    }
+    setProfileModalVisible(false);
+    setTimeout(() => {
+      clearCredentials()
+        .then(() => clearSession({}, {useLegacyCallbackUrl: true}))
+        .then(async () => {
+          dispatch(updateIsLoggedIn(false));
+          queryClient.clear();
+          await clearAll();
+        })
+        .catch(error => {
+          console.log('Error ocurred', error);
+        });
+    }, 300);
   };
 
   const handleEditProfileName = () => {
@@ -522,7 +666,7 @@ const Home = ({navigation, route}) => {
   };
 
   const _copyToClipboard = loc => () => {
-    Clipboard.setString(JSON.stringify(loc));
+    // Clipboard.setString(JSON.stringify(loc));
     modalToast.current.show('copied');
   };
 
@@ -628,7 +772,12 @@ const Home = ({navigation, route}) => {
             return {
               type: 'Feature',
               properties: {site: singleSite},
-              geometry: singleSite?.geometry,
+              geometry:
+                singleSite?.geometry?.type === 'MultiPolygon'
+                  ? (rewind(singleSite?.geometry) as any)
+                  : singleSite?.geometry?.type === 'Polygon'
+                  ? (rewind(singleSite?.geometry) as any)
+                  : singleSite?.geometry,
             };
           }) || [],
       }}>
@@ -636,15 +785,15 @@ const Home = ({navigation, route}) => {
         id="fillLayer"
         style={{
           fillColor: Colors.GRADIENT_PRIMARY,
-          fillOpacity: 0.4,
+          fillOpacity: 0.25,
         }}
       />
       <MapboxGL.LineLayer
         id="fillOutline"
         style={{
-          lineWidth: 2,
-          lineColor: Colors.GRADIENT_PRIMARY,
-          lineOpacity: 1,
+          lineWidth: 1.5,
+          lineColor: Colors.WHITE,
+          lineOpacity: 0.9,
           lineJoin: 'bevel',
         }}
       />
@@ -705,6 +854,68 @@ const Home = ({navigation, route}) => {
     </MapboxGL.ShapeSource>
   );
 
+  const renderProtectedAreasSource = () => (
+    <MapboxGL.ShapeSource
+      id={'protected-polygons'}
+      shape={{
+        type: 'FeatureCollection',
+        features:
+          (protectedSites?.json?.data || [])
+            ?.filter(single => single?.project === null)
+            ?.filter(
+              single =>
+                single?.geometry?.type === 'Polygon' ||
+                single?.geometry?.type === 'MultiPolygon',
+            )
+            ?.map(single => ({
+              type: 'Feature',
+              properties: {site: single},
+              geometry:
+                single?.geometry?.type === 'MultiPolygon'
+                  ? (rewind(single?.geometry) as any)
+                  : single?.geometry?.type === 'Polygon'
+                  ? (rewind(single?.geometry) as any)
+                  : single?.geometry,
+            })) ?? [],
+      }}
+      onPress={e => {
+        let bboxGeo = null;
+        setSelectedArea(e?.features);
+        if (e?.features[0]?.geometry?.type === 'MultiPolygon') {
+          bboxGeo = bbox(
+            multiPolygon(rewind(e?.features[0]?.geometry.coordinates)),
+          );
+        } else {
+          bboxGeo = bbox(polygon(e?.features[0]?.geometry.coordinates));
+        }
+        camera.current.fitBounds(
+          [bboxGeo[0], bboxGeo[1]],
+          [bboxGeo[2], bboxGeo[3]],
+          60,
+          500,
+        );
+        setSelectedSite(e?.features[0]?.properties);
+      }}>
+      <MapboxGL.FillLayer
+        id={'protected-polyFill'}
+        layerIndex={2}
+        style={{
+          fillColor: Colors.WHITE,
+          fillOpacity: 0.4,
+        }}
+      />
+      <MapboxGL.LineLayer
+        id={'protected-polyline'}
+        style={{
+          lineWidth: 2,
+          lineColor: Colors.WHITE,
+          lineOpacity: 1,
+          lineJoin: 'bevel',
+        }}
+      />
+    </MapboxGL.ShapeSource>
+  );
+
   return (
     <>
       <MapboxGL.MapView
@@ -732,6 +943,7 @@ const Home = ({navigation, route}) => {
           />
         )}
         {renderMapSource()}
+        {renderProtectedAreasSource()}
         {/* highlighted */}
         {selectedArea && renderHighlightedMapSource()}
         {/* for alerts */}
@@ -842,10 +1054,10 @@ const Home = ({navigation, route}) => {
                   source={{
                     uri: userDetails?.data?.image,
                   }}
-                  style={[styles.userAvatar, {width: 81, height: 81}]}
+                  style={[styles.userAvatar, {width: 82, height: 82}]}
                 />
               ) : (
-                <UserPlaceholder width={81} height={81} />
+                <UserPlaceholder width={82} height={82} />
               )}
               <View style={styles.profileInfo}>
                 <Text style={styles.lightText}>Name</Text>
@@ -1011,51 +1223,79 @@ const Home = ({navigation, route}) => {
                 {selectedSite?.site?.name || selectedSite?.site?.id}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => handleEditSite(selectedSite?.site)}>
-              <PencilIcon />
-            </TouchableOpacity>
+            {selectedSite?.site?.siteRelationId ? (
+              <></>
+            ) : (
+              <TouchableOpacity
+                onPress={() => handleEditSite(selectedSite?.site)}>
+                <PencilIcon />
+              </TouchableOpacity>
+            )}
           </View>
           <TouchableOpacity
-            disabled={updateSite?.isLoading}
-            onPress={() =>
-              updateSite.mutate({
-                json: {
-                  params: {siteId: selectedSite?.site?.id},
-                  body: {isMonitored: !selectedSite?.site?.isMonitored},
-                },
-              })
+            disabled={
+              updateSite?.isLoading || pauseAlertForProtectedSite?.isLoading
             }
+            onPress={() => {
+              handleUpdateMonitoringSite({
+                siteId: selectedSite?.site?.id,
+                isMonitoredUpdated: !selectedSite?.site?.isMonitored,
+              });
+            }}
             style={[styles.simpleBtn]}>
-            {updateSite?.isLoading ? (
+            {updateSite?.isLoading || pauseAlertForProtectedSite?.isLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <>
-                {selectedSite?.site?.isMonitored ? <EyeOffIcon /> : <EyeIcon />}
-                <Text style={[styles.siteActionText]}>
-                  {selectedSite?.site?.isMonitored
-                    ? 'Disable Monitoring'
-                    : 'Enable Monitoring'}
-                </Text>
+                {selectedSite?.site?.siteRelationId ? (
+                  selectedSite?.site?.isActive ? (
+                    <>
+                      <EyeOffIcon />
+                      <Text style={[styles.siteActionText]}>
+                        Disable Monitoring
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <EyeIcon />
+                      <Text style={[styles.siteActionText]}>
+                        Enable Monitoring
+                      </Text>
+                    </>
+                  )
+                ) : selectedSite?.site?.isMonitored ? (
+                  <>
+                    <EyeOffIcon />
+                    <Text style={[styles.siteActionText]}>
+                      Disable Monitoring
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <EyeIcon />
+                    <Text style={[styles.siteActionText]}>
+                      Enable Monitoring
+                    </Text>
+                  </>
+                )}
               </>
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            disabled={
-              deleteSite?.isLoading || !!selectedSite?.site?.project?.id
-            }
-            onPress={() => handleDeleteSite(selectedSite?.site?.id)}
+            disabled={deleteSiteButtonIsDisabled}
+            onPress={() => handleDeleteSite((selectedSite as any)?.site?.id)}
             style={[
               styles.simpleBtn,
-              selectedSite?.site?.project?.id && {
+              deleteSiteButtonIsDisabled && styles.simpleBtnDisabled,
+              (selectedSite as any)?.site?.project?.id && {
                 borderColor: Colors.GRAY_LIGHTEST,
               },
             ]}>
-            {deleteSite?.isLoading ? (
+            {deleteSiteButtonIsLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <>
-                {selectedSite?.site?.project?.id ? (
+                {(selectedSite as any)?.site?.project?.id ? (
                   <DisabledTrashOutlineIcon />
                 ) : (
                   <TrashOutlineIcon />
@@ -1063,7 +1303,7 @@ const Home = ({navigation, route}) => {
                 <Text
                   style={[
                     styles.siteActionText,
-                    selectedSite?.site?.project?.id && {
+                    (selectedSite as any)?.site?.project?.id && {
                       color: Colors.GRAY_LIGHTEST,
                     },
                   ]}>
@@ -1282,6 +1522,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: Colors.GRADIENT_PRIMARY,
+  },
+  simpleBtnDisabled: {
+    opacity: 0.5,
   },
   siteActionText: {
     marginLeft: 30,

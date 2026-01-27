@@ -84,6 +84,24 @@ const server = z.object({
       if (val === undefined) return process.env.NODE_ENV === 'production';
       return val === 'true';
     }),
+
+  // Feature flag for refactored geo-event-fetcher pipeline. Defaults to false for safe rollout.
+  USE_REFACTORED_PIPELINE: coerceBooleanWithDefault(false),
+
+  // NASA FIRMS API key for accessing fire/heat anomaly data. Optional - falls back to provider config if not set.
+  FIRMS_MAP_KEY: z.string().optional(),
+
+  // Provider processing concurrency limit. Defaults to 3 for optimal performance vs resource usage.
+  PROVIDER_CONCURRENCY: z
+    .string()
+    .default('3')
+    .transform(val => {
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        throw new Error('PROVIDER_CONCURRENCY must be a positive integer');
+      }
+      return parsed;
+    }),
 });
 
 /**
@@ -135,6 +153,9 @@ const processEnv = {
   NOTIFICATION_BATCH_SIZE: process.env.NOTIFICATION_BATCH_SIZE,
   NEXT_PUBLIC_HOST: process.env.NEXT_PUBLIC_HOST,
   UNSUBSCRIBE_ENCRYPTION_KEY: process.env.UNSUBSCRIBE_ENCRYPTION_KEY,
+  FIRMS_MAP_KEY: process.env.FIRMS_MAP_KEY,
+  USE_REFACTORED_PIPELINE: process.env.USE_REFACTORED_PIPELINE,
+  PROVIDER_CONCURRENCY: process.env.PROVIDER_CONCURRENCY,
 };
 
 // Don't touch the part below

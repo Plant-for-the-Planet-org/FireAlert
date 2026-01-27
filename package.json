@@ -1,5 +1,5 @@
 {
-  "name": "fire-alert",
+  "name": "firealert",
   "version": "1.0.0",
   "private": true,
   "repository": "https://github.com/Plant-for-the-Planet-org/FireAlert.git",
@@ -20,10 +20,12 @@
     "apps/*",
     "packages/*"
   ],
-  "dependencies": {},
   "devDependencies": {
     "dotenv-cli": "^10.0.0",
-    "prettier": "^2.7.1"
+    "prettier": "2.8.8"
   },
-  "packageManager": "yarn@1.22.19"
+  "packageManager": "yarn@1.22.22",
+  "prisma": {
+    "schema": "apps/server/prisma/schema.prisma"
+  }
 }
