@@ -5,6 +5,7 @@ export interface NotificationParameters {
   message?: string;
   subject?: string;
   url?: string;
+  unsubscribeToken?: string;
   authenticationMessage?: boolean;
   otp?: string;
   siteName?: string;
