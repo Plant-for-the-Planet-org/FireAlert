@@ -370,6 +370,36 @@ _For any_ SiteIncident, startedAt SHALL be less than or equal to endedAt (if end
 
 **Validates: Requirements 2.1, 2.3**
 
+### Property 11: Notification Status Validity (Phase 2)
+
+_For any_ Notification created for a SiteIncident, the notificationStatus field SHALL only contain values from the set: {START_SCHEDULED, START_SENT, END_SCHEDULED, END_SENT}.
+
+**Validates: Requirements 5.1, 5.4, 5.5, 5.6**
+
+### Property 12: Notification Method Distribution (Phase 2)
+
+_For any_ SiteIncident with verified and enabled alert methods, the system SHALL create notifications for each method, and the notification method counter SHALL accurately track available methods.
+
+**Validates: Requirements 5.2, 5.3**
+
+### Property 13: Notification Delivery Consistency (Phase 2)
+
+_For any_ Notification with notificationStatus=START_SENT or END_SENT, the notification SHALL have isDelivered=true and sentAt SHALL be set to a valid timestamp.
+
+**Validates: Requirements 6.1, 6.2, 6.5**
+
+### Property 14: Notification Message Differentiation (Phase 2)
+
+_For any_ START notification and END notification for the same SiteIncident, the constructed messages SHALL differ and END notifications SHALL include incident summary information (duration, detection count).
+
+**Validates: Requirements 6.3, 6.2**
+
+### Property 15: Failed Notification Handling (Phase 2)
+
+_For any_ Notification that fails to send, the notification SHALL be marked as skipped, and the failure count for the corresponding alert method SHALL be incremented.
+
+**Validates: Requirements 6.4**
+
 ## Configuration
 
 ### Environment Variables
@@ -413,9 +443,9 @@ ENABLE_INCIDENT_NOTIFICATIONS=true
 
 ## Implementation Scope
 
-### Current Implementation (Phase 1)
+### Phase 1: Core SiteIncident Entity (Requirements 1-4)
 
-This design focuses on the core SiteIncident entity and business logic:
+This phase focuses on the core SiteIncident entity and business logic:
 
 - SiteIncident creation and lifecycle management
 - Association of SiteAlerts with incidents
@@ -423,15 +453,191 @@ This design focuses on the core SiteIncident entity and business logic:
 - Audit trail and metadata storage
 - Review status tracking for investigation
 - Query operations for incident retrieval
+- tRPC API endpoints for incident management
 
-**Out of Scope (Phase 2 - Future CRON Automation):**
+### Phase 2: SiteIncident Notification Services (Requirements 5-7)
+
+This phase implements notification creation and sending for incident boundaries:
+
+- **CreateIncidentNotifications Service**: Creates START and END notifications for SiteIncidents
+  - Processes unprocessed SiteIncidents with `isProcessed=false`
+  - Creates notifications for each verified and enabled alert method
+  - Tracks notification method counts for balanced distribution
+  - Sets `notificationStatus` to START_SCHEDULED or END_SCHEDULED
+  - Supports batch processing with chunking
+- **SendIncidentNotifications Service**: Sends incident boundary notifications
+  - Processes notifications with `notificationStatus` in SCHEDULED state
+  - Delivers through configured alert methods (SMS, WhatsApp, Email, Device, Webhook)
+  - Constructs differentiated messages for START vs END events
+  - Updates `notificationStatus` to START_SENT or END_SENT on success
+  - Marks failed notifications as skipped
+- **Mock APIs**: Testing endpoints for notification services
+  - Mock endpoint to create incident notifications (filters by SiteIncident ID, Site ID, notification type)
+  - Mock endpoint to send incident notifications
+  - Returns detailed response data (notification counts, success/failure stats, processed incident IDs)
+  - Maintains data integrity and transactional consistency
+
+### Future Work: CRON Automation (Requirement 8)
+
+**Out of Scope (Planned for later):**
 
 - Automated CRON job execution for incident transitions
 - Automated notification sending via CRON
 - Real-time incident status updates
 - Scheduled inactivity checks
 
-These will be implemented after the geo-event-fetcher CRON refactoring is complete (see Requirement 5 in requirements.md).
+These will be implemented after the geo-event-fetcher CRON refactoring is complete (see Requirement 8 in requirements.md).
+
+## Notification Services Architecture (Phase 2)
+
+### CreateIncidentNotifications Service
+
+Handles creation of incident boundary notifications following the pattern of `CreateNotifications.ts`:
+
+```typescript
+interface CreateIncidentNotificationsService {
+  // Main execution
+  createNotifications(): Promise<number>; // Returns count of notifications created
+
+  // Helper functions
+  processUnprocessedIncidents(chunkSize: number): Promise<SiteIncident[]>;
+
+  createNotificationQueue(
+    incidents: SiteIncident[]
+  ): Promise<NotificationQueueItem[]>;
+
+  filterByNotificationStatus(
+    incidents: SiteIncident[],
+    status: "START_SCHEDULED" | "END_SCHEDULED"
+  ): Promise<SiteIncident[]>;
+}
+
+interface NotificationQueueItem {
+  incidentId: string;
+  siteId: string;
+  notificationType: "START_SCHEDULED" | "END_SCHEDULED";
+  alertMethod: string;
+  destination: string;
+}
+```
+
+**Processing Flow:**
+
+1. Query unprocessed SiteIncidents (isProcessed=false)
+2. Group by siteId for efficient processing
+3. Initialize notification method counter per site
+4. Create notification queue with all verified/enabled alert methods
+5. Batch create notifications in Prisma transaction
+6. Update SiteIncident.isProcessed=true
+
+### SendIncidentNotifications Service
+
+Handles sending of incident boundary notifications following the pattern of `SendNotifications.ts`:
+
+```typescript
+interface SendIncidentNotificationsService {
+  // Main execution
+  sendNotifications(options?: AdditionalOptions): Promise<number>; // Returns count sent
+
+  // Helper functions
+  getScheduledNotifications(batchSize: number): Promise<Notification[]>;
+
+  constructMessage(
+    notification: Notification,
+    incident: SiteIncident,
+    alertMethod: string
+  ): Promise<string>;
+
+  updateNotificationStatus(
+    notificationId: string,
+    status: "START_SENT" | "END_SENT"
+  ): Promise<void>;
+}
+```
+
+**Processing Flow:**
+
+1. Query notifications with `notificationStatus` in SCHEDULED state
+2. Process in batches to manage database load
+3. For each notification:
+   - Construct appropriate message (START vs END)
+   - Deliver through configured alert method
+   - Update status to SENT on success
+   - Mark as skipped on failure
+4. Increment failure count for failed alert methods
+5. Continue until no more scheduled notifications
+
+### Mock API Endpoints
+
+Provide testing interfaces without CRON automation:
+
+```typescript
+// Mock endpoint for creating incident notifications
+POST /api/trpc/siteIncident.mockCreateIncidentNotifications
+{
+  incidentId?: string;      // Optional filter
+  siteId?: string;          // Optional filter
+  notificationType?: "START" | "END"; // Optional filter
+}
+
+Response:
+{
+  success: boolean;
+  notificationsCreated: number;
+  processedIncidentIds: string[];
+  methodCounts: Record<string, number>;
+  errors?: string[];
+}
+
+// Mock endpoint for sending incident notifications
+POST /api/trpc/siteIncident.mockSendIncidentNotifications
+{
+  incidentId?: string;      // Optional filter
+  siteId?: string;          // Optional filter
+  notificationType?: "START" | "END"; // Optional filter
+  batchSize?: number;       // Optional, default 10
+}
+
+Response:
+{
+  success: boolean;
+  notificationsSent: number;
+  notificationsFailed: number;
+  processedIncidentIds: string[];
+  failureStats: Record<string, number>;
+  errors?: string[];
+}
+```
+
+### Notification Status State Machine
+
+```
+START Notification Lifecycle:
+┌──────────────────────────┐
+│  START_SCHEDULED         │
+│  (Created, awaiting send)│
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│  START_SENT              │
+│  (Successfully sent)     │
+└──────────────────────────┘
+
+END Notification Lifecycle:
+┌──────────────────────────┐
+│  END_SCHEDULED           │
+│  (Created, awaiting send)│
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│  END_SENT                │
+│  (Successfully sent)     │
+└──────────────────────────┘
+
+Failed notifications are marked as skipped and not retried.
+```
 
 ## Testing Strategy
 

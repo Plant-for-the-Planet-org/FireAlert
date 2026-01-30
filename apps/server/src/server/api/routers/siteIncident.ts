@@ -5,7 +5,10 @@ import {
   getIncidentHistorySchema,
   updateIncidentReviewStatusSchema,
   closeIncidentSchema,
+  mockCreateIncidentNotificationsSchema,
+  mockSendIncidentNotificationsSchema,
 } from '../zodSchemas/siteIncident.schema';
+import {NotificationStatus} from '@prisma/client';
 import {createTRPCRouter, protectedProcedure, publicProcedure} from '../trpc';
 import {SiteIncidentService} from '../../../Services/SiteIncident/SiteIncidentService';
 import {SiteIncidentRepository} from '../../../Services/SiteIncident/SiteIncidentRepository';
@@ -13,6 +16,9 @@ import {IncidentResolver} from '../../../Services/SiteIncident/IncidentResolver'
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
 import {prisma} from '../../../server/db';
+import {logger} from '../../../server/logger';
+import {CreateIncidentNotifications} from '../../../Services/Notifications/CreateIncidentNotifications';
+import {SendIncidentNotifications} from '../../../Services/Notifications/SendIncidentNotifications';
 
 // Initialize services
 const siteIncidentRepository = new SiteIncidentRepository(prisma);
@@ -229,7 +235,7 @@ export const siteIncidentRouter = createTRPCRouter({
       await checkUserHasSitePermission({
         ctx,
         siteId: incident.siteId,
-        userId: ctx.user!.id,
+        userId: ctx.user?.id,
       });
 
       if (!incident.isActive) {
@@ -250,5 +256,225 @@ export const siteIncidentRouter = createTRPCRouter({
       });
 
       return closedIncident;
+    }),
+
+  /**
+   * Mock API to create incident notifications
+   * For testing without CRON automation
+   */
+  mockCreateIncidentNotifications: protectedProcedure
+    .input(mockCreateIncidentNotificationsSchema)
+    .mutation(async ({ctx, input}) => {
+      try {
+        logger('Mock create incident notifications called', 'info');
+
+        // Build filter conditions
+        const whereConditions: {
+          isProcessed: boolean;
+          id?: string;
+          siteId?: string;
+          isActive?: boolean;
+        } = {
+          isProcessed: false,
+        };
+
+        if (input.incidentId) {
+          whereConditions.id = input.incidentId;
+        }
+
+        if (input.siteId) {
+          whereConditions.siteId = input.siteId;
+        }
+
+        if (input.notificationType) {
+          whereConditions.isActive = input.notificationType === 'START';
+        }
+
+        // Get filtered incidents
+        const incidents = await ctx.prisma.siteIncident.findMany({
+          where: whereConditions,
+          select: {
+            id: true,
+            siteId: true,
+            isActive: true,
+          },
+        });
+
+        const processedIncidentIds = incidents.map(i => i.id);
+
+        // Call the create notifications service
+        const notificationsCreated = await CreateIncidentNotifications.run();
+
+        // Get method counts from created notifications
+        const notifications = await ctx.prisma.notification.findMany({
+          where: {
+            OR: processedIncidentIds.map(id => ({
+              metadata: {
+                path: ['incidentId'],
+                equals: id,
+              },
+            })),
+          },
+          select: {
+            alertMethod: true,
+          },
+        });
+
+        const methodCounts: Record<string, number> = {};
+        notifications.forEach(n => {
+          methodCounts[n.alertMethod] = (methodCounts[n.alertMethod] || 0) + 1;
+        });
+
+        return {
+          success: true,
+          notificationsCreated,
+          processedIncidentIds,
+          methodCounts,
+          errors: [],
+        };
+      } catch (error) {
+        logger(
+          `Error in mockCreateIncidentNotifications: ${
+            (error as Error)?.message
+          }`,
+          'error',
+        );
+        return {
+          success: false,
+          notificationsCreated: 0,
+          processedIncidentIds: [],
+          methodCounts: {},
+          errors: [(error as Error)?.message || 'Unknown error'],
+        };
+      }
+    }),
+
+  /**
+   * Mock API to send incident notifications
+   * For testing without CRON automation
+   */
+  mockSendIncidentNotifications: protectedProcedure
+    .input(mockSendIncidentNotificationsSchema)
+    .mutation(async ({ctx, input}) => {
+      try {
+        logger('Mock send incident notifications called', 'info');
+
+        // Build filter conditions for notifications
+        const whereConditions: {
+          isSkipped: boolean;
+          isDelivered: boolean;
+          sentAt: null;
+          notificationStatus?: {in: string[]};
+          notificationStatus?: {in: NotificationStatus[]};
+          metadata?: {
+            path: string[];
+            equals?: string;
+            string_contains?: string;
+          };
+        } = {
+          isSkipped: false,
+          isDelivered: false,
+          sentAt: null,
+        };
+
+        // Filter by notification type
+        if (input.notificationType) {
+          whereConditions.notificationStatus = {
+            in:
+              input.notificationType === 'START'
+                ? [NotificationStatus.START_SCHEDULED]
+                : [NotificationStatus.END_SCHEDULED],
+          };
+        } else {
+          whereConditions.notificationStatus = {
+            in: [
+              NotificationStatus.START_SCHEDULED,
+              NotificationStatus.END_SCHEDULED,
+            ],
+          };
+        }
+
+        // Filter by incident ID or site ID
+        if (input.incidentId) {
+          whereConditions.metadata = {
+            path: ['incidentId'],
+            equals: input.incidentId,
+          };
+        } else if (input.siteId) {
+          whereConditions.metadata = {
+            path: ['siteId'],
+            equals: input.siteId,
+          };
+        }
+
+        // Get notifications before sending
+        const notificationsBefore = await ctx.prisma.notification.findMany({
+          where: whereConditions,
+          select: {
+            id: true,
+            metadata: true,
+            alertMethod: true,
+          },
+        });
+
+        const notificationCount = notificationsBefore.length;
+
+        // Call the send notifications service
+        const notificationsSent = await SendIncidentNotifications.run(ctx.req);
+
+        // Get processed incident IDs
+        const processedIncidentIds = Array.from(
+          new Set(
+            notificationsBefore
+              .map(n => {
+                const metadata = n.metadata as {incidentId?: string};
+                return metadata?.incidentId;
+              })
+              .filter((id): id is string => id !== undefined),
+          ),
+        );
+
+        // Get failure stats
+        const failedNotifications = await ctx.prisma.notification.findMany({
+          where: {
+            id: {in: notificationsBefore.map(n => n.id)},
+            isSkipped: true,
+          },
+          select: {
+            alertMethod: true,
+          },
+        });
+
+        const failureStats: Record<string, number> = {};
+        failedNotifications.forEach(n => {
+          failureStats[n.alertMethod] = (failureStats[n.alertMethod] || 0) + 1;
+        });
+
+        const notificationsFailed = failedNotifications.length;
+
+        return {
+          success: true,
+          notificationsSent,
+          notificationsFailed,
+          processedIncidentIds,
+          failureStats,
+          errors: [],
+        };
+      } catch (error) {
+        logger(
+          `Error in mockSendIncidentNotifications: ${
+            (error as Error)?.message
+          }`,
+          'error',
+        );
+        return {
+          success: false,
+          notificationsSent: 0,
+          notificationsFailed: 0,
+          processedIncidentIds: [],
+          failureStats: {},
+          errors: [(error as Error)?.message || 'Unknown error'],
+        };
+      }
     }),
 });

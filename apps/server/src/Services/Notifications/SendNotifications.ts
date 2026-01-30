@@ -1,14 +1,28 @@
-import {getLocalTime} from '../../../src/utils/date';
 import type {AdditionalOptions} from '../../Interfaces/AdditionalOptions';
-import type {AlertMethodMethod} from '../../Interfaces/AlertMethod';
+import {type AlertMethodMethod} from '../../Interfaces/AlertMethod';
 import type DataRecord from '../../Interfaces/DataRecord';
-import type {NotificationParameters} from '../../Interfaces/NotificationParameters';
+import {type NotificationParameters} from '../../Interfaces/NotificationParameters';
+import {getLocalTime} from '../../../src/utils/date';
 import {env} from '../../env.mjs';
 import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import {unsubscribeService} from '../AlertMethod/UnsubscribeService';
+import type {Notification, SiteAlert, Site} from '@prisma/client';
+
+type SiteAlertWithSite = SiteAlert & {
+  site: Site;
+};
+
+type NotificationWithRelations = Notification & {
+  siteAlert: SiteAlertWithSite;
+};
+
+type FailedAlertMethod = {
+  destination: string;
+  method: AlertMethodMethod;
+};
 
 // Removed MAX_RETRIES - we now process all batches until no more notifications remain
 const ALERT_SMS_DISABLED = env.ALERT_SMS_DISABLED;
@@ -96,13 +110,10 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
     const successfulNotificationIds: string[] = [];
     const successfulDestinations: string[] = [];
-    const failedAlertMethods: {
-      destination: string;
-      method: AlertMethodMethod;
-    }[] = [];
+    const failedAlertMethods: FailedAlertMethod[] = [];
 
     await Promise.all(
-      filteredNotifications.map(async notification => {
+      notifications.map(async (notification: NotificationWithRelations) => {
         try {
           const {id, destination, siteAlert} = notification;
           const alertMethod = notification.alertMethod as AlertMethodMethod;
@@ -279,7 +290,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     batchCount += 1;
 
     // Handle failed notifications - mark them as skipped if they failed
-    const unsuccessfulNotifications = filteredNotifications.filter(
+    const unsuccessfulNotifications = notifications.filter(
       ({id}) => !successfulNotificationIds.includes(id),
     );
 
