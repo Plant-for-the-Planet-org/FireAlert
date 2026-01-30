@@ -66,6 +66,16 @@ const server = z.object({
   // Notification batch size for processing notifications in batches. Defaults to 10.
   NOTIFICATION_BATCH_SIZE: z.string().default('10'),
 
+  // Host URL for generating links in emails. Defaults to production URL.
+  NEXT_PUBLIC_HOST: z
+    .string()
+    .default('https://firealert.plant-for-the-planet.org'),
+
+  // Encryption key for unsubscribe tokens. Required for secure token generation.
+  UNSUBSCRIBE_ENCRYPTION_KEY: z
+    .string()
+    .min(32, 'Encryption key must be at least 32 characters'),
+
   // API caching configuration. Enabled by default in production, disabled in development.
   PUBLIC_API_CACHING: z
     .union([z.literal('true'), z.literal('false')])
@@ -127,7 +137,6 @@ const processEnv = {
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
   TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
-  TWILIO_STATUS_CALLBACK_URL: process.env.TWILIO_STATUS_CALLBACK_URL,
   SMTP_URL: process.env.SMTP_URL,
   EMAIL_FROM: process.env.EMAIL_FROM,
   PLANET_API_URL: process.env.PLANET_API_URL,
@@ -142,8 +151,10 @@ const processEnv = {
   DATABASE_LOG_SLOWQUERY: process.env.DATABASE_LOG_SLOWQUERY,
   PUBLIC_API_CACHING: process.env.PUBLIC_API_CACHING,
   NOTIFICATION_BATCH_SIZE: process.env.NOTIFICATION_BATCH_SIZE,
-  USE_REFACTORED_PIPELINE: process.env.USE_REFACTORED_PIPELINE,
+  NEXT_PUBLIC_HOST: process.env.NEXT_PUBLIC_HOST,
+  UNSUBSCRIBE_ENCRYPTION_KEY: process.env.UNSUBSCRIBE_ENCRYPTION_KEY,
   FIRMS_MAP_KEY: process.env.FIRMS_MAP_KEY,
+  USE_REFACTORED_PIPELINE: process.env.USE_REFACTORED_PIPELINE,
   PROVIDER_CONCURRENCY: process.env.PROVIDER_CONCURRENCY,
 };
 

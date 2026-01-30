@@ -6,7 +6,7 @@
   "author": "Plant-for-the-Planet <info@plant-for-the-planet.org>",
   "license": "MIT",
   "engines": {
-    "node": "22.x",
+    "node": ">=22.0.0",
     "yarn": "1.22.x"
   },
   "scripts": {

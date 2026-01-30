@@ -97,7 +97,13 @@ Uncomment these variables to connect to a local PostgreSQL instance with a dedic
 - **`MAPBOXGL_ACCCESS_TOKEN`**: Mapbox access token for map rendering and tile services
 - **`MAPBOXGL_DOWNLOAD_TOKEN`**: Mapbox token for downloading map tiles and assets
 
-### Notification Services
+### Mapping & Geospatial Services
+
+- **`MAPBOXGL_ACCCESS_TOKEN`**: Mapbox access token for map rendering and geocoding services
+- **`MAPBOXGL_DOWNLOAD_TOKEN`**: Mapbox token for downloading map tiles and offline map data
+- **`FIRMS_MAP_KEY`**: NASA FIRMS API key for accessing fire and thermal anomaly data
+
+### Communication & Notifications
 
 #### Twilio (SMS & WhatsApp)
 
@@ -121,7 +127,7 @@ Uncomment these variables to connect to a local PostgreSQL instance with a dedic
 - **`WHATSAPP_ENDPOINT_URL`**: Custom WhatsApp webhook endpoint for message delivery
 - **`WHATSAPP_ENDPOINT_AUTH_TOKEN`**: Authentication token for WhatsApp webhook endpoint
 
-### External Integrations
+### Monitoring & Logging
 
 - **`PLANET_API_URL`**: Plant-for-the-Planet platform API URL for project and site synchronization
 - **`FIRMS_MAP_KEY`**: NASA FIRMS (Fire Information for Resource Management System) API key for fire data access
@@ -134,11 +140,17 @@ Uncomment these variables to connect to a local PostgreSQL instance with a dedic
 - **`NODE_ENV`**: Node.js environment mode ('development', 'production', or 'test')
 - **`PUBLIC_API_CACHING`**: Enable/disable API response caching (true/false)
 
-### Feature Flags
+### Development & Runtime
+
+<<<<<<< HEAD
 
 - **`USE_REFACTORED_PIPELINE`**: Enable new service layer architecture for geo-event processing ('true'/'false')
 - **`ENABLE_INCIDENT_NOTIFICATIONS`**: Enable fire incident tracking and notification system ('true'/'false')
-- **`INCIDENT_INACTIVITY_HOURS`**: Hours of inactivity before closing a fire incident (default: 6)
+- # **`INCIDENT_INACTIVITY_HOURS`**: Hours of inactivity before closing a fire incident (default: 6)
+- **`NEXT_PUBLIC_HOST`**: Base URL for the Next.js application, used for generating absolute URLs in client-side code and API responses (e.g., "http://localhost:3000" for development, "https://firealert.plant-for-the-planet.org" for production)
+- **`NODE_ENV`**: Node.js environment mode ("development", "test", "production")
+- **`SKIP_ENV_VALIDATION`**: Boolean flag to skip environment variable validation during startup
+  > > > > > > > develop
 
 ## Environment Configuration
 
