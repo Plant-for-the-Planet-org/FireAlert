@@ -270,31 +270,6 @@ Each task builds incrementally on previous steps, with property-based tests inte
   - **Validates: Requirements 6.4**
   - Verify failed notifications marked as skipped and failure count incremented
 
-## Phase 2.4: Mock API Endpoints
-
-- [x] 2.4 Implement mock API for CreateIncidentNotifications
-
-  - Create tRPC procedure: `mockCreateIncidentNotifications`
-  - Accept optional filters: incidentId, siteId, notificationType
-  - Return: notificationsCreated count, processedIncidentIds, methodCounts, errors
-  - Maintain transactional consistency
-  - _Requirements: 7.1, 7.3, 7.4, 7.5_
-
-- [x] 2.5 Implement mock API for SendIncidentNotifications
-
-  - Create tRPC procedure: `mockSendIncidentNotifications`
-  - Accept optional filters: incidentId, siteId, notificationType, batchSize
-  - Return: notificationsSent count, notificationsFailed count, processedIncidentIds, failureStats, errors
-  - Maintain transactional consistency
-  - _Requirements: 7.2, 7.3, 7.4, 7.5_
-
-- [x] 2.6 Integrate mock APIs into SiteIncident router
-
-  - Add mock endpoints to `apps/server/src/server/api/routers/siteIncident.ts`
-  - Add proper authentication and authorization checks
-  - Test endpoints are accessible via tRPC client
-  - _Requirements: 7.1, 7.2_
-
 ## Phase 2.5: Testing & Validation
 
 - [ ] 2.7 Write unit tests for CreateIncidentNotifications

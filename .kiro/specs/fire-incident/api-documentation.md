@@ -18,11 +18,8 @@ This document describes the tRPC API endpoints for the Fire Incident Tracking fe
 2. [Mutation Endpoints](#mutation-endpoints)
    - [updateIncidentReviewStatus](#updateincidentreviewstatus)
    - [closeIncident](#closeincident)
-3. [Mock API Endpoints (Testing)](#mock-api-endpoints)
-   - [mockCreateIncidentNotifications](#mockcreateincidentnotifications)
-   - [mockSendIncidentNotifications](#mocksendincidentnotifications)
-4. [Data Models](#data-models)
-5. [Error Handling](#error-handling)
+3. [Data Models](#data-models)
+4. [Error Handling](#error-handling)
 
 ---
 
@@ -368,143 +365,6 @@ const closedIncident = await trpc.siteIncident.closeIncident.mutate({
 
 ---
 
-## Mock API Endpoints
-
-These endpoints are for testing the notification system without CRON automation.
-
-### mockCreateIncidentNotifications
-
-Create incident boundary notifications for testing.
-
-**Type**: `protectedProcedure` (requires authentication)
-
-**Input**:
-
-```typescript
-{
-  incidentId?: string;  // Optional: Filter by specific incident
-  siteId?: string;      // Optional: Filter by specific site
-  notificationType?: "START" | "END"; // Optional: Filter by notification type
-}
-```
-
-**Response**:
-
-```typescript
-{
-  success: boolean;
-  notificationsCreated: number;
-  processedIncidentIds: string[];
-  methodCounts: {
-    [method: string]: number; // e.g., { "sms": 5, "email": 3, "whatsapp": 2 }
-  };
-  errors: string[];
-}
-```
-
-**Behavior**:
-
-- Processes unprocessed SiteIncidents (where `isProcessed=false`)
-- Creates notifications for each verified and enabled alert method
-- Marks incidents as processed after notification creation
-- Applies optional filters if provided
-
-**Example Usage**:
-
-```typescript
-// Create all pending incident notifications
-const result = await trpc.siteIncident.mockCreateIncidentNotifications.mutate(
-  {}
-);
-
-// Create notifications for a specific incident
-const result = await trpc.siteIncident.mockCreateIncidentNotifications.mutate({
-  incidentId: "clx1234567890abcdefghijk",
-});
-
-// Create only START notifications for a specific site
-const result = await trpc.siteIncident.mockCreateIncidentNotifications.mutate({
-  siteId: "clx9876543210zyxwvutsrqp",
-  notificationType: "START",
-});
-```
-
-**Notes**:
-
-- This endpoint calls the same service used by the production CRON job
-- Maintains transactional consistency
-- Safe to call multiple times (idempotent for already processed incidents)
-
----
-
-### mockSendIncidentNotifications
-
-Send incident boundary notifications for testing.
-
-**Type**: `protectedProcedure` (requires authentication)
-
-**Input**:
-
-```typescript
-{
-  incidentId?: string;  // Optional: Filter by specific incident
-  siteId?: string;      // Optional: Filter by specific site
-  notificationType?: "START" | "END"; // Optional: Filter by notification type
-  batchSize?: number;   // Optional: Number of notifications per batch (default: 10)
-}
-```
-
-**Response**:
-
-```typescript
-{
-  success: boolean;
-  notificationsSent: number;
-  notificationsFailed: number;
-  processedIncidentIds: string[];
-  failureStats: {
-    [method: string]: number; // e.g., { "sms": 2, "email": 1 }
-  };
-  errors: string[];
-}
-```
-
-**Behavior**:
-
-- Processes notifications with `START_SCHEDULED` or `END_SCHEDULED` status
-- Delivers through configured alert methods (SMS, WhatsApp, Email, Device, Webhook)
-- Updates `notificationStatus` to `START_SENT` or `END_SENT` on success
-- Marks failed notifications as skipped
-- Applies optional filters if provided
-
-**Example Usage**:
-
-```typescript
-// Send all pending incident notifications
-const result = await trpc.siteIncident.mockSendIncidentNotifications.mutate({});
-
-// Send notifications for a specific incident
-const result = await trpc.siteIncident.mockSendIncidentNotifications.mutate({
-  incidentId: "clx1234567890abcdefghijk",
-});
-
-// Send only END notifications for a specific site with custom batch size
-const result = await trpc.siteIncident.mockSendIncidentNotifications.mutate({
-  siteId: "clx9876543210zyxwvutsrqp",
-  notificationType: "END",
-  batchSize: 20,
-});
-```
-
-**Notes**:
-
-- This endpoint calls the same service used by the production CRON job
-- Maintains transactional consistency
-- Implements rate limiting (0.7s delay between batches)
-- Safe to call multiple times (only processes unsent notifications)
-
----
-
 ## Data Models
 
 ### SiteIncident
@@ -630,24 +490,7 @@ All endpoints use standard tRPC error codes:
 ### Complete Testing Flow
 
 1. **Create a SiteIncident** (via SiteAlert processing or manual creation)
-2. **Create notifications**:
-
-   ```typescript
-   const createResult =
-     await trpc.siteIncident.mockCreateIncidentNotifications.mutate({});
-   console.log(`Created ${createResult.notificationsCreated} notifications`);
-   ```
-
-3. **Send notifications**:
-
-   ```typescript
-   const sendResult =
-     await trpc.siteIncident.mockSendIncidentNotifications.mutate({});
-   console.log(`Sent ${sendResult.notificationsSent} notifications`);
-   console.log(`Failed ${sendResult.notificationsFailed} notifications`);
-   ```
-
-4. **Verify incident status**:
+2. **Verify incident status**:
 
    ```typescript
    const incident = await trpc.siteIncident.getIncident.query({
@@ -656,7 +499,7 @@ All endpoints use standard tRPC error codes:
    console.log(`Incident processed: ${incident.isProcessed}`);
    ```
 
-5. **Review incident history**:
+3. **Review incident history**:
    ```typescript
    const history = await trpc.siteIncident.getIncidentHistory.query({
      siteId: "clx9876543210zyxwvutsrqp",

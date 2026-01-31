@@ -567,48 +567,6 @@ interface SendIncidentNotificationsService {
 4. Increment failure count for failed alert methods
 5. Continue until no more scheduled notifications
 
-### Mock API Endpoints
-
-Provide testing interfaces without CRON automation:
-
-```typescript
-// Mock endpoint for creating incident notifications
-POST /api/trpc/siteIncident.mockCreateIncidentNotifications
-{
-  incidentId?: string;      // Optional filter
-  siteId?: string;          // Optional filter
-  notificationType?: "START" | "END"; // Optional filter
-}
-
-Response:
-{
-  success: boolean;
-  notificationsCreated: number;
-  processedIncidentIds: string[];
-  methodCounts: Record<string, number>;
-  errors?: string[];
-}
-
-// Mock endpoint for sending incident notifications
-POST /api/trpc/siteIncident.mockSendIncidentNotifications
-{
-  incidentId?: string;      // Optional filter
-  siteId?: string;          // Optional filter
-  notificationType?: "START" | "END"; // Optional filter
-  batchSize?: number;       // Optional, default 10
-}
-
-Response:
-{
-  success: boolean;
-  notificationsSent: number;
-  notificationsFailed: number;
-  processedIncidentIds: string[];
-  failureStats: Record<string, number>;
-  errors?: string[];
-}
-```
-
 ### Notification Status State Machine
 
 ```
