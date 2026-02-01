@@ -39,7 +39,7 @@ const useOneSignal = (appId: string, handlers?: NotificationHandlers) => {
   });
 
   // tRPC hooks for alert method operations
-  const {data: alertMethods, refetch: refetchAlertMethods} =
+  const {refetch: refetchAlertMethods} =
     trpc.alertMethod.getAlertMethods.useQuery(undefined, {
       enabled: false, // We'll trigger this manually
       retry: 2,
@@ -47,14 +47,14 @@ const useOneSignal = (appId: string, handlers?: NotificationHandlers) => {
 
   const createAlertMethod = trpc.alertMethod.createAlertMethod.useMutation({
     retry: 3,
-    onSuccess: data => {
+    onSuccess: (data: any) => {
       console.log(
         `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Device alert method created:`,
-        data?.id,
+        data?.data?.id,
       );
       initializationRef.current.syncCompleted = true;
     },
-    onError: error => {
+    onError: (error: any) => {
       console.error(
         `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to create device alert method:`,
         error,
@@ -64,17 +64,17 @@ const useOneSignal = (appId: string, handlers?: NotificationHandlers) => {
 
   const updateAlertMethod = trpc.alertMethod.updateAlertMethod.useMutation({
     retry: 3,
-    onSuccess: data => {
+    onSuccess: (data: any) => {
       console.log(
         `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Device alert method updated:`,
-        data?.id,
+        data?.data?.id,
       );
       initializationRef.current.syncCompleted = true;
     },
-    onError: error => {
+    onError: (syncError: any) => {
       console.error(
         `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to update device alert method:`,
-        error,
+        syncError,
       );
     },
   });
@@ -86,7 +86,7 @@ const useOneSignal = (appId: string, handlers?: NotificationHandlers) => {
 
   // Stable sync function that uses tRPC hooks
   const performSync = useCallback(
-    async (syncState: DeviceState, userId: string) => {
+    async (syncState: DeviceState, _userId: string) => {
       if (initializationRef.current.syncCompleted) {
         console.log(
           `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Sync already completed, skipping`,
@@ -116,15 +116,29 @@ const useOneSignal = (appId: string, handlers?: NotificationHandlers) => {
             `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} No alert methods found, creating new device alert method`,
           );
 
-          // Create new device alert method
-          createAlertMethod.mutate({
-            json: {
+          // Create new device alert method - pass object directly without json wrapper
+          createAlertMethod.mutate(
+            {
               deviceId,
               deviceName,
               method: 'device',
               destination: syncState.userId,
             },
-          });
+            {
+              onSuccess: () => {
+                console.log(
+                  `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Device alert method created successfully`,
+                );
+                initializationRef.current.syncCompleted = true;
+              },
+              onError: (error: any) => {
+                console.error(
+                  `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to create device alert method:`,
+                  error,
+                );
+              },
+            },
+          );
           return;
         }
 
@@ -146,12 +160,27 @@ const useOneSignal = (appId: string, handlers?: NotificationHandlers) => {
             console.log(
               `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Device state changed, updating alert method`,
             );
-            updateAlertMethod.mutate({
-              json: {
+            // Update alert method - pass params and body directly without json wrapper
+            updateAlertMethod.mutate(
+              {
                 params: {alertMethodId: existingMethod.id},
-                body: {destination: syncState.userId},
+                body: {isEnabled: true},
               },
-            });
+              {
+                onSuccess: () => {
+                  console.log(
+                    `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Device alert method updated successfully`,
+                  );
+                  initializationRef.current.syncCompleted = true;
+                },
+                onError: (error: any) => {
+                  console.error(
+                    `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to update device alert method:`,
+                    error,
+                  );
+                },
+              },
+            );
           } else {
             console.log(
               `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Alert method is up to date`,
@@ -163,18 +192,33 @@ const useOneSignal = (appId: string, handlers?: NotificationHandlers) => {
             `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} No device alert method found, creating new one`,
           );
 
-          // Create new device alert method
-          createAlertMethod.mutate({
-            json: {
+          // Create new device alert method - pass object directly without json wrapper
+          createAlertMethod.mutate(
+            {
               deviceId,
               deviceName,
               method: 'device',
               destination: syncState.userId,
             },
-          });
+            {
+              onSuccess: () => {
+                console.log(
+                  `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Device alert method created successfully`,
+                );
+                initializationRef.current.syncCompleted = true;
+              },
+              onError: (error: any) => {
+                console.error(
+                  `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to create device alert method:`,
+                  error,
+                );
+              },
+            },
+          );
         }
-      } catch (err) {
-        const syncError = err instanceof Error ? err : new Error(String(err));
+      } catch (syncErr) {
+        const syncError =
+          syncErr instanceof Error ? syncErr : new Error(String(syncErr));
         console.error(
           `${ONESIGNAL_LOG_PREFIXES.ERROR} Device sync failed:`,
           syncError,
@@ -313,22 +357,38 @@ const useOneSignal = (appId: string, handlers?: NotificationHandlers) => {
     };
   }, [appId, userDetails?.data?.id, stateManager, performSync]);
 
-  // Check permissions on app foreground
+  // Check permissions on app foreground - only if initialized
   useEffect(() => {
     const checkPermissions = async () => {
-      try {
-        await stateManager.checkPermissions();
-      } catch (err) {
-        console.error(
-          `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to check permissions:`,
-          err,
-        );
+      if (stateManager.isInitialized()) {
+        try {
+          await stateManager.checkPermissions();
+        } catch (err) {
+          console.error(
+            `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to check permissions:`,
+            err,
+          );
+        }
       }
     };
 
     const interval = setInterval(checkPermissions, 5000);
     return () => clearInterval(interval);
   }, [stateManager]);
+
+  // Perform device sync after initialization completes
+  useEffect(() => {
+    if (
+      isInitialized &&
+      deviceState &&
+      !initializationRef.current.syncCompleted
+    ) {
+      console.log(
+        `${ONESIGNAL_LOG_PREFIXES.DEVICE_SYNC} Triggering device sync after initialization`,
+      );
+      performSync(deviceState, userDetails?.data?.id || '');
+    }
+  }, [isInitialized, deviceState, userDetails?.data?.id, performSync]);
 
   return {
     state: deviceState,
