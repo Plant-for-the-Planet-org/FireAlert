@@ -194,7 +194,7 @@ const IncidentPage = (
       <div className="w-screen min-h-screen bg-gray-page-bg flex flex-col justify-center items-center overflow-auto py-10">
         <div className="w-11/12 lg:w-4/5 max-w-5xl">
           {/* Main Interactive Card */}
-          <div className="relative w-full bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col lg:flex-row items-stretch lg:h-[433px] overflow-hidden">
+          <div className="relative w-full bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col lg:flex-row items-stretch lg:h-[433px]">
             {/* Map View - Left/Top */}
             <div className="relative w-full h-80 md:h-[400px] lg:h-auto lg:w-1/2">
               <div id="map" className="w-full h-full">
@@ -207,6 +207,7 @@ const IncidentPage = (
                   markers={markers}
                   selectedMarkerId={displayAlert.id}
                   onMarkerClick={id => setSelectedAlertId(id)}
+                  incidentCircleColor={incident?.isActive ? 'orange' : 'gray'}
                 />
               </div>
             </div>

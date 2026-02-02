@@ -2,7 +2,7 @@ import React from 'react';
 import {BaseCard} from './BaseCard';
 import Image from 'next/image';
 import alertIcon from '../../../public/alertPage/orange-fire-icon.svg';
-import {distance, point} from '@turf/turf';
+import {calculateIncidentArea} from './incidentCircleUtils';
 import {twJoin, twMerge} from 'tailwind-merge';
 
 interface AlertData {
@@ -19,23 +19,11 @@ interface IncidentSummaryProps {
   allAlerts: AlertData[];
 }
 
-function calculateTotalDistance(alerts: AlertData[]): string {
-  if (alerts.length < 2) return '0';
-  let total = 0;
-  for (let i = 0; i < alerts.length - 1; i++) {
-    const from = point([alerts[i].longitude, alerts[i].latitude]);
-    const to = point([alerts[i + 1].longitude, alerts[i + 1].latitude]);
-    const d = distance(from, to, {units: 'kilometers'}) as number;
-    total += d;
-  }
-  return total.toFixed(2);
-}
-
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', {
     day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
 }
 
@@ -104,7 +92,10 @@ export function IncidentSummary({
   allAlerts,
 }: IncidentSummaryProps) {
   const totalFires = allAlerts.length;
-  const totalDistance = calculateTotalDistance(allAlerts);
+  const areaAffected = calculateIncidentArea(
+    allAlerts.map(a => ({latitude: a.latitude, longitude: a.longitude})),
+    2,
+  );
 
   return (
     <BaseCard
@@ -130,9 +121,11 @@ export function IncidentSummary({
           </div>
           <div
             className={twJoin(
-              'text-white w-4 h-4 rounded-full font-bold shadow-sm',
+              'text-white text-xs p-2 rounded-xl shadow-sm',
               isActive ? 'bg-fire-orange' : 'bg-fire-gray',
-            )}></div>
+            )}>
+            {isActive ? 'Active' : 'Inactive'}
+          </div>
         </div>
       }>
       <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
@@ -154,13 +147,13 @@ export function IncidentSummary({
                 {formatTime(startAlert.eventDate)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <PinIcon />
               <span className="text-planet-dark-gray font-sans ">
                 {startAlert.latitude.toFixed(5)},{' '}
                 {startAlert.longitude.toFixed(5)}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -182,13 +175,13 @@ export function IncidentSummary({
                 {formatTime(latestAlert.eventDate)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <PinIcon />
               <span className="text-planet-dark-gray font-sans ">
                 {latestAlert.latitude.toFixed(5)},{' '}
                 {latestAlert.longitude.toFixed(5)}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -196,7 +189,7 @@ export function IncidentSummary({
       <div className="w-full flex flex-wrap gap-2">
         {/* Total Fires */}
         <div className="flex-1 flex gap-2 flex-wrap bg-white/25 p-3 rounded-2xl">
-          <div className="bg-white h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
+          <div className="bg-transparent h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
             <Image
               src={alertIcon as string}
               alt="Fire Icon"
@@ -215,8 +208,9 @@ export function IncidentSummary({
 
         {/* Total Distance */}
         <div className="flex-1 flex gap-2 flex-wrap bg-white/25 rounded-2xl p-3">
-          <div className="bg-fire-orange h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
+          <div className="bg-transparent h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
             <svg
+              className="stroke-fire-orange"
               width="24"
               height="24"
               viewBox="0 0 24 24"
@@ -231,10 +225,10 @@ export function IncidentSummary({
           </div>
           <div>
             <p className="text-planet-dark-gray/70 text-sm font-sans m-0">
-              Distance
+              Area Affected
             </p>
             <p className="text-planet-dark-gray font-bold font-sans m-0">
-              {totalDistance} kms
+              {areaAffected.toFixed(2)} km²
             </p>
           </div>
         </div>
