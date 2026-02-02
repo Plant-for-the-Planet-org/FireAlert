@@ -7,12 +7,15 @@ export {
   getOneSignalStateManager,
   resetOneSignalStateManager,
 } from './OneSignalStateManager';
-export {OneSignalDeviceSync} from './OneSignalDeviceSync';
+export {computeDeviceSyncAction} from './deviceSyncLogic';
+export type {ComputeDeviceSyncActionParams} from './deviceSyncLogic';
 export type {
   DeviceState,
   StateChangeEvent,
   AlertMethod,
   SyncResult,
+  SyncAction,
+  DeviceAlertMethodRecord,
   NotificationHandlers,
   UseOneSignalOptions,
   UseOneSignalReturn,

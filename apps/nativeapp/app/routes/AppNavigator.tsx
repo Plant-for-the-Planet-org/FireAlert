@@ -14,7 +14,7 @@ import {
 import {CommonStack, SignInStack} from './stack';
 import {clearAll, getData, storeData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector} from '../hooks/redux/reduxHooks';
-import useOneSignal from '../hooks/notification/useOneSignal';
+import {OneSignalProvider} from '../hooks/notification/useOneSignal';
 import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';
 import {Config} from '../../config';
 import {NotificationHandlers} from '../services/OneSignal';
@@ -27,7 +27,6 @@ export default function AppNavigator() {
   const queryClient = useQueryClient();
   const {getCredentials, clearSession, clearCredentials} = useAuth0();
 
-  // Memoize handlers to prevent infinite re-renders in useOneSignal
   const notificationHandlers = React.useMemo<NotificationHandlers>(
     () => ({
       onReceived: notification => {
@@ -39,8 +38,6 @@ export default function AppNavigator() {
     }),
     [],
   );
-
-  useOneSignal(onesignalAppId, notificationHandlers);
 
   const handleUrl = url => {
     console.log(url, 'url');
@@ -157,7 +154,9 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      {isLoggedIn ? <CommonStack /> : <SignInStack />}
+      <OneSignalProvider appId={onesignalAppId} handlers={notificationHandlers}>
+        {isLoggedIn ? <CommonStack /> : <SignInStack />}
+      </OneSignalProvider>
     </NavigationContainer>
   );
 }

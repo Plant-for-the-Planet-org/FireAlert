@@ -5,7 +5,6 @@
 
 import {OneSignal} from 'react-native-onesignal';
 import {DeviceState, StateChangeEvent, StateChangeListener} from './types';
-import {ONESIGNAL_LOG_PREFIXES} from '../../utils/OneSignal/constants';
 
 enum InitializationState {
   NOT_STARTED = 'not_started',
@@ -52,7 +51,6 @@ export class OneSignalStateManager {
     }
 
     if (this.state.isInitialized) {
-      console.log(`${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} Already initialized`);
       return;
     }
 
@@ -77,28 +75,33 @@ export class OneSignalStateManager {
         startTime: Date.now(),
       };
 
-      console.log(
-        `${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} Initializing with appId: ${appId}, userId: ${userId}`,
-      );
-
-      // Initialize OneSignal SDK
       OneSignal.initialize(appId);
-      console.log(`${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} SDK initialized`);
-
-      // Request notification permissions
       OneSignal.Notifications.requestPermission(false);
-      console.log(`${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} Permission requested`);
-
-      // Login user
       OneSignal.login(userId);
-      console.log(
-        `${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} User logged in: ${userId}`,
+
+      OneSignal.User.pushSubscription.addEventListener(
+        'change',
+        async _subscription => {
+          await this.updateDeviceState();
+
+          const event = {
+            type: 'subscription_changed' as const,
+            previousState: {...this.state},
+            currentState: {...this.state},
+            timestamp: Date.now(),
+          };
+          this.listeners.forEach(listener => {
+            try {
+              listener(event);
+            } catch (_error) {
+              // Error in listener handled silently
+            }
+          });
+        },
       );
 
-      // Retrieve device state
       await this.updateDeviceState();
 
-      // Mark as initialized
       this.setState({isInitialized: true});
 
       this.initializationStatus = {
@@ -106,13 +109,6 @@ export class OneSignalStateManager {
         startTime: this.initializationStatus.startTime,
         completionTime: Date.now(),
       };
-
-      const duration =
-        (this.initializationStatus.completionTime || 0) -
-        (this.initializationStatus.startTime || 0);
-      console.log(
-        `${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} Initialization complete (${duration}ms)`,
-      );
     } catch (error) {
       this.initializationStatus = {
         state: InitializationState.FAILED,
@@ -120,27 +116,13 @@ export class OneSignalStateManager {
         startTime: this.initializationStatus.startTime,
         completionTime: Date.now(),
       };
-
-      const duration =
-        (this.initializationStatus.completionTime || 0) -
-        (this.initializationStatus.startTime || 0);
-      console.error(
-        `${ONESIGNAL_LOG_PREFIXES.ERROR} Initialization failed after ${duration}ms:`,
-        error,
-      );
     }
   }
 
-  /**
-   * Get current device state
-   */
   getState(): DeviceState {
     return {...this.state};
   }
 
-  /**
-   * Subscribe to state changes
-   */
   subscribe(listener: StateChangeListener): () => void {
     this.listeners.add(listener);
     return () => {
@@ -148,62 +130,42 @@ export class OneSignalStateManager {
     };
   }
 
-  /**
-   * Check if OneSignal is initialized and ready
-   */
   isInitialized(): boolean {
     return this.initializationStatus.state === InitializationState.READY;
   }
 
-  /**
-   * Check if OneSignal is currently initializing
-   */
   isInitializing(): boolean {
     return this.initializationStatus.state === InitializationState.INITIALIZING;
   }
 
-  /**
-   * Get current initialization status
-   */
   getInitializationStatus(): InitializationStatus {
     return {...this.initializationStatus};
   }
 
-  /**
-   * Safe wrapper for OneSignal SDK calls
-   */
+  private isSdkCallAllowed(): boolean {
+    return (
+      this.initializationStatus.state === InitializationState.INITIALIZING ||
+      this.initializationStatus.state === InitializationState.READY
+    );
+  }
+
   private async safeOneSignalCall<T>(
     operation: () => Promise<T>,
-    operationName: string,
+    _operationName: string,
   ): Promise<T | null> {
-    if (!this.isInitialized()) {
-      console.warn(
-        `${ONESIGNAL_LOG_PREFIXES.ERROR} Attempted to call ${operationName} before OneSignal initialization (state: ${this.initializationStatus.state})`,
-      );
+    if (!this.isSdkCallAllowed()) {
       return null;
     }
 
     try {
       return await operation();
-    } catch (error) {
-      console.error(
-        `${ONESIGNAL_LOG_PREFIXES.ERROR} ${operationName} failed:`,
-        error,
-      );
+    } catch (_error) {
       return null;
     }
   }
 
-  /**
-   * Handle user login
-   */
   async handleLogin(userId: string): Promise<void> {
     try {
-      console.log(
-        `${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} Handling login for user: ${userId}`,
-      );
-
-      // Reset state
       this.setState({
         userId: null,
         pushToken: null,
@@ -214,28 +176,15 @@ export class OneSignalStateManager {
         lastUpdated: 0,
       });
 
-      // Login to OneSignal
       OneSignal.login(userId);
-      console.log(
-        `${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} User logged in to OneSignal: ${userId}`,
-      );
-
-      // Update device state
       await this.updateDeviceState();
-    } catch (error) {
-      console.error(`${ONESIGNAL_LOG_PREFIXES.ERROR} Login failed:`, error);
-      // Don't throw - continue gracefully
+    } catch (_error) {
+      // Graceful error handling
     }
   }
 
-  /**
-   * Handle user logout
-   */
   async handleLogout(): Promise<void> {
     try {
-      console.log(`${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} Handling logout`);
-
-      // Clear state
       this.setState({
         userId: null,
         pushToken: null,
@@ -245,22 +194,13 @@ export class OneSignalStateManager {
         isInitialized: false,
         lastUpdated: 0,
       });
-      console.log(`${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} Device state cleared`);
-    } catch (error) {
-      console.error(`${ONESIGNAL_LOG_PREFIXES.ERROR} Logout failed:`, error);
-      // Don't throw - continue gracefully
+    } catch (_error) {
+      // Graceful error handling
     }
   }
 
-  /**
-   * Check and update notification permissions
-   */
   async checkPermissions(): Promise<void> {
-    // Guard: Only check if OneSignal is ready
     if (!this.isInitialized()) {
-      console.log(
-        `${ONESIGNAL_LOG_PREFIXES.PERMISSION} Skipping permission check - OneSignal not ready (state: ${this.initializationStatus.state})`,
-      );
       return;
     }
 
@@ -269,23 +209,13 @@ export class OneSignalStateManager {
       const permission = await OneSignal.Notifications.getPermissionAsync();
 
       if (permission !== previousPermission) {
-        console.log(
-          `${ONESIGNAL_LOG_PREFIXES.PERMISSION} Permission changed: ${previousPermission} -> ${permission}`,
-        );
         this.setState({permission});
       }
-    } catch (error) {
-      console.error(
-        `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to check permissions:`,
-        error,
-      );
-      // Don't throw - continue gracefully
+    } catch (_error) {
+      // Graceful error handling
     }
   }
 
-  /**
-   * Update device state from OneSignal SDK
-   */
   async updateDeviceState(): Promise<void> {
     try {
       const userId = await this.safeOneSignalCall(
@@ -318,28 +248,16 @@ export class OneSignalStateManager {
         lastUpdated: Date.now(),
       };
 
-      console.log(
-        `${ONESIGNAL_LOG_PREFIXES.ONESIGNAL} Device state updated:`,
-        newState,
-      );
       this.setState(newState);
-    } catch (error) {
-      console.error(
-        `${ONESIGNAL_LOG_PREFIXES.ERROR} Failed to update device state:`,
-        error,
-      );
-      // Don't throw - continue gracefully
+    } catch (_error) {
+      // Graceful error handling
     }
   }
 
-  /**
-   * Update state and notify listeners
-   */
   private setState(newState: Partial<DeviceState>): void {
     const previousState = {...this.state};
     this.state = {...this.state, ...newState};
 
-    // Emit state change event
     const event: StateChangeEvent = {
       type: 'state_updated',
       previousState,
@@ -350,17 +268,13 @@ export class OneSignalStateManager {
     this.listeners.forEach(listener => {
       try {
         listener(event);
-      } catch (error) {
-        console.error(
-          `${ONESIGNAL_LOG_PREFIXES.ERROR} Error in state change listener:`,
-          error,
-        );
+      } catch (_error) {
+        // Error in listener handled silently
       }
     });
   }
 }
 
-// Singleton instance
 let instance: OneSignalStateManager | null = null;
 
 export function getOneSignalStateManager(): OneSignalStateManager {
