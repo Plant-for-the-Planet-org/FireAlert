@@ -127,13 +127,12 @@ export default async function siteIncidentManager(
 
     return res.status(200).json({
       message: 'Site Incident Manager executed successfully',
-      stats: {
-        unlinkedAlertsFound: unlinkedAlerts.length,
-        alertsProcessed: linkedCount,
-        incidentsResolved: resolvedCount,
-        errors: linkErrors,
-        durationMs: duration,
-      },
+      unlinkedAlertsFound: unlinkedAlerts.length,
+      alertsProcessed: linkedCount,
+      incidentsResolved: resolvedCount,
+      errors: linkErrors,
+      durationMs: duration,
+      status: 200,
     });
   } catch (error) {
     logger(
