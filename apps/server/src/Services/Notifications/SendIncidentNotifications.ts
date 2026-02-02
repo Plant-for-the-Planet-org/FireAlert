@@ -20,6 +20,13 @@ type NotificationWithRelations = Notification & {
   };
 };
 
+type IncidentNotificationMetadata = {
+  incidentId: string;
+  type: 'INCIDENT_START' | 'INCIDENT_END';
+  detectionCount?: number;
+  duration?: string;
+};
+
 export class SendIncidentNotifications {
   static async run(req?: NextApiRequest): Promise<number> {
     const instance = new SendIncidentNotifications();
@@ -92,9 +99,15 @@ export class SendIncidentNotifications {
               alertMethod,
               notificationStatus,
               siteAlert,
+              metadata,
             } = notification;
             const site = siteAlert.site;
             const siteName = site.name || 'Unnamed Site';
+
+            // Extract incident ID from metadata
+            const incidentMetadata =
+              metadata as IncidentNotificationMetadata | null;
+            const incidentId = incidentMetadata?.incidentId || siteAlert.id;
 
             // Construct Message
             const isStart =
@@ -103,9 +116,11 @@ export class SendIncidentNotifications {
               isStart,
               siteAlert,
               siteName,
+              incidentId,
+              alertMethod,
             );
 
-            const url = `https://firealert.plant-for-the-planet.org/alert/${siteAlert.id}`; // Point to the Alert or Incident? Using Alert for now as Incident UI might not exist.
+            const url = `https://firealert.plant-for-the-planet.org/incident/${incidentId}`;
 
             const params: NotificationParameters = {
               id: id,
@@ -140,9 +155,11 @@ export class SendIncidentNotifications {
               failedIds.push(id);
               failedDestinations.push({destination, method: alertMethod});
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
             logger(
-              `Error sending notification ${notification.id}: ${error.message}`,
+              `Error sending notification ${notification.id}: ${errorMessage}`,
               'error',
             );
             failedIds.push(notification.id);
@@ -206,20 +223,8 @@ export class SendIncidentNotifications {
         // Increment fail count?
         // Logic from SendNotifications.ts:
         // if notification fails, increment failCount.
-        for (const fail of failedDestinations) {
-          // We can't batch increment easily with different WHERE clauses unless we group by destination.
-          // For MVP optimization, we can skip or do it individually.
-          // Let's do nothing for now or just log.
-          // The original code did: failedAlertMethods.push... then NOTHING with it?
-          // Wait, checking SendNotifications.ts:
-          // It collects failedAlertMethods but doesn't actually run an update query on them?
-          // Ah, lines 215 update failCount to 0 for successful.
-          // It DOES NOT increment failCount for failures in the visible code block?
-          // Wait, line 33 of SendNotifications comment says "If notification fails to send, increment...".
-          // But the code I viewed in Step 6 doesn't seem to have the increment logic implemented or I missed it?
-          // Checked Step 6 again. It pushes to failedAlertMethods. But never uses it.
-          // So I will replicate that behavior (do nothing for now).
-        }
+        // The original code collected failedAlertMethods but didn't use it.
+        // So we skip this for now.
       }
 
       batchCount++;
@@ -233,11 +238,9 @@ export class SendIncidentNotifications {
     isStart: boolean,
     alert: SiteAlert,
     siteName: string,
+    incidentId: string,
+    alertMethod: string = NOTIFICATION_METHOD.EMAIL,
   ) {
-    // Basic Message Construction
-    // Can be enhanced with HTML for email if needed (Notifier usually handles template if passed object, but here we pass message string).
-    // SendNotifications.ts handled email HTML manually.
-
     const localTimeObject = getLocalTime(
       alert.eventDate,
       alert.latitude.toString(),
@@ -259,30 +262,132 @@ export class SendIncidentNotifications {
     const lat = alert.latitude;
     const long = alert.longitude;
     const confidence = alert.confidence;
+    const incidentUrl = `https://firealert.plant-for-the-planet.org/incident/${incidentId}`;
 
     if (isStart) {
       const subject = `🔥 Fire Incident Started: ${siteName}`;
-      // Plain text / HTML mix?
-      // The existing Notifier (Email) expects HTML in 'message' field usually?
-      // Existing SendNotifications.ts lines 151-159 constructs HTML.
 
-      const message = `
+      switch (alertMethod) {
+        case NOTIFICATION_METHOD.EMAIL:
+          return {
+            subject,
+            message: `
                 <p>A new fire incident has been detected at <strong>${siteName}</strong>.</p>
                 <p>First detection: ${dateStr}</p>
                 <p>Confidence: ${confidence}</p>
                 <p>Location: ${lat}, ${long}</p>
-                <p><a href="https://maps.google.com/?q=${lat},${long}">Open in Google Maps</a></p>
-                <p><a href="https://firealert.plant-for-the-planet.org/alert/${alert.id}">Open in FireAlert</a></p>
-            `;
-      return {subject, message};
+                <p><a href="${incidentUrl}">Open in FireAlert</a></p>
+            `,
+          };
+
+        case NOTIFICATION_METHOD.DEVICE:
+          return {
+            subject: '🔥 Fire Incident Started',
+            message: `Fire detected at ${siteName}. First detection: ${dateStr}. Confidence: ${confidence}. Tap to view details.`,
+          };
+
+        case NOTIFICATION_METHOD.SMS:
+          // TODO: Implement SMS message format
+          return {
+            subject: '',
+            message: `🔥 Fire incident started at ${siteName}. Detection: ${dateStr}. View: ${incidentUrl}`,
+          };
+
+        case NOTIFICATION_METHOD.WHATSAPP:
+          // TODO: Implement WhatsApp message format
+          return {
+            subject: '',
+            message: `🔥 *Fire Incident Started*\n\nLocation: ${siteName}\nFirst Detection: ${dateStr}\nConfidence: ${confidence}\n\nView Details: ${incidentUrl}`,
+          };
+
+        case NOTIFICATION_METHOD.WEBHOOK:
+          // TODO: Implement Webhook payload format
+          return {
+            subject: '',
+            message: JSON.stringify({
+              type: 'INCIDENT_START',
+              siteName,
+              incidentId,
+              detectionTime: dateStr,
+              confidence,
+              location: {lat, long},
+              incidentUrl,
+            }),
+          };
+
+        case NOTIFICATION_METHOD.TEST:
+          // TODO: Implement Test message format
+          return {
+            subject,
+            message: `Test: Fire incident started at ${siteName}`,
+          };
+
+        default:
+          return {
+            subject,
+            message: `Fire incident started at ${siteName}. Detection: ${dateStr}`,
+          };
+      }
     } else {
       const subject = `✅ Fire Incident Ended: ${siteName}`;
-      const message = `
+
+      switch (alertMethod) {
+        case NOTIFICATION_METHOD.EMAIL:
+          return {
+            subject,
+            message: `
                 <p>The fire incident at <strong>${siteName}</strong> has ended.</p>
                 <p>Last detection: ${dateStr}</p>
-                <p><a href="https://firealert.plant-for-the-planet.org/alert/${alert.id}">View Details</a></p>
-            `;
-      return {subject, message};
+                <p><a href="${incidentUrl}">View Details</a></p>
+            `,
+          };
+
+        case NOTIFICATION_METHOD.DEVICE:
+          return {
+            subject: '✅ Fire Incident Ended',
+            message: `Fire incident at ${siteName} has ended. Last detection: ${dateStr}. Tap to view summary.`,
+          };
+
+        case NOTIFICATION_METHOD.SMS:
+          // TODO: Implement SMS message format
+          return {
+            subject: '',
+            message: `✅ Fire incident ended at ${siteName}. Last detection: ${dateStr}. View: ${incidentUrl}`,
+          };
+
+        case NOTIFICATION_METHOD.WHATSAPP:
+          // TODO: Implement WhatsApp message format
+          return {
+            subject: '',
+            message: `✅ *Fire Incident Ended*\n\nLocation: ${siteName}\nLast Detection: ${dateStr}\n\nView Summary: ${incidentUrl}`,
+          };
+
+        case NOTIFICATION_METHOD.WEBHOOK:
+          // TODO: Implement Webhook payload format
+          return {
+            subject: '',
+            message: JSON.stringify({
+              type: 'INCIDENT_END',
+              siteName,
+              incidentId,
+              endTime: dateStr,
+              incidentUrl,
+            }),
+          };
+
+        case NOTIFICATION_METHOD.TEST:
+          // TODO: Implement Test message format
+          return {
+            subject,
+            message: `Test: Fire incident ended at ${siteName}`,
+          };
+
+        default:
+          return {
+            subject,
+            message: `Fire incident ended at ${siteName}. Last detection: ${dateStr}`,
+          };
+      }
     }
   }
 }
