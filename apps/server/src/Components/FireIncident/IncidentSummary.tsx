@@ -2,7 +2,7 @@ import React from 'react';
 import {BaseCard} from './BaseCard';
 import Image from 'next/image';
 import alertIcon from '../../../public/alertPage/orange-fire-icon.svg';
-import {distance, point} from '@turf/turf';
+import {calculateIncidentArea} from './incidentCircleUtils';
 import {twJoin, twMerge} from 'tailwind-merge';
 
 interface AlertData {
@@ -17,18 +17,6 @@ interface IncidentSummaryProps {
   startAlert: AlertData;
   latestAlert: AlertData;
   allAlerts: AlertData[];
-}
-
-function calculateTotalDistance(alerts: AlertData[]): string {
-  if (alerts.length < 2) return '0';
-  let total = 0;
-  for (let i = 0; i < alerts.length - 1; i++) {
-    const from = point([alerts[i].longitude, alerts[i].latitude]);
-    const to = point([alerts[i + 1].longitude, alerts[i + 1].latitude]);
-    const d = distance(from, to, {units: 'kilometers'}) as number;
-    total += d;
-  }
-  return total.toFixed(2);
 }
 
 function formatDate(date: Date): string {
@@ -104,7 +92,10 @@ export function IncidentSummary({
   allAlerts,
 }: IncidentSummaryProps) {
   const totalFires = allAlerts.length;
-  const totalDistance = calculateTotalDistance(allAlerts);
+  const areaAffected = calculateIncidentArea(
+    allAlerts.map(a => ({latitude: a.latitude, longitude: a.longitude})),
+    2,
+  );
 
   return (
     <BaseCard
@@ -234,10 +225,10 @@ export function IncidentSummary({
           </div>
           <div>
             <p className="text-planet-dark-gray/70 text-sm font-sans m-0">
-              Distance
+              Area Affected
             </p>
             <p className="text-planet-dark-gray font-bold font-sans m-0">
-              {totalDistance} kms
+              {areaAffected.toFixed(2)} km²
             </p>
           </div>
         </div>
