@@ -34,8 +34,8 @@ function calculateTotalDistance(alerts: AlertData[]): string {
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', {
     day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
+    month: 'short',
+    year: 'numeric',
   });
 }
 
@@ -130,9 +130,11 @@ export function IncidentSummary({
           </div>
           <div
             className={twJoin(
-              'text-white w-4 h-4 rounded-full font-bold shadow-sm',
+              'text-white text-xs p-2 rounded-xl shadow-sm',
               isActive ? 'bg-fire-orange' : 'bg-fire-gray',
-            )}></div>
+            )}>
+            {isActive ? 'Active' : 'Inactive'}
+          </div>
         </div>
       }>
       <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
@@ -154,13 +156,13 @@ export function IncidentSummary({
                 {formatTime(startAlert.eventDate)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <PinIcon />
               <span className="text-planet-dark-gray font-sans ">
                 {startAlert.latitude.toFixed(5)},{' '}
                 {startAlert.longitude.toFixed(5)}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -182,13 +184,13 @@ export function IncidentSummary({
                 {formatTime(latestAlert.eventDate)}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <PinIcon />
               <span className="text-planet-dark-gray font-sans ">
                 {latestAlert.latitude.toFixed(5)},{' '}
                 {latestAlert.longitude.toFixed(5)}
               </span>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -196,7 +198,7 @@ export function IncidentSummary({
       <div className="w-full flex flex-wrap gap-2">
         {/* Total Fires */}
         <div className="flex-1 flex gap-2 flex-wrap bg-white/25 p-3 rounded-2xl">
-          <div className="bg-white h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
+          <div className="bg-transparent h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
             <Image
               src={alertIcon as string}
               alt="Fire Icon"
@@ -215,8 +217,9 @@ export function IncidentSummary({
 
         {/* Total Distance */}
         <div className="flex-1 flex gap-2 flex-wrap bg-white/25 rounded-2xl p-3">
-          <div className="bg-fire-orange h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
+          <div className="bg-transparent h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
             <svg
+              className="stroke-fire-orange"
               width="24"
               height="24"
               viewBox="0 0 24 24"
