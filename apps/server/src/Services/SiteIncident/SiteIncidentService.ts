@@ -7,6 +7,7 @@ import {
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
 import {type SiteIncidentRepository} from './SiteIncidentRepository';
 import {type IncidentResolver} from './IncidentResolver';
+import {prisma} from '../../server/db';
 
 /**
  * SiteIncidentService orchestrates the incident lifecycle
@@ -58,23 +59,31 @@ export class SiteIncidentService {
       if (activeIncident) {
         // Defensive check: If incident should be resolved (stale), resolve it first
         const now = new Date();
-        const inactiveMs =
-          now.getTime() - activeIncident.updatedAt.getTime();
+        const inactiveMs = now.getTime() - activeIncident.updatedAt.getTime();
         const inactiveHours = inactiveMs / (1000 * 60 * 60);
 
         if (inactiveHours >= this.inactiveHours) {
           logger(
-            `Active incident ${activeIncident.id} is stale (inactive for ${inactiveHours.toFixed(2)}h). Resolving before processing new alert.`,
+            `Active incident ${
+              activeIncident.id
+            } is stale (inactive for ${inactiveHours.toFixed(
+              2,
+            )}h). Resolving before processing new alert.`,
             'debug',
           );
+          // Associate the alert with the incident
+          await prisma.siteAlert.update({
+            where: {id: alert.id},
+            data: {
+              siteIncidentId: activeIncident.id,
+              isProcessed: true,
+            },
+          });
 
           // Resolve the stale incident
           try {
             await this.resolver.batchResolveIncidents([activeIncident]);
-            logger(
-              `Resolved stale incident ${activeIncident.id}`,
-              'debug',
-            );
+            logger(`Resolved stale incident ${activeIncident.id}`, 'debug');
           } catch (error) {
             logger(
               `Error resolving stale incident ${activeIncident.id}: ${
@@ -125,6 +134,28 @@ export class SiteIncidentService {
         }
       } else {
         // Create new incident
+        const newIncident = await prisma.siteIncident.create({
+          data: {
+            siteId: alert.siteId,
+            startSiteAlertId: alert.id,
+            latestSiteAlertId: alert.id,
+            endSiteAlertId: alert.id,
+            startedAt: new Date(),
+            isActive: true,
+            isProcessed: false,
+            reviewStatus: 'to_review',
+          },
+        });
+
+        // Associate the alert with the incident
+        await prisma.siteAlert.update({
+          where: {id: alert.id},
+          data: {
+            siteIncidentId: newIncident.id,
+            isProcessed: true,
+          },
+        });
+
         logger(
           `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
           'debug',
