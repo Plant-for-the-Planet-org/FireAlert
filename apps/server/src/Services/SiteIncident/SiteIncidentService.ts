@@ -51,7 +51,10 @@ export class SiteIncidentService {
         // Associate the alert with the incident
         await prisma.siteAlert.update({
           where: {id: siteAlert.id},
-          data: {siteIncidentId: activeIncident.id},
+          data: {
+            siteIncidentId: activeIncident.id,
+            isProcessed: true,
+          },
         });
 
         logger(
@@ -78,7 +81,10 @@ export class SiteIncidentService {
         // Associate the alert with the incident
         await prisma.siteAlert.update({
           where: {id: siteAlert.id},
-          data: {siteIncidentId: newIncident.id},
+          data: {
+            siteIncidentId: newIncident.id,
+            isProcessed: true,
+          },
         });
 
         logger(
