@@ -35,38 +35,30 @@ function formatTime(date: Date): string {
   });
 }
 
-const CalendarIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="text-planet-dark-gray/60">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-    <line x1="16" y1="2" x2="16" y2="6"></line>
-    <line x1="8" y1="2" x2="8" y2="6"></line>
-    <line x1="3" y1="10" x2="21" y2="10"></line>
-  </svg>
+const CalendarIcon = ({isActive}: {isActive: boolean}) => (
+  <Image
+    width={20}
+    height={20}
+    src={
+      isActive
+        ? '/incidentPage/calendar-active.svg'
+        : '/incidentPage/calendar-inactive.svg'
+    }
+    alt="Fire Incident Date"
+  />
 );
 
-const ClockIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="text-planet-dark-gray/60">
-    <circle cx="12" cy="12" r="10"></circle>
-    <polyline points="12 6 12 12 16 14"></polyline>
-  </svg>
+const ClockIcon = ({isActive}: {isActive: boolean}) => (
+  <Image
+    width={20}
+    height={20}
+    src={
+      isActive
+        ? '/incidentPage/clock-active.svg'
+        : '/incidentPage/clock-inactive.svg'
+    }
+    alt="Fire Incident Time"
+  />
 );
 
 const PinIcon = () => (
@@ -130,19 +122,17 @@ export function IncidentSummary({
       }>
       <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
         {/* Started At Section */}
-        <div className="flex flex-col">
-          <p className="text-planet-dark-gray/60 text-[10px] font-semibold font-sans mb-3 uppercase tracking-wider">
-            Started at
-          </p>
+        <div className="flex flex-col pl-3">
+          <p className="text-planet-dark-gray/60 text-xs mb-3">Started at</p>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
-              <CalendarIcon />
+              <CalendarIcon isActive={isActive} />
               <span className="text-planet-dark-gray font-sans ">
                 {formatDate(startAlert.eventDate)}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <ClockIcon />
+              <ClockIcon isActive={isActive} />
               <span className="text-planet-dark-gray font-sans ">
                 {formatTime(startAlert.eventDate)}
               </span>
@@ -158,19 +148,19 @@ export function IncidentSummary({
         </div>
 
         {/* Ended/Latest At Section */}
-        <div className="flex flex-col text-sm">
-          <p className="text-planet-dark-gray/60 text-[10px] font-semibold font-sans mb-3 uppercase tracking-wider">
+        <div className="flex flex-col pl-3 text-sm">
+          <p className="text-planet-dark-gray/60 text-xs mb-3">
             {isActive ? 'Latest at' : 'Ended at'}
           </p>
           <div className="space-y-2 text">
             <div className="flex items-center gap-2">
-              <CalendarIcon />
+              <CalendarIcon isActive={isActive} />
               <span className="text-planet-dark-gray font-sans ">
                 {formatDate(latestAlert.eventDate)}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <ClockIcon />
+              <ClockIcon isActive={isActive} />
               <span className="text-planet-dark-gray font-sans ">
                 {formatTime(latestAlert.eventDate)}
               </span>
@@ -188,8 +178,8 @@ export function IncidentSummary({
 
       <div className="w-full flex flex-wrap gap-2">
         {/* Total Fires */}
-        <div className="flex-1 flex gap-2 flex-wrap bg-white/25 p-3 rounded-2xl">
-          <div className="bg-transparent h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
+        <div className="flex-1 flex flex-wrap bg-white/25 p-3 rounded-2xl">
+          <div className="bg-transparent h-10 mb-2 w-10 flex justify-start items-center aspect-square rounded-full">
             <Image
               src={alertIcon as string}
               alt="Fire Icon"
@@ -207,8 +197,8 @@ export function IncidentSummary({
         </div>
 
         {/* Total Distance */}
-        <div className="flex-1 flex gap-2 flex-wrap bg-white/25 rounded-2xl p-3">
-          <div className="bg-transparent h-10 mb-2 w-10 flex justify-center items-center aspect-square rounded-full p-1">
+        <div className="flex-1 flex flex-wrap bg-white/25 rounded-2xl p-3">
+          <div className="bg-transparent h-10 mb-2 w-10 flex justify-start items-center aspect-square rounded-full">
             <svg
               className="stroke-fire-orange"
               width="24"
