@@ -1,7 +1,8 @@
 import React from 'react';
 import {BaseCard} from './BaseCard';
 import Image from 'next/image';
-import alertIcon from '../../../public/alertPage/orange-fire-icon.svg';
+import orangeAlertIcon from '../../../public/alertPage/orange-fire-icon.svg';
+import blackAlertIcon from '../../../public/incidentPage/black-fire-icon.svg';
 import {calculateIncidentArea} from './incidentCircleUtils';
 import {twJoin, twMerge} from 'tailwind-merge';
 
@@ -35,10 +36,23 @@ function formatTime(date: Date): string {
   });
 }
 
+const IncidentIcon = ({isActive}: {isActive: boolean}) => (
+  <Image
+    width={24}
+    height={24}
+    src={
+      isActive
+        ? '/incidentPage/incident-active.svg'
+        : '/incidentPage/incident-inactive.svg'
+    }
+    alt="Fire Incident Date"
+  />
+);
+
 const CalendarIcon = ({isActive}: {isActive: boolean}) => (
   <Image
-    width={20}
-    height={20}
+    width={16}
+    height={16}
     src={
       isActive
         ? '/incidentPage/calendar-active.svg'
@@ -50,12 +64,25 @@ const CalendarIcon = ({isActive}: {isActive: boolean}) => (
 
 const ClockIcon = ({isActive}: {isActive: boolean}) => (
   <Image
-    width={20}
-    height={20}
+    width={16}
+    height={16}
     src={
       isActive
         ? '/incidentPage/clock-active.svg'
         : '/incidentPage/clock-inactive.svg'
+    }
+    alt="Fire Incident Time"
+  />
+);
+
+const IncidentAreaIcon = ({isActive}: {isActive: boolean}) => (
+  <Image
+    width={16}
+    height={16}
+    src={
+      isActive
+        ? '/incidentPage/incident-area-active.svg'
+        : '/incidentPage/incident-area-inactive.svg'
     }
     alt="Fire Incident Time"
   />
@@ -100,12 +127,13 @@ export function IncidentSummary({
       icon={
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center">
-            <div className="bg-white w-12 mr-2 flex justify-center items-center aspect-square rounded-full p-1">
-              <Image
+            <div className="bg-white w-12 mr-2 flex justify-center items-center aspect-square rounded-full">
+              {/* <Image
                 src={alertIcon as string}
                 alt="Incident Icon"
                 className="w-8 h-8"
-              />
+              /> */}
+              <IncidentIcon isActive={isActive} />
             </div>
             <span className="text-planet-dark-gray font-semibold font-sans text-lg">
               Incident Summary
@@ -178,12 +206,12 @@ export function IncidentSummary({
 
       <div className="w-full flex flex-wrap gap-2">
         {/* Total Fires */}
-        <div className="flex-1 flex flex-wrap bg-white/25 p-3 rounded-2xl">
-          <div className="bg-transparent h-10 mb-2 w-10 flex justify-start items-center aspect-square rounded-full">
+        <div className="flex-1 flex flex-wrap gap-2 bg-white/25 p-3 rounded-2xl">
+          <div className="bg-transparent h-5 w-5 mb-2 flex justify-start items-center aspect-square rounded-full">
             <Image
-              src={alertIcon as string}
+              src={(isActive ? orangeAlertIcon : blackAlertIcon) as string}
               alt="Fire Icon"
-              className="w-6 h-6"
+              className="w-5 h-5"
             />
           </div>
           <div>
@@ -196,22 +224,10 @@ export function IncidentSummary({
           </div>
         </div>
 
-        {/* Total Distance */}
-        <div className="flex-1 flex flex-wrap bg-white/25 rounded-2xl p-3">
-          <div className="bg-transparent h-10 mb-2 w-10 flex justify-start items-center aspect-square rounded-full">
-            <svg
-              className="stroke-fire-orange"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round">
-              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-              <polyline points="16 7 22 7 22 13"></polyline>
-            </svg>
+        {/* Total Area */}
+        <div className="flex-1 flex flex-wrap gap-2 bg-white/25 rounded-2xl p-3">
+          <div className="bg-transparent h-5 w-5 mb-2 flex justify-start items-center aspect-square rounded-full">
+            <IncidentAreaIcon isActive={isActive} />
           </div>
           <div>
             <p className="text-planet-dark-gray/70 text-sm font-sans m-0">
