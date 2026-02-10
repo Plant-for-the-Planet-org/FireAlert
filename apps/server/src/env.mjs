@@ -92,6 +92,23 @@ const server = z.object({
       }
       return parsed;
     }),
+
+  // Fire Incident Notifications feature flag. When true, uses SiteIncident-based notifications.
+  // When false, uses legacy SiteAlert-based notifications. Defaults to true.
+  ENABLE_INCIDENT_NOTIFICATIONS: coerceBooleanWithDefault(true),
+
+  // Fire Incident inactivity threshold in hours. Incidents with no detections for this duration
+  // are marked as inactive and trigger end notifications. Defaults to 6 hours.
+  INCIDENT_INACTIVITY_HOURS: z
+    .string()
+    .default('6')
+    .transform(val => {
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        throw new Error('INCIDENT_INACTIVITY_HOURS must be a positive integer');
+      }
+      return parsed;
+    }),
 });
 
 /**
@@ -145,6 +162,8 @@ const processEnv = {
   USE_REFACTORED_PIPELINE: process.env.USE_REFACTORED_PIPELINE,
   FIRMS_MAP_KEY: process.env.FIRMS_MAP_KEY,
   PROVIDER_CONCURRENCY: process.env.PROVIDER_CONCURRENCY,
+  ENABLE_INCIDENT_NOTIFICATIONS: process.env.ENABLE_INCIDENT_NOTIFICATIONS,
+  INCIDENT_INACTIVITY_HOURS: process.env.INCIDENT_INACTIVITY_HOURS,
 };
 
 // Don't touch the part below

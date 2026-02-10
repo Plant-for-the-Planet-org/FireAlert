@@ -1,6 +1,7 @@
 import {type NextApiRequest, type NextApiResponse} from 'next';
 import {env} from '../../../env.mjs';
 import {SendIncidentNotifications} from '../../../Services/Notifications/SendIncidentNotifications';
+import sendNotifications from '../../../Services/Notifications/SendNotifications';
 import {logger} from '../../../../src/server/logger';
 
 export default async function notificationSender(
@@ -16,10 +17,24 @@ export default async function notificationSender(
       return;
     }
   }
-  logger(`Running Notification Sender.`, 'info');
+
+  const useIncidentNotifications = env.ENABLE_INCIDENT_NOTIFICATIONS as boolean;
+
+  logger(
+    `Running Notification Sender. Using ${
+      useIncidentNotifications ? 'SiteIncident' : 'SiteAlert'
+    } notifications.`,
+    'info',
+  );
 
   try {
-    const notificationsSent = await SendIncidentNotifications.run(req);
+    let notificationsSent: number;
+
+    if (useIncidentNotifications) {
+      notificationsSent = await SendIncidentNotifications.run(req);
+    } else {
+      notificationsSent = await sendNotifications({req});
+    }
 
     if (notificationsSent === 0) {
       // No notifications were needed to be sent, but the job executed successfully
@@ -37,10 +52,11 @@ export default async function notificationSender(
         notificationsSent,
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     // Handle genuine failure (e.g., database connection issue)
-    logger(`Error executing notification sender: ${error}`, 'error');
-    res.setHeader('Location', req.url);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error';
+    logger(`Error executing notification sender: ${errorMessage}`, 'error');
     res.status(307).json({
       message: 'Cron job failed to execute',
       status: '307',
