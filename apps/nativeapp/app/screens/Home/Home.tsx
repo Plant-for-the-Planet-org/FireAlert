@@ -63,6 +63,7 @@ import {
   FloatingInput,
   LayerModal,
 } from '../../components';
+import {IncidentSummaryCard} from '../../components/Incident/IncidentSummaryCard';
 import {
   getUserDetails,
   updateIsLoggedIn,
@@ -77,6 +78,7 @@ import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
 import {useAppDispatch, useAppSelector} from '../../hooks';
+import {useIncidentData} from '../../hooks/incident/useIncidentData';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import {useFetchSites} from '../../utils/api';
@@ -86,6 +88,8 @@ import {getFireIcon} from '../../utils/getFireIcon';
 import {clearAll} from '../../utils/localStorage';
 import {daysFromToday} from '../../utils/moment';
 import {locationPermission} from '../../utils/permissions';
+import {generateIncidentCircle} from '../../utils/incident/incidentCircleUtils';
+import type {IncidentCircleResult} from '../../types/incident';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -144,6 +148,8 @@ const Home = ({navigation, route}) => {
   >();
 
   const [selectedAlert, setSelectedAlert] = useState<object | null>({});
+  const [incidentCircleData, setIncidentCircleData] =
+    useState<IncidentCircleResult | null>(null);
   const [selectedSite, setSelectedSite] = useState<object | null>({});
   const [siteNameModalVisible, setSiteNameModalVisible] =
     useState<boolean>(false);
@@ -222,6 +228,12 @@ const Home = ({navigation, route}) => {
 
   const {data: alerts} = useFetchSites({enabled: true});
 
+  // Fetch incident data when an alert with siteIncidentId is selected
+  const {incident, isLoading: isIncidentLoading} = useIncidentData({
+    incidentId: selectedAlert?.siteIncidentId,
+    enabled: !!selectedAlert?.siteIncidentId,
+  });
+
   const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],
     {
@@ -249,6 +261,21 @@ const Home = ({navigation, route}) => {
     () => categorizedRes(sites?.json?.data || [], 'type'),
     [sites],
   );
+
+  // Calculate incident circle with memoization
+  const incidentCircle = useMemo(() => {
+    if (!incident?.siteAlerts) return null;
+    const fires = incident.siteAlerts.map(a => ({
+      latitude: a.latitude,
+      longitude: a.longitude,
+    }));
+    return generateIncidentCircle(fires, 2);
+  }, [incident?.siteAlerts]);
+
+  // Update incident circle data when calculation completes
+  useEffect(() => {
+    setIncidentCircleData(incidentCircle);
+  }, [incidentCircle]);
 
   const updateUser = trpc.user.updateUser.useMutation({
     retryDelay: 3000,
@@ -916,6 +943,40 @@ const Home = ({navigation, route}) => {
     </MapboxGL.ShapeSource>
   );
 
+  /**
+   * Renders the incident circle on the map
+   * Shows a circular polygon encompassing all fires in the incident
+   */
+  const renderIncidentCircle = () => {
+    if (!incidentCircleData) return null;
+
+    const circleColor = incident?.isActive
+      ? Colors.INCIDENT_ACTIVE_COLOR
+      : Colors.INCIDENT_RESOLVED_COLOR;
+
+    return (
+      <MapboxGL.ShapeSource
+        id="incident-circle"
+        shape={incidentCircleData.circlePolygon}>
+        <MapboxGL.FillLayer
+          id="incident-circle-fill"
+          style={{
+            fillColor: circleColor,
+            fillOpacity: 0.15,
+          }}
+        />
+        <MapboxGL.LineLayer
+          id="incident-circle-line"
+          style={{
+            lineWidth: 2,
+            lineColor: circleColor,
+            lineOpacity: 0.8,
+          }}
+        />
+      </MapboxGL.ShapeSource>
+    );
+  };
+
   return (
     <>
       <MapboxGL.MapView
@@ -946,6 +1007,8 @@ const Home = ({navigation, route}) => {
         {renderProtectedAreasSource()}
         {/* highlighted */}
         {selectedArea && renderHighlightedMapSource()}
+        {/* incident circle */}
+        {renderIncidentCircle()}
         {/* for alerts */}
         {renderAnnotations(true)}
         {/* for point sites */}
@@ -1090,11 +1153,25 @@ const Home = ({navigation, route}) => {
       </BottomSheet>
       {/* fire alert info modal */}
       <BottomSheet
-        onBackdropPress={() => setSelectedAlert({})}
+        onBackdropPress={() => {
+          setSelectedAlert({});
+          setIncidentCircleData(null);
+        }}
         isVisible={Object.keys(selectedAlert).length > 0}>
         <Toast ref={modalToast} offsetBottom={100} duration={2000} />
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
+
+          {/* Incident Summary Card - shown when incident data is available */}
+          {incident && (
+            <IncidentSummaryCard
+              isActive={incident.isActive}
+              startAlert={incident.startSiteAlert}
+              latestAlert={incident.latestSiteAlert}
+              allAlerts={incident.siteAlerts}
+            />
+          )}
+
           <View style={styles.satelliteInfoCon}>
             <View style={styles.satelliteIcon}>
               <SatelliteIcon />
