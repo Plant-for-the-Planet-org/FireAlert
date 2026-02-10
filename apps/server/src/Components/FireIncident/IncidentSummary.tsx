@@ -1,7 +1,7 @@
 import React from 'react';
 import {BaseCard} from './BaseCard';
 import Image from 'next/image';
-import orangeAlertIcon from '../../../public/alertPage/orange-fire-icon.svg';
+import orangeAlertIcon from '../../../public/incidentPage/orange-fire-icon.svg';
 import blackAlertIcon from '../../../public/incidentPage/black-fire-icon.svg';
 import {calculateIncidentArea} from './incidentCircleUtils';
 import {twJoin, twMerge} from 'tailwind-merge';
@@ -136,21 +136,21 @@ export function IncidentSummary({
               <IncidentIcon isActive={isActive} />
             </div>
             <span className="text-planet-dark-gray font-semibold font-sans text-lg">
-              Incident Summary
+              Fire Incident Summary
             </span>
           </div>
           <div
             className={twJoin(
-              'text-white text-xs p-2 rounded-xl shadow-sm',
-              isActive ? 'bg-fire-orange' : 'bg-fire-gray',
+              'text-white text-xs p-2 px-4 rounded-lg shadow-sm',
+              isActive ? 'bg-fire-orange' : 'bg-planet-dark-gray',
             )}>
-            {isActive ? 'Active' : 'Inactive'}
+            {isActive ? 'Active' : 'Resolved'}
           </div>
         </div>
       }>
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-5">
         {/* Started At Section */}
-        <div className="flex flex-col pl-3">
+        <div className="flex flex-col pl-4">
           <p className="text-planet-dark-gray/60 text-xs mb-3">Started at</p>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ export function IncidentSummary({
         </div>
 
         {/* Ended/Latest At Section */}
-        <div className="flex flex-col pl-3 text-sm">
+        <div className="flex flex-col pl-4 text-sm">
           <p className="text-planet-dark-gray/60 text-xs mb-3">
             {isActive ? 'Latest at' : 'Ended at'}
           </p>
@@ -206,8 +206,8 @@ export function IncidentSummary({
 
       <div className="w-full flex flex-wrap gap-2">
         {/* Total Fires */}
-        <div className="flex-1 flex flex-wrap gap-2 bg-white/25 p-3 rounded-2xl">
-          <div className="bg-transparent h-5 w-5 mb-2 flex justify-start items-center aspect-square rounded-full">
+        <div className="flex-1 flex flex-wrap gap-2 bg-white/25 p-4 rounded-2xl">
+          <div className="bg-transparent h-4 w-4 mb-2 flex justify-start items-center aspect-square rounded-full">
             <Image
               src={(isActive ? orangeAlertIcon : blackAlertIcon) as string}
               alt="Fire Icon"
@@ -224,9 +224,9 @@ export function IncidentSummary({
           </div>
         </div>
 
-        {/* Total Distance */}
-        <div className="flex-1 flex flex-wrap gap-2 bg-white/25 rounded-2xl p-3">
-          <div className="bg-transparent h-5 w-5 mb-2 flex justify-start items-center aspect-square rounded-full">
+        {/* Total Area */}
+        <div className="flex-1 flex flex-wrap gap-2 bg-white/25 rounded-2xl p-4">
+          <div className="bg-transparent h-4 w-4 mb-2 flex justify-start items-center aspect-square rounded-full">
             <IncidentAreaIcon isActive={isActive} />
           </div>
           <div>
