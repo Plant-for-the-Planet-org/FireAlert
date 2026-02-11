@@ -37,8 +37,13 @@ export function generateIncidentCircle(
 ): IncidentCircleResult | null {
   // Validate input
   if (!fires || fires.length === 0) {
+    console.warn('[incident] generateIncidentCircle: No fire points provided');
     return null;
   }
+
+  console.log(
+    `[incident] Calculating incident circle - fireCount: ${fires.length}, paddingKm: ${paddingKm}`,
+  );
 
   try {
     // Convert fire points to GeoJSON points
@@ -48,6 +53,10 @@ export function generateIncidentCircle(
     // Calculate the centroid of all fire points
     const centroidFeature = center(collection);
     const centroidCoords = centroidFeature.geometry.coordinates as Position;
+
+    console.log(
+      `[incident] Centroid calculated - lat: ${centroidCoords[1]}, lon: ${centroidCoords[0]}`,
+    );
 
     // Calculate the maximum distance from centroid to any fire point
     let maxDistance = 0;
@@ -62,6 +71,12 @@ export function generateIncidentCircle(
     // Add padding to the radius (minimum 0.1km for single fire case)
     const radiusKm = Math.max(maxDistance + paddingKm, 0.1 + paddingKm);
 
+    console.log(
+      `[incident] Circle radius calculated - maxDistance: ${maxDistance.toFixed(
+        2,
+      )}km, radiusWithPadding: ${radiusKm.toFixed(2)}km`,
+    );
+
     // Create the circle polygon using turf
     const circlePolygon = turfCircle(centroidCoords, radiusKm, {
       steps: 64,
@@ -72,6 +87,12 @@ export function generateIncidentCircle(
     const areaM2 = area(circlePolygon);
     const areaKm2 = areaM2 / 1_000_000;
 
+    console.log(
+      `[incident] Circle polygon generated - areaKm2: ${areaKm2.toFixed(
+        2,
+      )}, steps: 64`,
+    );
+
     return {
       circlePolygon,
       centroid: centroidCoords as [number, number],
@@ -79,7 +100,10 @@ export function generateIncidentCircle(
       areaKm2,
     };
   } catch (error) {
-    console.error('Error generating incident circle:', error);
+    console.error(
+      `[incident] Error generating incident circle - fireCount: ${fires.length}`,
+      error,
+    );
     return null;
   }
 }

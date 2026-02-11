@@ -33,6 +33,10 @@ export function useIncidentData(
 ): UseIncidentDataReturn {
   const {incidentId, enabled = true} = params;
 
+  console.log(
+    `[incident] useIncidentData hook initialized - incidentId: ${incidentId}, enabled: ${enabled}`,
+  );
+
   // Fetch incident data using tRPC
   const {
     data: response,
@@ -40,24 +44,58 @@ export function useIncidentData(
     isError,
     error,
   } = trpc.siteIncident.getIncidentPublic.useQuery(
-    {incidentId: incidentId!},
+    {json: {incidentId: incidentId!}},
     {
-      // Only fetch if incidentId is provided and enabled is true
       enabled: !!incidentId && enabled,
-      // Retry once on failure
       retry: 1,
-      // Don't show error toast - fail silently
+      // Disable batching for this specific query
+      trpc: {
+        context: {
+          skipBatch: true,
+        },
+      },
       onError: err => {
-        console.error('Failed to fetch incident data:', err);
+        console.error(
+          `[incident] Failed to fetch incident data for incidentId: ${incidentId}`,
+          err,
+        );
       },
     },
   );
 
+  // Log loading state changes
+  useEffect(() => {
+    if (isLoading) {
+      console.log(
+        `[incident] Fetching incident data - incidentId: ${incidentId}`,
+      );
+    }
+  }, [isLoading, incidentId]);
+
+  // Log when data is received
+  useEffect(() => {
+    if (response?.json?.data) {
+      console.log(
+        `[incident] Incident data fetched successfully - incidentId: ${
+          response.json.data.id
+        }, isActive: ${response.json.data.isActive}, alertCount: ${
+          response.json.data.siteAlerts?.length || 0
+        }`,
+      );
+    }
+  }, [response?.json?.data]);
+
   // Extract incident data from response
-  const incident = response?.data ?? null;
+  const incident = response?.json?.data ?? null;
 
   // Convert error to Error object if needed
   const errorObj = error instanceof Error ? error : null;
+
+  if (isError) {
+    console.warn(
+      `[incident] Error fetching incident - incidentId: ${incidentId}, error: ${errorObj?.message}`,
+    );
+  }
 
   return {
     incident: incident as IncidentData | null,

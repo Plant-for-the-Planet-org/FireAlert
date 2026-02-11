@@ -40,6 +40,7 @@ export const alertRouter = createTRPCRouter({
                   },
                 },
               },
+              siteIncidentId: true,
               eventDate: true,
               type: true,
               latitude: true,

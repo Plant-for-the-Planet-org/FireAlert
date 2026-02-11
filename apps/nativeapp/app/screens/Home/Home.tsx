@@ -264,16 +264,35 @@ const Home = ({navigation, route}) => {
 
   // Calculate incident circle with memoization
   const incidentCircle = useMemo(() => {
-    if (!incident?.siteAlerts) return null;
+    if (!incident?.siteAlerts) {
+      console.log('[incident] No siteAlerts available for circle calculation');
+      return null;
+    }
+    console.log(
+      `[incident] Starting incident circle calculation - incidentId: ${incident.id}, fireCount: ${incident.siteAlerts.length}`,
+    );
     const fires = incident.siteAlerts.map(a => ({
       latitude: a.latitude,
       longitude: a.longitude,
     }));
-    return generateIncidentCircle(fires, 2);
-  }, [incident?.siteAlerts]);
+    const result = generateIncidentCircle(fires, 2);
+    if (result) {
+      console.log(
+        `[incident] Circle calculation completed - radiusKm: ${result.radiusKm.toFixed(
+          2,
+        )}, areaKm2: ${result.areaKm2.toFixed(2)}`,
+      );
+    }
+    return result;
+  }, [incident?.siteAlerts, incident?.id]);
 
   // Update incident circle data when calculation completes
   useEffect(() => {
+    if (incidentCircle) {
+      console.log(
+        `[incident] Incident circle data updated - preparing to render on map`,
+      );
+    }
     setIncidentCircleData(incidentCircle);
   }, [incidentCircle]);
 
@@ -739,10 +758,17 @@ const Home = ({navigation, route}) => {
             zoomLevel: ZOOM_LEVEL,
             animationDuration: ANIMATION_DURATION,
           });
-          setTimeout(
-            () => setSelectedAlert(alertsArr[counter]),
-            ANIMATION_DURATION,
-          );
+          setTimeout(() => {
+            const alert = alertsArr[counter];
+            console.log(
+              `[incident] Fire alert marker tapped - alertId: ${
+                alert?.id
+              }, siteIncidentId: ${
+                alert?.siteIncidentId || 'none'
+              }, latitude: ${alert?.latitude}, longitude: ${alert?.longitude}`,
+            );
+            setSelectedAlert(alert);
+          }, ANIMATION_DURATION);
         }}
         coordinate={coordinate}>
         {getFireIcon(daysFromToday(alertsArr[counter]?.eventDate))}
@@ -948,11 +974,20 @@ const Home = ({navigation, route}) => {
    * Shows a circular polygon encompassing all fires in the incident
    */
   const renderIncidentCircle = () => {
-    if (!incidentCircleData) return null;
+    if (!incidentCircleData) {
+      console.log(
+        '[incident] No incident circle data available - skipping render',
+      );
+      return null;
+    }
 
     const circleColor = incident?.isActive
       ? Colors.INCIDENT_ACTIVE_COLOR
       : Colors.INCIDENT_RESOLVED_COLOR;
+
+    console.log(
+      `[incident] Rendering incident circle on map - incidentId: ${incident?.id}, isActive: ${incident?.isActive}, color: ${circleColor}`,
+    );
 
     return (
       <MapboxGL.ShapeSource
@@ -1017,6 +1052,88 @@ const Home = ({navigation, route}) => {
       {Object.keys(selectedAlert).length ? (
         <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
       ) : null}
+
+      {/* Debug Overlay - Show incident circle rendering status */}
+      {incidentCircleData && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 60,
+            right: 10,
+            backgroundColor: 'rgba(232, 111, 86, 0.9)',
+            padding: 8,
+            borderRadius: 6,
+            zIndex: 100,
+          }}>
+          <Text
+            style={{
+              fontSize: 10,
+              color: '#fff',
+              fontFamily: 'monospace',
+              marginBottom: 4,
+            }}>
+            [CIRCLE] Rendered
+          </Text>
+          <Text
+            style={{
+              fontSize: 9,
+              color: '#fff',
+              fontFamily: 'monospace',
+              marginBottom: 2,
+            }}>
+            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
+          </Text>
+          <Text
+            style={{
+              fontSize: 9,
+              color: '#fff',
+              fontFamily: 'monospace',
+            }}>
+            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
+          </Text>
+        </View>
+      )}
+
+      {/* Debug Overlay - Show incident circle rendering status */}
+      {incidentCircleData && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 60,
+            right: 10,
+            backgroundColor: 'rgba(232, 111, 86, 0.9)',
+            padding: 8,
+            borderRadius: 6,
+            zIndex: 100,
+          }}>
+          <Text
+            style={{
+              fontSize: 10,
+              color: '#fff',
+              fontFamily: 'monospace',
+              marginBottom: 4,
+            }}>
+            [CIRCLE] Rendered
+          </Text>
+          <Text
+            style={{
+              fontSize: 9,
+              color: '#fff',
+              fontFamily: 'monospace',
+              marginBottom: 2,
+            }}>
+            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
+          </Text>
+          <Text
+            style={{
+              fontSize: 9,
+              color: '#fff',
+              fontFamily: 'monospace',
+            }}>
+            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
+          </Text>
+        </View>
+      )}
       <StatusBar
         animated
         translucent
@@ -1154,23 +1271,108 @@ const Home = ({navigation, route}) => {
       {/* fire alert info modal */}
       <BottomSheet
         onBackdropPress={() => {
+          console.log(
+            `[incident] Alert modal closed - alertId: ${selectedAlert?.id}`,
+          );
           setSelectedAlert({});
           setIncidentCircleData(null);
         }}
         isVisible={Object.keys(selectedAlert).length > 0}>
+        {Object.keys(selectedAlert).length > 0 &&
+          console.log(
+            `[incident] Alert modal opened - alertId: ${
+              selectedAlert?.id
+            }, siteIncidentId: ${
+              selectedAlert?.siteIncidentId || 'none'
+            }, site: ${selectedAlert?.site?.name || 'unknown'}`,
+          )}
         <Toast ref={modalToast} offsetBottom={100} duration={2000} />
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
 
+          {/* Debug Tags - Show alert and incident IDs */}
+          <View
+            style={{
+              backgroundColor: '#f0f0f0',
+              padding: 8,
+              borderRadius: 6,
+              marginBottom: 12,
+              borderLeftWidth: 3,
+              borderLeftColor: '#E86F56',
+            }}>
+            <Text
+              style={{
+                fontSize: 10,
+                color: '#666',
+                fontFamily: 'monospace',
+                marginBottom: 4,
+              }}>
+              [DEBUG] Alert ID: {selectedAlert?.id}
+            </Text>
+            {selectedAlert?.siteIncidentId && (
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: '#666',
+                  fontFamily: 'monospace',
+                  marginBottom: 4,
+                }}>
+                [DEBUG] Incident ID: {selectedAlert?.siteIncidentId}
+              </Text>
+            )}
+            {incident && (
+              <>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: '#666',
+                    fontFamily: 'monospace',
+                    marginBottom: 4,
+                  }}>
+                  [DEBUG] Incident Active: {incident.isActive ? 'Yes' : 'No'}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: '#666',
+                    fontFamily: 'monospace',
+                  }}>
+                  [DEBUG] Alert Count: {incident.siteAlerts.length}
+                </Text>
+              </>
+            )}
+            {!incident && selectedAlert?.siteIncidentId && (
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: '#E86F56',
+                  fontFamily: 'monospace',
+                }}>
+                [DEBUG] Loading incident data...
+              </Text>
+            )}
+          </View>
+
           {/* Incident Summary Card - shown when incident data is available */}
           {incident && (
-            <IncidentSummaryCard
-              isActive={incident.isActive}
-              startAlert={incident.startSiteAlert}
-              latestAlert={incident.latestSiteAlert}
-              allAlerts={incident.siteAlerts}
-            />
+            <>
+              {console.log(
+                `[incident] Displaying IncidentSummaryCard - incidentId: ${incident.id}, isActive: ${incident.isActive}, alertCount: ${incident.siteAlerts.length}`,
+              )}
+              <IncidentSummaryCard
+                isActive={incident.isActive}
+                startAlert={incident.startSiteAlert}
+                latestAlert={incident.latestSiteAlert}
+                allAlerts={incident.siteAlerts}
+              />
+            </>
           )}
+          {!incident &&
+            selectedAlert?.siteIncidentId &&
+            (console.log(
+              `[incident] Incident data loading - alertId: ${selectedAlert?.id}, siteIncidentId: ${selectedAlert?.siteIncidentId}, isLoading: ${isIncidentLoading}`,
+            ),
+            null)}
 
           <View style={styles.satelliteInfoCon}>
             <View style={styles.satelliteIcon}>
