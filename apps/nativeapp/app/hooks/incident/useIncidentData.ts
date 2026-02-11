@@ -80,7 +80,11 @@ export function useIncidentData(
           response.json.data.id
         }, isActive: ${response.json.data.isActive}, alertCount: ${
           response.json.data.siteAlerts?.length || 0
-        }`,
+        }, firePoints: ${response.json.data.siteAlerts
+          ?.map(
+            (a: any) => `(${a.latitude.toFixed(2)},${a.longitude.toFixed(2)})`,
+          )
+          .join(', ')}`,
       );
     }
   }, [response?.json?.data]);

@@ -1,6 +1,8 @@
 import React from 'react';
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Dimensions, View} from 'react-native';
 import Modal, {Direction} from 'react-native-modal';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 interface IBottomSheetProps {
   style?: any;
@@ -11,6 +13,7 @@ interface IBottomSheetProps {
   onSwipeComplete?: any;
   backdropColor?: string;
   swipeDirection?: Direction | Array<Direction>;
+  maxHeight?: number;
 }
 
 const BottomSheet = ({
@@ -22,6 +25,7 @@ const BottomSheet = ({
   onBackdropPress,
   swipeDirection = 'down',
   backdropColor = 'transparent',
+  maxHeight = SCREEN_HEIGHT / 2,
   ...restProps
 }: IBottomSheetProps) => {
   return (
@@ -35,7 +39,7 @@ const BottomSheet = ({
       onBackdropPress={onBackdropPress}
       style={[styles.bottomSheet, style]}
       onSwipeComplete={onSwipeComplete || onBackdropPress}>
-      {children}
+      <View style={[styles.content, {minHeight: maxHeight}]}>{children}</View>
     </Modal>
   );
 };
@@ -46,5 +50,12 @@ const styles = StyleSheet.create({
   bottomSheet: {
     margin: 0,
     justifyContent: 'flex-end',
+  },
+  content: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    width: '100%',
+    minHeight: SCREEN_HEIGHT / 2,
   },
 });

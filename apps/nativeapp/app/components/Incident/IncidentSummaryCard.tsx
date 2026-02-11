@@ -6,7 +6,18 @@
 import React, {useMemo} from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import moment from 'moment-timezone';
-import {OrangeFireIcon, DistanceIcon, InfoIcon} from '../../assets/svgs';
+import {
+  OrangeFireIcon,
+  IncidentActiveIcon,
+  IncidentInactiveIcon,
+  CalendarActiveIcon,
+  CalendarInactiveIcon,
+  ClockActiveIcon,
+  ClockInactiveIcon,
+  IncidentAreaActiveIcon,
+  IncidentAreaInactiveIcon,
+  BlackFireIcon,
+} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {calculateIncidentArea} from '../../utils/incident/incidentCircleUtils';
 import type {IncidentSummaryCardProps} from '../../types/incident';
@@ -57,7 +68,6 @@ export function IncidentSummaryCard(
   const backgroundColor = isActive ? Colors.FIRE_ORANGE : Colors.FIRE_GRAY;
   const badgeColor = isActive ? Colors.FIRE_ORANGE : Colors.PLANET_DARK_GRAY;
   const badgeText = isActive ? 'Active' : 'Resolved';
-  const iconColor = isActive ? Colors.FIRE_ORANGE : Colors.PLANET_DARK_GRAY;
 
   return (
     <View
@@ -69,7 +79,11 @@ export function IncidentSummaryCard(
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <View style={styles.iconWrapper}>
-            <InfoIcon width={24} height={24} color={iconColor} />
+            {isActive ? (
+              <IncidentActiveIcon width={24} height={24} />
+            ) : (
+              <IncidentInactiveIcon width={24} height={24} />
+            )}
           </View>
           <Text style={styles.title}>Fire Incident Summary</Text>
         </View>
@@ -85,13 +99,21 @@ export function IncidentSummaryCard(
           <Text style={styles.timelineLabel}>Started at</Text>
           <View style={styles.timelineContent}>
             <View style={styles.timelineItem}>
-              <Text style={[styles.timelineIcon, {color: iconColor}]}>📅</Text>
+              {isActive ? (
+                <CalendarActiveIcon width={16} height={16} />
+              ) : (
+                <CalendarInactiveIcon width={16} height={16} />
+              )}
               <Text style={styles.timelineText}>
                 {formatDate(startAlert.eventDate)}
               </Text>
             </View>
             <View style={styles.timelineItem}>
-              <Text style={[styles.timelineIcon, {color: iconColor}]}>🕐</Text>
+              {isActive ? (
+                <ClockActiveIcon width={16} height={16} />
+              ) : (
+                <ClockInactiveIcon width={16} height={16} />
+              )}
               <Text style={styles.timelineText}>
                 {formatTime(startAlert.eventDate)}
               </Text>
@@ -106,13 +128,21 @@ export function IncidentSummaryCard(
           </Text>
           <View style={styles.timelineContent}>
             <View style={styles.timelineItem}>
-              <Text style={[styles.timelineIcon, {color: iconColor}]}>📅</Text>
+              {isActive ? (
+                <CalendarActiveIcon width={16} height={16} />
+              ) : (
+                <CalendarInactiveIcon width={16} height={16} />
+              )}
               <Text style={styles.timelineText}>
                 {formatDate(latestAlert.eventDate)}
               </Text>
             </View>
             <View style={styles.timelineItem}>
-              <Text style={[styles.timelineIcon, {color: iconColor}]}>🕐</Text>
+              {isActive ? (
+                <ClockActiveIcon width={16} height={16} />
+              ) : (
+                <ClockInactiveIcon width={16} height={16} />
+              )}
               <Text style={styles.timelineText}>
                 {formatTime(latestAlert.eventDate)}
               </Text>
@@ -126,7 +156,11 @@ export function IncidentSummaryCard(
         {/* Total Fires */}
         <View style={styles.statisticCard}>
           <View style={styles.statisticIconWrapper}>
-            <OrangeFireIcon width={20} height={20} />
+            {isActive ? (
+              <OrangeFireIcon width={20} height={20} />
+            ) : (
+              <BlackFireIcon width={20} height={20} />
+            )}
           </View>
           <View style={styles.statisticContent}>
             <Text style={styles.statisticLabel}>Total Fires</Text>
@@ -137,7 +171,11 @@ export function IncidentSummaryCard(
         {/* Area Affected */}
         <View style={styles.statisticCard}>
           <View style={styles.statisticIconWrapper}>
-            <DistanceIcon width={20} height={20} color={iconColor} />
+            {isActive ? (
+              <IncidentAreaActiveIcon width={16} height={16} />
+            ) : (
+              <IncidentAreaInactiveIcon width={16} height={16} />
+            )}
           </View>
           <View style={styles.statisticContent}>
             <Text style={styles.statisticLabel}>Area Affected</Text>
@@ -155,7 +193,6 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',

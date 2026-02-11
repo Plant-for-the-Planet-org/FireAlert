@@ -229,10 +229,36 @@ const Home = ({navigation, route}) => {
   const {data: alerts} = useFetchSites({enabled: true});
 
   // Fetch incident data when an alert with siteIncidentId is selected
-  const {incident, isLoading: isIncidentLoading} = useIncidentData({
+  const {
+    incident,
+    isLoading: isIncidentLoading,
+    isError: isIncidentError,
+  } = useIncidentData({
     incidentId: selectedAlert?.siteIncidentId,
     enabled: !!selectedAlert?.siteIncidentId,
   });
+
+  // Log incident data changes
+  useEffect(() => {
+    if (incident) {
+      console.log(
+        `[incident] Incident data received in Home - incidentId: ${incident.id}, isActive: ${incident.isActive}, alertCount: ${incident.siteAlerts.length}`,
+      );
+    }
+  }, [incident]);
+
+  // Log selected alert changes
+  useEffect(() => {
+    if (Object.keys(selectedAlert).length > 0) {
+      console.log(
+        `[incident] Selected alert changed - alertId: ${
+          selectedAlert?.id
+        }, siteIncidentId: ${selectedAlert?.siteIncidentId || 'none'}, site: ${
+          selectedAlert?.site?.name || 'unknown'
+        }`,
+      );
+    }
+  }, [selectedAlert]);
 
   const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],
@@ -275,13 +301,29 @@ const Home = ({navigation, route}) => {
       latitude: a.latitude,
       longitude: a.longitude,
     }));
+    console.log(
+      `[incident] Fire points for circle - ${fires
+        .map(
+          (f, i) =>
+            `[${i}] lat:${f.latitude.toFixed(4)}, lon:${f.longitude.toFixed(
+              4,
+            )}`,
+        )
+        .join(' | ')}`,
+    );
     const result = generateIncidentCircle(fires, 2);
     if (result) {
       console.log(
         `[incident] Circle calculation completed - radiusKm: ${result.radiusKm.toFixed(
           2,
-        )}, areaKm2: ${result.areaKm2.toFixed(2)}`,
+        )}, areaKm2: ${result.areaKm2.toFixed(
+          2,
+        )}, centroid: [${result.centroid[1].toFixed(
+          4,
+        )}, ${result.centroid[0].toFixed(4)}]`,
       );
+    } else {
+      console.warn('[incident] Circle calculation returned null');
     }
     return result;
   }, [incident?.siteAlerts, incident?.id]);
@@ -290,8 +332,12 @@ const Home = ({navigation, route}) => {
   useEffect(() => {
     if (incidentCircle) {
       console.log(
-        `[incident] Incident circle data updated - preparing to render on map`,
+        `[incident] Incident circle data updated - preparing to render on map - radiusKm: ${incidentCircle.radiusKm.toFixed(
+          2,
+        )}, areaKm2: ${incidentCircle.areaKm2.toFixed(2)}`,
       );
+    } else {
+      console.log('[incident] Incident circle data cleared or not available');
     }
     setIncidentCircleData(incidentCircle);
   }, [incidentCircle]);
@@ -981,12 +1027,29 @@ const Home = ({navigation, route}) => {
       return null;
     }
 
-    const circleColor = incident?.isActive
+    if (!incident) {
+      console.log('[incident] No incident data available - skipping render');
+      return null;
+    }
+
+    const circleColor = incident.isActive
       ? Colors.INCIDENT_ACTIVE_COLOR
       : Colors.INCIDENT_RESOLVED_COLOR;
 
     console.log(
-      `[incident] Rendering incident circle on map - incidentId: ${incident?.id}, isActive: ${incident?.isActive}, color: ${circleColor}`,
+      `[incident] Rendering incident circle on map - incidentId: ${incident.id}, isActive: ${incident.isActive}, color: ${circleColor}`,
+    );
+    console.log(
+      `[incident] Circle polygon details - type: ${
+        incidentCircleData.circlePolygon.geometry.type
+      }, coordinates: ${
+        incidentCircleData.circlePolygon.geometry.coordinates[0]?.length || 0
+      } points, radius: ${incidentCircleData.radiusKm.toFixed(
+        2,
+      )}km, area: ${incidentCircleData.areaKm2.toFixed(2)}km²`,
+    );
+    console.log(
+      `[incident] Circle centroid - lat: ${incidentCircleData.centroid[1]}, lon: ${incidentCircleData.centroid[0]}`,
     );
 
     return (
@@ -997,15 +1060,15 @@ const Home = ({navigation, route}) => {
           id="incident-circle-fill"
           style={{
             fillColor: circleColor,
-            fillOpacity: 0.15,
+            fillOpacity: 0.25,
           }}
         />
         <MapboxGL.LineLayer
           id="incident-circle-line"
           style={{
-            lineWidth: 2,
+            lineWidth: 3,
             lineColor: circleColor,
-            lineOpacity: 0.8,
+            lineOpacity: 1,
           }}
         />
       </MapboxGL.ShapeSource>
@@ -1291,7 +1354,7 @@ const Home = ({navigation, route}) => {
           <View style={styles.modalHeader} />
 
           {/* Debug Tags - Show alert and incident IDs */}
-          <View
+          {/* <View
             style={{
               backgroundColor: '#f0f0f0',
               padding: 8,
@@ -1351,13 +1414,24 @@ const Home = ({navigation, route}) => {
                 [DEBUG] Loading incident data...
               </Text>
             )}
-          </View>
+          </View> */}
 
           {/* Incident Summary Card - shown when incident data is available */}
           {incident && (
             <>
               {console.log(
-                `[incident] Displaying IncidentSummaryCard - incidentId: ${incident.id}, isActive: ${incident.isActive}, alertCount: ${incident.siteAlerts.length}`,
+                `[incident] Displaying IncidentSummaryCard - incidentId: ${
+                  incident.id
+                }, isActive: ${incident.isActive}, alertCount: ${
+                  incident.siteAlerts.length
+                }, firePoints: ${incident.siteAlerts
+                  .map(
+                    (a, i) =>
+                      `[${i}](${a.latitude.toFixed(4)},${a.longitude.toFixed(
+                        4,
+                      )})`,
+                  )
+                  .join(' ')}`,
               )}
               <IncidentSummaryCard
                 isActive={incident.isActive}
@@ -1370,7 +1444,7 @@ const Home = ({navigation, route}) => {
           {!incident &&
             selectedAlert?.siteIncidentId &&
             (console.log(
-              `[incident] Incident data loading - alertId: ${selectedAlert?.id}, siteIncidentId: ${selectedAlert?.siteIncidentId}, isLoading: ${isIncidentLoading}`,
+              `[incident] Incident data loading - alertId: ${selectedAlert?.id}, siteIncidentId: ${selectedAlert?.siteIncidentId}, isLoading: ${isIncidentLoading}, isError: ${isIncidentError}`,
             ),
             null)}
 
@@ -1731,7 +1805,8 @@ const styles = StyleSheet.create({
   modalHeader: {
     width: 46,
     height: 8,
-    marginTop: 13,
+    marginTop: 10,
+    marginBottom: 8,
     borderRadius: 5,
     alignSelf: 'center',
     backgroundColor: Colors.GRAY_MEDIUM,

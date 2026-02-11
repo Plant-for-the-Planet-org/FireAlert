@@ -59,6 +59,15 @@ import GreenMapOutline from './greenMapOutline.jsx';
 import TrashOutlineIcon from './trashOutlineIcon.jsx';
 import VerificationWarning from './verificationWarning.jsx';
 import DisabledTrashOutlineIcon from './disabledTrashOutlineIcon.jsx';
+import IncidentActiveIcon from './incidentActiveIcon.jsx';
+import IncidentInactiveIcon from './incidentInactiveIcon.jsx';
+import {CalendarActiveIcon} from './calendarActiveIcon.jsx';
+import {CalendarInactiveIcon} from './calendarInactiveIcon.jsx';
+import {ClockActiveIcon} from './clockActiveIcon.jsx';
+import {ClockInactiveIcon} from './clockInactiveIcon.jsx';
+import {IncidentAreaActiveIcon} from './incidentAreaActiveIcon.jsx';
+import {IncidentAreaInactiveIcon} from './incidentAreaInactiveIcon.jsx';
+import {BlackFireIcon} from './blackFireIcon.jsx';
 
 export {
   Logo,
@@ -120,4 +129,13 @@ export {
   TrashOutlineIcon,
   VerificationWarning,
   DisabledTrashOutlineIcon,
+  IncidentActiveIcon,
+  IncidentInactiveIcon,
+  CalendarActiveIcon,
+  CalendarInactiveIcon,
+  ClockActiveIcon,
+  ClockInactiveIcon,
+  IncidentAreaActiveIcon,
+  IncidentAreaInactiveIcon,
+  BlackFireIcon,
 };
