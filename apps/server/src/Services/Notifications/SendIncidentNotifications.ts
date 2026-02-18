@@ -13,6 +13,7 @@ import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import type {NotificationParameters} from '../../Interfaces/NotificationParameters';
 import {getLocalTime} from '../../../src/utils/date';
 import type DataRecord from '../../Interfaces/DataRecord';
+import {isSiteIncidentMethod} from './NotificationRoutingConfig';
 
 type NotificationWithRelations = Notification & {
   siteAlert: SiteAlert & {
@@ -51,6 +52,7 @@ export class SendIncidentNotifications {
       // Status IN [START_SCHEDULED, END_SCHEDULED]
       // isDelivered = false
       // isSkipped = false
+      // Only process SiteIncident methods (email, sms, whatsapp)
       const notifications = (await prisma.notification.findMany({
         where: {
           isSkipped: false,
@@ -61,7 +63,11 @@ export class SendIncidentNotifications {
               NotificationStatus.END_SCHEDULED,
             ],
           },
-          alertMethod: {notIn: alertMethodsExclusionList},
+          // Only process SiteIncident methods and exclude disabled methods
+          alertMethod: {
+            notIn: alertMethodsExclusionList,
+            in: ['email', 'sms', 'whatsapp'],
+          },
         },
         include: {
           siteAlert: {

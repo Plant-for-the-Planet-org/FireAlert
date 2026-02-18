@@ -18,38 +18,40 @@ export default async function notificationSender(
     }
   }
 
-  const useIncidentNotifications = env.ENABLE_INCIDENT_NOTIFICATIONS as boolean;
-
   logger(
-    `Running Notification Sender. Using ${
-      useIncidentNotifications ? 'SiteIncident' : 'SiteAlert'
-    } notifications.`,
+    'Running Notification Sender with method-based routing: SiteAlert (device, webhook) + SiteIncident (email, sms, whatsapp)',
     'info',
   );
 
   try {
-    let notificationsSent: number;
+    // Run both services in parallel for method-based routing
+    const [alertNotificationsSent, incidentNotificationsSent] =
+      await Promise.all([
+        sendNotifications({req}), // SiteAlert-based (device, webhook)
+        SendIncidentNotifications.run(req), // SiteIncident-based (email, sms, whatsapp)
+      ]);
 
-    if (useIncidentNotifications) {
-      notificationsSent = await SendIncidentNotifications.run(req);
-    } else {
-      notificationsSent = await sendNotifications({req});
-    }
+    const totalNotificationsSent =
+      alertNotificationsSent + incidentNotificationsSent;
 
-    if (notificationsSent === 0) {
+    if (totalNotificationsSent === 0) {
       // No notifications were needed to be sent, but the job executed successfully
       res.status(200).json({
         message:
-          'Cron job executed successfully, but no notifications were sent',
+          'Cron job executed successfully with method-based routing, but no notifications were sent',
         status: '200',
-        notificationsSent,
+        alertNotificationsSent,
+        incidentNotificationsSent,
+        totalNotificationsSent,
       });
     } else {
       // Notifications were sent successfully
       res.status(200).json({
-        message: `Cron job executed successfully. ${notificationsSent} were sent`,
+        message: `Cron job executed successfully with method-based routing. ${totalNotificationsSent} notifications were sent`,
         status: '200',
-        notificationsSent,
+        alertNotificationsSent,
+        incidentNotificationsSent,
+        totalNotificationsSent,
       });
     }
   } catch (error: unknown) {

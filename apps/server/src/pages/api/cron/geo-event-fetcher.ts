@@ -108,30 +108,7 @@ async function refactoredImplementation(
     new BatchProcessor(),
   );
 
-  // Initialize SiteIncidentService for incident management
-  const {SiteIncidentRepository} = await import(
-    '../../../Services/SiteIncident/SiteIncidentRepository'
-  );
-  const {IncidentResolver} = await import(
-    '../../../Services/SiteIncident/IncidentResolver'
-  );
-  const {SiteIncidentService} = await import(
-    '../../../Services/SiteIncident/SiteIncidentService'
-  );
-
-  const siteIncidentRepo = new SiteIncidentRepository(prisma);
-  const incidentResolver = new IncidentResolver(siteIncidentRepo);
-  const siteIncidentService = new SiteIncidentService(
-    siteIncidentRepo,
-    incidentResolver,
-    env.INCIDENT_RESOLUTION_HOURS || 6,
-  );
-
-  const siteAlertService = new SiteAlertService(
-    siteAlertRepo,
-    geoEventRepo,
-    siteIncidentService,
-  );
+  const siteAlertService = new SiteAlertService(siteAlertRepo, geoEventRepo);
 
   const concurrency = env.PROVIDER_CONCURRENCY || 3; // Configurable concurrency
   const queue = new PQueue({concurrency});
@@ -149,31 +126,7 @@ async function refactoredImplementation(
   // 6. Process providers with concurrency control
   const result = await providerService.processProviders(selected, concurrency);
 
-  // 7. Resolve inactive incidents
-  // TODO: This logic has been moved to site-incident-manager.ts.
-  // We are temporarily disabling it here to prevent redundant processing.
-  let resolvedIncidents = 0;
-  if (false as boolean) {
-    try {
-      logger('Starting incident resolution phase', 'info');
-      resolvedIncidents = await siteIncidentService.resolveInactiveIncidents();
-      logger(
-        `Incident resolution complete: ${resolvedIncidents} incidents resolved`,
-        'info',
-      );
-    } catch (error) {
-      logger(
-        `Error during incident resolution: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        'error',
-      );
-      // Don't fail the entire CRON if incident resolution fails
-    }
-  }
-
-  // 8. Add incident metrics to result and return response
-  result.setResolvedIncidents(resolvedIncidents);
+  // 7. Return response
   res.status(200).json(RequestHandler.buildSuccess(result));
 }
 

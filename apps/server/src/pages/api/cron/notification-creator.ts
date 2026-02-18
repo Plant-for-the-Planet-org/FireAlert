@@ -19,31 +19,31 @@ export default async function notificationsCron(
     }
   }
 
-  const useIncidentNotifications = env.ENABLE_INCIDENT_NOTIFICATIONS === true;
-
   logger(
-    `Running Notification Creator. Using ${
-      useIncidentNotifications ? 'SiteIncident' : 'SiteAlert'
-    } notifications.`,
+    'Running Notification Creator with method-based routing: SiteAlert (device, webhook) + SiteIncident (email, sms, whatsapp)',
     'info',
   );
 
   try {
-    let notificationCount: number;
+    // Run both services in parallel for method-based routing
+    const [alertNotifications, incidentNotifications] = await Promise.all([
+      createNotifications(), // SiteAlert-based (device, webhook)
+      CreateIncidentNotifications.run(), // SiteIncident-based (email, sms, whatsapp)
+    ]);
 
-    if (useIncidentNotifications) {
-      // Call Create Incident Notifications Service
-      notificationCount = await CreateIncidentNotifications.run();
-      logger(`Added ${notificationCount} incident notifications`, 'info');
-    } else {
-      // Call legacy Create Notifications Service
-      notificationCount = await createNotifications();
-      logger(`Added ${notificationCount} site alert notifications`, 'info');
-    }
+    const totalNotifications = alertNotifications + incidentNotifications;
+
+    logger(
+      `Created ${alertNotifications} SiteAlert notifications and ${incidentNotifications} incident notifications (${totalNotifications} total)`,
+      'info',
+    );
 
     res.status(200).json({
-      message: 'Notification-creator cron job executed successfully',
-      notificationCount: notificationCount,
+      message:
+        'Notification-creator cron job executed successfully with method-based routing',
+      alertNotifications: alertNotifications,
+      incidentNotifications: incidentNotifications,
+      totalNotifications: totalNotifications,
       status: 200,
     });
   } catch (error: unknown) {

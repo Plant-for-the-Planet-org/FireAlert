@@ -100,7 +100,7 @@ export async function processSiteAlertForIncident(
 export async function closeInactiveIncidentsWithNotifications(): Promise<number> {
   try {
     const inactivityThresholdHours = parseInt(
-      process.env.INCIDENT_INACTIVITY_HOURS || '6',
+      process.env.INCIDENT_RESOLUTION_HOURS || '6',
       10,
     );
 

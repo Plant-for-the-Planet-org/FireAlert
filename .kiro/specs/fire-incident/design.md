@@ -406,7 +406,7 @@ _For any_ Notification that fails to send, the notification SHALL be marked as s
 
 ```bash
 # Inactivity threshold for closing incidents (in hours)
-INCIDENT_INACTIVITY_HOURS=6
+INCIDENT_RESOLUTION_HOURS=6
 
 # Feature flag for incident notifications (future CRON automation)
 ENABLE_INCIDENT_NOTIFICATIONS=true
@@ -414,7 +414,7 @@ ENABLE_INCIDENT_NOTIFICATIONS=true
 
 **Default Values:**
 
-- `INCIDENT_INACTIVITY_HOURS`: 6 hours (if not set)
+- `INCIDENT_RESOLUTION_HOURS`: 6 hours (if not set)
 - `ENABLE_INCIDENT_NOTIFICATIONS`: true (if not set)
 
 ## Error Handling

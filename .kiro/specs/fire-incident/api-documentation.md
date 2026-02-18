@@ -515,7 +515,7 @@ All endpoints use standard tRPC error codes:
 
 The following environment variables affect the notification system:
 
-- **`INCIDENT_INACTIVITY_HOURS`**: Hours of inactivity before closing an incident (default: 6)
+- **`INCIDENT_RESOLUTION_HOURS`**: Hours of inactivity before closing an incident (default: 6)
 - **`ENABLE_INCIDENT_NOTIFICATIONS`**: Feature flag for incident notifications (default: true)
 - **`NOTIFICATION_BATCH_SIZE`**: Number of notifications to process per batch (default: 10)
 - **`ALERT_SMS_DISABLED`**: Disable SMS notifications (default: false)

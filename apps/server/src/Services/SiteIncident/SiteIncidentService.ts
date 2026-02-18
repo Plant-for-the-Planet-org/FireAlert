@@ -134,28 +134,6 @@ export class SiteIncidentService {
         }
       } else {
         // Create new incident
-        const newIncident = await prisma.siteIncident.create({
-          data: {
-            siteId: alert.siteId,
-            startSiteAlertId: alert.id,
-            latestSiteAlertId: alert.id,
-            endSiteAlertId: alert.id,
-            startedAt: new Date(),
-            isActive: true,
-            isProcessed: false,
-            reviewStatus: 'to_review',
-          },
-        });
-
-        // Associate the alert with the incident
-        await prisma.siteAlert.update({
-          where: {id: alert.id},
-          data: {
-            siteIncidentId: newIncident.id,
-            isProcessed: true,
-          },
-        });
-
         logger(
           `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
           'debug',

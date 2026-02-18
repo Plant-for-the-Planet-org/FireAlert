@@ -125,7 +125,7 @@ Each task builds incrementally on previous steps, with property-based tests inte
   - Verify incidents transition to inactive after threshold duration
 
 - [x] 1.9 Add environment variable configuration
-  - Add `INCIDENT_INACTIVITY_HOURS` to `.env` and `.env.sample` (default: 6)
+  - Add `INCIDENT_RESOLUTION_HOURS` to `.env` and `.env.sample` (default: 6)
   - Add `ENABLE_INCIDENT_NOTIFICATIONS` feature flag (default: true)
   - Load and validate configuration in service initialization
   - _Requirements: 1.3_

@@ -1,5 +1,7 @@
 import {prisma} from '../../server/db';
 import {CustomError} from '../../utils/errorHandler';
+import {logger} from '../../server/logger';
+import {isSiteAlertMethod} from './NotificationRoutingConfig';
 
 // Logic in Prisma:
 // Initialize an empty array → `notificationDataQueue` -> Queue for holding data required for conditional notification creation
@@ -154,7 +156,11 @@ function processSiteAlertChunk(
         webhook: Infinity,
       };
       alertMethods.forEach(method => {
-        if (method.isVerified && method.isEnabled) {
+        if (
+          method.isVerified &&
+          method.isEnabled &&
+          isSiteAlertMethod(method.method)
+        ) {
           notificationMethodCounter[siteId][method.method] += 1; // Increment the count of each method
         }
       });
@@ -164,7 +170,11 @@ function processSiteAlertChunk(
 
     if (alertMethods && alertMethods.length > 0) {
       alertMethods.forEach(alertMethod => {
-        if (alertMethod.isVerified && alertMethod.isEnabled) {
+        if (
+          alertMethod.isVerified &&
+          alertMethod.isEnabled &&
+          isSiteAlertMethod(alertMethod.method)
+        ) {
           notificationDataQueue.push({
             siteAlertId: siteAlert.id,
             siteId: siteAlert.siteId,
@@ -183,15 +193,8 @@ function processSiteAlertChunk(
     const siteId = notification.siteId;
     const method = notification.alertMethod;
 
-    // Determine if notification can be created
-    // Check if the site is active or not, then check if the method count is sufficient
-    const isSiteActive =
-      !notification.lastMessageCreated ||
-      new Date(notification.lastMessageCreated) <
-        new Date(Date.now() - 2 * 60 * 60 * 1000);
-    const isMethodCountSufficient =
-      notificationMethodCounter[siteId][method] > 0;
-    const canCreateNotification = isSiteActive && isMethodCountSufficient;
+    // For SiteAlert methods (device, webhook), always create notifications (no rate limiting)
+    const canCreateNotification = true;
 
     if (canCreateNotification) {
       // Prepare createNotificationData object
@@ -205,16 +208,10 @@ function processSiteAlertChunk(
       // Add to notificationsToBeCreated array
       notificationsToBeCreated.push(createNotificationData);
 
-      // Decrement the method count
+      // Decrement the method count (for consistency, though not used for rate limiting)
       notificationMethodCounter[siteId][method] -= 1;
 
-      // Add siteId to sitesToBeUpdated for methods other than device and webhook
-      if (
-        ['sms', 'whatsapp', 'email'].includes(method) &&
-        !sitesToBeUpdated.includes(siteId)
-      ) {
-        sitesToBeUpdated.push(siteId);
-      }
+      // Note: We don't update lastMessageCreated for SiteAlert methods as they are real-time
     }
   }
   const notificationCreateData = notificationsToBeCreated.map(n => ({
@@ -240,6 +237,11 @@ function processSiteAlertChunk(
 const createNotifications = async () => {
   let totalNotificationsCreated = 0;
   try {
+    logger(
+      'Starting CreateNotifications for SiteAlert methods (device, webhook) only',
+      'info',
+    );
+
     //Get all unprocessed alerts
     const unprocessedAlerts = await prisma.siteAlert.findMany({
       where: {
@@ -323,12 +325,8 @@ const createNotifications = async () => {
         await prisma.notification.createMany({
           data: notificationCreateData,
         });
-        if (sitesToBeUpdated.length > 0) {
-          await prisma.site.updateMany({
-            where: {id: {in: sitesToBeUpdated}},
-            data: {lastMessageCreated: new Date()},
-          });
-        }
+        // Note: We don't update lastMessageCreated for SiteAlert methods as they are real-time notifications
+        // and should not be rate limited
       });
       totalNotificationsCreated =
         totalNotificationsCreated + notificationCreateData.length;
@@ -337,6 +335,10 @@ const createNotifications = async () => {
     const {status, message} = error as {status: number; message: string};
     CustomError.throw(status, message, 'GeneralError', true);
   }
+  logger(
+    `CreateNotifications completed. Created ${totalNotificationsCreated} SiteAlert notifications (device, webhook methods only)`,
+    'info',
+  );
   return totalNotificationsCreated;
 };
 

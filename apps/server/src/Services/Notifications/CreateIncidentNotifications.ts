@@ -5,6 +5,7 @@ import {
   type IncidentNotificationMetadata,
 } from '../../Interfaces/SiteIncidentNotifications';
 import {NotificationStatus, type SiteIncident} from '@prisma/client';
+import {isSiteIncidentMethod} from './NotificationRoutingConfig';
 
 export class CreateIncidentNotifications {
   static async run(): Promise<number> {
@@ -13,7 +14,10 @@ export class CreateIncidentNotifications {
   }
 
   async process(): Promise<number> {
-    logger('Starting CreateIncidentNotifications process...', 'info');
+    logger(
+      'Starting CreateIncidentNotifications for SiteIncident methods (email, sms, whatsapp) only',
+      'info',
+    );
 
     // 1. Fetch unprocessed site incidents
     const incidents = await this.processUnprocessedIncidents();
@@ -42,6 +46,10 @@ export class CreateIncidentNotifications {
 
     logger(
       `Successfully created ${notificationQueue.length} notifications.`,
+      'info',
+    );
+    logger(
+      `CreateIncidentNotifications completed. Created ${notificationQueue.length} incident notifications (email, sms, whatsapp methods only)`,
       'info',
     );
     return notificationQueue.length;
@@ -103,9 +111,10 @@ export class CreateIncidentNotifications {
         });
       }
 
-      // Filter Verified & Enabled
+      // Filter Verified & Enabled & SiteIncident methods only
       const validMethods = allAlertMethods.filter(
-        (m: any) => m.isVerified && m.isEnabled,
+        (m: any) =>
+          m.isVerified && m.isEnabled && isSiteIncidentMethod(m.method),
       );
 
       if (validMethods.length === 0) continue;

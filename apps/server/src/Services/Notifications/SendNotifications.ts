@@ -9,6 +9,7 @@ import {logger} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import {unsubscribeService} from '../AlertMethod/UnsubscribeService';
+import {isSiteAlertMethod} from './NotificationRoutingConfig';
 import type {Notification, SiteAlert, Site} from '@prisma/client';
 
 type SiteAlertWithSite = SiteAlert & {
@@ -50,7 +51,11 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
         isSkipped: false,
         isDelivered: false,
         sentAt: null,
-        alertMethod: {notIn: alertMethodsExclusionList},
+        alertMethod: {
+          notIn: alertMethodsExclusionList,
+          in: ['device', 'webhook'],
+        },
+        notificationStatus: null,
       },
       include: {
         siteAlert: {

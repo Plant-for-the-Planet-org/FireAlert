@@ -107,9 +107,9 @@ const server = z.object({
   // When false, uses legacy SiteAlert-based notifications. Defaults to true.
   ENABLE_INCIDENT_NOTIFICATIONS: coerceBooleanWithDefault(true),
 
-  // Fire Incident inactivity threshold in hours. Incidents with no detections for this duration
+  // Fire Incident resolution threshold in hours. Incidents with no detections for this duration
   // are marked as inactive and trigger end notifications. Defaults to 6 hours.
-  INCIDENT_INACTIVITY_HOURS: z
+  INCIDENT_RESOLUTION_HOURS: z
     .string()
     .default('6')
     .transform(val => {
@@ -174,7 +174,7 @@ const processEnv = {
   USE_REFACTORED_PIPELINE: process.env.USE_REFACTORED_PIPELINE,
   PROVIDER_CONCURRENCY: process.env.PROVIDER_CONCURRENCY,
   ENABLE_INCIDENT_NOTIFICATIONS: process.env.ENABLE_INCIDENT_NOTIFICATIONS,
-  INCIDENT_INACTIVITY_HOURS: process.env.INCIDENT_INACTIVITY_HOURS,
+  INCIDENT_RESOLUTION_HOURS: process.env.INCIDENT_RESOLUTION_HOURS,
 };
 
 // Don't touch the part below

@@ -27,7 +27,7 @@ The Fire Incident Tracking feature introduces a new `SiteIncident` entity to gro
 
 ### Configuration.
 
-- **Inactivity Threshold**: The duration (in hours) after which a SiteIncident with no new detections is considered ended; configurable via environment variable `INCIDENT_INACTIVITY_HOURS` (default: 6 hours)
+- **Inactivity Threshold**: The duration (in hours) after which a SiteIncident with no new detections is considered ended; configurable via environment variable `INCIDENT_RESOLUTION_HOURS` (default: 6 hours)
 
 ### Notification Services.
 
