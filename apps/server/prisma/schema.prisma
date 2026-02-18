@@ -83,12 +83,39 @@ model Site {
     lastMessageCreated DateTime?
     detectionArea      Float?                   @default(0)
     alerts             SiteAlert[]
+    incidents          SiteIncident[]
     project            Project?                 @relation(fields: [projectId], references: [id])
     user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
     siteRelations      SiteRelation[]
 
     @@index([userId])
     @@index([detectionGeometry], type: Gist)
+}
+
+model SiteIncident {
+    id                  String      @id @default(cuid())
+    siteId              String
+    startSiteAlertId    String
+    endSiteAlertId      String?
+    latestSiteAlertId   String
+    startedAt           DateTime    @default(now())
+    endedAt             DateTime?
+    isActive            Boolean     @default(true)
+    isProcessed         Boolean     @default(false)
+    startNotificationId String?
+    endNotificationId   String?
+    reviewStatus        String      @default("to_review")
+    createdAt           DateTime    @default(now())
+    updatedAt           DateTime    @updatedAt
+    site                Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+    startSiteAlert      SiteAlert   @relation("startAlert", fields: [startSiteAlertId], references: [id])
+    latestSiteAlert     SiteAlert   @relation("latestAlert", fields: [latestSiteAlertId], references: [id])
+    endSiteAlert        SiteAlert?  @relation("endAlert", fields: [endSiteAlertId], references: [id])
+    siteAlerts          SiteAlert[] @relation("incidentAlerts")
+
+    @@index([siteId])
+    @@index([isActive, isProcessed])
+    @@index([startedAt])
 }
 
 model Project {
@@ -131,22 +158,28 @@ model GeoEvent {
 }
 
 model SiteAlert {
-    id            String          @id @default(cuid())
-    siteId        String
-    type          String //Fire
-    latitude      Float
-    longitude     Float
-    eventDate     DateTime
-    detectedBy    String //GeoEventProviderClientId
-    confidence    AlertConfidence
-    isProcessed   Boolean         @default(false)
-    deletedAt     DateTime?
-    distance      Int
-    data          Json?
-    notifications Notification[]
-    site          Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+    id              String          @id @default(cuid())
+    siteId          String
+    type            String //Fire
+    latitude        Float
+    longitude       Float
+    eventDate       DateTime
+    detectedBy      String //GeoEventProviderClientId
+    confidence      AlertConfidence
+    isProcessed     Boolean         @default(false)
+    deletedAt       DateTime?
+    distance        Int
+    data            Json?
+    siteIncidentId  String?
+    notifications   Notification[]
+    site            Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+    siteIncident    SiteIncident?   @relation("incidentAlerts", fields: [siteIncidentId], references: [id], onDelete: SetNull)
+    startIncidents  SiteIncident[]  @relation("startAlert")
+    latestIncidents SiteIncident[]  @relation("latestAlert")
+    endIncidents    SiteIncident[]  @relation("endAlert")
 
     @@index([isProcessed, eventDate])
+    @@index([siteIncidentId])
 }
 
 model Notification {

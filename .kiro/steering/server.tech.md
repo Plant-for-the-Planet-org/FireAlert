@@ -52,22 +52,50 @@ yarn server db:push
 
 ### Database Configuration
 
-- **`DATABASE_URL`**: Primary PostgreSQL connection string with connection pooling for application queries
-- **`DATABASE_PRISMA_URL`**: Prisma-specific database URL, typically same as DATABASE_URL but may use pooled connections on Vercel
-- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling, required for migrations and schema operations
-- **`DATABASE_LOG_SLOWQUERY`**: Boolean flag to enable slow query logging for database performance monitoring (default: false)
+The application supports multiple database configurations for different environments. Uncomment the appropriate set based on your needs:
 
-### Authentication & Security
+#### Production/Development (Supabase)
 
-- **`AUTH0_DOMAIN`**: Auth0 domain URL for authentication services (e.g., "https://accounts.plant-for-the-planet.org")
-- **`AUTH0_ISSUER`**: Auth0 issuer identifier for token validation (e.g., "urn:plant-for-the-planet")
-- **`NEXT_AUTH0_CLIENT_ID`**: Auth0 client ID for Next.js application authentication
-- **`NEXT_AUTH0_CLIENT_SECRET`**: Auth0 client secret for secure authentication flows
-- **`RN_AUTH0_CLIENT_ID`**: Auth0 client ID specifically for React Native mobile application
-- **`RN_AUTH0_DOMAIN`**: Auth0 domain for React Native mobile application authentication
-- **`NEXTAUTH_SECRET`**: Secret key for NextAuth.js session encryption and JWT signing
-- **`NEXTAUTH_URL`**: Base URL for NextAuth.js callbacks and redirects (e.g., "http://localhost:3000")
-- **`CRON_KEY`**: Security key for authenticating CRON job endpoints to prevent unauthorized access
+- **`DATABASE_URL`**: PostgreSQL connection string with connection pooling for general database operations. Points to Supabase pooler for production/staging environments
+- **`DATABASE_PRISMA_URL`**: Prisma-specific database connection URL (typically same as DATABASE_URL for pooled connections)
+- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling, required for Prisma migrations and schema operations. Essential for running `yarn server db:migrate` and `yarn server db:deploy`
+- **`DATABASE_URL_NON_POOLING_SHADOW`**: Shadow database URL for Prisma migration testing and validation during development
+
+#### Local Development (Default Database)
+
+Uncomment these variables to connect to a local PostgreSQL instance running on port 54320 with the default `postgres` database:
+
+- **`DATABASE_URL`**: `postgres://postgres:password@localhost:54320/postgres`
+- **`DATABASE_PRISMA_URL`**: `postgres://postgres:password@localhost:54320/postgres`
+- **`DATABASE_URL_NON_POOLING`**: `postgres://postgres:password@localhost:54320/postgres`
+- **`DATABASE_URL_NON_POOLING_SHADOW`**: `postgres://postgres:password@localhost:54320/postgres`
+
+#### Local Development (FireIncident Database)
+
+Uncomment these variables to connect to a local PostgreSQL instance with a dedicated `fire-incidents` database for testing fire incident tracking features:
+
+- **`DATABASE_URL`**: `postgres://postgres:password@localhost:54320/fire-incidents`
+- **`DATABASE_PRISMA_URL`**: `postgres://postgres:password@localhost:54320/fire-incidents`
+- **`DATABASE_URL_NON_POOLING`**: `postgres://postgres:password@localhost:54320/fire-incidents`
+- **`DATABASE_URL_NON_POOLING_SHADOW`**: `postgres://postgres:password@localhost:54320/fire-incidents`
+
+**Note**: Only one set of database configuration variables should be active (uncommented) at a time. The local configurations assume PostgreSQL with PostGIS extension is running locally, typically via Docker or Supabase local development setup.
+
+### Authentication & Authorization
+
+- **`RN_AUTH0_CLIENT_ID`**: Auth0 client ID for React Native mobile app authentication
+- **`RN_AUTH0_DOMAIN`**: Auth0 domain for React Native mobile app (e.g., accounts.plant-for-the-planet.org)
+- **`NEXT_AUTH0_CLIENT_ID`**: Auth0 client ID for Next.js web application
+- **`NEXT_AUTH0_CLIENT_SECRET`**: Auth0 client secret for Next.js server-side authentication
+- **`AUTH0_DOMAIN`**: Full Auth0 domain URL (e.g., https://accounts.plant-for-the-planet.org)
+- **`AUTH0_ISSUER`**: Auth0 token issuer identifier (e.g., urn:plant-for-the-planet)
+- **`NEXTAUTH_SECRET`**: Secret key for NextAuth.js session encryption (generate with `openssl rand -base64 32`)
+- **`NEXTAUTH_URL`**: Base URL of the Next.js application for NextAuth callbacks
+
+### Mapping Services
+
+- **`MAPBOXGL_ACCCESS_TOKEN`**: Mapbox access token for map rendering and tile services
+- **`MAPBOXGL_DOWNLOAD_TOKEN`**: Mapbox token for downloading map tiles and assets
 
 ### Mapping & Geospatial Services
 
@@ -77,22 +105,22 @@ yarn server db:push
 
 ### Communication & Notifications
 
-#### SMS & Voice (Twilio)
+#### Twilio (SMS & WhatsApp)
 
-- **`TWILIO_ACCOUNT_SID`**: Twilio account identifier for SMS and voice services
+- **`TWILIO_ACCOUNT_SID`**: Twilio account identifier for SMS and WhatsApp services
 - **`TWILIO_AUTH_TOKEN`**: Twilio authentication token for API access
-- **`TWILIO_PHONE_NUMBER`**: Twilio phone number for sending SMS notifications (e.g., "+12293215210")
-- **`TWILIO_WHATSAPP_NUMBER`**: Twilio WhatsApp Business number for WhatsApp notifications
+- **`TWILIO_PHONE_NUMBER`**: Twilio phone number for sending SMS notifications
+- **`TWILIO_WHATSAPP_NUMBER`**: Twilio WhatsApp-enabled number for WhatsApp notifications
+
+#### OneSignal (Push Notifications)
+
+- **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification delivery
+- **`ONESIGNAL_REST_API_KEY`**: OneSignal REST API key for server-side push notification operations
 
 #### Email (SMTP)
 
-- **`SMTP_URL`**: SMTP server connection string for email delivery (e.g., "smtp://user:pass@server:port")
-- **`EMAIL_FROM`**: Default sender address for outgoing emails (e.g., "FireAlert <firealert@plant-for-the-planet.org>")
-
-#### Push Notifications (OneSignal)
-
-- **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification services
-- **`ONESIGNAL_REST_API_KEY`**: OneSignal REST API key for sending push notifications
+- **`SMTP_URL`**: SMTP server connection URL (format: smtp://username:password@host:port)
+- **`EMAIL_FROM`**: Default sender email address and display name for outgoing emails
 
 #### WhatsApp Integration
 
@@ -101,30 +129,28 @@ yarn server db:push
 
 ### Monitoring & Logging
 
-- **`NEXT_PUBLIC_SENTRY_DSN`**: Sentry Data Source Name for error tracking and performance monitoring
-- **`SENTRY_IGNORE_API_RESOLUTION_ERROR`**: Boolean flag to ignore API resolution errors in Sentry reporting
-- **`NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN`**: Logtail token for centralized logging (optional)
-- **`SLACK_KEY_SITE_NOTIFICATIONS`**: Slack webhook URL for site notification alerts
+- **`PLANET_API_URL`**: Plant-for-the-Planet platform API URL for project and site synchronization
+- **`FIRMS_MAP_KEY`**: NASA FIRMS (Fire Information for Resource Management System) API key for fire data access
+- **`SLACK_KEY_SITE_NOTIFICATIONS`**: Slack webhook URL for internal site notification alerts
 
-### Feature Flags & Configuration
+### Monitoring & Debugging
 
-- **`ALERT_SMS_DISABLED`**: Boolean flag to disable SMS notifications system-wide (default: true)
-- **`ALERT_WHATSAPP_DISABLED`**: Boolean flag to disable WhatsApp notifications system-wide (default: true)
-- **`PUBLIC_API_CACHING`**: Boolean flag to enable/disable API response caching (auto-enabled in production)
-- **`NOTIFICATION_BATCH_SIZE`**: Number of notifications to process in each batch (default: "10")
-- **`USE_REFACTORED_PIPELINE`**: Boolean flag for CRON refactor - set to 'true' to use new service layer architecture, 'false' for legacy implementation. Controls whether the system uses the modernized service-based pipeline or the original implementation for processing fire detection data and notifications
-- **`ENABLE_INCIDENT_NOTIFICATIONS`**: Boolean flag to enable fire incident tracking notifications
-- **`INCIDENT_INACTIVITY_HOURS`**: Hours of inactivity before marking fire incident as resolved (default: 6)
-
-### External Platform Integration
-
-- **`PLANET_API_URL`**: Plant-for-the-Planet platform API URL for project synchronization (default: "https://app.plant-for-the-planet.org")
+- **`NEXT_PUBLIC_SENTRY_DSN`**: Sentry Data Source Name for error tracking and monitoring
+- **`SENTRY_IGNORE_API_RESOLUTION_ERROR`**: Suppress Sentry API resolution errors (true/false). Set to `true` to ignore API resolution errors in development, `false` to log them for debugging Sentry configuration issues
+- **`NODE_ENV`**: Node.js environment mode ('development', 'production', or 'test')
+- **`PUBLIC_API_CACHING`**: Enable/disable API response caching (true/false)
 
 ### Development & Runtime
 
+<<<<<<< HEAD
+
+- **`USE_REFACTORED_PIPELINE`**: Enable new service layer architecture for geo-event processing ('true'/'false')
+- **`ENABLE_INCIDENT_NOTIFICATIONS`**: Enable fire incident tracking and notification system ('true'/'false')
+- # **`INCIDENT_INACTIVITY_HOURS`**: Hours of inactivity before closing a fire incident (default: 6)
 - **`NEXT_PUBLIC_HOST`**: Base URL for the Next.js application, used for generating absolute URLs in client-side code and API responses (e.g., "http://localhost:3000" for development, "https://firealert.plant-for-the-planet.org" for production)
 - **`NODE_ENV`**: Node.js environment mode ("development", "test", "production")
 - **`SKIP_ENV_VALIDATION`**: Boolean flag to skip environment variable validation during startup
+  > > > > > > > develop
 
 ## Environment Configuration
 

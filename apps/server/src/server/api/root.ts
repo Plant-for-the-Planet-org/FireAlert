@@ -5,6 +5,7 @@ import {alertRouter} from '../../server/api/routers/alert';
 import {userRouter} from './routers/user';
 import {projectRouter} from './routers/project';
 import {geoEventProviderRouter} from './routers/geoEventProvider';
+import {siteIncidentRouter} from './routers/siteIncident';
 import {unsubscribeRouter} from './routers/unsubscribe';
 
 /**
@@ -19,6 +20,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   project: projectRouter,
   geoEventProvider: geoEventProviderRouter,
+  siteIncident: siteIncidentRouter,
   unsubscribe: unsubscribeRouter,
 });
 
