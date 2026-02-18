@@ -19,6 +19,7 @@ export interface StateChangeEvent {
     | 'login'
     | 'logout'
     | 'permission_changed'
+    | 'subscription_changed'
     | 'state_updated';
   previousState: DeviceState;
   currentState: DeviceState;
@@ -45,6 +46,24 @@ export interface SyncResult {
   message: string;
   timestamp: number;
 }
+
+/** Minimal device alert method shape for sync logic (aligned with getAlertMethods response). */
+export interface DeviceAlertMethodRecord {
+  id: string;
+  method: string;
+  destination: string;
+  deviceId: string | null;
+  deviceName: string | null;
+  isEnabled: boolean;
+  isVerified: boolean;
+}
+
+/** Result of computeDeviceSyncAction: what sync should do. */
+export type SyncAction =
+  | {action: 'create'}
+  | {action: 'no_change'}
+  | {action: 'update'; alertMethodId: string; isEnabled: boolean}
+  | {action: 'deleteThenCreate'; alertMethodId: string};
 
 export interface NotificationHandlers {
   onReceived?: (notification: any) => void;
