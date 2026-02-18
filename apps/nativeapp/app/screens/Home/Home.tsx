@@ -1438,6 +1438,7 @@ const Home = ({navigation, route}) => {
                 startAlert={incident.startSiteAlert}
                 latestAlert={incident.latestSiteAlert}
                 allAlerts={incident.siteAlerts}
+                incidentId={incident.id}
               />
             </>
           )}

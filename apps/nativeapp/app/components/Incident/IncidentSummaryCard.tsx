@@ -4,7 +4,8 @@
  */
 
 import React, {useMemo} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
+import {Linking} from 'react-native';
 import moment from 'moment-timezone';
 import {
   OrangeFireIcon,
@@ -20,6 +21,7 @@ import {
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {calculateIncidentArea} from '../../utils/incident/incidentCircleUtils';
+import {Config} from '../../../config';
 import type {IncidentSummaryCardProps} from '../../types/incident';
 
 /**
@@ -50,10 +52,18 @@ function formatTime(date: Date): string {
  * @param props - Component props
  * @returns JSX element
  */
+export interface IncidentSummaryCardProps {
+  isActive: boolean;
+  startAlert: SiteAlertData;
+  latestAlert: SiteAlertData;
+  allAlerts: SiteAlertData[];
+  incidentId?: string;
+}
+
 export function IncidentSummaryCard(
   props: IncidentSummaryCardProps,
 ): React.ReactElement {
-  const {isActive, startAlert, latestAlert, allAlerts} = props;
+  const {isActive, startAlert, latestAlert, allAlerts, incidentId} = props;
 
   // Calculate incident metrics
   const totalFires = allAlerts.length;
@@ -68,6 +78,27 @@ export function IncidentSummaryCard(
   const backgroundColor = isActive ? Colors.FIRE_ORANGE : Colors.FIRE_GRAY;
   const badgeColor = isActive ? Colors.FIRE_ORANGE : Colors.PLANET_DARK_GRAY;
   const badgeText = isActive ? 'Active' : 'Resolved';
+
+  // Handle opening incident URL in browser
+  const handleOpenIncidentUrl = async () => {
+    if (!incidentId) {
+      Alert.alert('Error', 'Incident ID not available');
+      return;
+    }
+
+    const url = `${Config.APP_URL}/incident/${incidentId}`;
+
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open the incident URL');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open the incident URL');
+    }
+  };
 
   return (
     <View
@@ -185,6 +216,14 @@ export function IncidentSummaryCard(
           </View>
         </View>
       </View>
+
+      {/* View Incident Link */}
+      <TouchableOpacity
+        style={styles.linkButton}
+        onPress={handleOpenIncidentUrl}
+        disabled={!incidentId}>
+        <Text style={styles.linkButtonText}>View Incident Details</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -294,5 +333,18 @@ const styles = StyleSheet.create({
     fontSize: Typography.FONT_SIZE_14,
     fontWeight: '700',
     color: Colors.PLANET_DARK_GRAY,
+  },
+  linkButton: {
+    marginTop: 16,
+    backgroundColor: Colors.FIRE_ORANGE,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  linkButtonText: {
+    fontSize: Typography.FONT_SIZE_14,
+    fontWeight: '600',
+    color: Colors.WHITE,
   },
 });
