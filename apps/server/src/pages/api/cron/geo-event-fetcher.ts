@@ -3,9 +3,9 @@
 
 import {type NextApiRequest, type NextApiResponse} from 'next';
 import {type GeoEventProvider} from '@prisma/client';
-import {prisma} from '../../../../src/server/db';
-import {logger} from '../../../../src/server/logger';
-import {env} from '../../../env.mjs';
+import {prisma} from '@/server/db';
+import {logger} from '@/server/logger';
+import {env} from '@/env.mjs';
 import {
   type ProviderConfig,
   type ProcessedGeoEventResult,
@@ -336,19 +336,17 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
   });
   processedProviders += activeProviders.length;
 
-
-  try {  
-    await Promise.all(promises);  
-  } catch (error: unknown) {  
-    logger(  
-      `Something went wrong before creating notifications. ${  
-        error instanceof Error ? error.message : String(error)  
-      }`,  
-      'error',  
-    );  
-    // Consider returning partial success or error status  
-  }  
-
+  try {
+    await Promise.all(promises);
+  } catch (error: unknown) {
+    logger(
+      `Something went wrong before creating notifications. ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'error',
+    );
+    // Consider returning partial success or error status
+  }
 
   res.status(200).json({
     message: 'Geo-event-fetcher Cron job executed successfully',
