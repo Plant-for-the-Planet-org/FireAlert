@@ -1,16 +1,19 @@
 import {type SiteAlertRepository} from './SiteAlertRepository';
 import {type GeoEventRepository} from '../GeoEvent/GeoEventRepository';
+import {type SiteIncidentService} from '../SiteIncident/SiteIncidentService';
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
 import {logger} from '../../server/logger';
 
 /**
  * Service for coordinating site alert creation workflow.
  * Handles stale event processing and provider-specific batch processing.
+ * Integrates with SiteIncidentService for incident management.
  */
 export class SiteAlertService {
   constructor(
     private readonly repository: SiteAlertRepository,
     private readonly geoEventRepository: GeoEventRepository,
+    private readonly siteIncidentService?: SiteIncidentService,
   ) {}
 
   /**
@@ -110,7 +113,9 @@ export class SiteAlertService {
 
     // Add detailed SiteAlert processing log
     logger(
-      `SiteAlert process: processed GeoEvents in ${batchCount} batches, created ${totalAlerts} alerts, time took ${totalDuration}ms, batch size: ${batchSize}, provider type: ${isGeostationary ? 'GEOSTATIONARY' : 'POLAR'}`,
+      `SiteAlert process: processed GeoEvents in ${batchCount} batches, created ${totalAlerts} alerts, time took ${totalDuration}ms, batch size: ${batchSize}, provider type: ${
+        isGeostationary ? 'GEOSTATIONARY' : 'POLAR'
+      }`,
       'debug',
     );
 
@@ -120,6 +125,7 @@ export class SiteAlertService {
   /**
    * Processes a batch of events and creates alerts.
    * Routes to the appropriate repository method based on provider type.
+   * Integrates with SiteIncidentService for incident management if available.
    *
    * @param eventIds - Array of event IDs to process
    * @param providerId - The provider ID
@@ -160,6 +166,23 @@ export class SiteAlertService {
       metrics.endTimer('polar_query');
     }
 
+    // Process incidents if SiteIncidentService is available
+    if (this.siteIncidentService && alertCount > 0) {
+      metrics.startTimer('incident_processing');
+      try {
+        await this.processIncidentsForBatch(eventIds);
+      } catch (error) {
+        logger(
+          `Error processing incidents for batch: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          'error',
+        );
+        // Don't throw - incident processing failures shouldn't block alert creation
+      }
+      metrics.endTimer('incident_processing');
+    }
+
     const batchDuration = metrics.endTimer('batch_processing');
 
     // Log slow batch processing
@@ -172,5 +195,60 @@ export class SiteAlertService {
     }
 
     return alertCount;
+  }
+
+  /**
+   * Processes incidents for a batch of created alerts.
+   * Retrieves newly created alerts and associates them with incidents.
+   *
+   * @param eventIds - Array of event IDs that were processed
+   */
+  private async processIncidentsForBatch(eventIds: string[]): Promise<void> {
+    if (!this.siteIncidentService) {
+      return;
+    }
+
+    try {
+      // Retrieve the alerts that were just created for these events
+      const alerts = await this.repository.findAlertsByEventIds(eventIds);
+
+      if (alerts.length === 0) {
+        logger('No alerts found for incident processing', 'debug');
+        return;
+      }
+
+      logger(
+        `Processing incidents for ${alerts.length} newly created alerts`,
+        'debug',
+      );
+
+      // Process each alert for incident creation/association
+      for (const alert of alerts) {
+        try {
+          await this.siteIncidentService.processNewSiteAlert(alert);
+        } catch (error) {
+          logger(
+            `Failed to process incident for alert ${alert.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+            'error',
+          );
+          // Continue processing other alerts on individual failure
+        }
+      }
+
+      logger(
+        `Completed incident processing for ${alerts.length} alerts`,
+        'debug',
+      );
+    } catch (error) {
+      logger(
+        `Error in processIncidentsForBatch: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
   }
 }

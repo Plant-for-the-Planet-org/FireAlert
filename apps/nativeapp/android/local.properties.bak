@@ -1,0 +1,11 @@
+## This file must *NOT* be checked into Version Control Systems,
+# as it contains information specific to your local configuration.
+#
+# Location of the SDK. This is only used by Gradle.
+# For customization when using a Version Control System, please read the
+# header note.
+#Wed Feb 18 15:37:53 IST 2026
+sdk.dir=/Users/rupamkairi/Library/Android/sdk
+
+# Node.js path for React Native (fnm managed)
+react.native.node.executable=/Users/rupamkairi/.local/share/fnm/node-versions/v24.11.1/installation/bin/node
