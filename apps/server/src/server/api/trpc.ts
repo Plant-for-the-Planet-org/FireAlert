@@ -1,15 +1,15 @@
 //  This section defines the "contexts" that are available in the backend API.
 //  These allow you to access things when processing a request, like the database, the session, etc.
 
-import {type CreateNextContextOptions} from '@trpc/server/adapters/next';
-import {prisma} from '../../server/db';
+import type {User} from '@prisma/client';
 import {initTRPC, TRPCError} from '@trpc/server';
+import type {CreateNextContextOptions} from '@trpc/server/adapters/next';
+import type {NextApiRequest} from 'next';
 import superjson from 'superjson';
 import {ZodError} from 'zod';
-import {NextApiRequest} from 'next';
+import {prisma} from '../../server/db';
 import {decodeToken} from '../../utils/routers/trpc';
-import * as Sentry from '@sentry/nextjs';
-import {User} from '@prisma/client';
+import {logger} from '../logger';
 
 type CreateContextOptions = {
   req: NextApiRequest;
@@ -28,7 +28,7 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   };
 };
 
-export const createTRPCContext = async (
+export const createTRPCContext = (
   opts: CreateNextContextOptions,
   user: User | null,
   isAdmin: boolean,
@@ -36,6 +36,7 @@ export const createTRPCContext = async (
 ) => {
   const {req} = opts;
 
+  logger(`createTRPCContext `, 'info');
   return createInnerTRPCContext({
     req,
     user,
@@ -60,13 +61,6 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 
 export const createTRPCRouter = t.router;
 
-// Sentry middleware for tRPC
-const sentryMiddleware = t.middleware(
-  Sentry.trpcMiddleware({
-    attachRpcInput: true,
-  }),
-);
-
 const passCtxToNext = t.middleware(async ({ctx, next}) => {
   return next({
     ctx,
@@ -80,7 +74,7 @@ const passCtxToNext = t.middleware(async ({ctx, next}) => {
 // 3) user: impersonatedUserData, isAdmin: true, isImpersonatedUser: true -> admin is trying to access impersonated User's data
 // 4) user: user, isAdmin: false, isImpersonatedUser: false -> All other normal api calls
 
-const ensureUserIsAuthed = t.middleware(async ({ctx, next, path, type}) => {
+const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   // Decode the token
   const {decodedToken, access_token} = await decodeToken(ctx);
   // Find the user associated with the token
@@ -195,12 +189,8 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next, path, type}) => {
   });
 });
 
-export const publicProcedure = t.procedure
-  .use(sentryMiddleware)
-  .use(passCtxToNext);
-export const protectedProcedure = t.procedure
-  .use(sentryMiddleware)
-  .use(ensureUserIsAuthed);
+export const publicProcedure = t.procedure.use(passCtxToNext);
+export const protectedProcedure = t.procedure.use(ensureUserIsAuthed);
 
 export type InnerTRPCContext = ReturnType<typeof createInnerTRPCContext>;
 export type MiddlewareEnsureUserIsAuthed = typeof ensureUserIsAuthed;
