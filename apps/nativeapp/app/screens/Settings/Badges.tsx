@@ -1,16 +1,18 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import {styles as settingsStyles} from './Settings';
+import {sharedStyles} from './styles/sharedStyles';
+import {notificationStyles} from './styles/notificationStyles';
+import {infoCardStyles} from './styles/infoCardStyles';
 
 export function DisabledBadge() {
   return (
     <View
       style={[
         styles.badgeMarginLeft,
-        settingsStyles.deviceTagCon,
-        settingsStyles.comingSoonCon,
+        notificationStyles.deviceTagCon,
+        notificationStyles.comingSoonCon,
       ]}>
-      <Text style={settingsStyles.deviceTag}>Disabled</Text>
+      <Text style={notificationStyles.deviceTag}>Disabled</Text>
     </View>
   );
 }
@@ -20,8 +22,8 @@ export function DisabledNotificationInfo(props: {method: string}) {
     <Text
       style={[
         styles.infoMerginBottom,
-        settingsStyles.commonPadding,
-        settingsStyles.desc,
+        sharedStyles.commonPadding,
+        infoCardStyles.desc,
       ]}>
       Sending {props.method} notifications is currently paused.
     </Text>
@@ -30,8 +32,9 @@ export function DisabledNotificationInfo(props: {method: string}) {
 
 export function ComingSoonBadge() {
   return (
-    <View style={[settingsStyles.deviceTagCon, settingsStyles.comingSoon]}>
-      <Text style={settingsStyles.deviceTag}>Coming Soon</Text>
+    <View
+      style={[notificationStyles.deviceTagCon, notificationStyles.comingSoon]}>
+      <Text style={notificationStyles.deviceTag}>Coming Soon</Text>
     </View>
   );
 }

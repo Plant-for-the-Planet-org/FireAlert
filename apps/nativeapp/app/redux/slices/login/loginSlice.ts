@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit';
+import {createSlice, createSelector} from '@reduxjs/toolkit';
 import type {PayloadAction} from '@reduxjs/toolkit';
 
 import {AppDispatch, RootState, store} from '../../store';
@@ -45,6 +45,35 @@ export const {
   updateUserDetails,
 } = loginSlice.actions;
 export default loginSlice.reducer;
+
+// Typed Selectors
+export const selectIsLoggedIn = (state: RootState): boolean =>
+  state.loginSlice.isLoggedIn;
+
+export const selectAccessToken = (state: RootState): string =>
+  state.loginSlice.accessToken;
+
+export const selectUserDetails = (state: RootState): any =>
+  state.loginSlice.userDetails;
+
+export const selectConfigData = (state: RootState): any =>
+  state.loginSlice.configData;
+
+// Memoized Selectors using createSelector
+export const selectUserName = createSelector(
+  [selectUserDetails],
+  (userDetails): string | null => userDetails?.name || null,
+);
+
+export const selectUserEmail = createSelector(
+  [selectUserDetails],
+  (userDetails): string | null => userDetails?.email || null,
+);
+
+export const selectUserAvatar = createSelector(
+  [selectUserDetails],
+  (userDetails): string | null => userDetails?.avatar || null,
+);
 
 export const getUserDetails = (request: any) => {
   return async (dispatch: AppDispatch, getState: RootState) => {

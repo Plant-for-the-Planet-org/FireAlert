@@ -67,6 +67,8 @@ import {IncidentSummaryCard} from '../../components/Incident/IncidentSummaryCard
 import {
   getUserDetails,
   updateIsLoggedIn,
+  selectUserDetails,
+  selectConfigData,
 } from '../../redux/slices/login/loginSlice';
 import {
   PermissionBlockedAlert,
@@ -122,9 +124,8 @@ const Home = ({navigation, route}) => {
 
   const {selected, setSelected, selectedSiteBar, passMapInfo} =
     useContext(BottomBarContext);
-  const {userDetails, configData} = useAppSelector(
-    appState => appState.loginSlice,
-  );
+  const userDetails = useAppSelector(selectUserDetails);
+  const configData = useAppSelector(selectConfigData);
 
   const [isInitial, setIsInitial] = useState<boolean>(true);
   const [isCameraRefVisible, setIsCameraRefVisible] = useState<boolean>(false);

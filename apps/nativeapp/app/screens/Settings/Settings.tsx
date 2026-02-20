@@ -80,9 +80,9 @@ import {
   DisabledNotificationInfo,
 } from './Badges';
 import {useSelector} from 'react-redux';
-import {RootState} from '../../redux/store';
 import {useNavigation} from '@react-navigation/native';
 import {useOneSignal} from '../../hooks/notification/useOneSignal';
+import {selectAlertMethodsEnabled} from '../../redux/slices/login/settingsSlice';
 // import {PromptInAppUpdatePanel} from '../../PromptInAppUpdate';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -92,7 +92,7 @@ const IS_ANDROID = Platform.OS === 'android';
 
 const Settings = () => {
   const navigation = useNavigation();
-  const {alertMethods} = useSelector((state: RootState) => state.settingsSlice);
+  const alertMethodsEnabled = useSelector(selectAlertMethodsEnabled);
   const {state: oneSignalState} = useOneSignal();
 
   const [siteId, setSiteId] = useState<string | null>('');
@@ -808,10 +808,10 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <PhoneIcon />
                 <Text style={[styles.smallHeading]}>Mobile</Text>
-                {!alertMethods?.enabled.device && <DisabledBadge />}
+                {!alertMethodsEnabled?.device && <DisabledBadge />}
               </View>
             </View>
-            {!alertMethods?.enabled.device && (
+            {!alertMethodsEnabled?.device && (
               <DisabledNotificationInfo method="device" />
             )}
             {deviceAlertPreferences?.length > 0 && (
@@ -882,13 +882,13 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <EmailIcon />
                 <Text style={[styles.smallHeading]}>Email</Text>
-                {!alertMethods?.enabled.email && <DisabledBadge />}
+                {!alertMethodsEnabled?.email && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddEmail}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            {!alertMethods?.enabled.email && (
+            {!alertMethodsEnabled?.email && (
               <DisabledNotificationInfo method="email" />
             )}
             {formattedAlertPreferences?.email?.length > 0 && (
@@ -962,7 +962,7 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <WhatsAppIcon />
                 <Text style={styles.smallHeading}>WhatsApp</Text>
-                {!alertMethods?.enabled.whatsapp && <DisabledBadge />}
+                {!alertMethodsEnabled?.whatsapp && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddWhatsapp}>
                 <AddIcon />
@@ -1029,13 +1029,13 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <SmsIcon />
                 <Text style={styles.smallHeading}>SMS</Text>
-                {!alertMethods?.enabled.sms && <DisabledBadge />}
+                {!alertMethodsEnabled?.sms && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleAddSms}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
-            {!alertMethods?.enabled.sms && (
+            {!alertMethodsEnabled?.sms && (
               <DisabledNotificationInfo method="sms" />
             )}
             {formattedAlertPreferences?.sms?.length > 0 && (
@@ -1109,7 +1109,7 @@ const Settings = () => {
               <View style={styles.mobileContainer}>
                 <GlobeWebIcon width={17} height={17} />
                 <Text style={styles.smallHeading}>Webhook</Text>
-                {!alertMethods?.enabled.webhook && <DisabledBadge />}
+                {!alertMethodsEnabled?.webhook && <DisabledBadge />}
               </View>
               <TouchableOpacity onPress={handleWebhook}>
                 <AddIcon />

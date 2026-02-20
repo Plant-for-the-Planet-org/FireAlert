@@ -17,7 +17,9 @@ import {AddIcon, MapOutlineIcon, TrashOutlineIcon} from '../../assets/svgs';
 import {BottomSheet, Switch} from '../../components';
 import {trpc} from '../../services/trpc';
 import {Colors} from '../../styles';
-import {styles as settingsStyles} from './Settings';
+import {sharedStyles} from './styles/sharedStyles';
+import {sitesStyles} from './styles/sitesStyles';
+import {modalStyles} from './styles/modalStyles';
 
 const protected_areas_hero = require('../../assets/images/protected-areas-hero.png');
 
@@ -153,9 +155,9 @@ export default function ProtectedSitesSettings({
   // }
 
   return (
-    <View style={[settingsStyles.mySites, settingsStyles.commonPadding]}>
-      <View style={settingsStyles.mySitesHead}>
-        <Text style={settingsStyles.mainHeading}>Protected Areas</Text>
+    <View style={[sitesStyles.mySites, sharedStyles.commonPadding]}>
+      <View style={sitesStyles.mySitesHead}>
+        <Text style={sharedStyles.mainHeading}>Protected Areas</Text>
       </View>
       {/* <Text>{JSON.stringify(protectedSites, null, 2)}</Text> */}
       {protectedSites?.json?.data?.length > 0 ? (
@@ -166,11 +168,11 @@ export default function ProtectedSitesSettings({
               disabled={radiusLoaderArr.includes(item?.id)}
               onPress={() => handleSiteInformation(item)}
               key={`protectedSites_${index}`}
-              style={[settingsStyles.mySiteNameContainer]}>
-              <Text style={settingsStyles.mySiteName}>
+              style={[sitesStyles.mySiteNameContainer]}>
+              <Text style={sitesStyles.mySiteName}>
                 {item?.name || item?.id}
               </Text>
-              <View style={settingsStyles.rightConPro}>
+              <View style={sitesStyles.rightConPro}>
                 {radiusLoaderArr.includes(item?.id) ? (
                   <ActivityIndicator size={'small'} color={Colors.PRIMARY} />
                 ) : (
@@ -199,11 +201,11 @@ export default function ProtectedSitesSettings({
       ) : (
         <View
           style={[
-            settingsStyles.mySiteNameContainer,
-            settingsStyles.paddingVertical20,
+            sitesStyles.mySiteNameContainer,
+            sharedStyles.paddingVertical20,
           ]}>
           <View>
-            <Text style={settingsStyles.emptySiteText}>
+            <Text style={sitesStyles.emptySiteText}>
               Monitor National Parks,{'\n'}
               Public Forests and {'\n'}
               Conservation Areas near you.
@@ -213,18 +215,15 @@ export default function ProtectedSitesSettings({
                 (navigation as any).navigate('ProtectedAreas');
               }}
               activeOpacity={0.7}
-              style={[settingsStyles.addSiteBtn, styles.addProtectedSiteBtn]}>
+              style={[sitesStyles.addSiteBtn, styles.addProtectedSiteBtn]}>
               <AddIcon width={11} height={11} color={Colors.WHITE} />
               <Text
-                style={[
-                  settingsStyles.emptySiteText,
-                  settingsStyles.colorWhite,
-                ]}>
+                style={[sitesStyles.emptySiteText, sharedStyles.colorWhite]}>
                 Add Protected Areas
               </Text>
             </TouchableOpacity>
           </View>
-          <View style={settingsStyles.locWaveCon}>
+          <View style={sitesStyles.locWaveCon}>
             <Image source={protected_areas_hero} style={styles.heroImage} />
           </View>
         </View>
@@ -234,21 +233,20 @@ export default function ProtectedSitesSettings({
         isVisible={sitesInfoModal}
         backdropColor={Colors.BLACK + '80'}
         onBackdropPress={() => setSitesInfoModal(false)}>
-        <View
-          style={[settingsStyles.modalContainer, settingsStyles.commonPadding]}>
-          <View style={settingsStyles.modalHeader} />
-          <View style={settingsStyles.siteTitleCon}>
+        <View style={[modalStyles.modalContainer, sharedStyles.commonPadding]}>
+          <View style={modalStyles.modalHeader} />
+          <View style={modalStyles.siteTitleCon}>
             <View>
-              <Text style={settingsStyles.siteTitle}>
+              <Text style={modalStyles.siteTitle}>
                 {selectedSiteInfo?.name || selectedSiteInfo?.id}
               </Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={_handleViewMap(selectedSiteInfo)}
-            style={settingsStyles.btn}>
+            style={modalStyles.btn}>
             <MapOutlineIcon />
-            <Text style={settingsStyles.siteActionText}>View on Map</Text>
+            <Text style={modalStyles.siteActionText}>View on Map</Text>
           </TouchableOpacity>
           <TouchableOpacity
             disabled={deleteProtectedSiteButtonIsDisabled}
@@ -263,15 +261,15 @@ export default function ProtectedSitesSettings({
               });
             }}
             style={[
-              settingsStyles.btn,
-              deleteProtectedSiteButtonIsDisabled && settingsStyles.btnDisabled,
+              modalStyles.btn,
+              deleteProtectedSiteButtonIsDisabled && modalStyles.btnDisabled,
             ]}>
             {deleteProtectedSiteButtonIsLoading ? (
               <ActivityIndicator color={Colors.PRIMARY} />
             ) : (
               <TrashOutlineIcon />
             )}
-            <Text style={settingsStyles.siteActionText}>
+            <Text style={modalStyles.siteActionText}>
               Delete Protected Area
             </Text>
           </TouchableOpacity>
