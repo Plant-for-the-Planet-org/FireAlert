@@ -177,7 +177,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Conditionally render based on visibility flag
     - _Requirements: 22.5_
 
-  - [~] 3.11 Extract ProfileSheet component
+  - [x] 3.11 Extract ProfileSheet component
 
     - Create `apps/nativeapp/app/screens/Home/components/ProfileSheet.tsx`
     - Render BottomSheet with user profile display
@@ -185,7 +185,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Handle button press events and sheet close
     - _Requirements: 6.4_
 
-  - [~] 3.12 Extract AlertDetailsSheet component
+  - [x] 3.12 Extract AlertDetailsSheet component
 
     - Create `apps/nativeapp/app/screens/Home/components/AlertDetailsSheet.tsx`
     - Render BottomSheet with alert information
@@ -193,7 +193,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Render "Open in Google Maps" button
     - _Requirements: 6.5, 15.3_
 
-  - [~] 3.13 Extract SiteDetailsSheet component
+  - [x] 3.13 Extract SiteDetailsSheet component
 
     - Create `apps/nativeapp/app/screens/Home/components/SiteDetailsSheet.tsx`
     - Render BottomSheet with site details
@@ -201,7 +201,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Disable delete for Planet RO sites
     - _Requirements: 6.6, 12.6, 12.7, 15.4_
 
-  - [~] 3.14 Extract EditSiteModal component
+  - [x] 3.14 Extract EditSiteModal component
 
     - Create `apps/nativeapp/app/screens/Home/components/EditSiteModal.tsx`
     - Render Modal with KeyboardAvoidingView
@@ -217,7 +217,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Test that validation is consistent for all string inputs
     - Test that names >= 5 characters are valid
 
-  - [~] 3.16 Extract EditProfileModal component
+  - [x] 3.16 Extract EditProfileModal component
 
     - Create `apps/nativeapp/app/screens/Home/components/EditProfileModal.tsx`
     - Render Modal with KeyboardAvoidingView
@@ -225,7 +225,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Handle save and cancel actions
     - _Requirements: 6.8_
 
-  - [~] 3.17 Extract PermissionModals component
+  - [ ] 3.17 Extract PermissionModals component
 
     - Create `apps/nativeapp/app/screens/Home/components/PermissionModals.tsx`
     - Render PermissionDeniedAlert and PermissionBlockedAlert

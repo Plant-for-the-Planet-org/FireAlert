@@ -11,9 +11,7 @@ import {
   Dimensions,
   Image,
   ImageSourcePropType,
-  KeyboardAvoidingView,
   Linking,
-  Modal,
   Platform,
   StatusBar,
   StyleSheet,
@@ -60,7 +58,6 @@ import {
   BottomSheet,
   CustomButton,
   DropDown,
-  FloatingInput,
   LayerModal,
 } from '../../components';
 import {IncidentSummaryCard} from '../../components/Incident/IncidentSummaryCard';
@@ -75,6 +72,8 @@ import {
   PermissionDeniedAlert,
 } from './PermissionAlert/LocationPermissionAlerts';
 import {IncidentDebugOverlay} from './components/IncidentDebugOverlay';
+import {EditSiteModal} from './components/EditSiteModal';
+import {EditProfileModal} from './components/EditProfileModal';
 
 import {highlightWave} from '../../assets/animation/lottie';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
@@ -729,14 +728,6 @@ const Home = ({navigation, route}) => {
           console.log('Error ocurred', error);
         });
     }, 300);
-  };
-
-  const handleEditProfileName = () => {
-    setLoading(true);
-    const payload = {
-      name: profileName?.trim(),
-    };
-    updateUser.mutate({json: {body: payload}});
   };
 
   const handlePencil = () => {
@@ -1599,83 +1590,39 @@ const Home = ({navigation, route}) => {
         </View>
       </BottomSheet>
       {/* profile edit modal */}
-      <Modal visible={profileEditModal} animationType={'slide'} transparent>
-        <KeyboardAvoidingView
-          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
-          style={styles.siteModalStyle}>
-          <TouchableOpacity
-            onPress={handleCloseProfileModal}
-            style={styles.crossContainer}>
-            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
-          </TouchableOpacity>
-          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
-            Edit Your Name
-          </Text>
-          <View
-            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
-            <FloatingInput
-              autoFocus
-              isFloat={false}
-              value={profileName}
-              onChangeText={setProfileName}
-            />
-            <CustomButton
-              title="Continue"
-              isLoading={loading}
-              titleStyle={styles.title}
-              onPress={handleEditProfileName}
-              style={styles.btnContinueSiteModal}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <EditProfileModal
+        visible={profileEditModal}
+        onClose={handleCloseProfileModal}
+        userName={profileName}
+        onSave={async name => {
+          setLoading(true);
+          const payload = {
+            name: name,
+          };
+          updateUser.mutate({json: {body: payload}});
+        }}
+        isLoading={loading}
+      />
       {/* site edit modal */}
-      <Modal visible={siteNameModalVisible} animationType={'slide'} transparent>
-        <KeyboardAvoidingView
-          {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
-          style={styles.siteModalStyle}>
-          <Toast ref={modalToast} offsetBottom={100} duration={2000} />
-          <TouchableOpacity
-            onPress={handleCloseSiteModal}
-            style={styles.crossContainer}>
-            <CrossIcon fill={Colors.GRADIENT_PRIMARY} />
-          </TouchableOpacity>
-          <Text style={[styles.heading, {paddingHorizontal: 16}]}>
-            Enter Site Name
-          </Text>
-          <View
-            style={[styles.siteModalStyle, {justifyContent: 'space-between'}]}>
-            <View>
-              <FloatingInput
-                autoFocus
-                isFloat={false}
-                value={siteName}
-                editable={!isEditSite}
-                onChangeText={setSiteName}
-              />
-              <View style={[styles.commonPadding]}>
-                <DropDown
-                  expandHeight={10}
-                  items={
-                    siteGeometry === 'Point' ? POINT_RADIUS_ARR : RADIUS_ARR
-                  }
-                  value={siteRad?.value}
-                  onSelectItem={setSiteRad}
-                  defaultValue={siteRad?.value}
-                  label={'Notify me if fires occur...'}
-                />
-              </View>
-            </View>
-            <CustomButton
-              title="Continue"
-              titleStyle={styles.title}
-              onPress={handleEditSiteInfo}
-              isLoading={updateSite?.isLoading}
-              style={styles.btnContinueSiteModal}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <EditSiteModal
+        visible={siteNameModalVisible}
+        onClose={handleCloseSiteModal}
+        siteId={siteId || ''}
+        siteName={siteName || ''}
+        siteRadius={siteRad?.value || 0}
+        siteGeometry={siteGeometry || 'Polygon'}
+        isPlanetROSite={isEditSite}
+        onSave={async (name, radius) => {
+          const payload = {
+            json: {
+              params: {siteId},
+              body: isEditSite ? {radius} : {name, radius},
+            },
+          };
+          updateSite.mutate(payload);
+        }}
+        isLoading={updateSite?.isLoading}
+      />
     </>
   );
 };

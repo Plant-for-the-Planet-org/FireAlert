@@ -43,6 +43,10 @@ export interface AlertData {
   confidence: string;
   detectedAt: string;
   eventDate: string;
+  detectedBy: string;
+  distance: number;
+  localEventDate: string;
+  localTimeZone: string;
   siteId: string;
   siteName: string;
   siteIncidentId?: string;
@@ -126,7 +130,7 @@ export interface AlertDetailsSheetProps {
   visible: boolean;
   onClose: () => void;
   alertData: AlertData | null;
-  siteData: SiteProperties | null;
+  incident?: any | null; // Incident data with isActive status and siteAlerts
   onOpenInMaps: () => void;
 }
 
@@ -147,6 +151,7 @@ export interface EditSiteModalProps {
   siteName: string;
   siteRadius: number;
   siteGeometry: string;
+  isPlanetROSite: boolean;
   onSave: (name: string, radius: number) => Promise<void>;
   isLoading: boolean;
 }

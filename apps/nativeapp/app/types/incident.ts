@@ -99,4 +99,5 @@ export interface IncidentSummaryCardProps {
   startAlert: SiteAlertData;
   latestAlert: SiteAlertData;
   allAlerts: SiteAlertData[];
+  incidentId?: string;
 }
