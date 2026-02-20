@@ -38,4 +38,25 @@ export const actionStyles = StyleSheet.create({
     height: 44,
     borderRadius: 100,
   },
+  debugOverlay: {
+    position: 'absolute',
+    top: 60,
+    right: 10,
+    backgroundColor: 'rgba(232, 111, 86, 0.9)',
+    padding: 8,
+    borderRadius: 6,
+    zIndex: 100,
+  },
+  debugTitle: {
+    fontSize: 10,
+    color: '#fff',
+    fontFamily: 'monospace',
+    marginBottom: 4,
+  },
+  debugText: {
+    fontSize: 9,
+    color: '#fff',
+    fontFamily: 'monospace',
+    marginBottom: 2,
+  },
 });

@@ -42,16 +42,29 @@ export interface AlertData {
   longitude: number;
   confidence: string;
   detectedAt: string;
+  eventDate: string;
   siteId: string;
   siteName: string;
+  siteIncidentId?: string;
+  site?: {
+    id: string;
+    name: string;
+    project?: {
+      id: string;
+      name: string;
+    };
+  };
 }
 
 // User types (from Redux state)
 export interface UserDetails {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
+  data?: {
+    id?: string;
+    name?: string;
+    email?: string;
+    image?: string;
+    [key: string]: any;
+  };
   [key: string]: any;
 }
 
@@ -70,19 +83,20 @@ export interface HomeMapViewProps {
   cameraRef: React.RefObject<MapboxGL.Camera>;
   selectedLayer: string;
   location: MapboxGL.Location | Geolocation.GeoPosition | undefined;
-  selectedArea: SiteFeature[] | null;
-  selectedAlert: AlertData | null;
-  incidentCircleData: IncidentCircleResult | null;
   onMapReady: () => void;
   onRegionDidChange: () => void;
+  children?: React.ReactNode;
 }
 
 export interface HomeMapSourcesProps {
   sites: SiteFeature[];
   alerts: AlertData[];
+  protectedSites: SiteFeature[];
   selectedArea: SiteFeature[] | null;
   selectedAlert: AlertData | null;
   incidentCircleData: IncidentCircleResult | null;
+  incident: any | null; // Incident data with isActive status
+  cameraRef: React.RefObject<MapboxGL.Camera>;
   onAlertPress: (alert: AlertData) => void;
   onSitePress: (site: SiteProperties) => void;
 }

@@ -115,7 +115,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Test that permission states are mutually exclusive
     - Test that requestLocation updates state correctly
 
-  - [~] 3.3 Implement useHomeSiteActions hook
+  - [x] 3.3 Implement useHomeSiteActions hook
 
     - Create `apps/nativeapp/app/screens/Home/hooks/useHomeSiteActions.ts`
     - Wrap tRPC mutations for site update and delete
@@ -130,7 +130,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Test that failed mutations restore previous cache state
     - Test that successful mutations update cache correctly
 
-  - [~] 3.5 Implement useHomeIncidentCircle hook
+  - [x] 3.5 Implement useHomeIncidentCircle hook
 
     - Create `apps/nativeapp/app/screens/Home/hooks/useHomeIncidentCircle.ts`
     - Fetch incident data by siteIncidentId
@@ -138,7 +138,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Return UseHomeIncidentCircleReturn interface
     - _Requirements: 5.3, 5.8, 22.1, 22.2_
 
-  - [~] 3.6 Implement useHomeMapSelection hook
+  - [x] 3.6 Implement useHomeMapSelection hook
 
     - Create `apps/nativeapp/app/screens/Home/hooks/useHomeMapSelection.ts`
     - Manage selected site, alert, and area states
@@ -146,7 +146,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Return UseHomeMapSelectionReturn interface
     - _Requirements: 5.4, 5.8_
 
-  - [~] 3.7 Extract HomeMapView component
+  - [x] 3.7 Extract HomeMapView component
 
     - Create `apps/nativeapp/app/screens/Home/components/HomeMapView.tsx`
     - Render MapboxGL.MapView with camera controls
@@ -154,7 +154,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Accept HomeMapViewProps interface
     - _Requirements: 6.1, 6.10, 6.11, 15.7, 15.8_
 
-  - [~] 3.8 Extract HomeMapSources component
+  - [x] 3.8 Extract HomeMapSources component
 
     - Create `apps/nativeapp/app/screens/Home/components/HomeMapSources.tsx`
     - Render GeoJSON sources for sites, alerts, and incident circles
@@ -162,7 +162,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Apply conditional styling based on selection state
     - _Requirements: 6.2, 15.1, 15.2, 15.3, 15.4, 15.5, 15.6_
 
-  - [~] 3.9 Extract HomeFloatingActions component
+  - [x] 3.9 Extract HomeFloatingActions component
 
     - Create `apps/nativeapp/app/screens/Home/components/HomeFloatingActions.tsx`
     - Render layer, my location, and profile buttons
@@ -170,7 +170,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Display user avatar or placeholder
     - _Requirements: 6.3_
 
-  - [~] 3.10 Extract IncidentDebugOverlay component
+  - [x] 3.10 Extract IncidentDebugOverlay component
 
     - Create `apps/nativeapp/app/screens/Home/components/IncidentDebugOverlay.tsx`
     - Display debug information for incident circles

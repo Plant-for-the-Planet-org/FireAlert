@@ -74,6 +74,7 @@ import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from './PermissionAlert/LocationPermissionAlerts';
+import {IncidentDebugOverlay} from './components/IncidentDebugOverlay';
 
 import {highlightWave} from '../../assets/animation/lottie';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
@@ -1118,86 +1119,8 @@ const Home = ({navigation, route}) => {
       ) : null}
 
       {/* Debug Overlay - Show incident circle rendering status */}
-      {incidentCircleData && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 10,
-            backgroundColor: 'rgba(232, 111, 86, 0.9)',
-            padding: 8,
-            borderRadius: 6,
-            zIndex: 100,
-          }}>
-          <Text
-            style={{
-              fontSize: 10,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 4,
-            }}>
-            [CIRCLE] Rendered
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 2,
-            }}>
-            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-            }}>
-            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
-          </Text>
-        </View>
-      )}
+      <IncidentDebugOverlay incidentCircleData={incidentCircleData} />
 
-      {/* Debug Overlay - Show incident circle rendering status */}
-      {incidentCircleData && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 10,
-            backgroundColor: 'rgba(232, 111, 86, 0.9)',
-            padding: 8,
-            borderRadius: 6,
-            zIndex: 100,
-          }}>
-          <Text
-            style={{
-              fontSize: 10,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 4,
-            }}>
-            [CIRCLE] Rendered
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 2,
-            }}>
-            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-            }}>
-            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
-          </Text>
-        </View>
-      )}
       <StatusBar
         animated
         translucent
