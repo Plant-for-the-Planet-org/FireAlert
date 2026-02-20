@@ -28,7 +28,7 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({
   onLogout,
   onDeleteAccount,
 }) => {
-  const handleOpenPlatform = () => handleLink(WEB_URLS.PP_ECO);
+  const handleOpenPlatform = () => handleLink(WEB_URLS.PP_ECO, 0, 0);
 
   return (
     <BottomSheet isVisible={visible} onBackdropPress={onClose}>

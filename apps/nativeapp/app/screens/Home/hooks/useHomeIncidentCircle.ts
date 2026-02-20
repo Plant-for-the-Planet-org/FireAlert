@@ -1,4 +1,3 @@
-i;
 /**
  * Custom hook for managing incident circle rendering on the map
  * Fetches incident data and generates circle geometry for visualization

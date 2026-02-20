@@ -48,7 +48,7 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
 }) => {
   const [localSiteName, setLocalSiteName] = useState<string>('');
   const [localSiteRadius, setLocalSiteRadius] = useState<{
-    label: string;
+    name: string;
     value: number;
   } | null>(null);
   const toastRef = useRef<any>(null);
@@ -120,7 +120,6 @@ export const EditSiteModal: React.FC<EditSiteModalProps> = ({
                 items={siteGeometry === 'Point' ? POINT_RADIUS_ARR : RADIUS_ARR}
                 value={localSiteRadius?.value}
                 onSelectItem={setLocalSiteRadius}
-                defaultValue={localSiteRadius?.value}
                 label="Notify me if fires occur..."
               />
             </View>

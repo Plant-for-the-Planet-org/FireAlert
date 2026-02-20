@@ -162,3 +162,6 @@ export const sharedStyles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_REGULAR,
   },
 });
+
+// Export as both named export and default for backward compatibility
+export const styles = sharedStyles;

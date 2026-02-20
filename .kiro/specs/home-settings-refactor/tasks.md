@@ -98,7 +98,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Run performance benchmarks (no regressions)
     - _Requirements: 30.8_
 
-- [~] 3. Phase 3: Home Screen Decomposition
+- [ ] 3. Phase 3: Home Screen Decomposition
 
   - [x] 3.1 Implement useHomeLocation hook
 
@@ -225,14 +225,14 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Handle save and cancel actions
     - _Requirements: 6.8_
 
-  - [ ] 3.17 Extract PermissionModals component
+  - [x] 3.17 Extract PermissionModals component
 
     - Create `apps/nativeapp/app/screens/Home/components/PermissionModals.tsx`
     - Render PermissionDeniedAlert and PermissionBlockedAlert
     - Handle retry, cancel, open settings, and exit actions
     - _Requirements: 6.9, 11.4, 11.5, 11.6_
 
-  - [~] 3.18 Refactor Home.tsx container
+  - [x] 3.18 Refactor Home.tsx container
 
     - Update Home.tsx to use all new hooks and components
     - Remove all business logic (orchestration only)
@@ -240,16 +240,16 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Reduce to less than 500 lines of code
     - _Requirements: 1.1, 1.3, 1.6, 3.1, 3.2, 14.1, 14.2, 14.3_
 
-  - [~] 3.19 Phase 3 validation checkpoint
+  - [x] 3.19 Phase 3 validation checkpoint
     - Run all 18 Home-related manual QA scenarios
     - Verify no visual changes (screenshot comparison)
     - Verify no behavior changes
     - Verify TypeScript compiles without errors
     - _Requirements: 30.9_
 
-- [~] 4. Phase 4: Settings Screen Decomposition
+- [ ] 4. Phase 4: Settings Screen Decomposition
 
-  - [~] 4.1 Implement useSettingsData hook
+  - [x] 4.1 Implement useSettingsData hook
 
     - Create `apps/nativeapp/app/screens/Settings/hooks/useSettingsData.ts`
     - Fetch sites data using tRPC site.getSites query
@@ -259,7 +259,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Return UseSettingsDataReturn interface with loading states and refetch function
     - _Requirements: 5.5, 5.8, 9.1, 9.2, 23.1, 24.1_
 
-  - [~] 4.2 Implement useSettingsActions hook
+  - [x] 4.2 Implement useSettingsActions hook
 
     - Create `apps/nativeapp/app/screens/Settings/hooks/useSettingsActions.ts`
     - Wrap site update, delete, and toggle monitoring mutations
@@ -275,7 +275,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Test that toggle inverts stopAlerts boolean field
     - Test that optimistic update and rollback work correctly
 
-  - [~] 4.4 Implement useAlertPreferencesVM hook
+  - [x] 4.4 Implement useAlertPreferencesVM hook
 
     - Create `apps/nativeapp/app/screens/Settings/hooks/useAlertPreferencesVM.ts`
     - Filter device alert methods by current device ID
@@ -292,7 +292,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Test that current device appears first if it exists
     - Test that null OneSignal ID returns empty array
 
-  - [~] 4.6 Extract ProjectsSection component
+  - [x] 4.6 Extract ProjectsSection component
 
     - Create `apps/nativeapp/app/screens/Settings/components/ProjectsSection.tsx`
     - Render section header "My Projects"
@@ -301,7 +301,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Handle site press and toggle monitoring events
     - _Requirements: 6.7, 23.2, 23.3_
 
-  - [~] 4.7 Extract MySitesSection component
+  - [x] 4.7 Extract MySitesSection component
 
     - Create `apps/nativeapp/app/screens/Settings/components/MySitesSection.tsx`
     - Render section header "My Sites"
@@ -311,7 +311,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Handle all site actions (press, toggle, edit, delete)
     - _Requirements: 6.8, 23.4_
 
-  - [~] 4.8 Extract NotificationsSection component
+  - [x] 4.8 Extract NotificationsSection component
 
     - Create `apps/nativeapp/app/screens/Settings/components/NotificationsSection.tsx`
     - Render section header "Notifications"
@@ -320,7 +320,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Display verification warnings for unverified methods
     - _Requirements: 6.9, 13.1, 13.2, 13.3, 13.4, 13.5, 24.4, 24.5_
 
-  - [~] 4.9 Extract WarningSections component
+  - [x] 4.9 Extract WarningSections component
 
     - Create `apps/nativeapp/app/screens/Settings/components/WarningSections.tsx`
     - Render DisabledNotificationInfo card
@@ -328,7 +328,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Display static warning messages
     - _Requirements: 29.1, 29.2, 29.3, 29.4, 29.5_
 
-  - [~] 4.10 Extract SatelliteInfoSection component
+  - [x] 4.10 Extract SatelliteInfoSection component
 
     - Create `apps/nativeapp/app/screens/Settings/components/SatelliteInfoSection.tsx`
     - Render NASA and Planet logos
@@ -337,7 +337,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Handle link press events using handleLink utility
     - _Requirements: 28.1, 28.2, 28.3, 28.4, 28.5_
 
-  - [~] 4.11 Extract SiteRow component
+  - [x] 4.11 Extract SiteRow component
 
     - Create `apps/nativeapp/app/screens/Settings/components/SiteRow.tsx`
     - Render site name and icon
@@ -346,7 +346,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Handle press and toggle events
     - _Requirements: 6.10_
 
-  - [~] 4.12 Extract NotificationMethodRows component
+  - [x] 4.12 Extract NotificationMethodRows component
 
     - Create `apps/nativeapp/app/screens/Settings/components/NotificationMethodRows.tsx`
     - Render method icon and label
@@ -356,7 +356,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Render add, verify, and remove buttons
     - _Requirements: 6.11_
 
-  - [~] 4.13 Extract SiteInfoSheet component
+  - [x] 4.13 Extract SiteInfoSheet component
 
     - Create `apps/nativeapp/app/screens/Settings/components/SiteInfoSheet.tsx`
     - Render BottomSheet with detailed site information
@@ -365,7 +365,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Disable delete for Planet RO sites
     - _Requirements: 6.12, 14.5_
 
-  - [~] 4.14 Extract EditSiteModal component for Settings
+  - [x] 4.14 Extract EditSiteModal component for Settings
 
     - Create `apps/nativeapp/app/screens/Settings/components/EditSiteModal.tsx`
     - Render Modal with KeyboardAvoidingView
@@ -374,7 +374,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Validate inputs before save
     - _Requirements: 6.13, 12.3, 12.4_
 
-  - [~] 4.15 Extract RadiusDropdownOverlay component
+  - [x] 4.15 Extract RadiusDropdownOverlay component
 
     - Create `apps/nativeapp/app/screens/Settings/components/RadiusDropdownOverlay.tsx`
     - Render Modal with absolute positioning
@@ -390,7 +390,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Test that all selected radius values exist in predefined arrays
     - Test that invalid radius values are rejected
 
-  - [~] 4.17 Refactor Settings.tsx container
+  - [x] 4.17 Refactor Settings.tsx container
 
     - Update Settings.tsx to use all new hooks and components
     - Remove all business logic (orchestration only)
@@ -398,16 +398,16 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Reduce to less than 500 lines of code
     - _Requirements: 1.2, 1.3, 1.7, 3.1, 3.2, 14.4, 26.1, 26.2, 26.3, 26.4, 26.5, 26.6_
 
-  - [~] 4.18 Phase 4 validation checkpoint
+  - [x] 4.18 Phase 4 validation checkpoint
     - Run all 12 Settings-related manual QA scenarios
     - Verify no visual changes (screenshot comparison)
     - Verify no behavior changes
     - Verify TypeScript compiles without errors
     - _Requirements: 30.10_
 
-- [~] 5. Phase 5: Testing & Documentation
+- [ ] 5. Phase 5: Testing & Documentation
 
-  - [~] 5.1 Write unit tests for Home hooks
+  - [x] 5.1 Write unit tests for Home hooks
 
     - Test useHomeLocation: permission states, location updates, error handling
     - Test useHomeSiteActions: mutation success/failure, optimistic updates, cache invalidation
@@ -416,7 +416,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Target 80%+ coverage for hooks
     - _Requirements: 18.1, 18.4_
 
-  - [~] 5.2 Write unit tests for Settings hooks
+  - [x] 5.2 Write unit tests for Settings hooks
 
     - Test useSettingsData: query orchestration, data transformation, error handling
     - Test useSettingsActions: all mutation types, loading states, error handling
@@ -424,7 +424,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Target 80%+ coverage for hooks
     - _Requirements: 18.1, 18.4_
 
-  - [~] 5.3 Write component tests for Home components
+  - [x] 5.3 Write component tests for Home components
 
     - Snapshot tests for all presentational components
     - Interaction tests for buttons, toggles, and inputs
@@ -433,7 +433,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Target 70%+ coverage for components
     - _Requirements: 18.2, 18.5_
 
-  - [~] 5.4 Write component tests for Settings components
+  - [x] 5.4 Write component tests for Settings components
 
     - Snapshot tests for all presentational components
     - Interaction tests for buttons, toggles, and inputs
@@ -514,7 +514,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Ensure no performance regressions
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7_
 
-  - [~] 5.15 Update documentation
+  - [x] 5.15 Update documentation
 
     - Add JSDoc comments to all custom hooks
     - Add JSDoc comments to all utility functions
@@ -522,7 +522,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Update README for new directory structures
     - _Requirements: 21.1, 21.2, 21.3, 21.6, 21.7_
 
-  - [~] 5.16 Final validation checkpoint
+  - [x] 5.16 Final validation checkpoint
     - Verify all tests pass without failures
     - Verify test coverage meets targets (80% hooks, 70% components, 90% utilities)
     - Verify TypeScript compiles without errors

@@ -10,6 +10,9 @@ import type Geolocation from 'react-native-geolocation-service';
 import type {IncidentCircleResult} from '../../types/incident';
 import type {RootStackParamList, SiteFeature} from '../../types/navigation';
 
+// Re-export SiteFeature for convenience
+export type {SiteFeature} from '../../types/navigation';
+
 // Navigation types
 export interface HomeRouteParams {
   bboxGeo?: [number, number, number, number];
