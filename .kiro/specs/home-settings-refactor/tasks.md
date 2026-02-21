@@ -442,7 +442,7 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Target 70%+ coverage for components
     - _Requirements: 18.2, 18.5_
 
-  - [~] 5.5 Write Redux selector tests
+  - [ ] 5.5 Write Redux selector tests
 
     - Test selector return values
     - Test memoization behavior
@@ -499,14 +499,14 @@ This implementation plan breaks down the refactoring of Home.tsx (~2006 LOC) and
     - Test that categorized methods share same method type
     - Test that categorization is consistent
 
-  - [~] 5.13 Run full manual QA checklist
+  - [ ] 5.13 Run full manual QA checklist
 
     - Execute all 30 manual QA scenarios
     - Document any failures or regressions
     - Verify feature parity across all scenarios
     - _Requirements: 18.10, 30.11_
 
-  - [~] 5.14 Run performance benchmarks
+  - [ ] 5.14 Run performance benchmarks
 
     - Measure component render times
     - Verify memoization effectiveness
