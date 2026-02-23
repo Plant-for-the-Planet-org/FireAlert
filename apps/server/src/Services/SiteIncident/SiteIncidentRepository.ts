@@ -50,6 +50,119 @@ export class SiteIncidentRepository {
   }
 
   /**
+   * Finds the nearest active SiteIncident for a site within a proximity radius.
+   * Distance is measured from the incoming alert point to each incident's latest alert point.
+   * Ordering is nearest first, then most recently updated.
+   *
+   * @param siteId - Site ID
+   * @param latitude - Alert latitude
+   * @param longitude - Alert longitude
+   * @param proximityKm - Proximity threshold in kilometers
+   * @returns The nearest active incident within proximity or null
+   */
+  async findNearestActiveBySiteAndProximity(
+    siteId: string,
+    latitude: number,
+    longitude: number,
+    proximityKm: number,
+  ): Promise<SiteIncident | null> {
+    if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
+      const error = new Error('Invalid siteId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      const error = new Error('Invalid latitude: must be between -90 and 90');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      const error = new Error(
+        'Invalid longitude: must be between -180 and 180',
+      );
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!Number.isFinite(proximityKm) || proximityKm <= 0) {
+      const error = new Error(
+        'Invalid proximityKm: must be a positive number',
+      );
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    const proximityMeters = proximityKm * 1000;
+
+    try {
+      const incidents = await this.prisma.$queryRaw<SiteIncident[]>`
+        SELECT si.*
+        FROM "SiteIncident" si
+        INNER JOIN "SiteAlert" sa ON sa.id = si."latestSiteAlertId"
+        WHERE si."siteId" = ${siteId}
+          AND si."isActive" = true
+          AND ST_DWithin(
+            ST_SetSRID(ST_MakePoint(sa.longitude, sa.latitude), 4326)::geography,
+            ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
+            ${proximityMeters}
+          )
+        ORDER BY
+          ST_Distance(
+            ST_SetSRID(ST_MakePoint(sa.longitude, sa.latitude), 4326)::geography,
+            ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
+          ) ASC,
+          si."updatedAt" DESC
+        LIMIT 1
+      `;
+
+      return incidents[0] ?? null;
+    } catch (error) {
+      logger(
+        `Error finding nearest active incident for site ${siteId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Finds all active incidents for a given site
+   * @param siteId - Site ID
+   * @returns Array of active incidents ordered by newest first
+   */
+  async findActiveIncidentsBySiteId(siteId: string): Promise<SiteIncident[]> {
+    if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
+      const error = new Error('Invalid siteId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      return await this.prisma.siteIncident.findMany({
+        where: {
+          siteId,
+          isActive: true,
+        },
+        orderBy: {
+          startedAt: 'desc',
+        },
+      });
+    } catch (error) {
+      logger(
+        `Error finding active incidents for site ${siteId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Creates a new SiteIncident
    * @param data - Incident creation data
    * @returns Created incident

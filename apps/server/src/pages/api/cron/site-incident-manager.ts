@@ -51,6 +51,7 @@ export default async function siteIncidentManager(
       siteIncidentRepo,
       incidentResolver,
       env.INCIDENT_RESOLUTION_HOURS || 6,
+      env.INCIDENT_PROXIMITY_KM || 2,
     );
 
     // 3. Resolve Inactive Incidents FIRST

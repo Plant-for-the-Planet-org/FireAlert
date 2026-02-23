@@ -7,7 +7,6 @@ import {
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
 import {type SiteIncidentRepository} from './SiteIncidentRepository';
 import {type IncidentResolver} from './IncidentResolver';
-import {prisma} from '../../server/db';
 
 /**
  * SiteIncidentService orchestrates the incident lifecycle
@@ -20,6 +19,7 @@ export class SiteIncidentService {
     private readonly repository: SiteIncidentRepository,
     private readonly resolver: IncidentResolver,
     private readonly inactiveHours: number = 6,
+    private readonly incidentProximityKm: number = 2,
   ) {
     this.metrics = new PerformanceMetrics();
   }
@@ -47,111 +47,89 @@ export class SiteIncidentService {
         'debug',
       );
 
-      // Check for active incident
+      // Check for the nearest active incident within the configured proximity.
+      // TODO(incident-merger): If one alert is close to multiple active incidents,
+      // we currently select nearest-then-recency. Add explicit merge workflow later.
       this.metrics.startTimer('find_active_incident');
-      const activeIncident = await this.repository.findActiveBySiteId(
-        alert.siteId,
-      );
+      let nearbyIncident =
+        await this.repository.findNearestActiveBySiteAndProximity(
+          alert.siteId,
+          alert.latitude,
+          alert.longitude,
+          this.incidentProximityKm,
+        );
       this.metrics.endTimer('find_active_incident');
 
-      let incident: SiteIncident;
-
-      if (activeIncident) {
-        // Defensive check: If incident should be resolved (stale), resolve it first
+      // Defensive stale-resolution for any incident that may have missed lifecycle cleanup.
+      if (nearbyIncident) {
         const now = new Date();
-        const inactiveMs = now.getTime() - activeIncident.updatedAt.getTime();
+        const inactiveMs = now.getTime() - nearbyIncident.updatedAt.getTime();
         const inactiveHours = inactiveMs / (1000 * 60 * 60);
 
         if (inactiveHours >= this.inactiveHours) {
           logger(
-            `Active incident ${
-              activeIncident.id
+            `Nearby incident ${
+              nearbyIncident.id
             } is stale (inactive for ${inactiveHours.toFixed(
               2,
-            )}h). Resolving before processing new alert.`,
+            )}h). Resolving before association.`,
             'debug',
           );
-          // Associate the alert with the incident
-          await prisma.siteAlert.update({
-            where: {id: alert.id},
-            data: {
-              siteIncidentId: activeIncident.id,
-              isProcessed: true,
-            },
-          });
 
-          // Resolve the stale incident
           try {
-            await this.resolver.batchResolveIncidents([activeIncident]);
-            logger(`Resolved stale incident ${activeIncident.id}`, 'debug');
+            await this.resolver.batchResolveIncidents([nearbyIncident]);
+            logger(`Resolved stale nearby incident ${nearbyIncident.id}`, 'debug');
           } catch (error) {
             logger(
-              `Error resolving stale incident ${activeIncident.id}: ${
+              `Error resolving stale nearby incident ${nearbyIncident.id}: ${
                 error instanceof Error ? error.message : String(error)
               }`,
               'warn',
             );
-            // Continue to create new incident even if resolution fails
           }
 
-          // Create new incident for this alert
-          logger(
-            `Creating new incident for alert ${alert.id} on site ${alert.siteId} (previous incident was stale)`,
-            'debug',
+          nearbyIncident = await this.repository.findNearestActiveBySiteAndProximity(
+            alert.siteId,
+            alert.latitude,
+            alert.longitude,
+            this.incidentProximityKm,
           );
 
-          this.metrics.startTimer('create_incident');
-          incident = await this.repository.createIncident({
-            siteId: alert.siteId,
-            startSiteAlertId: alert.id,
-            latestSiteAlertId: alert.id,
-            startedAt: new Date(),
-          });
-          this.metrics.endTimer('create_incident');
+          if (nearbyIncident) {
+            const refreshedInactiveMs =
+              Date.now() - nearbyIncident.updatedAt.getTime();
+            const refreshedInactiveHours =
+              refreshedInactiveMs / (1000 * 60 * 60);
 
-          logger(
-            `Created new incident ${incident.id} for site ${alert.siteId}`,
-            'debug',
-          );
-        } else {
-          // Associate with existing incident (it's still active)
-          logger(
-            `Associating alert ${alert.id} with existing incident ${activeIncident.id}`,
-            'debug',
-          );
-
-          this.metrics.startTimer('associate_alert');
-          incident = await this.repository.associateAlert(
-            activeIncident.id,
-            alert.id,
-          );
-          this.metrics.endTimer('associate_alert');
-
-          logger(
-            `Associated alert ${alert.id} with incident ${incident.id}`,
-            'debug',
-          );
+            if (refreshedInactiveHours >= this.inactiveHours) {
+              logger(
+                `Skipping stale nearby incident ${nearbyIncident.id} after re-check; creating new incident for alert ${alert.id}`,
+                'warn',
+              );
+              nearbyIncident = null;
+            }
+          }
         }
+      }
+
+      let incident: SiteIncident;
+
+      if (nearbyIncident) {
+        logger(
+          `Associating alert ${alert.id} with nearby incident ${nearbyIncident.id} (within ${this.incidentProximityKm}km)`,
+          'debug',
+        );
+
+        this.metrics.startTimer('associate_alert');
+        incident = await this.repository.associateAlert(
+          nearbyIncident.id,
+          alert.id,
+        );
+        this.metrics.endTimer('associate_alert');
+
+        logger(`Associated alert ${alert.id} with incident ${incident.id}`, 'debug');
       } else {
-        // Create new incident
-        logger(
-          `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
-          'debug',
-        );
-
-        this.metrics.startTimer('create_incident');
-        incident = await this.repository.createIncident({
-          siteId: alert.siteId,
-          startSiteAlertId: alert.id,
-          latestSiteAlertId: alert.id,
-          startedAt: new Date(),
-        });
-        this.metrics.endTimer('create_incident');
-
-        logger(
-          `Created new incident ${incident.id} for site ${alert.siteId}`,
-          'debug',
-        );
+        incident = await this.createIncidentFromAlert(alert);
       }
 
       const totalDuration = this.metrics.endTimer('process_alert_total');
@@ -167,6 +145,26 @@ export class SiteIncidentService {
       );
       throw error;
     }
+  }
+
+  private async createIncidentFromAlert(alert: SiteAlert): Promise<SiteIncident> {
+    logger(
+      `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
+      'debug',
+    );
+
+    this.metrics.startTimer('create_incident');
+    const incident = await this.repository.createIncident({
+      siteId: alert.siteId,
+      startSiteAlertId: alert.id,
+      latestSiteAlertId: alert.id,
+      startedAt: new Date(),
+    });
+    this.metrics.endTimer('create_incident');
+
+    logger(`Created new incident ${incident.id} for site ${alert.siteId}`, 'debug');
+
+    return incident;
   }
 
   /**
@@ -370,6 +368,31 @@ export class SiteIncidentService {
     } catch (error) {
       logger(
         `Error getting active incident for site ${siteId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Gets all active incidents for a site
+   * @param siteId - Site ID
+   * @returns Active incidents ordered by newest first
+   */
+  async getActiveIncidentsForSite(siteId: string): Promise<SiteIncident[]> {
+    if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
+      const error = new Error('Invalid siteId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      return await this.repository.findActiveIncidentsBySiteId(siteId);
+    } catch (error) {
+      logger(
+        `Error getting active incidents for site ${siteId}: ${
           error instanceof Error ? error.message : String(error)
         }`,
         'error',
