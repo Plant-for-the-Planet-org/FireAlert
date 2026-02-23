@@ -3,15 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import {BottomSheetFlatList} from '@gorhom/bottom-sheet';
 import moment from 'moment-timezone';
 import {BottomSheet} from '../../../components';
 import {IncidentSummaryCard} from '../../../components/Incident/IncidentSummaryCard';
-import {SatelliteIcon, LocationPinIcon, CopyIcon} from '../../../assets/svgs';
+import {SatelliteIcon, LocationPinIcon} from '../../../assets/svgs';
 import {Colors, Typography} from '../../../styles';
 import {trpc} from '../../../services/trpc';
 import type {SiteAlertData} from '../../../types/incident';
@@ -42,7 +42,7 @@ export const IncidentDetailsBottomSheet: React.FC<
   );
 
   // Sort alerts by event date (newest first)
-  const sortedAlerts = useMemo(() => {
+  const sortedAlerts = useMemo<SiteAlertData[]>(() => {
     if (!incident?.json?.data?.siteAlerts) return [];
     return [...incident.json.data.siteAlerts].sort(
       (a, b) =>
@@ -50,7 +50,7 @@ export const IncidentDetailsBottomSheet: React.FC<
     );
   }, [incident]);
 
-  const renderAlertItem = ({item}: {item: any}) => {
+  const renderAlertItem = ({item}: {item: SiteAlertData}) => {
     const alert = item;
     return (
       <TouchableOpacity
@@ -115,33 +115,34 @@ export const IncidentDetailsBottomSheet: React.FC<
     const incidentData = incident.json.data;
 
     return (
-      <>
-        <IncidentSummaryCard
-          isActive={incidentData.isActive}
-          startAlert={incidentData.startSiteAlert}
-          latestAlert={incidentData.latestSiteAlert}
-          allAlerts={incidentData.siteAlerts}
-          incidentId={incidentData.id}
-        />
+      <BottomSheetFlatList
+        data={sortedAlerts}
+        renderItem={renderAlertItem}
+        keyExtractor={item => item.id}
+        style={styles.alertsList}
+        contentContainerStyle={styles.alertsListContent}
+        showsVerticalScrollIndicator={true}
+        ListHeaderComponent={
+          <>
+            <IncidentSummaryCard
+              isActive={incidentData.isActive}
+              startAlert={incidentData.startSiteAlert}
+              latestAlert={incidentData.latestSiteAlert}
+              allAlerts={incidentData.siteAlerts}
+              incidentId={incidentData.id}
+            />
 
-        <View style={styles.alertsSection}>
-          <Text style={styles.alertsSectionTitle}>
-            All Fire Detections ({sortedAlerts.length})
-          </Text>
-          <Text style={styles.alertsSectionSubtitle}>
-            Tap any detection to view on map
-          </Text>
-        </View>
-
-        <FlatList
-          data={sortedAlerts}
-          renderItem={renderAlertItem}
-          keyExtractor={item => item.id}
-          style={styles.alertsList}
-          contentContainerStyle={styles.alertsListContent}
-          showsVerticalScrollIndicator={true}
-        />
-      </>
+            <View style={styles.alertsSection}>
+              <Text style={styles.alertsSectionTitle}>
+                All Fire Detections ({sortedAlerts.length})
+              </Text>
+              <Text style={styles.alertsSectionSubtitle}>
+                Tap any detection to view on map
+              </Text>
+            </View>
+          </>
+        }
+      />
     );
   };
 
@@ -149,7 +150,10 @@ export const IncidentDetailsBottomSheet: React.FC<
     <BottomSheet
       isVisible={isVisible}
       onBackdropPress={onClose}
-      backdropColor="transparent">
+      backdropColor="transparent"
+      snapPoints={['35%', '50%']}
+      initialSnapIndex={0}
+      useScrollableContainer>
       <View style={styles.modalContainer}>
         <View style={styles.modalHeader} />
         {renderContent()}
@@ -160,12 +164,12 @@ export const IncidentDetailsBottomSheet: React.FC<
 
 const styles = StyleSheet.create({
   modalContainer: {
+    flex: 1,
     bottom: 0,
     borderRadius: 15,
-    paddingBottom: 30,
+    paddingBottom: 12,
     width: SCREEN_WIDTH,
     backgroundColor: Colors.WHITE,
-    maxHeight: '80%',
   },
   modalHeader: {
     width: 46,
