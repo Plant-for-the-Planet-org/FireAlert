@@ -72,6 +72,11 @@ import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from './PermissionAlert/LocationPermissionAlerts';
+import {
+  MapDisplayModeSwitcher,
+  MapDurationDropdown,
+  IncidentDetailsBottomSheet,
+} from './components';
 
 import {highlightWave} from '../../assets/animation/lottie';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
@@ -160,6 +165,15 @@ const Home = ({navigation, route}) => {
   const [siteRad, setSiteRad] = useState<object | null>(RADIUS_ARR[4]);
   const [isEditSite, setIsEditSite] = useState<boolean>(false);
   const [showDelAccount, setShowDelAccount] = useState<boolean>(false);
+
+  // Map display mode state
+  const [mapDisplayMode, setMapDisplayMode] = useState<'alerts' | 'incidents'>(
+    'alerts',
+  );
+  const [mapDurationDays, setMapDurationDays] = useState<number>(7);
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(
+    null,
+  );
 
   const map = useRef(null);
   const toast = useToast();
@@ -287,6 +301,48 @@ const Home = ({navigation, route}) => {
     () => categorizedRes(sites?.json?.data || [], 'type'),
     [sites],
   );
+
+  // Filter alerts by duration
+  const filteredAlerts = useMemo(() => {
+    if (!alerts?.json?.data) return [];
+    const cutoffDate = moment().subtract(mapDurationDays, 'days');
+    return alerts.json.data.filter(alert =>
+      moment(alert.eventDate).isAfter(cutoffDate),
+    );
+  }, [alerts, mapDurationDays]);
+
+  // Compose incidents from filtered alerts
+  const composedIncidents = useMemo(() => {
+    if (mapDisplayMode !== 'incidents') return [];
+
+    const incidentMap = new Map();
+    filteredAlerts.forEach(alert => {
+      if (alert.siteIncidentId) {
+        if (!incidentMap.has(alert.siteIncidentId)) {
+          incidentMap.set(alert.siteIncidentId, {
+            incidentId: alert.siteIncidentId,
+            siteId: alert.site?.id,
+            alerts: [],
+          });
+        }
+        incidentMap.get(alert.siteIncidentId).alerts.push(alert);
+      }
+    });
+
+    return Array.from(incidentMap.values())
+      .slice(0, 60)
+      .map(incident => ({
+        ...incident,
+        alertCount: incident.alerts.length,
+        circle: generateIncidentCircle(
+          incident.alerts.map(a => ({
+            latitude: a.latitude,
+            longitude: a.longitude,
+          })),
+          2,
+        ),
+      }));
+  }, [filteredAlerts, mapDisplayMode]);
 
   // Calculate incident circle with memoization
   const incidentCircle = useMemo(() => {
@@ -620,6 +676,35 @@ const Home = ({navigation, route}) => {
   //   }
   // };
 
+  // Map display mode handlers
+  const handleModeChange = (mode: 'alerts' | 'incidents') => {
+    setMapDisplayMode(mode);
+    if (mode === 'incidents') {
+      setSelectedAlert({});
+    } else {
+      setSelectedIncidentId(null);
+      setIncidentCircleData(null);
+    }
+  };
+
+  const handleDurationChange = (days: number) => {
+    setMapDurationDays(days);
+  };
+
+  const handleIncidentTap = (incidentId: string) => {
+    setSelectedIncidentId(incidentId);
+  };
+
+  const handleAlertTapFromIncident = (alert: any) => {
+    if (camera?.current?.setCamera) {
+      camera.current.setCamera({
+        centerCoordinate: [alert.longitude, alert.latitude],
+        zoomLevel: 15,
+        animationDuration: 500,
+      });
+    }
+  };
+
   // recenter the mapmap to the current coordinates of user location
   const onPressMyLocationIcon = (
     position: MapboxGL.Location | Geolocation.GeoPosition,
@@ -777,7 +862,7 @@ const Home = ({navigation, route}) => {
   const handleCloseSiteModal = () => setSiteNameModalVisible(false);
 
   const renderAnnotation = counter => {
-    const alertsArr = alerts?.json?.data;
+    const alertsArr = filteredAlerts;
     const id = alertsArr[counter]?.id;
     const coordinate = [
       alertsArr[counter]?.longitude,
@@ -850,7 +935,7 @@ const Home = ({navigation, route}) => {
 
   const renderAnnotations = isAlert => {
     const items = [];
-    const arr = isAlert ? alerts?.json?.data : formattedSites?.point;
+    const arr = isAlert ? filteredAlerts : formattedSites?.point;
     for (let i = 0; i < arr?.length; i++) {
       {
         isAlert
@@ -859,6 +944,42 @@ const Home = ({navigation, route}) => {
       }
     }
     return items;
+  };
+
+  const renderIncidentCircles = () => {
+    if (mapDisplayMode !== 'incidents' || composedIncidents.length === 0) {
+      return null;
+    }
+
+    return composedIncidents.map(incident => {
+      if (!incident.circle) return null;
+
+      const circleColor = Colors.INCIDENT_ACTIVE_COLOR;
+
+      return (
+        <MapboxGL.ShapeSource
+          key={`incident-${incident.incidentId}`}
+          id={`incident-circle-${incident.incidentId}`}
+          shape={incident.circle.circlePolygon}
+          onPress={() => handleIncidentTap(incident.incidentId)}>
+          <MapboxGL.FillLayer
+            id={`incident-circle-fill-${incident.incidentId}`}
+            style={{
+              fillColor: circleColor,
+              fillOpacity: 0.25,
+            }}
+          />
+          <MapboxGL.LineLayer
+            id={`incident-circle-line-${incident.incidentId}`}
+            style={{
+              lineWidth: 3,
+              lineColor: circleColor,
+              lineOpacity: 1,
+            }}
+          />
+        </MapboxGL.ShapeSource>
+      );
+    });
   };
 
   const renderHighlightedMapSource = () => (
@@ -1105,11 +1226,13 @@ const Home = ({navigation, route}) => {
         {renderProtectedAreasSource()}
         {/* highlighted */}
         {selectedArea && renderHighlightedMapSource()}
-        {/* incident circle */}
-        {renderIncidentCircle()}
-        {/* for alerts */}
-        {renderAnnotations(true)}
-        {/* for point sites */}
+        {/* incident circles - shown in incidents mode */}
+        {mapDisplayMode === 'incidents' && renderIncidentCircles()}
+        {/* incident circle for selected alert - shown in alerts mode */}
+        {mapDisplayMode === 'alerts' && renderIncidentCircle()}
+        {/* for alerts - shown in alerts mode */}
+        {mapDisplayMode === 'alerts' && renderAnnotations(true)}
+        {/* for point sites - always shown */}
         {renderAnnotations(false)}
       </MapboxGL.MapView>
       {Object.keys(selectedAlert).length ? (
@@ -1284,6 +1407,18 @@ const Home = ({navigation, route}) => {
         testID="my_location">
         <MyLocIcon width={45} height={45} />
       </TouchableOpacity>
+      {/* Map display mode controls */}
+      <View style={styles.mapControlsContainer}>
+        <MapDisplayModeSwitcher
+          mode={mapDisplayMode}
+          onModeChange={handleModeChange}
+        />
+        <View style={styles.controlSpacer} />
+        <MapDurationDropdown
+          durationDays={mapDurationDays}
+          onDurationChange={handleDurationChange}
+        />
+      </View>
       {/* profile modal */}
       <BottomSheet
         isVisible={profileModalVisible}
@@ -1340,7 +1475,9 @@ const Home = ({navigation, route}) => {
           setSelectedAlert({});
           setIncidentCircleData(null);
         }}
-        isVisible={Object.keys(selectedAlert).length > 0}>
+        isVisible={
+          mapDisplayMode === 'alerts' && Object.keys(selectedAlert).length > 0
+        }>
         {Object.keys(selectedAlert).length > 0 &&
           console.log(
             `[incident] Alert modal opened - alertId: ${
@@ -1555,6 +1692,13 @@ const Home = ({navigation, route}) => {
           </TouchableOpacity>
         </View>
       </BottomSheet>
+      {/* incident details modal */}
+      <IncidentDetailsBottomSheet
+        isVisible={!!selectedIncidentId}
+        incidentId={selectedIncidentId}
+        onClose={() => setSelectedIncidentId(null)}
+        onAlertTap={handleAlertTapFromIncident}
+      />
       {/* site Info modal */}
       <BottomSheet
         isVisible={!!Object.keys(selectedSite)?.length}
@@ -1788,6 +1932,17 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     top: 80,
+  },
+  mapControlsContainer: {
+    position: 'absolute',
+    top: 200,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  controlSpacer: {
+    width: 8,
   },
   userAvatar: {
     width: 44,
