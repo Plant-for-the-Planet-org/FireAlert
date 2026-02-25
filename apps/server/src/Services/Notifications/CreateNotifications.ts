@@ -1,5 +1,7 @@
 import {prisma} from '../../server/db';
 import {CustomError} from '../../utils/errorHandler';
+import {logger} from '../../server/logger';
+import {isSiteAlertMethod} from './NotificationRoutingConfig';
 
 // Logic in Prisma:
 // Initialize an empty array → `notificationDataQueue` -> Queue for holding data required for conditional notification creation
@@ -10,37 +12,37 @@ import {CustomError} from '../../utils/errorHandler';
 // Initialize an empty array → `siteAlertsToBeUpdated`
 
 // Run this Prisma Transaction:
-  // Get all unprocessed alerts, Order them by siteId and eventDate, (eventDate must be oldest first)
+// Get all unprocessed alerts, Order them by siteId and eventDate, (eventDate must be oldest first)
 
-  // Map a set of unique site IDs from unprocessed alerts
+// Map a set of unique site IDs from unprocessed alerts
 
-  // Process each alert from unprocessedAlerts:
-  // For each alert:
-    // Retrieve the 'lastMessageCreated' time and alertMethods for the site associated with the alert
-    // Check if the siteId of the alert is in the uniqueSiteIdsForNewSiteAlerts set
-      // If yes, initialize the notificationMethodCounter for this site with the count of each method (email, whatsapp, sms, device, webhook)
-        // For each alertMethod:
-          // If the method is verified and enabled, increment its count in the notificationMethodCounter
-        // Remove the siteId from the set to avoid re-initialization for the same site
-    // For each verified and enabled alertMethod:
-      // Create an object containing necessary data for notification creation
-      // Append this object to the notificationDataQueue
-    // Add the siteAlertId to the processedSiteAlerts array, marking the alert as processed
+// Process each alert from unprocessedAlerts:
+// For each alert:
+// Retrieve the 'lastMessageCreated' time and alertMethods for the site associated with the alert
+// Check if the siteId of the alert is in the uniqueSiteIdsForNewSiteAlerts set
+// If yes, initialize the notificationMethodCounter for this site with the count of each method (email, whatsapp, sms, device, webhook)
+// For each alertMethod:
+// If the method is verified and enabled, increment its count in the notificationMethodCounter
+// Remove the siteId from the set to avoid re-initialization for the same site
+// For each verified and enabled alertMethod:
+// Create an object containing necessary data for notification creation
+// Append this object to the notificationDataQueue
+// Add the siteAlertId to the processedSiteAlerts array, marking the alert as processed
 
-  // For each notification in the notificationDataQueue:
-    // Determine if the notification can be created by checking two conditions:
-    // 1. If the site is 'active', determined by whether the last message was created over 2 hours ago or is null
-    // 2. If the count for the specific notification method is sufficient (greater than zero) as per notificationMethodCounter
-    // If both conditions are met:
-      // Prepare the data object for creating the notification
-      // Add the notification data to the notificationsToBeCreated array
-      // Decrement the count for this notification method in notificationMethodCounter
-      // For methods other than 'device' and 'webhook', if the site hasn't been added to sitesToBeUpdated yet, add it
-      // This addition implies the site's lastMessageCreated time will be updated, reflecting the most recent notification
+// For each notification in the notificationDataQueue:
+// Determine if the notification can be created by checking two conditions:
+// 1. If the site is 'active', determined by whether the last message was created over 2 hours ago or is null
+// 2. If the count for the specific notification method is sufficient (greater than zero) as per notificationMethodCounter
+// If both conditions are met:
+// Prepare the data object for creating the notification
+// Add the notification data to the notificationsToBeCreated array
+// Decrement the count for this notification method in notificationMethodCounter
+// For methods other than 'device' and 'webhook', if the site hasn't been added to sitesToBeUpdated yet, add it
+// This addition implies the site's lastMessageCreated time will be updated, reflecting the most recent notification
 
-  // Bulk update sites in `sitesToBeUpdated` as lastMessageCreated = now()
-  // Bulk update siteAlerts in `processedSiteAlerts` as isProcessed = true
-  // Bulk create notifications using `notificationsToBeCreated`  
+// Bulk update sites in `sitesToBeUpdated` as lastMessageCreated = now()
+// Bulk update siteAlerts in `processedSiteAlerts` as isProcessed = true
+// Bulk create notifications using `notificationsToBeCreated`
 
 type NotificationToBeProcessed = {
   siteAlertId: string;
@@ -64,73 +66,101 @@ type ActiveAlertMethodCount = {
   [key: string]: number;
 };
 
+type AlertMethodData = {
+  method: string;
+  destination: string;
+  isEnabled: boolean;
+  isVerified: boolean;
+};
+
+type UserAlertMethods = {
+  alertMethods: AlertMethodData[];
+};
+
+type SiteAlertRelations = {
+  lastMessageCreated: Date | null;
+  user: UserAlertMethods | null;
+};
+
 type UnprocessedSiteAlert = {
   id: string;
   siteId: string;
-  site: {
-      lastMessageCreated: Date | null;
-      user: {
-          alertMethods: {
-              method: string;
-              destination: string;
-              isEnabled: boolean;
-              isVerified: boolean;
-          }[];
-      };
-  };
+  site: SiteAlertRelations;
 };
 
-
-function createNestedChunksForUnprocessedSiteAlerts(unprocessedSiteAlerts:UnprocessedSiteAlert[], approxChunkSize: number = 50){
+function createNestedChunksForUnprocessedSiteAlerts(
+  unprocessedSiteAlerts: UnprocessedSiteAlert[],
+  approxChunkSize = 50,
+): UnprocessedSiteAlert[][] {
   const chunkedSiteAlertsNestedArray: UnprocessedSiteAlert[][] = [];
   let currentSiteId = unprocessedSiteAlerts[0]?.siteId;
   let nestedIndex = 0;
 
-  unprocessedSiteAlerts.forEach((siteAlert) => {
-      if (!chunkedSiteAlertsNestedArray[nestedIndex]) {
-          chunkedSiteAlertsNestedArray[nestedIndex] = [];
-      }
+  unprocessedSiteAlerts.forEach(siteAlert => {
+    if (!chunkedSiteAlertsNestedArray[nestedIndex]) {
+      chunkedSiteAlertsNestedArray[nestedIndex] = [];
+    }
 
-      const currentChunk = chunkedSiteAlertsNestedArray[nestedIndex];
-      const isNewSiteId = siteAlert.siteId !== currentSiteId;
-      const chunkFull = currentChunk.length >= approxChunkSize
-      const shouldCreateNewChunk = chunkFull && isNewSiteId;
+    const currentChunk = chunkedSiteAlertsNestedArray[nestedIndex];
+    const isNewSiteId = siteAlert.siteId !== currentSiteId;
+    const chunkFull = currentChunk.length >= approxChunkSize;
+    const shouldCreateNewChunk = chunkFull && isNewSiteId;
 
-      if (shouldCreateNewChunk) {
-          nestedIndex++;
-          currentSiteId = siteAlert.siteId;
-          chunkedSiteAlertsNestedArray[nestedIndex] = [siteAlert];
-      } else {
-          currentChunk.push(siteAlert);
-      }
-    });
-  return chunkedSiteAlertsNestedArray
+    if (shouldCreateNewChunk) {
+      nestedIndex++;
+      currentSiteId = siteAlert.siteId;
+      chunkedSiteAlertsNestedArray[nestedIndex] = [siteAlert];
+    } else {
+      currentChunk.push(siteAlert);
+    }
+  });
+  return chunkedSiteAlertsNestedArray;
 }
 
-async function processSiteAlertChunk(siteAlertChunk:UnprocessedSiteAlert[]){
-  let notificationDataQueue: NotificationToBeProcessed[] = [];
+type ProcessSiteAlertChunkResult = {
+  processedSiteAlerts: string[];
+  notificationCreateData: NotificationToBeCreated[];
+  sitesToBeUpdated: string[];
+};
+
+function processSiteAlertChunk(
+  siteAlertChunk: UnprocessedSiteAlert[],
+): ProcessSiteAlertChunkResult {
+  const notificationDataQueue: NotificationToBeProcessed[] = [];
   // [email, whatsapp, and sms] method have one count for each unique alertMethod,
   // notificationMethodCounter keeps count for eligible notifications for each alertMethod method
-  let notificationMethodCounter: Record<string, ActiveAlertMethodCount> = {};
-  let processedSiteAlerts: string[] = [];
-  let notificationsToBeCreated: NotificationToBeCreated[] = [];
-  let sitesToBeUpdated: string[] = [];
+  const notificationMethodCounter: Record<string, ActiveAlertMethodCount> = {};
+  const processedSiteAlerts: string[] = [];
+  const notificationsToBeCreated: NotificationToBeCreated[] = [];
+  const sitesToBeUpdated: string[] = [];
 
   // Create a set of unique site IDs from unprocessed alerts
-  const uniqueSiteIdsForNewSiteAlerts = new Set(siteAlertChunk.map(alert => alert.siteId));
+  const uniqueSiteIdsForNewSiteAlerts = new Set(
+    siteAlertChunk.map(alert => alert.siteId),
+  );
 
   // Process each siteAlert, and add to notificationQueue
   for (const siteAlert of siteAlertChunk) {
     const lastMessageCreated = siteAlert.site.lastMessageCreated;
-    const alertMethods = siteAlert.site.user.alertMethods;
+    const alertMethods = siteAlert.site.user?.alertMethods ?? [];
     const siteId = siteAlert.siteId;
 
     // Initialize or update notificationMethodCounter for each unique site
     if (uniqueSiteIdsForNewSiteAlerts.has(siteId)) {
       // Initialize notificationMethodCounter for this site
-      notificationMethodCounter[siteId] = { sms: 0, whatsapp: 0, email: 0, device: Infinity, webhook: Infinity };
+      notificationMethodCounter[siteId] = {
+        sms: 0,
+        whatsapp: 0,
+        email: 0,
+        device: Infinity,
+        webhook: Infinity,
+      };
       alertMethods.forEach(method => {
-        if (method.isVerified && method.isEnabled) {
+        if (
+          method.isVerified &&
+          method.isEnabled &&
+          isSiteAlertMethod(method.method)
+        ) {
           notificationMethodCounter[siteId][method.method] += 1; // Increment the count of each method
         }
       });
@@ -140,13 +170,17 @@ async function processSiteAlertChunk(siteAlertChunk:UnprocessedSiteAlert[]){
 
     if (alertMethods && alertMethods.length > 0) {
       alertMethods.forEach(alertMethod => {
-        if (alertMethod.isVerified && alertMethod.isEnabled) {
+        if (
+          alertMethod.isVerified &&
+          alertMethod.isEnabled &&
+          isSiteAlertMethod(alertMethod.method)
+        ) {
           notificationDataQueue.push({
             siteAlertId: siteAlert.id,
             siteId: siteAlert.siteId,
             lastMessageCreated,
             alertMethod: alertMethod.method,
-            destination: alertMethod.destination
+            destination: alertMethod.destination,
           });
         }
       });
@@ -157,14 +191,11 @@ async function processSiteAlertChunk(siteAlertChunk:UnprocessedSiteAlert[]){
   // Create notifications based on conditions
   for (const notification of notificationDataQueue) {
     const siteId = notification.siteId;
-    const method = notification.alertMethod
+    const method = notification.alertMethod;
 
-    // Determine if notification can be created
-    // Check if the site is active or not, then check if the method count is sufficient
-    const isSiteActive = !notification.lastMessageCreated || new Date(notification.lastMessageCreated) < new Date(Date.now() - 2 * 60 * 60 * 1000);
-    const isMethodCountSufficient = notificationMethodCounter[siteId][method] > 0;
-    const canCreateNotification = isSiteActive && isMethodCountSufficient;
-        
+    // For SiteAlert methods (device, webhook), always create notifications (no rate limiting)
+    const canCreateNotification = true;
+
     if (canCreateNotification) {
       // Prepare createNotificationData object
       const createNotificationData: NotificationToBeCreated = {
@@ -173,66 +204,70 @@ async function processSiteAlertChunk(siteAlertChunk:UnprocessedSiteAlert[]){
         destination: notification.destination,
         isDelivered: false,
       };
-      
+
       // Add to notificationsToBeCreated array
       notificationsToBeCreated.push(createNotificationData);
-      
-      // Decrement the method count
+
+      // Decrement the method count (for consistency, though not used for rate limiting)
       notificationMethodCounter[siteId][method] -= 1;
-      
-      // Add siteId to sitesToBeUpdated for methods other than device and webhook
-      if (['sms', 'whatsapp', 'email'].includes(method) && !sitesToBeUpdated.includes(siteId)) {
-        sitesToBeUpdated.push(siteId);
-      }
+
+      // Note: We don't update lastMessageCreated for SiteAlert methods as they are real-time
     }
   }
   const notificationCreateData = notificationsToBeCreated.map(n => ({
     siteAlertId: n.siteAlertId,
     alertMethod: n.alertMethod,
     destination: n.destination,
-    isDelivered: false
-  }))
+    isDelivered: false,
+  }));
   return {
-    processedSiteAlerts, notificationCreateData, sitesToBeUpdated
-  }
-} 
+    processedSiteAlerts,
+    notificationCreateData,
+    sitesToBeUpdated,
+  };
+}
 
 //For all siteAlerts
-  // Create notifications for [webhook, device]
-  // We check if alerts happen within a certain time
-  // If true
-      // Only create notifications for [email, whatsapp, sms]
-  // Mark the alert as processed
+// Create notifications for [webhook, device]
+// We check if alerts happen within a certain time
+// If true
+// Only create notifications for [email, whatsapp, sms]
+// Mark the alert as processed
 
 const createNotifications = async () => {
   let totalNotificationsCreated = 0;
   try {
+    logger(
+      'Starting CreateNotifications for SiteAlert methods (device, webhook) only',
+      'info',
+    );
+
     //Get all unprocessed alerts
     const unprocessedAlerts = await prisma.siteAlert.findMany({
       where: {
-        isProcessed: false, 
+        isProcessed: false,
         deletedAt: null,
         eventDate: {
           gte: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // Alerts from the last 24 hours
         },
       },
       select: {
-        id: true,           
-        siteId: true,       
+        id: true,
+        siteId: true,
         site: {
           select: {
-            lastMessageCreated: true,  
+            lastMessageCreated: true,
             user: {
               select: {
                 alertMethods: {
                   select: {
-                    method: true,     
+                    method: true,
                     destination: true,
                     isEnabled: true,
-                    isVerified: true
-                  }
-                }
-              }
+                    isVerified: true,
+                  },
+                },
+              },
             },
             siteRelations: {
               select: {
@@ -240,54 +275,70 @@ const createNotifications = async () => {
                   select: {
                     alertMethods: {
                       select: {
-                        method: true,     
+                        method: true,
                         destination: true,
                         isEnabled: true,
-                        isVerified: true
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+                        isVerified: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
-      orderBy: [{ siteId: 'asc' }, { eventDate: 'asc' }]
+      orderBy: [{siteId: 'asc'}, {eventDate: 'asc'}],
     });
-  
-    unprocessedAlerts.forEach((el) => {
-      if (!el.site.user) { // site.user would be null for protected-sites
-        el.site.user = {};
-        // siteRelation may have multiple user, flatmap all user's alertMethods & adding to user.alertMethods so further functionality can detect further
-        el.site.user.alertMethods = el.site.siteRelations.flatMap(sr => sr.user.alertMethods)
-      }
-    })
 
-    const siteAlertsInChunks = createNestedChunksForUnprocessedSiteAlerts(unprocessedAlerts, 30)
+    const processedAlerts = unprocessedAlerts.map(el => {
+      if (!el.site.user) {
+        // site.user would be null for protected-sites
+        // siteRelation may have multiple user, flatmap all user's alertMethods & adding to user.alertMethods so further functionality can detect further
+        return {
+          ...el,
+          site: {
+            ...el.site,
+            user: {
+              alertMethods: el.site.siteRelations.flatMap(
+                sr => sr.user.alertMethods,
+              ),
+            },
+          },
+        };
+      }
+      return el;
+    });
+
+    const siteAlertsInChunks = createNestedChunksForUnprocessedSiteAlerts(
+      processedAlerts,
+      30,
+    );
     for (const siteAlertChunk of siteAlertsInChunks) {
-      const {processedSiteAlerts, notificationCreateData, sitesToBeUpdated} = await processSiteAlertChunk(siteAlertChunk)
-      await prisma.$transaction(async (prisma) => {
+      const {processedSiteAlerts, notificationCreateData, sitesToBeUpdated} =
+        processSiteAlertChunk(siteAlertChunk);
+      await prisma.$transaction(async prisma => {
         await prisma.siteAlert.updateMany({
-          where: { id: { in: processedSiteAlerts } },
-          data: { isProcessed: true }
+          where: {id: {in: processedSiteAlerts}},
+          data: {isProcessed: true},
         });
         await prisma.notification.createMany({
-          data: notificationCreateData
+          data: notificationCreateData,
         });
-        if (sitesToBeUpdated.length > 0) {
-          await prisma.site.updateMany({
-            where: { id: { in: sitesToBeUpdated } },
-            data: { lastMessageCreated: new Date() }
-          });
-        }
+        // Note: We don't update lastMessageCreated for SiteAlert methods as they are real-time notifications
+        // and should not be rate limited
       });
-      totalNotificationsCreated = totalNotificationsCreated + notificationCreateData.length
-    }  
+      totalNotificationsCreated =
+        totalNotificationsCreated + notificationCreateData.length;
+    }
   } catch (error) {
-    const { status, message } = error as { status: number; message: string };
-    CustomError.throw(status, message, 'GeneralError',true);
+    const {status, message} = error as {status: number; message: string};
+    CustomError.throw(status, message, 'GeneralError', true);
   }
+  logger(
+    `CreateNotifications completed. Created ${totalNotificationsCreated} SiteAlert notifications (device, webhook methods only)`,
+    'info',
+  );
   return totalNotificationsCreated;
 };
 
