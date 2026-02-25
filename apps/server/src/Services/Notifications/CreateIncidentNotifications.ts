@@ -4,7 +4,7 @@ import {
   type NotificationQueueItem,
   type IncidentNotificationMetadata,
 } from '../../Interfaces/SiteIncidentNotifications';
-import {NotificationStatus, type SiteIncident} from '@prisma/client';
+import {NotificationStatus} from '@prisma/client';
 import {isSiteIncidentMethod} from './NotificationRoutingConfig';
 
 export class CreateIncidentNotifications {
@@ -60,6 +60,7 @@ export class CreateIncidentNotifications {
     const incidents = await prisma.siteIncident.findMany({
       where: {
         isProcessed: false,
+        mergedIncidentId: null,
       },
       include: {
         site: {
@@ -216,7 +217,7 @@ export class CreateIncidentNotifications {
       // Usually we do this to rate limit per site.
       // With Incidents, we rate limit by "One Incident per X hours".
       // But updating lastMessageCreated is still good practice for "Last time we bugged the user".
-      const siteIdsToUpdate = [...new Set(queue.map(q => q.siteId))];
+      const siteIdsToUpdate = Array.from(new Set(queue.map(q => q.siteId)));
       if (siteIdsToUpdate.length > 0) {
         await tx.site.updateMany({
           where: {id: {in: siteIdsToUpdate}},

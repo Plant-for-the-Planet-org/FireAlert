@@ -1,26 +1,30 @@
 import {logger} from '../../server/logger';
-import {siteIncidentService} from './SiteIncidentService';
-import {notificationBoundaryService} from './NotificationBoundaryService';
+import {prisma} from '../../server/db';
+import {SiteIncidentRepository} from './SiteIncidentRepository';
+import {IncidentResolver} from './IncidentResolver';
+import {SiteIncidentService} from './SiteIncidentService';
 import type {SiteAlert, GeoEvent} from '@prisma/client';
 
+function createSiteIncidentService(): SiteIncidentService {
+  const repository = new SiteIncidentRepository(prisma);
+  const resolver = new IncidentResolver(repository);
+
+  const inactiveHours = parseInt(process.env.INCIDENT_RESOLUTION_HOURS || '6', 10);
+  const proximityKm = Number(process.env.INCIDENT_PROXIMITY_KM || '2');
+
+  return new SiteIncidentService(repository, resolver, inactiveHours, proximityKm);
+}
+
 /**
- * Integration helper for SiteIncident creation when processing SiteAlerts
+ * Integration helper for SiteIncident creation when processing SiteAlerts.
  *
- * This function should be called after a SiteAlert is created to:
- * 1. Check if an active incident exists for the site
- * 2. Create a new incident if none exists
- * 3. Associate the alert with the incident
- * 4. Create start notification if it's a new incident
- *
- * @param siteAlert - The newly created SiteAlert
- * @param geoEvent - The GeoEvent that triggered the alert
+ * This is a compatibility helper for older integration paths.
  */
 export async function processSiteAlertForIncident(
   siteAlert: SiteAlert,
-  geoEvent: GeoEvent,
+  _geoEvent: GeoEvent,
 ): Promise<void> {
   try {
-    // Check if incident notifications are enabled
     const enableIncidentNotifications =
       process.env.ENABLE_INCIDENT_NOTIFICATIONS === 'true';
 
@@ -32,45 +36,8 @@ export async function processSiteAlertForIncident(
       return;
     }
 
-    // Create or update incident
-    const incident = await siteIncidentService.createOrUpdateIncident(
-      siteAlert.siteId,
-      siteAlert,
-      geoEvent,
-    );
-
-    // If this is a new incident (not processed yet), create start notification
-    if (!incident.isProcessed && incident.isActive) {
-      try {
-        const notification =
-          await notificationBoundaryService.createStartNotification(
-            incident,
-            siteAlert,
-          );
-
-        if (notification) {
-          // Record that the notification was created
-          await notificationBoundaryService.recordNotificationSent(
-            incident.id,
-            'START',
-            notification.id,
-          );
-
-          logger(
-            `Created start notification for incident ${incident.id}`,
-            'info',
-          );
-        }
-      } catch (error) {
-        logger(
-          `Failed to create start notification for incident ${
-            incident.id
-          }: ${String(error)}`,
-          'error',
-        );
-        // Don't throw - we still want the alert to be processed even if notification fails
-      }
-    }
+    const service = createSiteIncidentService();
+    const incident = await service.processNewSiteAlert(siteAlert);
 
     logger(
       `Processed SiteAlert ${siteAlert.id} for incident ${incident.id}`,
@@ -83,85 +50,27 @@ export async function processSiteAlertForIncident(
       )}`,
       'error',
     );
-    // Don't throw - we don't want to block alert creation if incident processing fails
   }
 }
 
 /**
- * Closes inactive incidents and creates end notifications
+ * Closes inactive incidents.
  *
- * This function should be called periodically (e.g., by a CRON job) to:
- * 1. Find incidents that have been inactive for the threshold period
- * 2. Mark them as inactive
- * 3. Create end notifications
- *
- * @returns Number of incidents closed
+ * Compatibility wrapper over SiteIncidentService.resolveInactiveIncidents.
  */
 export async function closeInactiveIncidentsWithNotifications(): Promise<number> {
   try {
-    const inactivityThresholdHours = parseInt(
-      process.env.INCIDENT_RESOLUTION_HOURS || '6',
-      10,
-    );
+    const service = createSiteIncidentService();
+    const closedRoots = await service.resolveInactiveIncidents();
 
-    // Close inactive incidents
-    const closedIncidents = await siteIncidentService.closeInactiveIncidents(
-      inactivityThresholdHours,
-    );
-
-    // Create end notifications for each closed incident
-    for (const incident of closedIncidents) {
-      try {
-        const notification =
-          await notificationBoundaryService.createEndNotification(incident);
-
-        if (notification) {
-          // Record that the notification was created
-          await notificationBoundaryService.recordNotificationSent(
-            incident.id,
-            'END',
-            notification.id,
-          );
-
-          logger(
-            `Created end notification for incident ${incident.id}`,
-            'info',
-          );
-        }
-      } catch (error) {
-        logger(
-          `Failed to create end notification for incident ${
-            incident.id
-          }: ${String(error)}`,
-          'error',
-        );
-        // Continue processing other incidents
-      }
-    }
-
-    logger(`Closed ${closedIncidents.length} inactive incidents`, 'info');
-    return closedIncidents.length;
+    logger(`Closed ${closedRoots} inactive root incidents`, 'info');
+    return closedRoots;
   } catch (error) {
     logger(`Failed to close inactive incidents: ${String(error)}`, 'error');
     throw error;
   }
 }
 
-/**
- * Example integration point for SiteAlert creation
- *
- * This shows how to integrate incident processing into the existing
- * SiteAlert creation flow. This would be added to the CreateSiteAlert service.
- *
- * @example
- * ```typescript
- * // After creating SiteAlert in CreateSiteAlert.ts:
- * const siteAlert = await prisma.siteAlert.create({ ... });
- *
- * // Process for incident tracking:
- * await processSiteAlertForIncident(siteAlert, geoEvent);
- * ```
- */
 export function getIntegrationExample(): string {
   return `
 // In apps/server/src/Services/SiteAlert/CreateSiteAlert.ts
@@ -180,7 +89,7 @@ for (const alert of createdAlerts) {
   const geoEvent = await prisma.geoEvent.findUnique({
     where: { /* match by coordinates and date */ }
   });
-  
+
   if (geoEvent) {
     await processSiteAlertForIncident(alert, geoEvent);
   }

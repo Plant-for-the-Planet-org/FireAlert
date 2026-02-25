@@ -119,10 +119,11 @@ export default async function siteIncidentManager(
       logger('No unassociated SiteAlerts found.', 'debug');
     }
 
+    const lifecycleStats = siteIncidentService.getAndResetLifecycleStats();
     const duration = Date.now() - start;
 
     logger(
-      `Site Incident Manager finished in ${duration}ms. Linked: ${linkedCount}, Resolved: ${resolvedCount}`,
+      `Site Incident Manager finished in ${duration}ms. Linked: ${linkedCount}, Resolved roots: ${resolvedCount}, Merge events: ${lifecycleStats.mergeEvents}, New merged incidents: ${lifecycleStats.newMergedIncidents}, Absorbed incidents: ${lifecycleStats.absorbedIncidents}, Descendant closures: ${lifecycleStats.descendantClosures}`,
       'info',
     );
 
@@ -131,6 +132,10 @@ export default async function siteIncidentManager(
       unlinkedAlertsFound: unlinkedAlerts.length,
       alertsProcessed: linkedCount,
       incidentsResolved: resolvedCount,
+      mergeEvents: lifecycleStats.mergeEvents,
+      newMergedIncidents: lifecycleStats.newMergedIncidents,
+      absorbedIncidents: lifecycleStats.absorbedIncidents,
+      descendantClosures: lifecycleStats.descendantClosures,
       errors: linkErrors,
       durationMs: duration,
       status: 200,

@@ -240,6 +240,14 @@ export const siteIncidentRouter = createTRPCRouter({
         });
       }
 
+      if (incident.mergedIncidentId) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message:
+            'Cannot close a descendant incident directly. Close the root incident instead.',
+        });
+      }
+
       // Close the incident
       const closedIncident = await ctx.prisma.siteIncident.update({
         where: {id: input.incidentId},

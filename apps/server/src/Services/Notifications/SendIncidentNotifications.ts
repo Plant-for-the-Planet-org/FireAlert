@@ -13,7 +13,6 @@ import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import type {NotificationParameters} from '../../Interfaces/NotificationParameters';
 import {getLocalTime} from '../../../src/utils/date';
 import type DataRecord from '../../Interfaces/DataRecord';
-import {isSiteIncidentMethod} from './NotificationRoutingConfig';
 
 type NotificationWithRelations = Notification & {
   siteAlert: SiteAlert & {
@@ -21,11 +20,19 @@ type NotificationWithRelations = Notification & {
   };
 };
 
+type IncidentNotificationType =
+  | 'INCIDENT_START'
+  | 'INCIDENT_END'
+  | 'INCIDENT_MERGE';
+
 type IncidentNotificationMetadata = {
   incidentId: string;
-  type: 'INCIDENT_START' | 'INCIDENT_END';
+  siteId?: string;
+  siteName?: string;
+  type: IncidentNotificationType;
   detectionCount?: number;
   duration?: string;
+  mergeSourceCount?: number;
 };
 
 export class SendIncidentNotifications {
@@ -35,7 +42,6 @@ export class SendIncidentNotifications {
   }
 
   async process(req?: NextApiRequest): Promise<number> {
-    // Exclude disabled methods
     const alertMethodsExclusionList = [];
     if (env.ALERT_SMS_DISABLED)
       alertMethodsExclusionList.push(NOTIFICATION_METHOD.SMS);
@@ -48,11 +54,6 @@ export class SendIncidentNotifications {
     let batchCount = 0;
 
     while (continueProcessing) {
-      // Fetch notifications
-      // Status IN [START_SCHEDULED, END_SCHEDULED]
-      // isDelivered = false
-      // isSkipped = false
-      // Only process SiteIncident methods (email, sms, whatsapp)
       const notifications = (await prisma.notification.findMany({
         where: {
           isSkipped: false,
@@ -61,9 +62,9 @@ export class SendIncidentNotifications {
             in: [
               NotificationStatus.START_SCHEDULED,
               NotificationStatus.END_SCHEDULED,
+              NotificationStatus.MERGE_SCHEDULED,
             ],
           },
-          // Only process SiteIncident methods and exclude disabled methods
           alertMethod: {
             notIn: alertMethodsExclusionList,
             in: ['email', 'sms', 'whatsapp'],
@@ -85,16 +86,13 @@ export class SendIncidentNotifications {
       }
 
       logger(
-        `Processing batch ${batchCount + 1}: ${
-          notifications.length
-        } incident notifications to be sent.`,
+        `Processing batch ${batchCount + 1}: ${notifications.length} incident notifications to be sent.`,
         'info',
       );
 
       const successfulIds: string[] = [];
       const failedIds: string[] = [];
       const successfulDestinations: string[] = [];
-      const failedDestinations: {destination: string; method: string}[] = [];
 
       await Promise.all(
         notifications.map(async (notification: NotificationWithRelations) => {
@@ -110,20 +108,21 @@ export class SendIncidentNotifications {
             const site = siteAlert.site;
             const siteName = site.name || 'Unnamed Site';
 
-            // Extract incident ID from metadata
-            const incidentMetadata =
-              metadata as IncidentNotificationMetadata | null;
+            const incidentMetadata = metadata as IncidentNotificationMetadata | null;
             const incidentId = incidentMetadata?.incidentId || siteAlert.id;
 
-            // Construct Message
-            const isStart =
-              notificationStatus === NotificationStatus.START_SCHEDULED;
+            const notificationType = this.resolveNotificationType(
+              notificationStatus,
+              incidentMetadata,
+            );
+
             const {subject, message} = this.constructMessage(
-              isStart,
+              notificationType,
               siteAlert,
               siteName,
               incidentId,
               alertMethod,
+              incidentMetadata,
             );
 
             const url = `https://firealert.plant-for-the-planet.org/incident/${incidentId}`;
@@ -159,7 +158,6 @@ export class SendIncidentNotifications {
               successfulDestinations.push(destination);
             } else {
               failedIds.push(id);
-              failedDestinations.push({destination, method: alertMethod});
             }
           } catch (error: unknown) {
             const errorMessage =
@@ -173,19 +171,7 @@ export class SendIncidentNotifications {
         }),
       );
 
-      // Update Success
       if (successfulIds.length > 0) {
-        // For START -> START_SENT
-        // For END -> END_SENT
-        // We need to split updates or do them individually?
-        // Actually we can do filtered updates.
-        // Or just update individually if needed.
-        // But wait, we can just say `notificationStatus: status === START_SCHEDULED ? START_SENT : END_SENT`.
-        // Prisma doesn't support conditional updates like that easily in updateMany.
-        // So we update all successful to isDelivered=true.
-        // And we ALSO need to update the status.
-        // Since we processed a batch mixed of START and END, we might need two queries for status update.
-
         await prisma.notification.updateMany({
           where: {
             id: {in: successfulIds},
@@ -210,7 +196,18 @@ export class SendIncidentNotifications {
           },
         });
 
-        // Reset fail count for successful destinations
+        await prisma.notification.updateMany({
+          where: {
+            id: {in: successfulIds},
+            notificationStatus: NotificationStatus.MERGE_SCHEDULED,
+          },
+          data: {
+            isDelivered: true,
+            sentAt: new Date(),
+            notificationStatus: NotificationStatus.MERGE_SENT,
+          },
+        });
+
         await prisma.alertMethod.updateMany({
           where: {destination: {in: successfulDestinations}},
           data: {failCount: 0},
@@ -219,33 +216,46 @@ export class SendIncidentNotifications {
         successCount += successfulIds.length;
       }
 
-      // Update Failures
       if (failedIds.length > 0) {
         await prisma.notification.updateMany({
           where: {id: {in: failedIds}},
-          data: {isSkipped: true}, // Mark as skipped so we don't retry forever
+          data: {isSkipped: true},
         });
-
-        // Increment fail count?
-        // Logic from SendNotifications.ts:
-        // if notification fails, increment failCount.
-        // The original code collected failedAlertMethods but didn't use it.
-        // So we skip this for now.
       }
 
       batchCount++;
-      await new Promise(resolve => setTimeout(resolve, 700)); // Rate limit
+      await new Promise(resolve => setTimeout(resolve, 700));
     }
 
     return successCount;
   }
 
+  private resolveNotificationType(
+    notificationStatus: NotificationStatus | null,
+    metadata: IncidentNotificationMetadata | null,
+  ): IncidentNotificationType {
+    if (metadata?.type) {
+      return metadata.type;
+    }
+
+    switch (notificationStatus) {
+      case NotificationStatus.END_SCHEDULED:
+        return 'INCIDENT_END';
+      case NotificationStatus.MERGE_SCHEDULED:
+        return 'INCIDENT_MERGE';
+      case NotificationStatus.START_SCHEDULED:
+      default:
+        return 'INCIDENT_START';
+    }
+  }
+
   private constructMessage(
-    isStart: boolean,
+    notificationType: IncidentNotificationType,
     alert: SiteAlert,
     siteName: string,
     incidentId: string,
     alertMethod: string = NOTIFICATION_METHOD.EMAIL,
+    metadata?: IncidentNotificationMetadata | null,
   ) {
     const localTimeObject = getLocalTime(
       alert.eventDate,
@@ -270,7 +280,43 @@ export class SendIncidentNotifications {
     const confidence = alert.confidence;
     const incidentUrl = `https://firealert.plant-for-the-planet.org/incident/${incidentId}`;
 
-    if (isStart) {
+    if (notificationType === 'INCIDENT_MERGE') {
+      const mergedCount = metadata?.mergeSourceCount ?? 2;
+      const subject = `Multiple incidents converged at ${siteName}`;
+
+      switch (alertMethod) {
+        case NOTIFICATION_METHOD.EMAIL:
+          return {
+            subject,
+            message: `
+                <p><strong>Multiple incidents converged</strong> at <strong>${siteName}</strong>.</p>
+                <p>Converged incident groups: ${mergedCount}</p>
+                <p>Update time: ${dateStr}</p>
+                <p><a href="${incidentUrl}">Open in FireAlert</a></p>
+            `,
+          };
+
+        case NOTIFICATION_METHOD.SMS:
+          return {
+            subject: '',
+            message: `Multiple incidents converged at ${siteName}. View: ${incidentUrl}`,
+          };
+
+        case NOTIFICATION_METHOD.WHATSAPP:
+          return {
+            subject: '',
+            message: `*Multiple incidents converged*\n\nLocation: ${siteName}\nUpdate: ${dateStr}\n\nView details: ${incidentUrl}`,
+          };
+
+        default:
+          return {
+            subject,
+            message: `Multiple incidents converged at ${siteName}. View details: ${incidentUrl}`,
+          };
+      }
+    }
+
+    if (notificationType === 'INCIDENT_START') {
       const subject = `🔥 Fire Incident Started: ${siteName}`;
 
       switch (alertMethod) {
@@ -286,46 +332,16 @@ export class SendIncidentNotifications {
             `,
           };
 
-        case NOTIFICATION_METHOD.DEVICE:
-          return {
-            subject: '🔥 Fire Incident Started',
-            message: `Fire detected at ${siteName}. First detection: ${dateStr}. Confidence: ${confidence}. Tap to view details.`,
-          };
-
         case NOTIFICATION_METHOD.SMS:
-          // TODO: Implement SMS message format
           return {
             subject: '',
             message: `🔥 Fire incident started at ${siteName}. Detection: ${dateStr}. View: ${incidentUrl}`,
           };
 
         case NOTIFICATION_METHOD.WHATSAPP:
-          // TODO: Implement WhatsApp message format
           return {
             subject: '',
             message: `🔥 *Fire Incident Started*\n\nLocation: ${siteName}\nFirst Detection: ${dateStr}\nConfidence: ${confidence}\n\nView Details: ${incidentUrl}`,
-          };
-
-        case NOTIFICATION_METHOD.WEBHOOK:
-          // TODO: Implement Webhook payload format
-          return {
-            subject: '',
-            message: JSON.stringify({
-              type: 'INCIDENT_START',
-              siteName,
-              incidentId,
-              detectionTime: dateStr,
-              confidence,
-              location: {lat, long},
-              incidentUrl,
-            }),
-          };
-
-        case NOTIFICATION_METHOD.TEST:
-          // TODO: Implement Test message format
-          return {
-            subject,
-            message: `Test: Fire incident started at ${siteName}`,
           };
 
         default:
@@ -334,66 +350,38 @@ export class SendIncidentNotifications {
             message: `Fire incident started at ${siteName}. Detection: ${dateStr}`,
           };
       }
-    } else {
-      const subject = `✅ Fire Incident Ended: ${siteName}`;
+    }
 
-      switch (alertMethod) {
-        case NOTIFICATION_METHOD.EMAIL:
-          return {
-            subject,
-            message: `
+    const subject = `✅ Fire Incident Ended: ${siteName}`;
+
+    switch (alertMethod) {
+      case NOTIFICATION_METHOD.EMAIL:
+        return {
+          subject,
+          message: `
                 <p>The fire incident at <strong>${siteName}</strong> has ended.</p>
                 <p>Last detection: ${dateStr}</p>
                 <p><a href="${incidentUrl}">View Details</a></p>
             `,
-          };
+        };
 
-        case NOTIFICATION_METHOD.DEVICE:
-          return {
-            subject: '✅ Fire Incident Ended',
-            message: `Fire incident at ${siteName} has ended. Last detection: ${dateStr}. Tap to view summary.`,
-          };
+      case NOTIFICATION_METHOD.SMS:
+        return {
+          subject: '',
+          message: `✅ Fire incident ended at ${siteName}. Last detection: ${dateStr}. View: ${incidentUrl}`,
+        };
 
-        case NOTIFICATION_METHOD.SMS:
-          // TODO: Implement SMS message format
-          return {
-            subject: '',
-            message: `✅ Fire incident ended at ${siteName}. Last detection: ${dateStr}. View: ${incidentUrl}`,
-          };
+      case NOTIFICATION_METHOD.WHATSAPP:
+        return {
+          subject: '',
+          message: `✅ *Fire Incident Ended*\n\nLocation: ${siteName}\nLast Detection: ${dateStr}\n\nView Summary: ${incidentUrl}`,
+        };
 
-        case NOTIFICATION_METHOD.WHATSAPP:
-          // TODO: Implement WhatsApp message format
-          return {
-            subject: '',
-            message: `✅ *Fire Incident Ended*\n\nLocation: ${siteName}\nLast Detection: ${dateStr}\n\nView Summary: ${incidentUrl}`,
-          };
-
-        case NOTIFICATION_METHOD.WEBHOOK:
-          // TODO: Implement Webhook payload format
-          return {
-            subject: '',
-            message: JSON.stringify({
-              type: 'INCIDENT_END',
-              siteName,
-              incidentId,
-              endTime: dateStr,
-              incidentUrl,
-            }),
-          };
-
-        case NOTIFICATION_METHOD.TEST:
-          // TODO: Implement Test message format
-          return {
-            subject,
-            message: `Test: Fire incident ended at ${siteName}`,
-          };
-
-        default:
-          return {
-            subject,
-            message: `Fire incident ended at ${siteName}. Last detection: ${dateStr}`,
-          };
-      }
+      default:
+        return {
+          subject,
+          message: `Fire incident ended at ${siteName}. Last detection: ${dateStr}`,
+        };
     }
   }
 }
