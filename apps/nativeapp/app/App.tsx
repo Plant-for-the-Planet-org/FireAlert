@@ -10,10 +10,35 @@ import {MapLayerProvider} from './global/reducers/mapLayers';
 import {BottomBarProvider} from './global/reducers/bottomBar';
 import {Config} from '../config';
 import {promptAppUpdateOnInit} from './utils/PromptInAppUpdate';
+import {useVersionCheck} from './hooks/version/useVersionCheck';
+import ForceUpdateModal from './components/version/ForceUpdateModal';
+import SoftUpdateBanner from './components/version/SoftUpdateBanner';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 
 promptAppUpdateOnInit();
+
+function AppContent(): JSX.Element {
+  const {updateRequired, updateMessage, downloadUrl, dismissSoftUpdate} =
+    useVersionCheck();
+
+  return (
+    <>
+      <AppNavigator />
+      <ForceUpdateModal
+        visible={updateRequired === 'force'}
+        message={updateMessage || ''}
+        downloadUrl={downloadUrl || undefined}
+      />
+      <SoftUpdateBanner
+        visible={updateRequired === 'soft'}
+        message={updateMessage || ''}
+        downloadUrl={downloadUrl || undefined}
+        onDismiss={dismissSoftUpdate}
+      />
+    </>
+  );
+}
 
 function App(): JSX.Element {
   return (
@@ -29,7 +54,7 @@ function App(): JSX.Element {
           <TRPCProvider>
             <Provider store={store}>
               <MapLayerProvider>
-                <AppNavigator />
+                <AppContent />
               </MapLayerProvider>
             </Provider>
           </TRPCProvider>

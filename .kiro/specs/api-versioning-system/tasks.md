@@ -6,7 +6,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 ## Tasks
 
-- [ ] 1. Create version configuration infrastructure
+- [x] 1. Create version configuration infrastructure
 
   - Create `version-config.json` at monorepo root with CalVer, SemVer, build numbers, and version mappings structure
   - Create `version-metadata.json` in `apps/server/config/` with minimum versions, recommended versions, compatibility matrix, update messages, grace period, and bypass endpoints
@@ -15,7 +15,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 2. Implement version validation utilities
 
-  - [ ] 2.1 Create version format validators and comparators
+  - [x] 2.1 Create version format validators and comparators
 
     - Implement `isValidCalVer()` function to validate YYYY-MM-DD format and real dates
     - Implement `isValidSemVer()` function to validate MAJOR.MINOR.PATCH format
@@ -32,7 +32,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - **Property 14: Version comparison correctness**
     - **Validates: Requirements 1.1, 1.5, 2.1, 10.4**
 
-  - [ ] 2.3 Create version metadata schema validation
+  - [x] 2.3 Create version metadata schema validation
 
     - Implement Zod schema for `VersionMetadata` type
     - Implement `validateMetadata()` function using Zod
@@ -45,7 +45,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 3. Implement compatibility matrix evaluation
 
-  - [ ] 3.1 Create compatibility evaluation logic
+  - [x] 3.1 Create compatibility evaluation logic
 
     - Implement `evaluateCompatibility()` function that checks if API version falls within min/max bounds of matching rule
     - Support wildcard pattern matching for client version patterns
@@ -60,7 +60,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 4. Create version injection build script
 
-  - [ ] 4.1 Implement version injection utility
+  - [x] 4.1 Implement version injection utility
 
     - Create `scripts/version-inject.ts` that reads `version-config.json`
     - Implement Android build.gradle update (versionCode, versionName) using regex replacement
@@ -79,7 +79,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - Test build history logging
     - Test release notes validation
 
-- [ ] 5. Integrate version injection into build systems
+- [x] 5. Integrate version injection into build systems
 
   - Update `apps/nativeapp/android/app/build.gradle` to use injected versionCode and versionName
   - Update `apps/nativeapp/ios/` project settings to use MARKETING_VERSION and CURRENT_PROJECT_VERSION variables
@@ -88,7 +88,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
   - Add generated version files to `.gitignore`
   - _Requirements: 9.1, 9.2_
 
-- [ ] 6. Checkpoint - Verify build system integration
+- [x] 6. Checkpoint - Verify build system integration
 
   - Ensure version injection script runs successfully
   - Verify generated version constants are correct
@@ -97,7 +97,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 7. Implement server-side version infrastructure
 
-  - [ ] 7.1 Create metadata loader with hot reload
+  - [x] 7.1 Create metadata loader with hot reload
 
     - Implement `loadVersionMetadata()` function that reads and validates `version-metadata.json`
     - Implement file watcher for hot reload without server restart
@@ -106,14 +106,14 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - Create utility file at `apps/server/src/utils/version/metadataLoader.ts`
     - _Requirements: 8.6, 8.7_
 
-  - [ ] 7.2 Create version logging and analytics utilities
+  - [x] 7.2 Create version logging and analytics utilities
 
     - Implement `logVersionCheck()` function to log client version, platform, result, and timestamp
     - Implement version distribution aggregation logic
     - Create analytics file at `apps/server/src/utils/version/analytics.ts`
     - _Requirements: 13.1, 13.2_
 
-  - [ ] 7.3 Implement version comparison and helper utilities
+  - [x] 7.3 Implement version comparison and helper utilities
     - Implement `getDownloadUrl()` function for platform-specific app store URLs
     - Implement `getNewFeatures()` function to extract features between versions from changelog
     - Create helper file at `apps/server/src/utils/version/helpers.ts`
@@ -121,7 +121,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 8. Implement tRPC version middleware
 
-  - [ ] 8.1 Create version validation middleware
+  - [x] 8.1 Create version validation middleware
 
     - Implement middleware that extracts `X-Client-Version` and `X-Client-Platform` headers
     - Check if endpoint is in bypass list and skip validation if true
@@ -147,7 +147,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 9. Implement version check tRPC router
 
-  - [ ] 9.1 Create version router with check endpoint
+  - [x] 9.1 Create version router with check endpoint
 
     - Implement `version.check` mutation that accepts clientVersion, platform, buildNumber, appVersion
     - Load version metadata and compare client version against minimum and recommended versions
@@ -163,7 +163,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - **Property 3: Version check response correctness**
     - **Validates: Requirements 4.2, 4.3, 4.4, 4.5**
 
-  - [ ] 9.3 Add version info and changelog endpoints
+  - [x] 9.3 Add version info and changelog endpoints
 
     - Implement `version.info` query that returns current CalVer and API version
     - Implement `version.changelog` query that returns changelog entries with optional filtering
@@ -176,14 +176,14 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - Test success response for up-to-date client
     - Test invalid platform handling
 
-  - [ ] 9.5 Add version router to tRPC app router
+  - [x] 9.5 Add version router to tRPC app router
     - Import and register version router in main tRPC router
     - Ensure version endpoints bypass version middleware
     - _Requirements: 7.6_
 
 - [ ] 10. Add API version headers to responses
 
-  - [ ] 10.1 Create response header middleware
+  - [x] 10.1 Create response header middleware
 
     - Implement middleware that adds `X-API-Version` header with current CalVer to all responses
     - Add middleware to tRPC middleware chain
@@ -193,7 +193,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - **Property 2: API response version headers**
     - **Validates: Requirements 3.2, 7.4**
 
-- [ ] 11. Checkpoint - Verify server implementation
+- [x] 11. Checkpoint - Verify server implementation
 
   - Ensure version middleware is working
   - Test version check endpoint with different scenarios
@@ -203,7 +203,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 12. Implement mobile version check hook
 
-  - [ ] 12.1 Create useVersionCheck hook
+  - [x] 12.1 Create useVersionCheck hook
 
     - Implement hook that reads version from `VERSION_CONFIG` constant
     - Call `version.check` tRPC mutation on mount with clientVersion, platform, buildNumber, appVersion
@@ -224,7 +224,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 13. Implement mobile update UI components
 
-  - [ ] 13.1 Create ForceUpdateModal component
+  - [x] 13.1 Create ForceUpdateModal component
 
     - Implement blocking modal that prevents app access
     - Display force update message from server response
@@ -233,7 +233,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - Create component file at `apps/nativeapp/app/components/version/ForceUpdateModal.tsx`
     - _Requirements: 5.1, 5.2, 5.3_
 
-  - [ ] 13.2 Create SoftUpdateBanner component
+  - [x] 13.2 Create SoftUpdateBanner component
 
     - Implement dismissible banner notification
     - Display soft update message from server response
@@ -242,7 +242,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - Create component file at `apps/nativeapp/app/components/version/SoftUpdateBanner.tsx`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [ ] 13.3 Integrate version check into app root
+  - [x] 13.3 Integrate version check into app root
     - Add `useVersionCheck` hook to app root component
     - Conditionally render ForceUpdateModal when updateRequired is "force"
     - Conditionally render SoftUpdateBanner when updateRequired is "soft"
@@ -250,7 +250,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 14. Add version display to mobile settings
 
-  - [ ] 14.1 Create version info display in settings screen
+  - [x] 14.1 Create version info display in settings screen
     - Display SemVer version and build number in settings/about screen
     - Display CalVer version in debug builds only
     - Implement 7-tap gesture on version to show debug information (client version, server version, last check time)
@@ -259,7 +259,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 15. Implement web client version check
 
-  - [ ] 15.1 Create web version check service
+  - [x] 15.1 Create web version check service
 
     - Implement version check service that reads version from `VERSION_CONFIG` constant
     - Call `version.check` tRPC mutation on page load
@@ -269,20 +269,20 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - Create service file at `apps/server/src/services/version/versionCheckService.ts`
     - _Requirements: 4.1, 4.6, 4.7, 5.4_
 
-  - [ ] 15.2 Create web update UI components
+  - [x] 15.2 Create web update UI components
 
     - Create UpdateModal component for force updates with countdown and auto-refresh
     - Create UpdateBanner component for soft updates with dismiss functionality
     - Create component files at `apps/server/src/Components/version/UpdateModal.tsx` and `apps/server/src/Components/version/UpdateBanner.tsx`
     - _Requirements: 5.4, 6.5_
 
-  - [ ] 15.3 Add version display to web footer
+  - [x] 15.3 Add version display to web footer
     - Display CalVer version in footer or settings page
     - _Requirements: 11.4_
 
 - [ ] 16. Implement development bypass mode
 
-  - [ ] 16.1 Add version check bypass configuration
+  - [x] 16.1 Add version check bypass configuration
 
     - Add `BYPASS_VERSION_CHECK` environment variable support
     - Update version middleware to skip validation when bypass is enabled
@@ -290,7 +290,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - Add warning indicator in UI when bypass is active
     - _Requirements: 14.1, 14.2, 14.5_
 
-  - [ ] 16.2 Create version testing utilities
+  - [x] 16.2 Create version testing utilities
     - Implement version spoofing support for testing different client versions
     - Create test endpoint that simulates force update and soft update responses
     - Create utility file at `apps/server/src/utils/version/testUtils.ts`
@@ -298,7 +298,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 17. Implement monitoring and metrics endpoints
 
-  - [ ] 17.1 Create version metrics endpoint
+  - [x] 17.1 Create version metrics endpoint
 
     - Implement endpoint that returns version distribution statistics by platform
     - Calculate force update completion rates
@@ -306,7 +306,7 @@ This implementation plan breaks down the API Versioning System into discrete cod
     - Create endpoint at `apps/server/src/server/api/routers/version.ts` (add to existing router)
     - _Requirements: 13.2, 13.3, 13.4, 13.5_
 
-  - [ ] 17.2 Add version monitoring alerts
+  - [x] 17.2 Add version monitoring alerts
     - Implement alert logic for unsupported client versions exceeding threshold
     - Implement alert logic for grace period expiration
     - Create alert utility at `apps/server/src/utils/version/alerts.ts`
@@ -314,31 +314,31 @@ This implementation plan breaks down the API Versioning System into discrete cod
 
 - [ ] 18. Create changelog management
 
-  - [ ] 18.1 Create CHANGELOG.md structure
+  - [x] 18.1 Create CHANGELOG.md structure
 
     - Create `CHANGELOG.md` at monorepo root with version mappings
     - Include CalVer to SemVer mappings, release dates, and release notes
     - Add feature categories (breaking, feature, bugfix) for each version
     - _Requirements: 15.1, 15.2, 15.3_
 
-  - [ ] 18.2 Implement changelog parser
+  - [x] 18.2 Implement changelog parser
     - Implement function to parse CHANGELOG.md and extract version information
     - Implement function to generate user-facing release notes from changelog
     - Create utility file at `apps/server/src/utils/version/changelog.ts`
     - _Requirements: 15.4_
 
-- [ ] 19. Add health check endpoint with version info
+- [x] 19. Add health check endpoint with version info
 
   - Implement health check endpoint that includes current CalVer and SemVer
   - Add endpoint to version router
   - _Requirements: 3.5_
 
-- [ ] 20. Implement server startup version logging
+- [x] 20. Implement server startup version logging
 
   - Add version logging to server startup that logs current CalVer and SemVer
   - _Requirements: 3.4_
 
-- [ ] 21. Final checkpoint - End-to-end testing
+- [x] 21. Final checkpoint - End-to-end testing
   - Test complete flow: build injection → server startup → mobile version check → force update modal
   - Test complete flow: build injection → server startup → mobile version check → soft update banner
   - Test web client version check and update flows

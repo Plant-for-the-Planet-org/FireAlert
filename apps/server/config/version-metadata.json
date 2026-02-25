@@ -1,0 +1,42 @@
+{
+  "apiVersion": "2026-02-18",
+  "minimumVersions": {
+    "ios": "2026-01-01",
+    "android": "2026-01-01",
+    "web": "2026-01-15"
+  },
+  "recommendedVersions": {
+    "ios": "2026-02-18",
+    "android": "2026-02-18",
+    "web": "2026-02-18"
+  },
+  "compatibilityMatrix": [
+    {
+      "clientVersionPattern": "2026-02-*",
+      "minApiVersion": "2026-02-01",
+      "maxApiVersion": "2026-12-31",
+      "platforms": ["ios", "android", "web"]
+    },
+    {
+      "clientVersionPattern": "2026-01-*",
+      "minApiVersion": "2026-01-01",
+      "maxApiVersion": "2026-02-28",
+      "platforms": ["ios", "android", "web"]
+    }
+  ],
+  "forceUpdateMessages": {
+    "ios": "A critical update is required. Please update FireAlert from the App Store to continue.",
+    "android": "A critical update is required. Please update FireAlert from the Play Store to continue.",
+    "web": "A critical update is required. The page will refresh automatically."
+  },
+  "softUpdateMessages": {
+    "ios": "A new version of FireAlert is available. Update now for the latest features and improvements.",
+    "android": "A new version of FireAlert is available. Update now for the latest features and improvements.",
+    "web": "A new version is available. Refresh to get the latest updates."
+  },
+  "gracePeriod": {
+    "enabled": false,
+    "endDate": "2026-03-01T00:00:00Z"
+  },
+  "bypassEndpoints": ["version.check", "version.info", "health"]
+}

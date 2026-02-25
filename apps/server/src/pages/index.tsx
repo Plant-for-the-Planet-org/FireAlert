@@ -1,8 +1,11 @@
 import styles from './index.module.css';
 import {type NextPage} from 'next';
 import Head from 'next/head';
+import {VERSION_CONFIG} from '../config/version';
 
 const Home: NextPage = () => {
+  const bypassEnabled = process.env.BYPASS_VERSION_CHECK === 'true';
+
   return (
     <>
       <Head>
@@ -21,6 +24,17 @@ const Home: NextPage = () => {
           </div>
         </div>
       </main>
+      <footer className={styles.footer}>
+        <div className={styles.versionInfo}>
+          Version {VERSION_CONFIG.CALVER}
+          {bypassEnabled && (
+            <span className={styles.bypassWarning}>
+              {' '}
+              ⚠️ Version checks bypassed
+            </span>
+          )}
+        </div>
+      </footer>
     </>
   );
 };

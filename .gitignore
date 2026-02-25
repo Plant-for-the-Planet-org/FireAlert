@@ -8,3 +8,8 @@ node_modules
 .idea
 .vercel
 .yarn
+
+# Auto-generated version files
+apps/nativeapp/app/constants/version.ts
+apps/server/src/config/version.ts
+build-history.log

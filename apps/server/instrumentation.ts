@@ -3,8 +3,41 @@
 
 import * as Sentry from '@sentry/nextjs';
 
+/**
+ * Log version information on server startup
+ */
+function logVersionInfo() {
+  try {
+    // Dynamically import VERSION_CONFIG to avoid build-time errors
+    const {VERSION_CONFIG} = require('./src/config/version');
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🚀 FireAlert Server Starting');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`📅 CalVer:        ${VERSION_CONFIG.CALVER}`);
+    console.log(`📦 SemVer:        ${VERSION_CONFIG.SEMVER}`);
+    console.log(`🔢 Build Number:  ${VERSION_CONFIG.BUILD_NUMBER}`);
+    console.log(`🌐 API Version:   ${VERSION_CONFIG.API_VERSION}`);
+    console.log(`🔧 Environment:   ${process.env.NODE_ENV || 'development'}`);
+
+    if (process.env.BYPASS_VERSION_CHECK === 'true') {
+      console.log('⚠️  Version Check: BYPASSED (Development Mode)');
+    }
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  } catch (error) {
+    // Silently fail if version config doesn't exist yet
+    console.log(
+      '⚠️  Version information not available (version config not generated)',
+    );
+  }
+}
+
 export function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Log version information on server startup
+    logVersionInfo();
+
     // Server-side initialization
     Sentry.init({
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,

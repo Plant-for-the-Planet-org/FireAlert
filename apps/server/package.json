@@ -6,7 +6,8 @@
     "schema": "./prisma/schema.prisma"
   },
   "scripts": {
-    "build": "yarn db:deploy && dotenv -e ../../.env next build",
+    "prebuild": "node ../../scripts/version-inject.ts",
+    "build": "yarn prebuild && yarn db:deploy && dotenv -e ../../.env next build",
     "dev": "dotenv -e ../../.env next dev",
     "lint": "dotenv -e ../../.env next lint",
     "start": "dotenv -e ../../.env next start",

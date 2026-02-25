@@ -37,6 +37,7 @@ import {
   CustomButton,
   FloatingInput,
 } from '../../components';
+import {VersionInfo} from '../../components/version/VersionInfo';
 import {
   AddIcon,
   SmsIcon,
@@ -1370,9 +1371,12 @@ const Settings = () => {
           </Text>
         </View>
         <View style={styles.appInfoContainer}>
+          <VersionInfo />
           <Text style={styles.versionText}>
-            Version {DeviceInfo.getVersion()} ({DeviceInfo.getBuildNumber()}) •{' '}
-            <Text onPress={_handleEcoWeb(WEB_URLS.PP_IMPRINT)}>Imprint</Text> •{' '}
+            {' • '}
+            <Text onPress={_handleEcoWeb(WEB_URLS.PP_IMPRINT)}>
+              Imprint
+            </Text> •{' '}
             <Text onPress={_handleEcoWeb(WEB_URLS.PP_PRIVACY_POLICY)}>
               Privacy Policy
             </Text>

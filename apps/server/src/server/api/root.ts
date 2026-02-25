@@ -8,6 +8,7 @@ import {geoEventProviderRouter} from './routers/geoEventProvider';
 import {siteIncidentRouter} from './routers/siteIncident';
 import {unsubscribeRouter} from './routers/unsubscribe';
 import {devRouter} from './routers/dev/dev';
+import {versionRouter} from './routers/version';
 
 /**
  * This is the primary router for your server.
@@ -24,6 +25,7 @@ export const appRouter = createTRPCRouter({
   siteIncident: siteIncidentRouter,
   unsubscribe: unsubscribeRouter,
   dev: devRouter,
+  version: versionRouter,
 });
 
 // export type definition of API

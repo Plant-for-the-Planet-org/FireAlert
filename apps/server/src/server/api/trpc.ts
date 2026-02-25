@@ -4,15 +4,17 @@
 import type {User} from '@prisma/client';
 import {initTRPC, TRPCError} from '@trpc/server';
 import type {CreateNextContextOptions} from '@trpc/server/adapters/next';
-import type {NextApiRequest} from 'next';
+import type {NextApiRequest, NextApiResponse} from 'next';
 import superjson from 'superjson';
 import {ZodError} from 'zod';
 import {prisma} from '../../server/db';
 import {decodeToken} from '../../utils/routers/trpc';
 import {logger} from '../logger';
+import {responseHeaderMiddleware} from './middleware/responseHeaderMiddleware';
 
 type CreateContextOptions = {
   req: NextApiRequest;
+  res: NextApiResponse;
   user: User | null;
   isAdmin: boolean;
   isImpersonatedUser: boolean;
@@ -21,6 +23,7 @@ type CreateContextOptions = {
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     req: opts.req,
+    res: opts.res,
     prisma,
     user: opts.user,
     isAdmin: opts.isAdmin,
@@ -34,11 +37,12 @@ export const createTRPCContext = (
   isAdmin: boolean,
   isImpersonatedUser: boolean,
 ) => {
-  const {req} = opts;
+  const {req, res} = opts;
 
   logger(`createTRPCContext `, 'info');
   return createInnerTRPCContext({
     req,
+    res,
     user,
     isAdmin,
     isImpersonatedUser,
@@ -189,8 +193,12 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   });
 });
 
-export const publicProcedure = t.procedure.use(passCtxToNext);
-export const protectedProcedure = t.procedure.use(ensureUserIsAuthed);
+export const publicProcedure = t.procedure
+  .use(responseHeaderMiddleware)
+  .use(passCtxToNext);
+export const protectedProcedure = t.procedure
+  .use(responseHeaderMiddleware)
+  .use(ensureUserIsAuthed);
 
 export type InnerTRPCContext = ReturnType<typeof createInnerTRPCContext>;
 export type MiddlewareEnsureUserIsAuthed = typeof ensureUserIsAuthed;

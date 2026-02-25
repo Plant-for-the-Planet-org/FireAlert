@@ -1,0 +1,20 @@
+{
+  "calver": "2026-02-18",
+  "semver": "1.9.0",
+  "buildNumbers": {
+    "android": 24,
+    "ios": 24
+  },
+  "versionMappings": {
+    "2026-02-18": {
+      "semver": "1.9.0",
+      "releaseDate": "2026-02-18T00:00:00Z",
+      "releaseNotes": "Added API versioning system with force update support"
+    },
+    "2026-01-15": {
+      "semver": "1.8.0",
+      "releaseDate": "2026-01-15T00:00:00Z",
+      "releaseNotes": "Enhanced notification system"
+    }
+  }
+}
