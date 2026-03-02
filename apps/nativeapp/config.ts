@@ -7,6 +7,7 @@ import {
   SENTRY_DSN,
   NEXT_API_URL,
   API_URL,
+  APP_URL,
 } from '@env';
 
 export const Config = {
@@ -18,4 +19,5 @@ export const Config = {
   SENTRY_DSN: SENTRY_DSN,
   NEXT_API_URL: NEXT_API_URL,
   API_URL: API_URL,
+  APP_URL: APP_URL,
 };

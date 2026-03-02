@@ -10,6 +10,7 @@ export class OperationResult {
   private eventsProcessed: number = 0;
   private eventsCreated: number = 0;
   private alertsCreated: number = 0;
+  private resolvedIncidents: number = 0;
   private errors: Error[] = [];
   private metrics?: PerformanceMetrics;
 
@@ -32,6 +33,13 @@ export class OperationResult {
    */
   addAlertsCreated(count: number): void {
     this.alertsCreated += count;
+  }
+
+  /**
+   * Sets the count of resolved incidents.
+   */
+  setResolvedIncidents(count: number): void {
+    this.resolvedIncidents = count;
   }
 
   /**
@@ -66,6 +74,7 @@ export class OperationResult {
     this.eventsProcessed += other.eventsProcessed;
     this.eventsCreated += other.eventsCreated;
     this.alertsCreated += other.alertsCreated;
+    this.resolvedIncidents += other.resolvedIncidents;
     this.errors.push(...other.errors);
 
     // Merge performance metrics if both have them
@@ -85,6 +94,7 @@ export class OperationResult {
     eventsProcessed: number;
     eventsCreated: number;
     alertsCreated: number;
+    resolvedIncidents: number;
     errors: string[];
     metrics?: object;
   } {
@@ -92,6 +102,7 @@ export class OperationResult {
       eventsProcessed: this.eventsProcessed,
       eventsCreated: this.eventsCreated,
       alertsCreated: this.alertsCreated,
+      resolvedIncidents: this.resolvedIncidents,
       errors: this.errors.map(e => e.message),
     };
 

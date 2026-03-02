@@ -23,7 +23,6 @@ import {
 } from 'react-native';
 import bbox from '@turf/bbox';
 import rewind from '@mapbox/geojson-rewind';
-import {OneSignal} from 'react-native-onesignal';
 import DeviceInfo from 'react-native-device-info';
 import Toast from 'react-native-toast-notifications';
 import {useQueryClient} from '@tanstack/react-query';
@@ -83,7 +82,7 @@ import {
 import {useSelector} from 'react-redux';
 import {RootState} from '../../redux/store';
 import {useNavigation} from '@react-navigation/native';
-import {useOneSignalState} from '../../hooks/notification/useOneSignalState';
+import {useOneSignal} from '../../hooks/notification/useOneSignal';
 // import {PromptInAppUpdatePanel} from '../../PromptInAppUpdate';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -94,7 +93,7 @@ const IS_ANDROID = Platform.OS === 'android';
 const Settings = () => {
   const navigation = useNavigation();
   const {alertMethods} = useSelector((state: RootState) => state.settingsSlice);
-  const oneSignalDeviceState = useOneSignalState();
+  const {state: oneSignalState} = useOneSignal();
 
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
@@ -165,9 +164,12 @@ const Settings = () => {
   const deviceNotification = useCallback(async () => {
     try {
       const {deviceId} = await getDeviceInfo();
-      // const {userId} = await OneSignal.getDeviceState(); // Old SDK
-      const userId = await OneSignal.User.pushSubscription.getIdAsync();
-      console.log('pushSubscription.getIdAsync', userId);
+      const userId = oneSignalState?.userId ?? null;
+
+      if (userId == null) {
+        setDeviceAlertPreferences([]);
+        return;
+      }
 
       const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
         el => userId === el?.destination && el.deviceId === deviceId,
@@ -187,7 +189,11 @@ const Settings = () => {
     } catch {
       setDeviceAlertPreferences([]);
     }
-  }, [formattedAlertPreferences, setDeviceAlertPreferences]);
+  }, [
+    formattedAlertPreferences,
+    oneSignalState?.userId,
+    setDeviceAlertPreferences,
+  ]);
 
   useEffect(() => {
     deviceNotification();

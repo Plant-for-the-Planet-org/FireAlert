@@ -34,3 +34,12 @@ export const PLANET_DARK_GREEN = '#68B030';
 
 // GRADIENT COLORS ARRAY
 export const GREEN_GRADIENT_ARR = ['#68B030', '#34953D', '#007A49'];
+
+// FIRE INCIDENT COLORS (matching web tailwind config)
+export const FIRE_ORANGE = '#E86F56';
+export const FIRE_BROWN = '#B47C55';
+export const FIRE_GRAY = '#C6C3C2';
+
+// INCIDENT CIRCLE COLORS (matching web MapComponent)
+export const INCIDENT_ACTIVE_COLOR = '#E86F56'; // fire.orange
+export const INCIDENT_RESOLVED_COLOR = '#6b7280'; // gray-500

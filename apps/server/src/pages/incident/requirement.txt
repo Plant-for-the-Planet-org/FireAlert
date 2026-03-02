@@ -1,0 +1,12 @@
+
+Header should have "Incident Summary" text.
+Along with the Text the Color & of the Card should give off its status.
+  from tailwind config 
+    fire.orange - if isActive true.
+    fire.gray - if isActive false.
+  Card background should use 50 opacity of the above colors.
+Card should have Start & Latest/End Information (based on isActive)
+  Date,Time (together)
+  Location
+Total No of "Fires".
+Total "Distance". (use turf to calculate)
