@@ -73,16 +73,22 @@ export default async function siteIncidentManager(
     // 4. Backfill / Link Unassociated SiteAlerts
     // Find alerts that have null siteIncidentId
     // We limit this to avoid timeouts if there are massive amounts of unlinked alerts
+    // Only process alerts from the last 2 hours to focus on recent activity
     const BATCH_SIZE = 50;
+    const TWO_HOURS_AGO = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
     logger(
-      `Finding unassociated SiteAlerts (Limit: ${BATCH_SIZE})...`,
+      `Finding unassociated SiteAlerts from last 2 hours (Limit: ${BATCH_SIZE})...`,
       'debug',
     );
 
     const unlinkedAlerts = await prisma.siteAlert.findMany({
       where: {
         siteIncidentId: null,
+        isProcessed: false,
+        eventDate: {
+          gte: TWO_HOURS_AGO,
+        },
       },
       take: BATCH_SIZE,
       orderBy: {
