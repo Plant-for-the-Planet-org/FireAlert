@@ -13,13 +13,15 @@ import {IncidentResolver} from '../../../Services/SiteIncident/IncidentResolver'
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
 import {prisma} from '../../../server/db';
+import {env} from '../../../env.mjs';
 // Initialize services
 const siteIncidentRepository = new SiteIncidentRepository(prisma);
 const incidentResolver = new IncidentResolver(siteIncidentRepository);
 const siteIncidentService = new SiteIncidentService(
   siteIncidentRepository,
   incidentResolver,
-  6, // Default 6 hours inactivity threshold
+  env.INCIDENT_RESOLUTION_HOURS || 6,
+  env.INCIDENT_PROXIMITY_KM || 2,
 );
 
 export const siteIncidentRouter = createTRPCRouter({
@@ -148,11 +150,11 @@ export const siteIncidentRouter = createTRPCRouter({
         userId: ctx.user!.id,
       });
 
-      const incident = await siteIncidentService.getActiveIncidentForSite(
+      const incidents = await siteIncidentService.getActiveIncidentsForSite(
         input.siteId,
       );
 
-      return incident ? [incident] : [];
+      return incidents;
     }),
 
   /**
@@ -235,6 +237,14 @@ export const siteIncidentRouter = createTRPCRouter({
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'Incident is already closed',
+        });
+      }
+
+      if (incident.mergedIncidentId) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message:
+            'Cannot close a descendant incident directly. Close the root incident instead.',
         });
       }
 

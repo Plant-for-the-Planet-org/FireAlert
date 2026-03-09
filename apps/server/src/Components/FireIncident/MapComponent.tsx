@@ -1,5 +1,6 @@
 import React, {useMemo} from 'react';
 import type {FC} from 'react';
+import type {Feature, MultiPolygon, Polygon} from 'geojson';
 import Map, {
   NavigationControl,
   ScaleControl,
@@ -209,7 +210,7 @@ const MapComponent: FC<Props> = ({
 
   const showPolygon = polygon && polygon.type !== 'Point';
 
-  // Generate the incident circle from fire markers
+  // Generate the incident contour (Polygon or MultiPolygon) from fire markers
   const incidentCircle = useMemo(() => {
     if (!incidentCircleColor || markers.length === 0) return null;
     const fires = markers.map(m => ({
@@ -218,6 +219,9 @@ const MapComponent: FC<Props> = ({
     }));
     return generateIncidentCircle(fires, 2);
   }, [markers, incidentCircleColor]);
+  const incidentContourData = incidentCircle
+    ? (incidentCircle.circlePolygon as Feature<Polygon | MultiPolygon>)
+    : null;
 
   // Circle color based on incident status
   const circleColor = incidentCircleColor === 'orange' ? '#e86f56' : '#6b7280';
@@ -283,11 +287,11 @@ const MapComponent: FC<Props> = ({
         </Source>
       )}
 
-      {incidentCircle && (
+      {incidentContourData && (
         <Source
           id="incident-circle"
           type="geojson"
-          data={incidentCircle.circlePolygon}>
+          data={incidentContourData}>
           <Layer
             id="incident-circle-fill"
             type="fill"

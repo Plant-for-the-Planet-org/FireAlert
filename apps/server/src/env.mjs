@@ -119,6 +119,19 @@ const server = z.object({
       }
       return parsed;
     }),
+
+  // Fire Incident proximity threshold in kilometers for associating alerts to active incidents.
+  // If no active incident is within this radius, a new incident is created. Defaults to 2km.
+  INCIDENT_PROXIMITY_KM: z
+    .string()
+    .default('2')
+    .transform(val => {
+      const parsed = Number(val);
+      if (isNaN(parsed) || parsed <= 0) {
+        throw new Error('INCIDENT_PROXIMITY_KM must be a positive number');
+      }
+      return parsed;
+    }),
 });
 
 /**
@@ -175,6 +188,7 @@ const processEnv = {
   PROVIDER_CONCURRENCY: process.env.PROVIDER_CONCURRENCY,
   ENABLE_INCIDENT_NOTIFICATIONS: process.env.ENABLE_INCIDENT_NOTIFICATIONS,
   INCIDENT_RESOLUTION_HOURS: process.env.INCIDENT_RESOLUTION_HOURS,
+  INCIDENT_PROXIMITY_KM: process.env.INCIDENT_PROXIMITY_KM,
 };
 
 // Don't touch the part below

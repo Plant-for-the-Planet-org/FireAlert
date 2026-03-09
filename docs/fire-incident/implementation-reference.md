@@ -28,16 +28,20 @@ flowchart LR
 ## 3. Database implementation
 ### 3.1 Schema additions
 - `SiteIncident` model in `apps/server/prisma/schema.prisma`.
+  - includes merge lineage fields: `mergedIncidentId`, `mergedAt`, `isMergedIncident`
 - `SiteAlert.siteIncidentId` relation to `SiteIncident`.
 - `Notification.notificationStatus` enum values:
   - `START_SCHEDULED`
   - `START_SENT`
   - `END_SCHEDULED`
   - `END_SENT`
+  - `MERGE_SCHEDULED`
+  - `MERGE_SENT`
 
 ### 3.2 Migrations
 - `apps/server/prisma/migrations/20251202144925_site_incidents/migration.sql`
 - `apps/server/prisma/migrations/20251205101546_added_notification_status/migration.sql`
+- `apps/server/prisma/migrations/20260224120000_incident_merge_lineage_and_merge_status/migration.sql`
 
 ### 3.3 Runtime lifecycle model
 ```mermaid
@@ -61,11 +65,18 @@ Primary files:
 - `apps/server/src/Services/SiteIncident/SiteIncidentService.ts`
 
 Responsibilities in code:
-- Find active incident by site.
-- Create incident when none is active.
-- Associate new alert to active incident.
-- Resolve inactive incidents by threshold (`INCIDENT_RESOLUTION_HOURS`).
-- Mark resolved incidents with `isActive=false`, `isProcessed=false`, `endedAt` set.
+- Find active incidents within proximity (`INCIDENT_PROXIMITY_KM`) ordered by distance and recency.
+- Collapse same-lineage candidates to a single representative before merge decisions.
+- Apply Y-merge matrix:
+  - source + merged -> keep merged and absorb source(s)
+  - source only -> associate to source and touch ancestor chain timestamps
+  - merged + merged -> create new merged incident and chain both as sources
+- Create merge notifications (`MERGE_SCHEDULED`) with message `Multiple incidents converged`.
+- Resolve inactivity for root incidents (`mergedIncidentId = null`) and close active descendants in the same transaction.
+
+Current overlap policy:
+- Explicit incident merge is implemented for multi-match proximity in the same manager run.
+- Contour persistence and movement-vector alignment are intentionally deferred.
 
 ## 4.2 CRON orchestration
 ### Active CRON endpoints
@@ -106,8 +117,9 @@ In current wiring, the refactored `geo-event-fetcher` path constructs `SiteAlert
 
 - `apps/server/src/Services/Notifications/CreateIncidentNotifications.ts`
   - creates notifications for `email`, `sms`, `whatsapp`
-  - works from unprocessed `SiteIncident`
+  - works from unprocessed root `SiteIncident` (`mergedIncidentId = null`)
   - assigns `START_SCHEDULED` or `END_SCHEDULED`
+  - merge notifications are created directly during merge transactions
 
 ### Sender services
 - `apps/server/src/Services/Notifications/SendNotifications.ts`
@@ -120,6 +132,7 @@ In current wiring, the refactored `geo-event-fetcher` path constructs `SiteAlert
   - transitions status:
     - `START_SCHEDULED -> START_SENT`
     - `END_SCHEDULED -> END_SENT`
+    - `MERGE_SCHEDULED -> MERGE_SENT`
 
 ### Notification routing diagram
 ```mermaid
@@ -277,11 +290,19 @@ This section is intentionally short and implementation-focused for development c
 
 ## 10.2 Incident domain services
 - `apps/server/src/Services/SiteIncident/SiteIncidentRepository.ts`: Prisma data access for incident lifecycle operations.
-- `SiteIncidentRepository.findActiveBySiteId(siteId)`: finds latest active incident for one site.
+- `SiteIncidentRepository.findActiveBySiteId(siteId)`: compatibility helper to fetch one active incident for a site.
+- `SiteIncidentRepository.findNearestActiveBySiteAndProximity(siteId,lat,lon,proximityKm)`: nearest active incident within radius, ordered by distance then recency.
+- `SiteIncidentRepository.findActiveIncidentsWithinProximity(siteId,lat,lon,proximityKm)`: all active nearby incidents with distance and deterministic ordering.
+- `SiteIncidentRepository.findActiveIncidentsBySiteId(siteId)`: fetches all active incidents for a site.
+- `SiteIncidentRepository.findRootIncidentId(incidentId)`: resolves lineage root through `mergedIncidentId` chain.
 - `SiteIncidentRepository.createIncident(data)`: creates new incident with defaults and first alert linkage.
+- `SiteIncidentRepository.createIncidentFromAlertWithLock(siteId,alertId)`: idempotent incident creation with alert row lock.
+- `SiteIncidentRepository.associateAlertAndTouchAncestors(incidentId,alertId)`: associates alert and touches ancestor `updatedAt` chain.
+- `SiteIncidentRepository.absorbIntoExistingMergedAndAssociate(mergedIncidentId,representativeIds,alertId)`: absorbs representatives into an existing merged root.
+- `SiteIncidentRepository.createMergedIncidentFromRepresentativesAndAssociate(siteId,representativeIds,alertId)`: creates new merged incident and links sources.
 - `SiteIncidentRepository.updateIncident(id,data)`: updates incident state/fields.
-- `SiteIncidentRepository.findInactiveIncidents(inactiveHours)`: finds active incidents older than cutoff.
-- `SiteIncidentRepository.resolveIncidentsBatch(incidents)`: resolves incidents and records metrics/errors.
+- `SiteIncidentRepository.findInactiveIncidents(inactiveHours)`: finds inactive root incidents older than cutoff.
+- `SiteIncidentRepository.resolveIncidentsBatch(incidents)`: resolves roots and closes descendant chains.
 - `SiteIncidentRepository.associateAlert(incidentId,alertId)`: links alert and updates `latestSiteAlertId`.
 - `SiteIncidentRepository.getIncidentById(id)`: fetches one incident.
 - `SiteIncidentRepository.countActiveBysite(siteId)`: counts active incidents per site.
@@ -296,11 +317,13 @@ This section is intentionally short and implementation-focused for development c
 - `IncidentResolver.prepareForResolution(incident)`: produces closure-state update payload.
 
 - `apps/server/src/Services/SiteIncident/SiteIncidentService.ts`: orchestration layer for create/associate/resolve/query/update.
-- `SiteIncidentService.processNewSiteAlert(alert)`: create new incident or associate to existing one.
-- `SiteIncidentService.resolveInactiveIncidents()`: resolve all incidents beyond threshold.
+- `SiteIncidentService.processNewSiteAlert(alert)`: applies lineage-aware merge matrix for create/associate/absorb/new-merge.
+- `SiteIncidentService.resolveInactiveIncidents()`: resolves inactive roots and tracks descendant closures.
+- `SiteIncidentService.getAndResetLifecycleStats()`: returns merge and descendant closure counters for CRON reporting.
 - `SiteIncidentService.associateAlertWithIncident(alert,incident)`: explicit association helper.
 - `SiteIncidentService.getIncidentById(id)`: fetch one incident.
-- `SiteIncidentService.getActiveIncidentForSite(siteId)`: fetch active incident.
+- `SiteIncidentService.getActiveIncidentForSite(siteId)`: compatibility helper to fetch one active incident.
+- `SiteIncidentService.getActiveIncidentsForSite(siteId)`: fetches all active incidents.
 - `SiteIncidentService.getIncidentsByDateRange(siteId,start,end)`: history query by date range.
 - `SiteIncidentService.updateReviewStatus(incidentId,status)`: updates review status.
 - `SiteIncidentService.recordMetrics(operation,duration,extras)`: internal metric recording helper.
@@ -350,7 +373,7 @@ This section is intentionally short and implementation-focused for development c
 - `apps/server/src/server/api/routers/siteIncident.ts`: incident router.
 - `siteIncident.getIncidentPublic`: public incident detail query for sharing/web/native read paths.
 - `siteIncident.getIncident`: protected incident detail query.
-- `siteIncident.getActiveIncidents`: returns active incident list for one site.
+- `siteIncident.getActiveIncidents`: returns all active incidents for one site.
 - `siteIncident.getIncidentHistory`: date-ranged incident history query.
 - `siteIncident.updateIncidentReviewStatus`: review workflow mutation.
 - `siteIncident.closeIncident`: manual close mutation.

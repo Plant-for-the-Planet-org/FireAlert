@@ -14,6 +14,9 @@ export interface SiteIncidentInterface {
   startSiteAlertId: string;
   endSiteAlertId?: string | null;
   latestSiteAlertId: string;
+  mergedIncidentId?: string | null;
+  mergedAt?: Date | null;
+  isMergedIncident: boolean;
   startedAt: Date;
   endedAt?: Date | null;
   isActive: boolean;
@@ -33,6 +36,8 @@ export interface CreateIncidentData {
   startSiteAlertId: string;
   latestSiteAlertId: string;
   startedAt: Date;
+  isMergedIncident?: boolean;
+  isProcessed?: boolean;
 }
 
 /**
@@ -41,6 +46,9 @@ export interface CreateIncidentData {
 export interface UpdateIncidentData {
   latestSiteAlertId?: string;
   endSiteAlertId?: string | null;
+  mergedIncidentId?: string | null;
+  mergedAt?: Date | null;
+  isMergedIncident?: boolean;
   endedAt?: Date | null;
   isActive?: boolean;
   isProcessed?: boolean;
@@ -54,6 +62,7 @@ export interface UpdateIncidentData {
  */
 export interface ResolveResult {
   resolvedCount: number;
+  descendantClosedCount?: number;
   errors: Array<{
     incidentId: string;
     error: Error;
@@ -140,10 +149,12 @@ export interface GeometryData {
  * Incident notification status
  */
 export enum NotificationStatus {
-  START = 'START',
+  START_SCHEDULED = 'START_SCHEDULED',
   START_SENT = 'START_SENT',
-  END = 'END',
+  END_SCHEDULED = 'END_SCHEDULED',
   END_SENT = 'END_SENT',
+  MERGE_SCHEDULED = 'MERGE_SCHEDULED',
+  MERGE_SENT = 'MERGE_SENT',
 }
 
 /**

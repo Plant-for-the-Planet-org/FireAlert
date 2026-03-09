@@ -5,9 +5,19 @@ import {
   type IncidentMetrics,
 } from '../../Interfaces/SiteIncident';
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
-import {type SiteIncidentRepository} from './SiteIncidentRepository';
+import {
+  type AlertProcessingResult,
+  type SiteIncidentRepository,
+  type SiteIncidentWithDistance,
+} from './SiteIncidentRepository';
 import {type IncidentResolver} from './IncidentResolver';
-import {prisma} from '../../server/db';
+
+type IncidentLifecycleStats = {
+  mergeEvents: number;
+  newMergedIncidents: number;
+  absorbedIncidents: number;
+  descendantClosures: number;
+};
 
 /**
  * SiteIncidentService orchestrates the incident lifecycle
@@ -15,11 +25,18 @@ import {prisma} from '../../server/db';
  */
 export class SiteIncidentService {
   private metrics: PerformanceMetrics;
+  private lifecycleStats: IncidentLifecycleStats = {
+    mergeEvents: 0,
+    newMergedIncidents: 0,
+    absorbedIncidents: 0,
+    descendantClosures: 0,
+  };
 
   constructor(
     private readonly repository: SiteIncidentRepository,
     private readonly resolver: IncidentResolver,
     private readonly inactiveHours: number = 6,
+    private readonly incidentProximityKm: number = 2,
   ) {
     this.metrics = new PerformanceMetrics();
   }
@@ -30,7 +47,6 @@ export class SiteIncidentService {
    * @returns Associated or created SiteIncident
    */
   async processNewSiteAlert(alert: SiteAlert): Promise<SiteIncidentInterface> {
-    // Validate input
     if (!alert || !alert.id || !alert.siteId) {
       const error = new Error(
         'Invalid SiteAlert: missing required fields (id, siteId)',
@@ -47,117 +63,95 @@ export class SiteIncidentService {
         'debug',
       );
 
-      // Check for active incident
-      this.metrics.startTimer('find_active_incident');
-      const activeIncident = await this.repository.findActiveBySiteId(
+      this.metrics.startTimer('find_active_incidents');
+      let nearbyIncidents = await this.repository.findActiveIncidentsWithinProximity(
         alert.siteId,
+        alert.latitude,
+        alert.longitude,
+        this.incidentProximityKm,
       );
-      this.metrics.endTimer('find_active_incident');
+      this.metrics.endTimer('find_active_incidents');
 
-      let incident: SiteIncident;
+      // Defensive stale-resolution for root incidents that may have missed cleanup.
+      const staleRootIncidents = nearbyIncidents.filter(
+        incident => !incident.mergedIncidentId && this.isIncidentStale(incident),
+      );
 
-      if (activeIncident) {
-        // Defensive check: If incident should be resolved (stale), resolve it first
-        const now = new Date();
-        const inactiveMs = now.getTime() - activeIncident.updatedAt.getTime();
-        const inactiveHours = inactiveMs / (1000 * 60 * 60);
-
-        if (inactiveHours >= this.inactiveHours) {
-          logger(
-            `Active incident ${
-              activeIncident.id
-            } is stale (inactive for ${inactiveHours.toFixed(
-              2,
-            )}h). Resolving before processing new alert.`,
-            'debug',
-          );
-          // Associate the alert with the incident
-          await prisma.siteAlert.update({
-            where: {id: alert.id},
-            data: {
-              siteIncidentId: activeIncident.id,
-              isProcessed: true,
-            },
-          });
-
-          // Resolve the stale incident
-          try {
-            await this.resolver.batchResolveIncidents([activeIncident]);
-            logger(`Resolved stale incident ${activeIncident.id}`, 'debug');
-          } catch (error) {
-            logger(
-              `Error resolving stale incident ${activeIncident.id}: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-              'warn',
-            );
-            // Continue to create new incident even if resolution fails
-          }
-
-          // Create new incident for this alert
-          logger(
-            `Creating new incident for alert ${alert.id} on site ${alert.siteId} (previous incident was stale)`,
-            'debug',
-          );
-
-          this.metrics.startTimer('create_incident');
-          incident = await this.repository.createIncident({
-            siteId: alert.siteId,
-            startSiteAlertId: alert.id,
-            latestSiteAlertId: alert.id,
-            startedAt: new Date(),
-          });
-          this.metrics.endTimer('create_incident');
-
-          logger(
-            `Created new incident ${incident.id} for site ${alert.siteId}`,
-            'debug',
-          );
-        } else {
-          // Associate with existing incident (it's still active)
-          logger(
-            `Associating alert ${alert.id} with existing incident ${activeIncident.id}`,
-            'debug',
-          );
-
-          this.metrics.startTimer('associate_alert');
-          incident = await this.repository.associateAlert(
-            activeIncident.id,
-            alert.id,
-          );
-          this.metrics.endTimer('associate_alert');
-
-          logger(
-            `Associated alert ${alert.id} with incident ${incident.id}`,
-            'debug',
-          );
-        }
-      } else {
-        // Create new incident
+      if (staleRootIncidents.length > 0) {
         logger(
-          `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
+          `Found ${staleRootIncidents.length} stale root incidents while processing alert ${alert.id}. Resolving before merge/association.`,
           'debug',
         );
 
-        this.metrics.startTimer('create_incident');
-        incident = await this.repository.createIncident({
-          siteId: alert.siteId,
-          startSiteAlertId: alert.id,
-          latestSiteAlertId: alert.id,
-          startedAt: new Date(),
-        });
-        this.metrics.endTimer('create_incident');
+        const resolutionResult = await this.resolver.batchResolveIncidents(
+          staleRootIncidents,
+        );
+        this.lifecycleStats.descendantClosures +=
+          resolutionResult.descendantClosedCount ?? 0;
 
-        logger(
-          `Created new incident ${incident.id} for site ${alert.siteId}`,
-          'debug',
+        nearbyIncidents = await this.repository.findActiveIncidentsWithinProximity(
+          alert.siteId,
+          alert.latitude,
+          alert.longitude,
+          this.incidentProximityKm,
         );
       }
+
+      const representatives = await this.collapseCandidatesByLineage(
+        nearbyIncidents,
+      );
+
+      let processingResult: AlertProcessingResult;
+
+      if (representatives.length === 0) {
+        processingResult = await this.createIncidentFromAlert(alert);
+      } else if (representatives.length === 1) {
+        const representative = representatives[0];
+        if (!representative) {
+          throw new Error('Representative incident missing during association');
+        }
+
+        processingResult = await this.repository.associateAlertAndTouchAncestors(
+          representative.id,
+          alert.id,
+        );
+      } else {
+        const mergedRepresentatives = representatives.filter(
+          representative => representative.isMergedIncident,
+        );
+
+        if (mergedRepresentatives.length === 1) {
+          const targetMerged = mergedRepresentatives[0];
+          if (!targetMerged) {
+            throw new Error('Expected one merged root representative');
+          }
+
+          const absorbedRepresentativeIds = representatives
+            .filter(representative => representative.id !== targetMerged.id)
+            .map(representative => representative.id);
+
+          processingResult =
+            await this.repository.absorbIntoExistingMergedAndAssociate(
+              targetMerged.id,
+              absorbedRepresentativeIds,
+              alert.id,
+            );
+        } else {
+          processingResult =
+            await this.repository.createMergedIncidentFromRepresentativesAndAssociate(
+              alert.siteId,
+              representatives.map(representative => representative.id),
+              alert.id,
+            );
+        }
+      }
+
+      this.recordLifecycleStats(processingResult);
 
       const totalDuration = this.metrics.endTimer('process_alert_total');
       this.recordMetrics('process_alert', totalDuration);
 
-      return incident as SiteIncidentInterface;
+      return processingResult.incident as SiteIncidentInterface;
     } catch (error) {
       logger(
         `Error processing alert ${alert.id}: ${
@@ -169,9 +163,32 @@ export class SiteIncidentService {
     }
   }
 
+  private async createIncidentFromAlert(
+    alert: SiteAlert,
+  ): Promise<AlertProcessingResult> {
+    logger(
+      `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
+      'debug',
+    );
+
+    this.metrics.startTimer('create_incident');
+    const processingResult = await this.repository.createIncidentFromAlertWithLock(
+      alert.siteId,
+      alert.id,
+    );
+    this.metrics.endTimer('create_incident');
+
+    logger(
+      `Created new incident ${processingResult.incident.id} for site ${alert.siteId}`,
+      'debug',
+    );
+
+    return processingResult;
+  }
+
   /**
    * Resolves all inactive incidents
-   * @returns Number of resolved incidents
+   * @returns Number of resolved root incidents
    */
   async resolveInactiveIncidents(): Promise<number> {
     this.metrics.startTimer('resolve_inactive_total');
@@ -182,7 +199,6 @@ export class SiteIncidentService {
         'debug',
       );
 
-      // Find inactive incidents
       this.metrics.startTimer('find_inactive');
       const inactiveIncidents = await this.repository.findInactiveIncidents(
         this.inactiveHours,
@@ -195,11 +211,10 @@ export class SiteIncidentService {
       }
 
       logger(
-        `Found ${inactiveIncidents.length} inactive incidents to resolve`,
+        `Found ${inactiveIncidents.length} inactive root incidents to resolve`,
         'debug',
       );
 
-      // Validate incidents
       const validIncidents = inactiveIncidents.filter(incident =>
         this.resolver.validateIncident(incident),
       );
@@ -209,19 +224,22 @@ export class SiteIncidentService {
         return 0;
       }
 
-      // Batch resolve
       this.metrics.startTimer('batch_resolve');
       const result = await this.resolver.batchResolveIncidents(validIncidents);
       this.metrics.endTimer('batch_resolve');
 
+      this.lifecycleStats.descendantClosures +=
+        result.descendantClosedCount ?? 0;
+
       const totalDuration = this.metrics.endTimer('resolve_inactive_total');
       this.recordMetrics('resolve_inactive', totalDuration, {
         resolvedCount: result.resolvedCount,
+        descendantClosedCount: result.descendantClosedCount ?? 0,
         errorCount: result.errors.length,
       });
 
       logger(
-        `Resolution complete: ${result.resolvedCount}/${validIncidents.length} resolved in ${totalDuration}ms`,
+        `Resolution complete: ${result.resolvedCount}/${validIncidents.length} roots resolved in ${totalDuration}ms with ${result.descendantClosedCount ?? 0} descendant closures`,
         'info',
       );
 
@@ -246,7 +264,6 @@ export class SiteIncidentService {
     alert: SiteAlert,
     incident: SiteIncidentInterface,
   ): Promise<void> {
-    // Validate inputs
     if (!alert || !alert.id) {
       const error = new Error('Invalid SiteAlert: missing id');
       logger(`Input validation failed: ${error.message}`, 'error');
@@ -265,7 +282,7 @@ export class SiteIncidentService {
         'debug',
       );
 
-      await this.repository.associateAlert(incident.id, alert.id);
+      await this.repository.associateAlertAndTouchAncestors(incident.id, alert.id);
 
       logger(
         `Successfully associated alert ${alert.id} with incident ${incident.id}`,
@@ -288,7 +305,6 @@ export class SiteIncidentService {
    * @returns Incident or null
    */
   async getIncidentById(id: string): Promise<SiteIncidentInterface | null> {
-    // Validate input
     if (!id || typeof id !== 'string' || id.trim().length === 0) {
       const error = new Error(
         'Invalid incident ID: must be a non-empty string',
@@ -310,6 +326,20 @@ export class SiteIncidentService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Gets aggregate merge/lifecycle stats since service creation/reset.
+   */
+  getAndResetLifecycleStats(): IncidentLifecycleStats {
+    const snapshot: IncidentLifecycleStats = {...this.lifecycleStats};
+    this.lifecycleStats = {
+      mergeEvents: 0,
+      newMergedIncidents: 0,
+      absorbedIncidents: 0,
+      descendantClosures: 0,
+    };
+    return snapshot;
   }
 
   /**
@@ -358,7 +388,6 @@ export class SiteIncidentService {
    * @returns Active incident or null
    */
   async getActiveIncidentForSite(siteId: string): Promise<SiteIncident | null> {
-    // Validate input
     if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
       const error = new Error('Invalid siteId: must be a non-empty string');
       logger(`Input validation failed: ${error.message}`, 'error');
@@ -379,6 +408,31 @@ export class SiteIncidentService {
   }
 
   /**
+   * Gets all active incidents for a site
+   * @param siteId - Site ID
+   * @returns Active incidents ordered by newest first
+   */
+  async getActiveIncidentsForSite(siteId: string): Promise<SiteIncident[]> {
+    if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
+      const error = new Error('Invalid siteId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      return await this.repository.findActiveIncidentsBySiteId(siteId);
+    } catch (error) {
+      logger(
+        `Error getting active incidents for site ${siteId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Gets incidents for a site within a date range
    * @param siteId - Site ID
    * @param startDate - Start date
@@ -390,7 +444,6 @@ export class SiteIncidentService {
     startDate: Date,
     endDate: Date,
   ): Promise<SiteIncident[]> {
-    // Validate inputs
     if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
       const error = new Error('Invalid siteId: must be a non-empty string');
       logger(`Input validation failed: ${error.message}`, 'error');
@@ -463,7 +516,6 @@ export class SiteIncidentService {
     incidentId: string,
     status: string,
   ): Promise<SiteIncident> {
-    // Validate inputs
     if (
       !incidentId ||
       typeof incidentId !== 'string' ||
@@ -501,6 +553,80 @@ export class SiteIncidentService {
         'error',
       );
       throw error;
+    }
+  }
+
+  private async collapseCandidatesByLineage(
+    candidates: SiteIncidentWithDistance[],
+  ): Promise<SiteIncidentWithDistance[]> {
+    if (candidates.length <= 1) {
+      return candidates;
+    }
+
+    const groupedByRoot = new Map<string, SiteIncidentWithDistance[]>();
+
+    for (const candidate of candidates) {
+      const rootId = await this.repository.findRootIncidentId(candidate.id);
+      const existingGroup = groupedByRoot.get(rootId) ?? [];
+      existingGroup.push(candidate);
+      groupedByRoot.set(rootId, existingGroup);
+    }
+
+    const representatives: SiteIncidentWithDistance[] = [];
+
+    const groupedValues = Array.from(groupedByRoot.values());
+    for (const group of groupedValues) {
+      const mergedCandidates = group.filter(candidate => candidate.isMergedIncident);
+      const pool = mergedCandidates.length > 0 ? mergedCandidates : group;
+      const sortedPool = [...pool].sort(this.compareCandidates);
+      const representative = sortedPool[0];
+
+      if (representative) {
+        representatives.push(representative);
+      }
+    }
+
+    representatives.sort(this.compareCandidates);
+    return representatives;
+  }
+
+  private compareCandidates = (
+    left: SiteIncidentWithDistance,
+    right: SiteIncidentWithDistance,
+  ): number => {
+    if (left.distanceKm !== right.distanceKm) {
+      return left.distanceKm - right.distanceKm;
+    }
+
+    if (left.updatedAt.getTime() !== right.updatedAt.getTime()) {
+      return right.updatedAt.getTime() - left.updatedAt.getTime();
+    }
+
+    if (left.startedAt.getTime() !== right.startedAt.getTime()) {
+      return left.startedAt.getTime() - right.startedAt.getTime();
+    }
+
+    return left.id.localeCompare(right.id);
+  };
+
+  private isIncidentStale(incident: SiteIncident): boolean {
+    const inactiveMs = Date.now() - incident.updatedAt.getTime();
+    const inactiveHours = inactiveMs / (1000 * 60 * 60);
+    return inactiveHours >= this.inactiveHours;
+  }
+
+  private recordLifecycleStats(processingResult: AlertProcessingResult): void {
+    if (processingResult.mergeEventCreated) {
+      this.lifecycleStats.mergeEvents += 1;
+    }
+
+    if (processingResult.newMergedIncidentCreated) {
+      this.lifecycleStats.newMergedIncidents += 1;
+    }
+
+    if (processingResult.absorbedIncidentCount > 0) {
+      this.lifecycleStats.absorbedIncidents +=
+        processingResult.absorbedIncidentCount;
     }
   }
 }
