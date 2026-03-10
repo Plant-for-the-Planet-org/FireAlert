@@ -196,25 +196,45 @@ export class CreateIncidentNotifications {
     // For now assuming 50 incidents * ~2-3 methods = 150 notifications. OK for one transaction.
 
     await prisma.$transaction(async tx => {
-      // 1. Create Notifications
-      // We use createMany for efficiency
-      const notificationsData = queue.map(item => ({
-        siteAlertId: item.siteAlertId,
-        alertMethod: item.alertMethod,
-        destination: item.destination,
-        isDelivered: false,
-        isSkipped: false,
-        notificationStatus: item.notificationStatus,
-        metadata: item.metadata as any, // Json type casting
-      }));
+      // 1. Create all notifications and capture their IDs + metadata
+      const createdNotifications = await Promise.all(
+        queue.map(item =>
+          tx.notification.create({
+            data: {
+              siteAlertId: item.siteAlertId,
+              alertMethod: item.alertMethod,
+              destination: item.destination,
+              isDelivered: false,
+              isSkipped: false,
+              notificationStatus: item.notificationStatus,
+              metadata: item.metadata as any, // Json type casting
+            },
+          }),
+        ),
+      );
 
-      if (notificationsData.length > 0) {
-        await tx.notification.createMany({
-          data: notificationsData,
-        });
+      // Build a per-incident map of start/end notification IDs based on metadata
+      const incidentNotificationMap = new Map<
+        string,
+        {start?: string; end?: string}
+      >();
+
+      for (const notif of createdNotifications) {
+        const meta = notif.metadata as IncidentNotificationMetadata | null | undefined;
+        if (!meta?.incidentId) continue;
+
+        const existing = incidentNotificationMap.get(meta.incidentId) ?? {};
+
+        if (meta.type === 'INCIDENT_START' && !existing.start) {
+          existing.start = notif.id;
+        } else if (meta.type === 'INCIDENT_END' && !existing.end) {
+          existing.end = notif.id;
+        }
+
+        incidentNotificationMap.set(meta.incidentId, existing);
       }
 
-      // 2. Mark Incidents as processed
+      // 2. Mark incidents as processed
       if (processedIncidentIds.length > 0) {
         await tx.siteIncident.updateMany({
           where: {id: {in: processedIncidentIds}},
@@ -222,7 +242,37 @@ export class CreateIncidentNotifications {
         });
       }
 
-      // 3. Update Site lastMessageCreated (Only for START notifications?)
+      // 3. Update startNotificationId / endNotificationId on SiteIncident
+      const incidentUpdatePromises: Promise<SiteIncident>[] = [];
+      for (const [incidentId, {start, end}] of incidentNotificationMap) {
+        const data: {
+          startNotificationId?: string;
+          endNotificationId?: string;
+        } = {};
+
+        if (start) {
+          data.startNotificationId = start;
+        }
+
+        if (end) {
+          data.endNotificationId = end;
+        }
+
+        if (Object.keys(data).length === 0) continue;
+
+        incidentUpdatePromises.push(
+          tx.siteIncident.update({
+            where: {id: incidentId},
+            data,
+          }),
+        );
+      }
+
+      if (incidentUpdatePromises.length > 0) {
+        await Promise.all(incidentUpdatePromises);
+      }
+
+      // 4. Update Site lastMessageCreated (Only for START notifications?)
       // The requirement says: "Update Site.lastMessageCreated".
       // Usually we do this to rate limit per site.
       // With Incidents, we rate limit by "One Incident per X hours".
