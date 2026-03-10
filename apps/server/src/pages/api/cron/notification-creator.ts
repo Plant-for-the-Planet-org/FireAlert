@@ -28,9 +28,7 @@ export default async function notificationsCron(
     // Run both services in parallel for method-based routing
     const [alertNotifications, incidentNotifications] = await Promise.all([
       createNotifications(), // SiteAlert-based (device, webhook)
-
-      0, // Setting this Instead [CreateIncidentNotifications.run] - This would cause bug now.
-      // CreateIncidentNotifications.run(), // SiteIncident-based (email, sms, whatsapp)
+      CreateIncidentNotifications.run(), // SiteIncident-based (email, sms, whatsapp)
     ]);
 
     const totalNotifications = alertNotifications + incidentNotifications;
