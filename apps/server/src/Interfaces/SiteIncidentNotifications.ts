@@ -1,7 +1,5 @@
 import {type NotificationStatus} from '@prisma/client';
 
-export type IncidentNotificationType = 'START' | 'END';
-
 export interface IncidentNotificationMetadata {
   type: 'INCIDENT_START' | 'INCIDENT_END';
   incidentId: string;
@@ -19,9 +17,4 @@ export interface NotificationQueueItem {
   destination: string;
   notificationStatus: NotificationStatus;
   metadata: IncidentNotificationMetadata;
-}
-
-export interface ProcessResult {
-  processedCount: number;
-  errors: string[];
 }

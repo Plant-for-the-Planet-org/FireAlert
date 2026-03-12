@@ -9,7 +9,6 @@ import {logger} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import {unsubscribeService} from '../AlertMethod/UnsubscribeService';
-import {isSiteAlertMethod} from './NotificationRoutingConfig';
 import type {Notification, SiteAlert, Site} from '@prisma/client';
 
 type SiteAlertWithSite = SiteAlert & {
@@ -107,11 +106,14 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
     // If no notifications are found, exit the loop
     if (filteredNotifications.length === 0) {
-      logger(`Nothing to process anymore notification.length = 0`, 'info');
+      logger(`Nothing to process anymore notification.length = 0`, 'debug');
       continueProcessing = false;
       break;
     }
-    logger(`Notifications to be sent: ${filteredNotifications.length}`, 'info');
+    logger(
+      `Notifications to be sent: ${filteredNotifications.length}`,
+      'debug',
+    );
 
     const successfulNotificationIds: string[] = [];
     const successfulDestinations: string[] = [];
@@ -312,7 +314,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
     logger(
       `Completed batch ${batchCount}. Successful: ${successfulNotificationIds.length}, Failed: ${unsuccessfulNotifications.length}`,
-      'info',
+      'debug',
     );
 
     // skip += take; No need to skip take as we update the notifications to isDelivered = true

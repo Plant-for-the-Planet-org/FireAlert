@@ -218,7 +218,6 @@ Recommended order for deterministic state transitions:
 ## 8. Configuration and flags used in implementation
 Defined in `apps/server/src/env.mjs`:
 - `USE_REFACTORED_PIPELINE`
-- `ENABLE_INCIDENT_NOTIFICATIONS`
 - `INCIDENT_RESOLUTION_HOURS`
 - `NOTIFICATION_BATCH_SIZE`
 - `ALERT_SMS_DISABLED`
@@ -305,14 +304,6 @@ This section is intentionally short and implementation-focused for development c
 - `SiteIncidentService.updateReviewStatus(incidentId,status)`: updates review status.
 - `SiteIncidentService.recordMetrics(operation,duration,extras)`: internal metric recording helper.
 
-- `apps/server/src/Services/SiteIncident/StateManagement.ts`: lifecycle state machine helpers.
-- `getIncidentState(incident)`: maps incident flags to lifecycle state.
-- `isValidStateTransition(from,to)`: allowed transition validator.
-- `validateIncidentModifiable(incident)`: blocks updates to closed incidents.
-- `validateIncidentCanAcceptAlerts(incident)`: blocks alert association to inactive incidents.
-- `validateTimestampOrdering(startedAt,endedAt)`: chronological guard.
-- `validateStateRequirements(incident)`: enforces required fields per state.
-
 - `apps/server/src/Services/SiteAlert/SiteAlertService.ts`: alert creation coordinator with optional incident integration.
 - `SiteAlertService.createAlertsForProvider(providerId,clientId,slice)`: batch alert creation loop.
 - `SiteAlertService.processBatch(eventIds,providerId,clientId,slice,isGeo)`: provider-specific alert creation and incident processing hook.
@@ -322,8 +313,6 @@ This section is intentionally short and implementation-focused for development c
 - `apps/server/src/Services/Notifications/NotificationRoutingConfig.ts`: centralized method routing config.
 - `isSiteAlertMethod(method)`: true for `device`,`webhook`.
 - `isSiteIncidentMethod(method)`: true for `email`,`sms`,`whatsapp`.
-- `getAllNotificationMethods()`: returns all routed methods.
-- `isValidNotificationMethod(method)`: validation helper.
 
 - `apps/server/src/Services/Notifications/CreateNotifications.ts`: SiteAlert-based notification creator.
 - `createNestedChunksForUnprocessedSiteAlerts(alerts,size)`: chunks while preserving site grouping behavior.

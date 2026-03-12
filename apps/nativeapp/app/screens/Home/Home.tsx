@@ -229,36 +229,10 @@ const Home = ({navigation, route}) => {
   const {data: alerts} = useFetchSites({enabled: true});
 
   // Fetch incident data when an alert with siteIncidentId is selected
-  const {
-    incident,
-    isLoading: isIncidentLoading,
-    isError: isIncidentError,
-  } = useIncidentData({
+  const {incident} = useIncidentData({
     incidentId: selectedAlert?.siteIncidentId,
     enabled: !!selectedAlert?.siteIncidentId,
   });
-
-  // Log incident data changes
-  useEffect(() => {
-    if (incident) {
-      console.log(
-        `[incident] Incident data received in Home - incidentId: ${incident.id}, isActive: ${incident.isActive}, alertCount: ${incident.siteAlerts.length}`,
-      );
-    }
-  }, [incident]);
-
-  // Log selected alert changes
-  useEffect(() => {
-    if (Object.keys(selectedAlert).length > 0) {
-      console.log(
-        `[incident] Selected alert changed - alertId: ${
-          selectedAlert?.id
-        }, siteIncidentId: ${selectedAlert?.siteIncidentId || 'none'}, site: ${
-          selectedAlert?.site?.name || 'unknown'
-        }`,
-      );
-    }
-  }, [selectedAlert]);
 
   const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],
@@ -290,55 +264,16 @@ const Home = ({navigation, route}) => {
 
   // Calculate incident circle with memoization
   const incidentCircle = useMemo(() => {
-    if (!incident?.siteAlerts) {
-      console.log('[incident] No siteAlerts available for circle calculation');
-      return null;
-    }
-    console.log(
-      `[incident] Starting incident circle calculation - incidentId: ${incident.id}, fireCount: ${incident.siteAlerts.length}`,
-    );
+    if (!incident?.siteAlerts) return null;
     const fires = incident.siteAlerts.map(a => ({
       latitude: a.latitude,
       longitude: a.longitude,
     }));
-    console.log(
-      `[incident] Fire points for circle - ${fires
-        .map(
-          (f, i) =>
-            `[${i}] lat:${f.latitude.toFixed(4)}, lon:${f.longitude.toFixed(
-              4,
-            )}`,
-        )
-        .join(' | ')}`,
-    );
-    const result = generateIncidentCircle(fires, 2);
-    if (result) {
-      console.log(
-        `[incident] Circle calculation completed - radiusKm: ${result.radiusKm.toFixed(
-          2,
-        )}, areaKm2: ${result.areaKm2.toFixed(
-          2,
-        )}, centroid: [${result.centroid[1].toFixed(
-          4,
-        )}, ${result.centroid[0].toFixed(4)}]`,
-      );
-    } else {
-      console.warn('[incident] Circle calculation returned null');
-    }
-    return result;
+    return generateIncidentCircle(fires, 2);
   }, [incident?.siteAlerts, incident?.id]);
 
   // Update incident circle data when calculation completes
   useEffect(() => {
-    if (incidentCircle) {
-      console.log(
-        `[incident] Incident circle data updated - preparing to render on map - radiusKm: ${incidentCircle.radiusKm.toFixed(
-          2,
-        )}, areaKm2: ${incidentCircle.areaKm2.toFixed(2)}`,
-      );
-    } else {
-      console.log('[incident] Incident circle data cleared or not available');
-    }
     setIncidentCircleData(incidentCircle);
   }, [incidentCircle]);
 
@@ -806,13 +741,6 @@ const Home = ({navigation, route}) => {
           });
           setTimeout(() => {
             const alert = alertsArr[counter];
-            console.log(
-              `[incident] Fire alert marker tapped - alertId: ${
-                alert?.id
-              }, siteIncidentId: ${
-                alert?.siteIncidentId || 'none'
-              }, latitude: ${alert?.latitude}, longitude: ${alert?.longitude}`,
-            );
             setSelectedAlert(alert);
           }, ANIMATION_DURATION);
         }}
@@ -1020,37 +948,13 @@ const Home = ({navigation, route}) => {
    * Shows a circular polygon encompassing all fires in the incident
    */
   const renderIncidentCircle = () => {
-    if (!incidentCircleData) {
-      console.log(
-        '[incident] No incident circle data available - skipping render',
-      );
-      return null;
-    }
+    if (!incidentCircleData) return null;
 
-    if (!incident) {
-      console.log('[incident] No incident data available - skipping render');
-      return null;
-    }
+    if (!incident) return null;
 
     const circleColor = incident.isActive
       ? Colors.INCIDENT_ACTIVE_COLOR
       : Colors.INCIDENT_RESOLVED_COLOR;
-
-    console.log(
-      `[incident] Rendering incident circle on map - incidentId: ${incident.id}, isActive: ${incident.isActive}, color: ${circleColor}`,
-    );
-    console.log(
-      `[incident] Circle polygon details - type: ${
-        incidentCircleData.circlePolygon.geometry.type
-      }, coordinates: ${
-        incidentCircleData.circlePolygon.geometry.coordinates[0]?.length || 0
-      } points, radius: ${incidentCircleData.radiusKm.toFixed(
-        2,
-      )}km, area: ${incidentCircleData.areaKm2.toFixed(2)}km²`,
-    );
-    console.log(
-      `[incident] Circle centroid - lat: ${incidentCircleData.centroid[1]}, lon: ${incidentCircleData.centroid[0]}`,
-    );
 
     return (
       <MapboxGL.ShapeSource
@@ -1116,87 +1020,6 @@ const Home = ({navigation, route}) => {
         <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
       ) : null}
 
-      {/* Debug Overlay - Show incident circle rendering status */}
-      {incidentCircleData && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 10,
-            backgroundColor: 'rgba(232, 111, 86, 0.9)',
-            padding: 8,
-            borderRadius: 6,
-            zIndex: 100,
-          }}>
-          <Text
-            style={{
-              fontSize: 10,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 4,
-            }}>
-            [CIRCLE] Rendered
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 2,
-            }}>
-            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-            }}>
-            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
-          </Text>
-        </View>
-      )}
-
-      {/* Debug Overlay - Show incident circle rendering status */}
-      {incidentCircleData && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 10,
-            backgroundColor: 'rgba(232, 111, 86, 0.9)',
-            padding: 8,
-            borderRadius: 6,
-            zIndex: 100,
-          }}>
-          <Text
-            style={{
-              fontSize: 10,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 4,
-            }}>
-            [CIRCLE] Rendered
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 2,
-            }}>
-            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-            }}>
-            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
-          </Text>
-        </View>
-      )}
       <StatusBar
         animated
         translucent
@@ -1334,120 +1157,24 @@ const Home = ({navigation, route}) => {
       {/* fire alert info modal */}
       <BottomSheet
         onBackdropPress={() => {
-          console.log(
-            `[incident] Alert modal closed - alertId: ${selectedAlert?.id}`,
-          );
           setSelectedAlert({});
           setIncidentCircleData(null);
         }}
         isVisible={Object.keys(selectedAlert).length > 0}>
-        {Object.keys(selectedAlert).length > 0 &&
-          console.log(
-            `[incident] Alert modal opened - alertId: ${
-              selectedAlert?.id
-            }, siteIncidentId: ${
-              selectedAlert?.siteIncidentId || 'none'
-            }, site: ${selectedAlert?.site?.name || 'unknown'}`,
-          )}
         <Toast ref={modalToast} offsetBottom={100} duration={2000} />
         <View style={[styles.modalContainer, styles.commonPadding]}>
           <View style={styles.modalHeader} />
 
-          {/* Debug Tags - Show alert and incident IDs */}
-          {/* <View
-            style={{
-              backgroundColor: '#f0f0f0',
-              padding: 8,
-              borderRadius: 6,
-              marginBottom: 12,
-              borderLeftWidth: 3,
-              borderLeftColor: '#E86F56',
-            }}>
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#666',
-                fontFamily: 'monospace',
-                marginBottom: 4,
-              }}>
-              [DEBUG] Alert ID: {selectedAlert?.id}
-            </Text>
-            {selectedAlert?.siteIncidentId && (
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: '#666',
-                  fontFamily: 'monospace',
-                  marginBottom: 4,
-                }}>
-                [DEBUG] Incident ID: {selectedAlert?.siteIncidentId}
-              </Text>
-            )}
-            {incident && (
-              <>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    color: '#666',
-                    fontFamily: 'monospace',
-                    marginBottom: 4,
-                  }}>
-                  [DEBUG] Incident Active: {incident.isActive ? 'Yes' : 'No'}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    color: '#666',
-                    fontFamily: 'monospace',
-                  }}>
-                  [DEBUG] Alert Count: {incident.siteAlerts.length}
-                </Text>
-              </>
-            )}
-            {!incident && selectedAlert?.siteIncidentId && (
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: '#E86F56',
-                  fontFamily: 'monospace',
-                }}>
-                [DEBUG] Loading incident data...
-              </Text>
-            )}
-          </View> */}
-
           {/* Incident Summary Card - shown when incident data is available */}
           {incident && (
-            <>
-              {console.log(
-                `[incident] Displaying IncidentSummaryCard - incidentId: ${
-                  incident.id
-                }, isActive: ${incident.isActive}, alertCount: ${
-                  incident.siteAlerts.length
-                }, firePoints: ${incident.siteAlerts
-                  .map(
-                    (a, i) =>
-                      `[${i}](${a.latitude.toFixed(4)},${a.longitude.toFixed(
-                        4,
-                      )})`,
-                  )
-                  .join(' ')}`,
-              )}
-              <IncidentSummaryCard
-                isActive={incident.isActive}
-                startAlert={incident.startSiteAlert}
-                latestAlert={incident.latestSiteAlert}
-                allAlerts={incident.siteAlerts}
-                incidentId={incident.id}
-              />
-            </>
+            <IncidentSummaryCard
+              isActive={incident.isActive}
+              startAlert={incident.startSiteAlert}
+              latestAlert={incident.latestSiteAlert}
+              allAlerts={incident.siteAlerts}
+              incidentId={incident.id}
+            />
           )}
-          {!incident &&
-            selectedAlert?.siteIncidentId &&
-            (console.log(
-              `[incident] Incident data loading - alertId: ${selectedAlert?.id}, siteIncidentId: ${selectedAlert?.siteIncidentId}, isLoading: ${isIncidentLoading}, isError: ${isIncidentError}`,
-            ),
-            null)}
 
           <View style={styles.satelliteInfoCon}>
             <View style={styles.satelliteIcon}>

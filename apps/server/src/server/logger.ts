@@ -18,18 +18,18 @@ export function logger(message: string, level: LoggerLevels) {
   if (loggerInstance) {
     switch (level) {
       case 'debug':
-        loggerInstance.info(message).catch(err => {
-          console.log(err);
+        loggerInstance.debug(message).catch(err => {
+          console.error(err);
         });
         break;
       case 'info':
         loggerInstance.info(message).catch(err => {
-          console.info(err);
+          console.error(err);
         });
         break;
       case 'warn':
         loggerInstance.warn(message).catch(err => {
-          console.warn(err);
+          console.error(err);
         });
         break;
       case 'error':
@@ -41,6 +41,21 @@ export function logger(message: string, level: LoggerLevels) {
         console.error(`Invalid log level: ${level as string}`);
     }
   } else {
-    console.log(`[${level.toUpperCase()}] ${message}`);
+    switch (level) {
+      case 'debug':
+        console.debug(`[DEBUG] ${message}`);
+        break;
+      case 'info':
+        console.info(`[INFO] ${message}`);
+        break;
+      case 'warn':
+        console.warn(`[WARN] ${message}`);
+        break;
+      case 'error':
+        console.error(`[ERROR] ${message}`);
+        break;
+      default:
+        console.error(`[${level.toUpperCase()}] ${message}`);
+    }
   }
 }

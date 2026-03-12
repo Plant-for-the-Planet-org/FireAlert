@@ -13,6 +13,7 @@ import {IncidentResolver} from '../../../Services/SiteIncident/IncidentResolver'
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
 import {prisma} from '../../../server/db';
+import {logger} from '../../../server/logger';
 // Initialize services
 const siteIncidentRepository = new SiteIncidentRepository(prisma);
 const incidentResolver = new IncidentResolver(siteIncidentRepository);
@@ -111,7 +112,6 @@ export const siteIncidentRouter = createTRPCRouter({
     .input(getIncidentSchema)
     .query(async ({ctx, input}) => {
       try {
-        // logger(`getIncident `, 'debug');
         const incident = await getIncidentById(input.incidentId);
 
         if (!incident) {
@@ -130,7 +130,12 @@ export const siteIncidentRouter = createTRPCRouter({
 
         return incident;
       } catch (error) {
-        console.error('Error in getIncident:', error);
+        logger(
+          `Error in getIncident for ${input.incidentId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          'error',
+        );
         throw error;
       }
     }),

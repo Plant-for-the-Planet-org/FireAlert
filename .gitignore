@@ -8,3 +8,9 @@ node_modules
 .idea
 .vercel
 .yarn
+
+# AI IDE files.
+# .cursor
+# .codex
+# .widnsurf
+# .kiro

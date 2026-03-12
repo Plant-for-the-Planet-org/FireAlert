@@ -19,13 +19,18 @@ export type SiteAlertMethod =
 export type SiteIncidentMethod =
   (typeof NOTIFICATION_ROUTING.SITE_INCIDENT_METHODS)[number];
 
+const SITE_ALERT_METHODS_SET = new Set<string>(
+  NOTIFICATION_ROUTING.SITE_ALERT_METHODS,
+);
+const SITE_INCIDENT_METHODS_SET = new Set<string>(
+  NOTIFICATION_ROUTING.SITE_INCIDENT_METHODS,
+);
+
 /**
  * Type guard to check if a method should use SiteAlert-based processing
  */
 export function isSiteAlertMethod(method: string): method is SiteAlertMethod {
-  return (
-    [...NOTIFICATION_ROUTING.SITE_ALERT_METHODS].indexOf(method as any) !== -1
-  );
+  return SITE_ALERT_METHODS_SET.has(method);
 }
 
 /**
@@ -34,25 +39,5 @@ export function isSiteAlertMethod(method: string): method is SiteAlertMethod {
 export function isSiteIncidentMethod(
   method: string,
 ): method is SiteIncidentMethod {
-  return (
-    [...NOTIFICATION_ROUTING.SITE_INCIDENT_METHODS].indexOf(method as any) !==
-    -1
-  );
-}
-
-/**
- * Get all valid notification methods
- */
-export function getAllNotificationMethods(): string[] {
-  return [
-    ...NOTIFICATION_ROUTING.SITE_ALERT_METHODS,
-    ...NOTIFICATION_ROUTING.SITE_INCIDENT_METHODS,
-  ];
-}
-
-/**
- * Check if a method is a valid notification method
- */
-export function isValidNotificationMethod(method: string): boolean {
-  return getAllNotificationMethods().indexOf(method) !== -1;
+  return SITE_INCIDENT_METHODS_SET.has(method);
 }

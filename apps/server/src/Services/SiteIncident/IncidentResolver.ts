@@ -1,4 +1,4 @@
-import {type SiteIncident, type SiteAlert} from '@prisma/client';
+import {type SiteIncident} from '@prisma/client';
 import {logger} from '../../server/logger';
 import {
   type IncidentState,
@@ -171,7 +171,7 @@ export class IncidentResolver {
    * @param incident - Incident to prepare
    * @returns Prepared incident data
    */
-  prepareForResolution(incident: SiteIncident): {
+  prepareForResolution(_incident: SiteIncident): {
     endedAt: Date;
     isActive: boolean;
     isProcessed: boolean;

@@ -52,14 +52,6 @@ function formatTime(date: Date): string {
  * @param props - Component props
  * @returns JSX element
  */
-export interface IncidentSummaryCardProps {
-  isActive: boolean;
-  startAlert: SiteAlertData;
-  latestAlert: SiteAlertData;
-  allAlerts: SiteAlertData[];
-  incidentId?: string;
-}
-
 export function IncidentSummaryCard(
   props: IncidentSummaryCardProps,
 ): React.ReactElement {
@@ -95,7 +87,7 @@ export function IncidentSummaryCard(
       } else {
         Alert.alert('Error', 'Unable to open the incident URL');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to open the incident URL');
     }
   };

@@ -15,38 +15,29 @@ Incident linking and inactivity resolution are handled by `apps/server/src/pages
 - weaker same-transaction guarantees than intended model
 
 ## Gap 2: Two incident-notification implementations coexist
-### Current state
-- Active path in CRON uses:
-  - `apps/server/src/Services/Notifications/CreateIncidentNotifications.ts`
-  - `apps/server/src/Services/Notifications/SendIncidentNotifications.ts`
-- Additional path exists but is not active in CRON:
-  - `apps/server/src/Services/SiteIncident/CreateIncidentNotifications.ts`
-  - `apps/server/src/Services/SiteIncident/SendIncidentNotifications.ts`
-  - `apps/server/src/Services/SiteIncident/NotificationBoundaryService.ts`
-
-### Effect
-- unclear canonical implementation for future edits
-- higher risk of divergence and duplicate fixes
+### Status
+Resolved in cleanup pass:
+- Removed duplicate, inactive notification services under `apps/server/src/Services/SiteIncident/*`.
+- Retained canonical notification path under `apps/server/src/Services/Notifications/*`.
 
 ## Gap 3: Interface and enum drift
-`apps/server/src/Interfaces/SiteIncident.ts` defines statuses (`START`, `END`) that do not match Prisma `NotificationStatus` scheduling states (`START_SCHEDULED`, `END_SCHEDULED`).
-
-### Effect
-- confusing type semantics during extension work
+### Status
+Resolved in cleanup pass:
+- Removed stale incident notification enum definitions from `apps/server/src/Interfaces/SiteIncident.ts`.
+- Kept runtime status source of truth in Prisma `NotificationStatus`.
 
 ## Gap 4: Stale integration helper
-`apps/server/src/Services/SiteIncident/integration.ts` references methods and singleton usage patterns that do not align with current `SiteIncidentService` implementation shape.
-
-### Effect
-- not safe as integration template without refactor
+### Status
+Resolved in cleanup pass:
+- Removed stale helper `apps/server/src/Services/SiteIncident/integration.ts`.
+- Canonical incident lifecycle entrypoints remain `SiteIncidentService` + `site-incident-manager` CRON.
 
 ## Gap 5: Environment/config drift
-- `ENABLE_INCIDENT_NOTIFICATIONS` exists in env schema, but method-split CRON currently runs both paths without branching on this flag.
-- `.env.sample` has duplicate `INCIDENT_RESOLUTION_HOURS` entries.
-- docs in repository mention flags not present in env schema (`ENABLE_INCIDENT_PROCESSING`, `INCIDENT_BATCH_SIZE`).
-
-### Effect
-- rollout and operations confusion across environments
+### Status
+Resolved in cleanup pass:
+- Removed unused `ENABLE_INCIDENT_NOTIFICATIONS` from env schema and `.env.sample`.
+- Removed duplicate `INCIDENT_RESOLUTION_HOURS` entry from `.env.sample`.
+- Updated fire-incident docs to align with current env/runtime behavior.
 
 ## Gap 6: Documentation naming mismatch
 Some spec references mention `server/api/schemas`, runtime uses `server/api/zodSchemas`.
@@ -55,10 +46,7 @@ Some spec references mention `server/api/schemas`, runtime uses `server/api/zodS
 - minor onboarding friction for new contributors/tools
 
 ## Practical refactor priority order
-1. Choose one canonical incident-notification code path and deprecate the other.
-2. Decide incident-linking mode:
+1. Decide incident-linking mode:
    - inline during alert creation
    - or manager-CRON-only
-3. Align shared interfaces/enums with Prisma/runtime statuses.
-4. Normalize env/sample/docs to current operational behavior.
-5. Keep this gap doc updated as each item is resolved.
+2. Keep this gap doc updated as each item is resolved.

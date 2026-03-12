@@ -13,7 +13,7 @@ import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import type {NotificationParameters} from '../../Interfaces/NotificationParameters';
 import {getLocalTime} from '../../../src/utils/date';
 import type DataRecord from '../../Interfaces/DataRecord';
-import {isSiteIncidentMethod} from './NotificationRoutingConfig';
+import {NOTIFICATION_ROUTING} from './NotificationRoutingConfig';
 
 type NotificationWithRelations = Notification & {
   siteAlert: SiteAlert & {
@@ -66,7 +66,7 @@ export class SendIncidentNotifications {
           // Only process SiteIncident methods and exclude disabled methods
           alertMethod: {
             notIn: alertMethodsExclusionList,
-            in: ['email', 'sms', 'whatsapp'],
+            in: [...NOTIFICATION_ROUTING.SITE_INCIDENT_METHODS],
           },
         },
         include: {
@@ -88,13 +88,12 @@ export class SendIncidentNotifications {
         `Processing batch ${batchCount + 1}: ${
           notifications.length
         } incident notifications to be sent.`,
-        'info',
+        'debug',
       );
 
       const successfulIds: string[] = [];
       const failedIds: string[] = [];
       const successfulDestinations: string[] = [];
-      const failedDestinations: {destination: string; method: string}[] = [];
 
       await Promise.all(
         notifications.map(async (notification: NotificationWithRelations) => {
@@ -159,7 +158,6 @@ export class SendIncidentNotifications {
               successfulDestinations.push(destination);
             } else {
               failedIds.push(id);
-              failedDestinations.push({destination, method: alertMethod});
             }
           } catch (error: unknown) {
             const errorMessage =
@@ -175,17 +173,6 @@ export class SendIncidentNotifications {
 
       // Update Success
       if (successfulIds.length > 0) {
-        // For START -> START_SENT
-        // For END -> END_SENT
-        // We need to split updates or do them individually?
-        // Actually we can do filtered updates.
-        // Or just update individually if needed.
-        // But wait, we can just say `notificationStatus: status === START_SCHEDULED ? START_SENT : END_SENT`.
-        // Prisma doesn't support conditional updates like that easily in updateMany.
-        // So we update all successful to isDelivered=true.
-        // And we ALSO need to update the status.
-        // Since we processed a batch mixed of START and END, we might need two queries for status update.
-
         await prisma.notification.updateMany({
           where: {
             id: {in: successfulIds},
@@ -223,14 +210,8 @@ export class SendIncidentNotifications {
       if (failedIds.length > 0) {
         await prisma.notification.updateMany({
           where: {id: {in: failedIds}},
-          data: {isSkipped: true}, // Mark as skipped so we don't retry forever
+          data: {isSkipped: true},
         });
-
-        // Increment fail count?
-        // Logic from SendNotifications.ts:
-        // if notification fails, increment failCount.
-        // The original code collected failedAlertMethods but didn't use it.
-        // So we skip this for now.
       }
 
       batchCount++;
@@ -293,39 +274,15 @@ export class SendIncidentNotifications {
           };
 
         case NOTIFICATION_METHOD.SMS:
-          // TODO: Implement SMS message format
           return {
             subject: '',
             message: `🔥 Fire incident started at ${siteName}. Detection: ${dateStr}. View: ${incidentUrl}`,
           };
 
         case NOTIFICATION_METHOD.WHATSAPP:
-          // TODO: Implement WhatsApp message format
           return {
             subject: '',
             message: `🔥 *Fire Incident Started*\n\nLocation: ${siteName}\nFirst Detection: ${dateStr}\nConfidence: ${confidence}\n\nView Details: ${incidentUrl}`,
-          };
-
-        case NOTIFICATION_METHOD.WEBHOOK:
-          // TODO: Implement Webhook payload format
-          return {
-            subject: '',
-            message: JSON.stringify({
-              type: 'INCIDENT_START',
-              siteName,
-              incidentId,
-              detectionTime: dateStr,
-              confidence,
-              location: {lat, long},
-              incidentUrl,
-            }),
-          };
-
-        case NOTIFICATION_METHOD.TEST:
-          // TODO: Implement Test message format
-          return {
-            subject,
-            message: `Test: Fire incident started at ${siteName}`,
           };
 
         default:
@@ -355,37 +312,15 @@ export class SendIncidentNotifications {
           };
 
         case NOTIFICATION_METHOD.SMS:
-          // TODO: Implement SMS message format
           return {
             subject: '',
             message: `✅ Fire incident ended at ${siteName}. Last detection: ${dateStr}. View: ${incidentUrl}`,
           };
 
         case NOTIFICATION_METHOD.WHATSAPP:
-          // TODO: Implement WhatsApp message format
           return {
             subject: '',
             message: `✅ *Fire Incident Ended*\n\nLocation: ${siteName}\nLast Detection: ${dateStr}\n\nView Summary: ${incidentUrl}`,
-          };
-
-        case NOTIFICATION_METHOD.WEBHOOK:
-          // TODO: Implement Webhook payload format
-          return {
-            subject: '',
-            message: JSON.stringify({
-              type: 'INCIDENT_END',
-              siteName,
-              incidentId,
-              endTime: dateStr,
-              incidentUrl,
-            }),
-          };
-
-        case NOTIFICATION_METHOD.TEST:
-          // TODO: Implement Test message format
-          return {
-            subject,
-            message: `Test: Fire incident ended at ${siteName}`,
           };
 
         default:

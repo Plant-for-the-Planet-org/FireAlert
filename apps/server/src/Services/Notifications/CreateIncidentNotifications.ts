@@ -1,11 +1,41 @@
+import {NotificationStatus, type Prisma} from '@prisma/client';
 import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';
 import {
-  type NotificationQueueItem,
   type IncidentNotificationMetadata,
+  type NotificationQueueItem,
 } from '../../Interfaces/SiteIncidentNotifications';
-import {NotificationStatus, type SiteIncident} from '@prisma/client';
 import {isSiteIncidentMethod} from './NotificationRoutingConfig';
+
+type IncidentWithRelations = Prisma.SiteIncidentGetPayload<{
+  include: {
+    site: {
+      include: {
+        user: {
+          include: {
+            alertMethods: true;
+          };
+        };
+        siteRelations: {
+          include: {
+            user: {
+              include: {
+                alertMethods: true;
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+}>;
+
+type AlertMethodRecord = {
+  method: string;
+  destination: string;
+  isEnabled: boolean;
+  isVerified: boolean;
+};
 
 export class CreateIncidentNotifications {
   static async run(): Promise<number> {
@@ -94,85 +124,59 @@ export class CreateIncidentNotifications {
       },
       take: batchSize,
     });
-    return incidents;
   }
 
-  private async createNotificationQueue(
-    incidents: any[],
-  ): Promise<NotificationQueueItem[]> {
+  private createNotificationQueue(
+    incidents: IncidentWithRelations[],
+  ): NotificationQueueItem[] {
     const queue: NotificationQueueItem[] = [];
-    const methodCounters = new Map<string, Map<string, number>>();
 
     for (const incident of incidents) {
-      const site = incident.site;
-      if (!site) continue;
-
-      const siteId = site.id;
-
-      // Flatten all available alert methods
-      let allAlertMethods: any[] = [];
-      if (site.user && site.user.alertMethods) {
-        allAlertMethods.push(...site.user.alertMethods);
-      }
-      if (site.siteRelations) {
-        site.siteRelations.forEach((rel: any) => {
-          if (rel.user && rel.user.alertMethods) {
-            allAlertMethods.push(...rel.user.alertMethods);
-          }
-        });
-      }
-
-      // Filter Verified & Enabled & SiteIncident methods only
-      const validMethods = allAlertMethods.filter(
-        (m: any) =>
-          m.isVerified && m.isEnabled && isSiteIncidentMethod(m.method),
+      const ownerMethods = incident.site.user?.alertMethods ?? [];
+      const relatedMethods = incident.site.siteRelations.flatMap(
+        relation => relation.user.alertMethods,
+      );
+      const validMethods = [...ownerMethods, ...relatedMethods].filter(
+        (method): method is AlertMethodRecord =>
+          method.isVerified &&
+          method.isEnabled &&
+          isSiteIncidentMethod(method.method),
       );
 
-      if (validMethods.length === 0) continue;
+      if (validMethods.length === 0) {
+        continue;
+      }
 
-      // Determine Notification Type
       const isStart = incident.isActive;
       const notificationStatus = isStart
         ? NotificationStatus.START_SCHEDULED
         : NotificationStatus.END_SCHEDULED;
-      const metadataType = isStart ? 'INCIDENT_START' : 'INCIDENT_END';
-
-      // Determine referencing SiteAlertId
-      // For Start: startSiteAlertId
-      // For End: endSiteAlertId ?? latestSiteAlertId
       const targetSiteAlertId = isStart
         ? incident.startSiteAlertId
         : incident.endSiteAlertId || incident.latestSiteAlertId;
 
-      // Metadata Construction
       const metadata: IncidentNotificationMetadata = {
-        type: metadataType,
+        type: isStart ? 'INCIDENT_START' : 'INCIDENT_END',
         incidentId: incident.id,
-        siteId: site.id,
-        siteName: site.name || 'Unnamed Site',
+        siteId: incident.site.id,
+        siteName: incident.site.name || 'Unnamed Site',
       };
 
-      if (!isStart) {
-        if (incident.startedAt && incident.endedAt) {
-          const duration = Math.round(
-            (new Date(incident.endedAt).getTime() -
-              new Date(incident.startedAt).getTime()) /
-              60000,
-          );
-          metadata.durationMinutes = duration;
-        }
+      if (!isStart && incident.startedAt && incident.endedAt) {
+        metadata.durationMinutes = Math.round(
+          (incident.endedAt.getTime() - incident.startedAt.getTime()) / 60000,
+        );
       }
 
-      // Add to Queue for each valid method
       for (const method of validMethods) {
         queue.push({
           siteIncidentId: incident.id,
           siteAlertId: targetSiteAlertId,
-          siteId: site.id,
+          siteId: incident.site.id,
           alertMethod: method.method,
           destination: method.destination,
-          notificationStatus: notificationStatus,
-          metadata: metadata,
+          notificationStatus,
+          metadata,
         });
       }
     }
@@ -182,6 +186,7 @@ export class CreateIncidentNotifications {
 
   private async markIncidentsAsProcessed(incidentIds: string[]) {
     if (incidentIds.length === 0) return;
+
     await prisma.siteIncident.updateMany({
       where: {id: {in: incidentIds}},
       data: {isProcessed: true},
@@ -192,9 +197,6 @@ export class CreateIncidentNotifications {
     queue: NotificationQueueItem[],
     processedIncidentIds: string[],
   ) {
-    // Process in batches if queue is large? Transaction limit is high but good to be safe.
-    // For now assuming 50 incidents * ~2-3 methods = 150 notifications. OK for one transaction.
-
     await prisma.$transaction(async tx => {
       // 1. Create all notifications and capture their IDs + metadata
       const createdNotifications = await Promise.all(
@@ -220,7 +222,10 @@ export class CreateIncidentNotifications {
       >();
 
       for (const notif of createdNotifications) {
-        const meta = notif.metadata as IncidentNotificationMetadata | null | undefined;
+        const meta = notif.metadata as
+          | IncidentNotificationMetadata
+          | null
+          | undefined;
         if (!meta?.incidentId) continue;
 
         const existing = incidentNotificationMap.get(meta.incidentId) ?? {};
