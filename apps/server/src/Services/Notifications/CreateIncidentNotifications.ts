@@ -14,52 +14,63 @@ export class CreateIncidentNotifications {
   }
 
   async process(): Promise<number> {
-    logger(
-      'Starting CreateIncidentNotifications for SiteIncident methods (email, sms, whatsapp) only',
-      'info',
-    );
+    const BATCH_SIZE = 50;
+    let totalNotificationsCreated = 0;
+    let totalIncidentsProcessed = 0;
+    let batchNumber = 0;
 
-    // 1. Fetch unprocessed site incidents
-    const incidents = await this.processUnprocessedIncidents();
-    if (incidents.length === 0) {
-      logger('No unprocessed incidents found.', 'info');
-      return 0;
+    // Process all unprocessed incidents in batches
+    while (true) {
+      batchNumber++;
+
+      // 1. Fetch batch of unprocessed incidents
+      const incidents = await this.processUnprocessedIncidents(BATCH_SIZE);
+
+      if (incidents.length === 0) {
+        break;
+      }
+
+      totalIncidentsProcessed += incidents.length;
+
+      // 2. Create notification queue for this batch
+      const notificationQueue = await this.createNotificationQueue(incidents);
+
+      if (notificationQueue.length === 0) {
+        // Mark incidents as processed even if no notifications were generated
+        await this.markIncidentsAsProcessed(incidents.map(i => i.id));
+        continue;
+      }
+
+      // 3. Persist notifications and update incidents
+      await this.executeTransaction(
+        notificationQueue,
+        incidents.map(i => i.id),
+      );
+
+      totalNotificationsCreated += notificationQueue.length;
     }
 
-    logger(`Found ${incidents.length} unprocessed incidents.`, 'info');
-
-    // 2. Create notification queue
-    const notificationQueue = await this.createNotificationQueue(incidents);
-
-    if (notificationQueue.length === 0) {
-      logger('No notifications to create from incidents.', 'info');
-      // Mark incidents as processed even if no notifications were generated (e.g. no verified methods)
-      await this.markIncidentsAsProcessed(incidents.map(i => i.id));
-      return 0;
-    }
-
-    // 3. Persist notifications and update incidents
-    await this.executeTransaction(
-      notificationQueue,
-      incidents.map(i => i.id),
-    );
-
     logger(
-      `Successfully created ${notificationQueue.length} notifications.`,
+      `CreateIncidentNotifications: Processed ${totalIncidentsProcessed} incidents in ${batchNumber} batches, Created ${totalNotificationsCreated} notifications (email, sms, whatsapp methods only)`,
       'info',
     );
-    logger(
-      `CreateIncidentNotifications completed. Created ${notificationQueue.length} incident notifications (email, sms, whatsapp methods only)`,
-      'info',
-    );
-    return notificationQueue.length;
+
+    return totalNotificationsCreated;
   }
 
   // Fetch incidents that need notifications
-  private async processUnprocessedIncidents() {
+  // TODO: Revisit this logic - currently only processes incidents updated in last 6 hours
+  // Consider: Should we process all unprocessed incidents regardless of age?
+  // Or should the 6-hour window be configurable via environment variable?
+  private async processUnprocessedIncidents(batchSize: number) {
+    const SIX_HOURS_AGO = new Date(Date.now() - 6 * 60 * 60 * 1000);
+
     const incidents = await prisma.siteIncident.findMany({
       where: {
         isProcessed: false,
+        updatedAt: {
+          gte: SIX_HOURS_AGO,
+        },
       },
       include: {
         site: {
@@ -81,7 +92,7 @@ export class CreateIncidentNotifications {
           },
         },
       },
-      take: 50,
+      take: batchSize,
     });
     return incidents;
   }
@@ -185,25 +196,45 @@ export class CreateIncidentNotifications {
     // For now assuming 50 incidents * ~2-3 methods = 150 notifications. OK for one transaction.
 
     await prisma.$transaction(async tx => {
-      // 1. Create Notifications
-      // We use createMany for efficiency
-      const notificationsData = queue.map(item => ({
-        siteAlertId: item.siteAlertId,
-        alertMethod: item.alertMethod,
-        destination: item.destination,
-        isDelivered: false,
-        isSkipped: false,
-        notificationStatus: item.notificationStatus,
-        metadata: item.metadata as any, // Json type casting
-      }));
+      // 1. Create all notifications and capture their IDs + metadata
+      const createdNotifications = await Promise.all(
+        queue.map(item =>
+          tx.notification.create({
+            data: {
+              siteAlertId: item.siteAlertId,
+              alertMethod: item.alertMethod,
+              destination: item.destination,
+              isDelivered: false,
+              isSkipped: false,
+              notificationStatus: item.notificationStatus,
+              metadata: item.metadata as any, // Json type casting
+            },
+          }),
+        ),
+      );
 
-      if (notificationsData.length > 0) {
-        await tx.notification.createMany({
-          data: notificationsData,
-        });
+      // Build a per-incident map of start/end notification IDs based on metadata
+      const incidentNotificationMap = new Map<
+        string,
+        {start?: string; end?: string}
+      >();
+
+      for (const notif of createdNotifications) {
+        const meta = notif.metadata as IncidentNotificationMetadata | null | undefined;
+        if (!meta?.incidentId) continue;
+
+        const existing = incidentNotificationMap.get(meta.incidentId) ?? {};
+
+        if (meta.type === 'INCIDENT_START' && !existing.start) {
+          existing.start = notif.id;
+        } else if (meta.type === 'INCIDENT_END' && !existing.end) {
+          existing.end = notif.id;
+        }
+
+        incidentNotificationMap.set(meta.incidentId, existing);
       }
 
-      // 2. Mark Incidents as processed
+      // 2. Mark incidents as processed
       if (processedIncidentIds.length > 0) {
         await tx.siteIncident.updateMany({
           where: {id: {in: processedIncidentIds}},
@@ -211,7 +242,37 @@ export class CreateIncidentNotifications {
         });
       }
 
-      // 3. Update Site lastMessageCreated (Only for START notifications?)
+      // 3. Update startNotificationId / endNotificationId on SiteIncident
+      const incidentUpdatePromises: Promise<SiteIncident>[] = [];
+      for (const [incidentId, {start, end}] of incidentNotificationMap) {
+        const data: {
+          startNotificationId?: string;
+          endNotificationId?: string;
+        } = {};
+
+        if (start) {
+          data.startNotificationId = start;
+        }
+
+        if (end) {
+          data.endNotificationId = end;
+        }
+
+        if (Object.keys(data).length === 0) continue;
+
+        incidentUpdatePromises.push(
+          tx.siteIncident.update({
+            where: {id: incidentId},
+            data,
+          }),
+        );
+      }
+
+      if (incidentUpdatePromises.length > 0) {
+        await Promise.all(incidentUpdatePromises);
+      }
+
+      // 4. Update Site lastMessageCreated (Only for START notifications?)
       // The requirement says: "Update Site.lastMessageCreated".
       // Usually we do this to rate limit per site.
       // With Incidents, we rate limit by "One Incident per X hours".
