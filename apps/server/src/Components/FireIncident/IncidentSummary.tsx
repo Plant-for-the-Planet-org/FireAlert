@@ -113,7 +113,7 @@ export function IncidentSummary({
   const totalFires = allAlerts.length;
   const areaAffected = calculateIncidentArea(
     allAlerts.map(a => ({latitude: a.latitude, longitude: a.longitude})),
-    2,
+    // 2,
   );
 
   return (
