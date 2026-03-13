@@ -119,6 +119,21 @@ const server = z.object({
       }
       return parsed;
     }),
+
+  // Fire Incident proximity threshold in kilometers. New alerts within this distance
+  // from an active incident centre will be associated with that incident. Defaults to 5km.
+  INCIDENT_PROXIMITY_KM: z
+    .string()
+    .default('5')
+    .transform(val => {
+      const parsed = parseFloat(val);
+      if (isNaN(parsed) || parsed < 0.1) {
+        throw new Error(
+          'INCIDENT_PROXIMITY_KM must be a positive number (minimum 0.1km)',
+        );
+      }
+      return parsed;
+    }),
 });
 
 /**
@@ -175,6 +190,7 @@ const processEnv = {
   PROVIDER_CONCURRENCY: process.env.PROVIDER_CONCURRENCY,
   ENABLE_INCIDENT_NOTIFICATIONS: process.env.ENABLE_INCIDENT_NOTIFICATIONS,
   INCIDENT_RESOLUTION_HOURS: process.env.INCIDENT_RESOLUTION_HOURS,
+  INCIDENT_PROXIMITY_KM: process.env.INCIDENT_PROXIMITY_KM,
 };
 
 // Don't touch the part below

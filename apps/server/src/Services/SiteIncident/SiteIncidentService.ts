@@ -7,7 +7,7 @@ import {
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
 import {type SiteIncidentRepository} from './SiteIncidentRepository';
 import {type IncidentResolver} from './IncidentResolver';
-import {prisma} from '../../server/db';
+import {SiteIncidentProximityService} from './SiteIncidentProximityService';
 
 /**
  * SiteIncidentService orchestrates the incident lifecycle
@@ -15,6 +15,7 @@ import {prisma} from '../../server/db';
  */
 export class SiteIncidentService {
   private metrics: PerformanceMetrics;
+  private proximityService: SiteIncidentProximityService;
 
   constructor(
     private readonly repository: SiteIncidentRepository,
@@ -22,10 +23,12 @@ export class SiteIncidentService {
     private readonly inactiveHours: number = 6,
   ) {
     this.metrics = new PerformanceMetrics();
+    this.proximityService = new SiteIncidentProximityService(repository);
   }
 
   /**
    * Processes a new SiteAlert for incident creation or association
+   * Uses proximity-based detection to find the best matching incident
    * @param alert - The new SiteAlert
    * @returns Associated or created SiteIncident
    */
@@ -47,88 +50,15 @@ export class SiteIncidentService {
         'debug',
       );
 
-      // Check for active incident
-      this.metrics.startTimer('find_active_incident');
-      const activeIncident = await this.repository.findActiveBySiteId(
-        alert.siteId,
-      );
-      this.metrics.endTimer('find_active_incident');
+      // Use proximity-based detection to find best matching incident
+      this.metrics.startTimer('proximity_detection');
+      const detectionResult =
+        await this.proximityService.findBestMatchingIncident(alert);
+      this.metrics.endTimer('proximity_detection');
 
       let incident: SiteIncident;
 
-      if (activeIncident) {
-        // Defensive check: If incident should be resolved (stale), resolve it first
-        const now = new Date();
-        const inactiveMs = now.getTime() - activeIncident.updatedAt.getTime();
-        const inactiveHours = inactiveMs / (1000 * 60 * 60);
-
-        if (inactiveHours >= this.inactiveHours) {
-          // logger(
-          //   `Active incident ${
-          //     activeIncident.id
-          //   } is stale (inactive for ${inactiveHours.toFixed(
-          //     2,
-          //   )}h). Resolving before processing new alert.`,
-          //   'debug',
-          // );
-          // // Associate the alert with the incident
-          // await prisma.siteAlert.update({
-          //   where: {id: alert.id},
-          //   data: {
-          //     siteIncidentId: activeIncident.id,
-          //     isProcessed: true,
-          //   },
-          // });
-          // Resolve the stale incident
-          // try {
-          //   await this.resolver.batchResolveIncidents([activeIncident]);
-          //   logger(`Resolved stale incident ${activeIncident.id}`, 'debug');
-          // } catch (error) {
-          //   logger(
-          //     `Error resolving stale incident ${activeIncident.id}: ${
-          //       error instanceof Error ? error.message : String(error)
-          //     }`,
-          //     'warn',
-          //   );
-          //   // Continue to create new incident even if resolution fails
-          // }
-          // Create new incident for this alert
-          // logger(
-          //   `Creating new incident for alert ${alert.id} on site ${alert.siteId} (previous incident was stale)`,
-          //   'debug',
-          // );
-          // this.metrics.startTimer('create_incident');
-          // incident = await this.repository.createIncident({
-          //   siteId: alert.siteId,
-          //   startSiteAlertId: alert.id,
-          //   latestSiteAlertId: alert.id,
-          //   startedAt: new Date(),
-          // });
-          // this.metrics.endTimer('create_incident');
-          // logger(
-          //   `Created new incident ${incident.id} for site ${alert.siteId}`,
-          //   'debug',
-          // );
-        } else {
-          // Associate with existing incident (it's still active)
-          logger(
-            `Associating alert ${alert.id} with existing incident ${activeIncident.id}`,
-            'debug',
-          );
-
-          this.metrics.startTimer('associate_alert');
-          incident = await this.repository.associateAlert(
-            activeIncident.id,
-            alert.id,
-          );
-          this.metrics.endTimer('associate_alert');
-
-          logger(
-            `Associated alert ${alert.id} with incident ${incident.id}`,
-            'debug',
-          );
-        }
-      } else {
+      if (detectionResult.shouldCreateNew) {
         // Create new incident
         logger(
           `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
@@ -136,18 +66,40 @@ export class SiteIncidentService {
         );
 
         this.metrics.startTimer('create_incident');
-        incident = await this.repository.createIncident({
-          siteId: alert.siteId,
-          startSiteAlertId: alert.id,
-          latestSiteAlertId: alert.id,
-          startedAt: new Date(),
-        });
+        incident = await this.proximityService.createIncidentWithMetadata(
+          alert,
+        );
         this.metrics.endTimer('create_incident');
 
         logger(
           `Created new incident ${incident.id} for site ${alert.siteId}`,
           'debug',
         );
+      } else if (detectionResult.incident) {
+        // Associate with existing incident
+        logger(
+          `Associating alert ${alert.id} with existing incident ${
+            detectionResult.incident.id
+          } at ${detectionResult.distance?.toFixed(3)}km`,
+          'debug',
+        );
+
+        this.metrics.startTimer('associate_alert');
+        incident = await this.proximityService.updateIncidentCentre(
+          detectionResult.incident,
+          alert,
+        );
+        this.metrics.endTimer('associate_alert');
+
+        logger(
+          `Associated alert ${alert.id} with incident ${incident.id}`,
+          'debug',
+        );
+      } else {
+        // Fallback: should not happen but handle gracefully
+        const error = new Error('Invalid detection result: no incident found');
+        logger(`Detection result error: ${error.message}`, 'error');
+        throw error;
       }
 
       const totalDuration = this.metrics.endTimer('process_alert_total');

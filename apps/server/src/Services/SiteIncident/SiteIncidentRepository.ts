@@ -6,6 +6,7 @@ import {
   type ResolveResult,
   type IncidentMetrics,
 } from '../../Interfaces/SiteIncident';
+import {type SiteIncidentMetadata} from './types';
 
 /**
  * Repository for SiteIncident data access operations
@@ -41,6 +42,48 @@ export class SiteIncidentRepository {
     } catch (error) {
       logger(
         `Error finding active incident for site ${siteId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Finds all active SiteIncidents for a given site
+   * Used for proximity-based detection with multiple concurrent incidents
+   * @param siteId - The site ID to search for
+   * @returns Array of all active incidents for the site
+   */
+  async findActiveIncidentsBySiteId(siteId: string): Promise<SiteIncident[]> {
+    // Validate input
+    if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
+      const error = new Error('Invalid siteId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      const incidents = await this.prisma.siteIncident.findMany({
+        where: {
+          siteId,
+          isActive: true,
+        },
+        orderBy: {
+          startedAt: 'desc',
+        },
+      });
+
+      logger(
+        `Found ${incidents.length} active incidents for site ${siteId}`,
+        'debug',
+      );
+
+      return incidents;
+    } catch (error) {
+      logger(
+        `Error finding active incidents for site ${siteId}: ${
           error instanceof Error ? error.message : String(error)
         }`,
         'error',
@@ -170,6 +213,67 @@ export class SiteIncidentRepository {
     } catch (error) {
       logger(
         `Error updating incident ${id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Updates incident metadata with centre time series data
+   * @param incidentId - Incident ID
+   * @param metadata - New metadata structure
+   * @returns Updated incident
+   */
+  async updateIncidentMetadata(
+    incidentId: string,
+    metadata: SiteIncidentMetadata,
+  ): Promise<SiteIncident> {
+    // Validate input
+    if (
+      !incidentId ||
+      typeof incidentId !== 'string' ||
+      incidentId.trim().length === 0
+    ) {
+      const error = new Error('Invalid incidentId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!metadata || typeof metadata !== 'object') {
+      const error = new Error(
+        'Invalid metadata: SiteIncidentMetadata is required',
+      );
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!Array.isArray(metadata.centres)) {
+      const error = new Error('Invalid metadata: centres must be an array');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      const incident = await this.prisma.siteIncident.update({
+        where: {id: incidentId},
+        data: {
+          metadata: JSON.parse(JSON.stringify(metadata)), // Convert to Prisma JsonValue
+          updatedAt: new Date(),
+        },
+      });
+
+      logger(
+        `Updated metadata for incident ${incidentId} with ${metadata.centres.length} centres`,
+        'debug',
+      );
+
+      return incident;
+    } catch (error) {
+      logger(
+        `Error updating metadata for incident ${incidentId}: ${
           error instanceof Error ? error.message : String(error)
         }`,
         'error',
