@@ -1,4 +1,8 @@
-import {type SiteAlert, type SiteIncident} from '@prisma/client';
+import {
+  type SiteAlert,
+  type SiteIncident,
+  SiteIncidentReviewStatus,
+} from '@prisma/client';
 import {logger} from '../../server/logger';
 import {
   type SiteIncidentInterface,
@@ -457,7 +461,7 @@ export class SiteIncidentService {
    */
   async updateReviewStatus(
     incidentId: string,
-    status: string,
+    status: SiteIncidentReviewStatus,
   ): Promise<SiteIncident> {
     // Validate inputs
     if (

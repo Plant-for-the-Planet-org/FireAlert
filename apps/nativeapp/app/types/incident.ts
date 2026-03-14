@@ -54,7 +54,7 @@ export interface IncidentData {
   isProcessed: boolean;
   startNotificationId: string | null;
   endNotificationId: string | null;
-  reviewStatus: 'to_review' | 'in_review' | 'reviewed';
+  reviewStatus: 'TO_REVIEW' | 'STOP_ALERTS';
   createdAt: Date;
   updatedAt: Date;
 
