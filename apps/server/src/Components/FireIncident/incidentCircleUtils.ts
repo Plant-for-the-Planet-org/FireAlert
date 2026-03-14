@@ -1,14 +1,12 @@
 import {
   area,
   buffer,
-  center,
   circle,
   convex,
-  distance,
   featureCollection,
   point,
 } from '@turf/turf';
-import type {Feature, Polygon} from 'geojson';
+import type {Feature, LineString, Polygon} from 'geojson';
 
 interface FirePoint {
   latitude: number;
@@ -16,8 +14,8 @@ interface FirePoint {
 }
 
 /**
- * [Deprecatedd] Generates a circle polygon encompassing all fire points in an incident.
- * Now handles 1-2 fires with circles and 3+ fires with convex hull + buffer
+ * [Deprecatedd] Generates a polygon encompassing all fire points in an incident.
+ * Handles 0/1/2 fires with simple shapes, delegates 3+ fires to convex hull logic
  *
  * @param fires - Array of fire points with latitude and longitude
  * @param paddingKm - Buffer distance in kilometers (default: 0.1km)
@@ -31,42 +29,51 @@ export function generateIncidentCircle(
     return null;
   }
 
-  // Handle edge cases: 1-2 fire points - use circle logic
-  if (fires.length <= 2) {
-    // Convert fire points to GeoJSON points
-    const points = fires.map(fire => point([fire.longitude, fire.latitude]));
-    const collection = featureCollection(points);
-
-    // Calculate the centroid of all fire points
-    const centroidFeature = center(collection);
-    const centroidCoords = centroidFeature.geometry.coordinates;
-
-    // Calculate the maximum distance from centroid to any fire point
-    let maxDistance = 0;
-    for (const fire of fires) {
-      const firePoint = point([fire.longitude, fire.latitude]);
-      const d = distance(centroidFeature, firePoint, {units: 'kilometers'});
-      if (d > maxDistance) {
-        maxDistance = d;
-      }
-    }
-
-    // For 1 fire: use paddingKm as radius, for 2 fires: use distance + small buffer
-    const radiusKm =
-      fires.length === 1
-        ? 0.1 // For 1 Fire
-        : 0.3; // For 2 Fires
-
-    // Create the circle polygon using turf
-    const circlePolygon = circle(centroidCoords, radiusKm, {
-      steps: 32,
-      units: 'kilometers',
-    });
+  // Handle 1 fire: simple circle
+  if (fires.length === 1) {
+    const circlePolygon = circle(
+      [fires[0].longitude, fires[0].latitude],
+      0.1, // Fixed 0.1km radius for single fire
+      {steps: 32, units: 'kilometers'},
+    );
 
     return circlePolygon;
-  } else {
-    return null;
   }
+
+  // Handle 2 fires: line connecting them + buffer
+  if (fires.length === 2) {
+    const lineFeature: Feature<LineString> = {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [fires[0].longitude, fires[0].latitude],
+          [fires[1].longitude, fires[1].latitude],
+        ],
+      },
+      properties: {},
+    };
+
+    // Buffer the line to create a polygon around it
+    const bufferedPolygon = buffer(lineFeature, 0.3, {units: 'kilometers'});
+
+    if (!bufferedPolygon) {
+      return null;
+    }
+
+    // Buffer can return Feature<Polygon> or Feature<MultiPolygon>
+    // We need to handle both cases and ensure we return Feature<Polygon>
+    if (bufferedPolygon.geometry.type === 'MultiPolygon') {
+      // For MultiPolygon, we could convert to Polygon or return null
+      // For now, let's return null as this is an edge case
+      return null;
+    }
+
+    return bufferedPolygon as Feature<Polygon>;
+  }
+
+  // For 3+ fires: return null - let parent function handle with convex hull
+  return null;
 }
 
 /**
