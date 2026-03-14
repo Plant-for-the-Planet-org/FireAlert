@@ -83,7 +83,7 @@ model Site {
     lastMessageCreated DateTime?
     detectionArea      Float?                   @default(0)
     alerts             SiteAlert[]
-    incidents          SiteIncident[]
+    siteIncidents      SiteIncident[]
     project            Project?                 @relation(fields: [projectId], references: [id])
     user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
     siteRelations      SiteRelation[]
