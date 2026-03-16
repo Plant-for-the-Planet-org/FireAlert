@@ -67,52 +67,9 @@ export class SiteIncidentService {
         const inactiveHours = inactiveMs / (1000 * 60 * 60);
 
         if (inactiveHours >= this.inactiveHours) {
-          // logger(
-          //   `Active incident ${
-          //     activeIncident.id
-          //   } is stale (inactive for ${inactiveHours.toFixed(
-          //     2,
-          //   )}h). Resolving before processing new alert.`,
-          //   'debug',
-          // );
-          // // Associate the alert with the incident
-          // await prisma.siteAlert.update({
-          //   where: {id: alert.id},
-          //   data: {
-          //     siteIncidentId: activeIncident.id,
-          //     isProcessed: true,
-          //   },
-          // });
-          // Resolve the stale incident
-          // try {
-          //   await this.resolver.batchResolveIncidents([activeIncident]);
-          //   logger(`Resolved stale incident ${activeIncident.id}`, 'debug');
-          // } catch (error) {
-          //   logger(
-          //     `Error resolving stale incident ${activeIncident.id}: ${
-          //       error instanceof Error ? error.message : String(error)
-          //     }`,
-          //     'warn',
-          //   );
-          //   // Continue to create new incident even if resolution fails
-          // }
-          // Create new incident for this alert
-          // logger(
-          //   `Creating new incident for alert ${alert.id} on site ${alert.siteId} (previous incident was stale)`,
-          //   'debug',
-          // );
-          // this.metrics.startTimer('create_incident');
-          // incident = await this.repository.createIncident({
-          //   siteId: alert.siteId,
-          //   startSiteAlertId: alert.id,
-          //   latestSiteAlertId: alert.id,
-          //   startedAt: new Date(),
-          // });
-          // this.metrics.endTimer('create_incident');
-          // logger(
-          //   `Created new incident ${incident.id} for site ${alert.siteId}`,
-          //   'debug',
-          // );
+          throw new Error(
+            'Stale incident handling not implemented for alert ' + alert.id,
+          );
         } else {
           // Associate with existing incident (it's still active)
           logger(

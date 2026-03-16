@@ -219,7 +219,7 @@ export function calculateIncidentArea(
   const isInUSA = isFiresInUSA(fires);
 
   if (isInUSA) {
-    return `${(areaM2 * 10.7639).toFixed(2)} sq miles`;
+    return `${(areaM2 / 2_589_988.11).toFixed(2)} sq miles`;
   } else {
     if (areaKm2 < 1) {
       return `${Math.round(areaM2)} sq m`;
