@@ -1,18 +1,93 @@
 import {
   area,
-  buffer,
   booleanPointInPolygon,
+  buffer,
   circle,
   convex,
   featureCollection,
   point,
 } from '@turf/turf';
-import type {Feature, LineString, Polygon, MultiPolygon} from 'geojson';
+import type {Feature, Polygon} from 'geojson';
 import countriesData from '../../data/countries-optimized.geo.json';
 
 interface FirePoint {
   latitude: number;
   longitude: number;
+}
+
+/**
+ * Creates an ellipse polygon that encompasses two fire points
+ * The ellipse is oriented along the line connecting the two points
+ *
+ * @param fire1 - First fire point
+ * @param fire2 - Second fire point
+ * @param bufferKm - Additional buffer distance in kilometers (default: 0.04km)
+ * @returns Feature<Polygon> representing the ellipse
+ */
+export function createEllipseBetweenFires(
+  fire1: FirePoint,
+  fire2: FirePoint,
+  bufferKm: number = 0.04,
+): Feature<Polygon> {
+  // Calculate midpoint between the two fires
+  const midpoint = [
+    (fire1.longitude + fire2.longitude) / 2,
+    (fire1.latitude + fire2.latitude) / 2,
+  ];
+
+  // Calculate distance between the two fires in kilometers
+  const distanceBetweenFires =
+    Math.sqrt(
+      Math.pow(fire2.longitude - fire1.longitude, 2) +
+        Math.pow(fire2.latitude - fire1.latitude, 2),
+    ) * 111; // Convert degrees to km (approximate)
+
+  // Calculate angle between the two points
+  const angle = Math.atan2(
+    fire2.latitude - fire1.latitude,
+    fire2.longitude - fire1.longitude,
+  );
+
+  // Create ellipse parameters
+  const semiMajorAxis = distanceBetweenFires / 2 + bufferKm; // Half distance + buffer
+  const semiMinorAxis = bufferKm * 2; // Width perpendicular to the line
+
+  // Generate ellipse points
+  const ellipsePoints = [];
+  const steps = 64;
+
+  for (let i = 0; i < steps; i++) {
+    const theta = (i / steps) * 2 * Math.PI;
+
+    // Ellipse in local coordinates
+    const x = semiMajorAxis * Math.cos(theta);
+    const y = semiMinorAxis * Math.sin(theta);
+
+    // Rotate to match the angle between fire points
+    const rotatedX = x * Math.cos(angle) - y * Math.sin(angle);
+    const rotatedY = x * Math.sin(angle) + y * Math.cos(angle);
+
+    // Convert to longitude/latitude and add midpoint offset
+    const lng = midpoint[0] + rotatedX / 111; // Convert km back to degrees
+    const lat = midpoint[1] + rotatedY / 111;
+
+    ellipsePoints.push([lng, lat]);
+  }
+
+  // Close the polygon
+  ellipsePoints.push(ellipsePoints[0]);
+
+  // Create ellipse polygon
+  const ellipsePolygon: Feature<Polygon> = {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [ellipsePoints],
+    },
+    properties: {},
+  };
+
+  return ellipsePolygon;
 }
 
 /**
@@ -59,43 +134,16 @@ export function generateIncidentCircle(
   if (fires.length === 1) {
     const circlePolygon = circle(
       [fires[0].longitude, fires[0].latitude],
-      0.1, // Fixed 0.1km radius for single fire
+      0.004, // Fixed 0.1km radius for single fire
       {steps: 32, units: 'kilometers'},
     );
 
     return circlePolygon;
   }
 
-  // Handle 2 fires: line connecting them + buffer
+  // Handle 2 fires: create an oval/ellipse around both points
   if (fires.length === 2) {
-    const lineFeature: Feature<LineString> = {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [fires[0].longitude, fires[0].latitude],
-          [fires[1].longitude, fires[1].latitude],
-        ],
-      },
-      properties: {},
-    };
-
-    // Buffer the line to create a polygon around it
-    const bufferedPolygon = buffer(lineFeature, 0.3, {units: 'kilometers'});
-
-    if (!bufferedPolygon) {
-      return null;
-    }
-
-    // Buffer can return Feature<Polygon> or Feature<MultiPolygon>
-    // We need to handle both cases and ensure we return Feature<Polygon>
-    if (bufferedPolygon.geometry.type === 'MultiPolygon') {
-      // For MultiPolygon, we could convert to Polygon or return null
-      // For now, let's return null as this is an edge case
-      return null;
-    }
-
-    return bufferedPolygon as Feature<Polygon>;
+    return createEllipseBetweenFires(fires[0], fires[1], 0.04);
   }
 
   // For 3+ fires: return null - let parent function handle with convex hull
