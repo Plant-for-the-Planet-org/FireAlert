@@ -3,7 +3,7 @@ import {BaseCard} from './BaseCard';
 import Image from 'next/image';
 import orangeAlertIcon from '../../../public/incidentPage/orange-fire-icon.svg';
 import blackAlertIcon from '../../../public/incidentPage/black-fire-icon.svg';
-import {calculateIncidentArea} from './incidentCircleUtils';
+import {calculateIncidentArea} from './incidentBoundaryUtils';
 import {twJoin, twMerge} from 'tailwind-merge';
 
 interface AlertData {
@@ -234,7 +234,7 @@ export function IncidentSummary({
               Area Affected
             </p>
             <p className="text-planet-dark-gray font-bold font-sans m-0">
-              {areaAffected.toFixed(2)} km²
+              {areaAffected}
             </p>
           </div>
         </div>

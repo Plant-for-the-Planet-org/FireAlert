@@ -14,7 +14,7 @@ import mapStyle from '../../data/mapStyleOutput.json';
 import Image from 'next/image';
 import {highlightWave} from '../../../../nativeapp/app/assets/animation/lottie';
 import Lottie from 'react-lottie';
-import {generateIncidentPolygon} from './incidentCircleUtils';
+import {generateIncidentPolygon} from './incidentBoundaryUtils';
 
 export type AlertTheme = 'orange' | 'brown' | 'gray';
 
