@@ -44,7 +44,7 @@ export class InvalidReviewStatusError extends TRPCError {
   constructor(status: string) {
     super({
       code: 'BAD_REQUEST',
-      message: `Invalid review status: ${status}. Must be one of: to_review, in_review, reviewed`,
+      message: `Invalid review status: ${status}. Must be one of: TO_REVIEW, STOP_ALERTS`,
     });
   }
 }

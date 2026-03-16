@@ -1,4 +1,8 @@
-import {type PrismaClient, type SiteIncident} from '@prisma/client';
+import {
+  type PrismaClient,
+  type SiteIncident,
+  SiteIncidentReviewStatus,
+} from '@prisma/client';
 import {logger} from '../../server/logger';
 import {
   type CreateIncidentData,
@@ -101,7 +105,7 @@ export class SiteIncidentRepository {
           startedAt: data.startedAt,
           isActive: true,
           isProcessed: false,
-          reviewStatus: 'to_review',
+          reviewStatus: SiteIncidentReviewStatus.TO_REVIEW,
           siteAlerts: {
             connect: {
               id: data.startSiteAlertId,
