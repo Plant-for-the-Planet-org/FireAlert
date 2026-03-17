@@ -4,7 +4,11 @@ import {
   type NotificationQueueItem,
   type IncidentNotificationMetadata,
 } from '../../Interfaces/SiteIncidentNotifications';
-import {NotificationStatus, type SiteIncident} from '@prisma/client';
+import {
+  NotificationStatus,
+  SiteIncidentReviewStatus,
+  type SiteIncident,
+} from '@prisma/client';
 import {isSiteIncidentMethod} from './NotificationRoutingConfig';
 
 export class CreateIncidentNotifications {
@@ -18,6 +22,11 @@ export class CreateIncidentNotifications {
     let totalNotificationsCreated = 0;
     let totalIncidentsProcessed = 0;
     let batchNumber = 0;
+    const skippedByMethod: Record<string, number> = {
+      email: 0,
+      sms: 0,
+      whatsapp: 0,
+    };
 
     // Process all unprocessed incidents in batches
     while (true) {
@@ -33,7 +42,10 @@ export class CreateIncidentNotifications {
       totalIncidentsProcessed += incidents.length;
 
       // 2. Create notification queue for this batch
-      const notificationQueue = await this.createNotificationQueue(incidents);
+      const notificationQueue = await this.createNotificationQueue(
+        incidents,
+        skippedByMethod,
+      );
 
       if (notificationQueue.length === 0) {
         // Mark incidents as processed even if no notifications were generated
@@ -52,6 +64,12 @@ export class CreateIncidentNotifications {
 
     logger(
       `CreateIncidentNotifications: Processed ${totalIncidentsProcessed} incidents in ${batchNumber} batches, Created ${totalNotificationsCreated} notifications (email, sms, whatsapp methods only)`,
+      'info',
+    );
+    const totalSkipped =
+      skippedByMethod.email + skippedByMethod.sms + skippedByMethod.whatsapp;
+    logger(
+      `CreateIncidentNotifications: Skipped ${totalSkipped} notifications due to STOP_ALERTS (email=${skippedByMethod.email}, sms=${skippedByMethod.sms}, whatsapp=${skippedByMethod.whatsapp})`,
       'info',
     );
 
@@ -99,6 +117,7 @@ export class CreateIncidentNotifications {
 
   private async createNotificationQueue(
     incidents: any[],
+    skippedByMethod: Record<string, number>,
   ): Promise<NotificationQueueItem[]> {
     const queue: NotificationQueueItem[] = [];
     const methodCounters = new Map<string, Map<string, number>>();
@@ -129,6 +148,14 @@ export class CreateIncidentNotifications {
       );
 
       if (validMethods.length === 0) continue;
+
+      if (incident.reviewStatus === SiteIncidentReviewStatus.STOP_ALERTS) {
+        for (const method of validMethods) {
+          const methodKey = method.method;
+          skippedByMethod[methodKey] = (skippedByMethod[methodKey] || 0) + 1;
+        }
+        continue;
+      }
 
       // Determine Notification Type
       const isStart = incident.isActive;

@@ -14,7 +14,7 @@ import mapStyle from '../../data/mapStyleOutput.json';
 import Image from 'next/image';
 import {highlightWave} from '../../../../nativeapp/app/assets/animation/lottie';
 import Lottie from 'react-lottie';
-import {generateIncidentCircle} from './incidentCircleUtils';
+import {generateIncidentPolygon} from './incidentBoundaryUtils';
 
 export type AlertTheme = 'orange' | 'brown' | 'gray';
 
@@ -52,6 +52,8 @@ interface Props {
   onMarkerClick?: (id: string) => void;
   /** Color for the incident circle - 'orange' for active, 'gray' for inactive */
   incidentCircleColor?: 'orange' | 'gray';
+  /** Buffer distance in kilometers for smoothing incident polygon vertices (default: 0.5km) */
+  bufferKm?: number;
 }
 
 type BBox = [number, number, number, number];
@@ -108,6 +110,7 @@ const MapComponent: FC<Props> = ({
   selectedMarkerId,
   onMarkerClick,
   incidentCircleColor,
+  bufferKm = 0.5,
 }) => {
   // Convert polygon data to GeoJSON format
   const polygonGeoJSON = polygon
@@ -209,15 +212,15 @@ const MapComponent: FC<Props> = ({
 
   const showPolygon = polygon && polygon.type !== 'Point';
 
-  // Generate the incident circle from fire markers
-  const incidentCircle = useMemo(() => {
+  // Generate the incident polygon from fire markers
+  const incidentPolygon = useMemo(() => {
     if (!incidentCircleColor || markers.length === 0) return null;
     const fires = markers.map(m => ({
       latitude: m.latitude,
       longitude: m.longitude,
     }));
-    return generateIncidentCircle(fires, 2);
-  }, [markers, incidentCircleColor]);
+    return generateIncidentPolygon(fires, bufferKm);
+  }, [markers, incidentCircleColor, bufferKm]);
 
   // Circle color based on incident status
   const circleColor = incidentCircleColor === 'orange' ? '#e86f56' : '#6b7280';
@@ -283,13 +286,10 @@ const MapComponent: FC<Props> = ({
         </Source>
       )}
 
-      {incidentCircle && (
-        <Source
-          id="incident-circle"
-          type="geojson"
-          data={incidentCircle.circlePolygon}>
+      {incidentPolygon && (
+        <Source id="incident-polygon" type="geojson" data={incidentPolygon}>
           <Layer
-            id="incident-circle-fill"
+            id="incident-polygon-fill"
             type="fill"
             paint={{
               'fill-color': circleColor,
@@ -297,7 +297,7 @@ const MapComponent: FC<Props> = ({
             }}
           />
           <Layer
-            id="incident-circle-line"
+            id="incident-polygon-line"
             type="line"
             paint={{
               'line-width': 2,

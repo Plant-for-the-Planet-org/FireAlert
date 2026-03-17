@@ -2,6 +2,7 @@ import {prisma} from '../../server/db';
 import {CustomError} from '../../utils/errorHandler';
 import {logger} from '../../server/logger';
 import {isSiteAlertMethod} from './NotificationRoutingConfig';
+import {SiteIncidentReviewStatus} from '@prisma/client';
 
 // Logic in Prisma:
 // Initialize an empty array → `notificationDataQueue` -> Queue for holding data required for conditional notification creation
@@ -86,6 +87,7 @@ type UnprocessedSiteAlert = {
   id: string;
   siteId: string;
   site: SiteAlertRelations;
+  siteIncident?: {reviewStatus: SiteIncidentReviewStatus} | null;
 };
 
 function createNestedChunksForUnprocessedSiteAlerts(
@@ -125,6 +127,7 @@ type ProcessSiteAlertChunkResult = {
 
 function processSiteAlertChunk(
   siteAlertChunk: UnprocessedSiteAlert[],
+  skippedByMethod: Record<string, number>,
 ): ProcessSiteAlertChunkResult {
   const notificationDataQueue: NotificationToBeProcessed[] = [];
   // [email, whatsapp, and sms] method have one count for each unique alertMethod,
@@ -166,6 +169,26 @@ function processSiteAlertChunk(
       });
       // Remove the siteId from the set
       uniqueSiteIdsForNewSiteAlerts.delete(siteId);
+    }
+
+    const stopAlerts =
+      siteAlert.siteIncident?.reviewStatus ===
+      SiteIncidentReviewStatus.STOP_ALERTS;
+    if (stopAlerts) {
+      if (alertMethods && alertMethods.length > 0) {
+        alertMethods.forEach(alertMethod => {
+          if (
+            alertMethod.isVerified &&
+            alertMethod.isEnabled &&
+            isSiteAlertMethod(alertMethod.method)
+          ) {
+            skippedByMethod[alertMethod.method] =
+              (skippedByMethod[alertMethod.method] || 0) + 1;
+          }
+        });
+      }
+      processedSiteAlerts.push(siteAlert.id);
+      continue;
     }
 
     if (alertMethods && alertMethods.length > 0) {
@@ -236,6 +259,10 @@ function processSiteAlertChunk(
 
 const createNotifications = async () => {
   let totalNotificationsCreated = 0;
+  const skippedByMethod: Record<string, number> = {
+    device: 0,
+    webhook: 0,
+  };
   try {
     logger(
       'Starting CreateNotifications for SiteAlert methods (device, webhook) only',
@@ -254,6 +281,11 @@ const createNotifications = async () => {
       select: {
         id: true,
         siteId: true,
+        siteIncident: {
+          select: {
+            reviewStatus: true,
+          },
+        },
         site: {
           select: {
             lastMessageCreated: true,
@@ -316,7 +348,7 @@ const createNotifications = async () => {
     );
     for (const siteAlertChunk of siteAlertsInChunks) {
       const {processedSiteAlerts, notificationCreateData, sitesToBeUpdated} =
-        processSiteAlertChunk(siteAlertChunk);
+        processSiteAlertChunk(siteAlertChunk, skippedByMethod);
       await prisma.$transaction(async prisma => {
         await prisma.siteAlert.updateMany({
           where: {id: {in: processedSiteAlerts}},
@@ -337,6 +369,11 @@ const createNotifications = async () => {
   }
   logger(
     `CreateNotifications completed. Created ${totalNotificationsCreated} SiteAlert notifications (device, webhook methods only)`,
+    'info',
+  );
+  const totalSkipped = skippedByMethod.device + skippedByMethod.webhook;
+  logger(
+    `CreateNotifications: Skipped ${totalSkipped} notifications due to STOP_ALERTS (device=${skippedByMethod.device}, webhook=${skippedByMethod.webhook})`,
     'info',
   );
   return totalNotificationsCreated;
