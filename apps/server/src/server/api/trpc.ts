@@ -77,12 +77,14 @@ const passCtxToNext = t.middleware(async ({ctx, next}) => {
 const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   // Decode the token
   const {decodedToken, access_token} = await decodeToken(ctx);
+  // logger(`decodedToken: ${JSON.stringify(decodedToken)}`, 'info');
   // Find the user associated with the token
   const user = await ctx.prisma.user.findFirst({
     where: {
       sub: decodedToken?.sub,
     },
   });
+  // logger(JSON.stringify(user), 'info');
   // Find the procedure that is being called
   const url = ctx.req.url;
   const procedure = url?.substring(url?.lastIndexOf('.') + 1)
