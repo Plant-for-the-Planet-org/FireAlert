@@ -124,7 +124,7 @@ const server = z.object({
   // from an active incident centre will be associated with that incident. Defaults to 5km.
   INCIDENT_PROXIMITY_KM: z
     .string()
-    .default('5')
+    .default('2')
     .transform(val => {
       const parsed = parseFloat(val);
       if (isNaN(parsed) || parsed < 0.1) {
