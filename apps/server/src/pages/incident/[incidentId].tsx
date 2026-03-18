@@ -1,25 +1,25 @@
 // To access this page visit: ${URL}/incident/${incidentId}
+import type {AlertTheme} from '../../Components/FireIncident/MapComponent';
 
 import {createServerSideHelpers} from '@trpc/react-query/server';
-import {api} from '../../utils/api';
 import {
-  GetStaticPropsContext,
   GetStaticPaths,
+  GetStaticPropsContext,
   InferGetStaticPropsType,
 } from 'next';
-import {appRouter} from '../../server/api/root';
-import superjson from 'superjson';
-import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
+import dynamic from 'next/dynamic';
 import ErrorPage from 'next/error';
 import Head from 'next/head';
-import dynamic from 'next/dynamic';
-import {DetectionInfo} from '../../Components/FireIncident/DetectionInfo';
-import {LocationInfo} from '../../Components/FireIncident/LocationInfo';
+import {useEffect, useState} from 'react';
+import superjson from 'superjson';
+import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
 import {ActionInfo} from '../../Components/FireIncident/ActionInfo';
+import {DetectionInfo} from '../../Components/FireIncident/DetectionInfo';
 import {GoogleMapsButton} from '../../Components/FireIncident/GoogleMapsButton';
 import {IncidentSummary} from '../../Components/FireIncident/IncidentSummary';
-import {AlertTheme} from '../../Components/FireIncident/MapComponent';
-import {useState, useEffect} from 'react';
+import {LocationInfo} from '../../Components/FireIncident/LocationInfo';
+import {appRouter} from '../../server/api/root';
+import {api} from '../../utils/api';
 
 const MapComponent = dynamic(
   () => import('../../Components/FireIncident/MapComponent'),

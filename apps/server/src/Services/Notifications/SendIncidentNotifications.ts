@@ -14,6 +14,7 @@ import type {NotificationParameters} from '../../Interfaces/NotificationParamete
 import {getLocalTime} from '../../../src/utils/date';
 import type DataRecord from '../../Interfaces/DataRecord';
 import {isSiteIncidentMethod} from './NotificationRoutingConfig';
+import {unsubscribeService} from '../AlertMethod/UnsubscribeService';
 
 type NotificationWithRelations = Notification & {
   siteAlert: SiteAlert & {
@@ -128,12 +129,41 @@ export class SendIncidentNotifications {
 
             const url = `https://firealert.plant-for-the-planet.org/incident/${incidentId}`;
 
+            // Generate unsubscribe token for email notifications
+            let unsubscribeToken: string | undefined;
+            if (alertMethod === NOTIFICATION_METHOD.EMAIL) {
+              try {
+                const alertMethodRecord = await prisma.alertMethod.findFirst({
+                  where: {
+                    destination: destination,
+                    method: 'email',
+                    isEnabled: true,
+                  },
+                });
+
+                if (alertMethodRecord) {
+                  unsubscribeToken = unsubscribeService.generateToken(
+                    alertMethodRecord.id,
+                    alertMethodRecord.userId,
+                  );
+                }
+              } catch (error) {
+                logger(
+                  `Failed to generate unsubscribe token for ${destination}: ${
+                    (error as Error).message
+                  }`,
+                  'warn',
+                );
+              }
+            }
+
             const params: NotificationParameters = {
               id: id,
               message: message,
               subject: subject,
               url: url,
               siteName: siteName,
+              unsubscribeToken: unsubscribeToken,
               alert: {
                 id: siteAlert.id,
                 type: siteAlert.type,
