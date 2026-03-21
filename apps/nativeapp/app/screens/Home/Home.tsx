@@ -69,6 +69,17 @@ import {
   updateIsLoggedIn,
 } from '../../redux/slices/login/loginSlice';
 import {
+  openIncidentDetails,
+  openAlertDetails,
+  closeAllDetails,
+  backToIncidentDetails,
+  updateCameraPosition,
+  clearNavigationHistory,
+  openIncidentFromDeepLink,
+  openAlertFromDeepLink,
+  setDeepLinkMode,
+} from '../../redux/slices/details/detailsUISlice';
+import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from './PermissionAlert/LocationPermissionAlerts';
@@ -76,6 +87,7 @@ import {
   MapDisplayModeSwitcher,
   MapDurationDropdown,
   IncidentDetailsBottomSheet,
+  AlertDetailsBottomSheet,
 } from './components';
 
 import {highlightWave} from '../../assets/animation/lottie';
@@ -90,10 +102,16 @@ import {useFetchSites} from '../../utils/api';
 import handleLink from '../../utils/browserLinking';
 import {categorizedRes} from '../../utils/filters';
 import {getFireIcon} from '../../utils/getFireIcon';
+import {processDeepLink, isFireAlertDeepLink} from '../../utils/deepLinking';
+import {generateIncidentCircle} from '../../utils/incident/incidentCircleUtils';
+import {
+  calculateIncidentCamera,
+  calculateAlertCamera,
+  areCamerasDifferent,
+} from '../../utils/mapZoomUtils';
 import {clearAll} from '../../utils/localStorage';
 import {daysFromToday} from '../../utils/moment';
 import {locationPermission} from '../../utils/permissions';
-import {generateIncidentCircle} from '../../utils/incident/incidentCircleUtils';
 import type {IncidentCircleResult} from '../../types/incident';
 
 const IS_ANDROID = Platform.OS === 'android';
@@ -175,10 +193,13 @@ const Home = ({navigation, route}) => {
     null,
   );
 
+  // Redux state for details UI
+  const detailsUI = useAppSelector((state: any) => state.detailsUISlice);
+  const dispatch = useAppDispatch();
+
   const map = useRef(null);
   const toast = useToast();
   const modalToast = useRef();
-  const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const camera = useRef<MapboxGL.Camera | null>(null);
 
@@ -239,6 +260,74 @@ const Home = ({navigation, route}) => {
   useEffect(() => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location, onUpdateUserLocation]);
+
+  // Deep link handling
+  useEffect(() => {
+    const handleDeepLink = (url: string) => {
+      if (!isFireAlertDeepLink(url)) {
+        return;
+      }
+
+      console.log('[Home] Processing deep link:', url);
+
+      try {
+        const deepLinkAction = processDeepLink(url);
+
+        if (deepLinkAction) {
+          dispatch(setDeepLinkMode({isDeepLinkActive: true}));
+
+          if (deepLinkAction.type === 'openIncidentDetails') {
+            dispatch(openIncidentFromDeepLink(deepLinkAction.payload));
+
+            // Apply camera position if provided
+            if (
+              deepLinkAction.payload.cameraPosition &&
+              camera?.current?.setCamera
+            ) {
+              camera.current.setCamera({
+                centerCoordinate:
+                  deepLinkAction.payload.cameraPosition.centerCoordinate,
+                zoomLevel: deepLinkAction.payload.cameraPosition.zoomLevel,
+                animationDuration: 500,
+              });
+            }
+          } else if (deepLinkAction.type === 'openAlertDetails') {
+            dispatch(openAlertFromDeepLink(deepLinkAction.payload));
+
+            // Apply camera position if provided
+            if (
+              deepLinkAction.payload.cameraPosition &&
+              camera?.current?.setCamera
+            ) {
+              camera.current.setCamera({
+                centerCoordinate:
+                  deepLinkAction.payload.cameraPosition.centerCoordinate,
+                zoomLevel: deepLinkAction.payload.cameraPosition.zoomLevel,
+                animationDuration: 500,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Home] Error processing deep link:', error);
+      }
+    };
+
+    // Check for initial deep link (app launch)
+    const initialUrl = route?.params?.url || route?.params?.deepLink;
+    if (initialUrl) {
+      handleDeepLink(initialUrl);
+    }
+
+    // Set up deep link listener for future links
+    const subscription = Linking.addEventListener('url', event => {
+      handleDeepLink(event.url);
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [dispatch, camera, route?.params]);
 
   const {data: alerts} = useFetchSites({enabled: true});
 
@@ -691,21 +780,70 @@ const Home = ({navigation, route}) => {
     setMapDurationDays(days);
   };
 
-  const handleIncidentTap = (incidentId: string) => {
-    setSelectedIncidentId(incidentId);
-  };
+  const handleIncidentTap = async (incidentId: string) => {
+    try {
+      // Fetch incident data to get alert locations for zoom calculation
+      const incidentResponse = await (
+        trpc as any
+      ).siteIncident.getIncidentPublic.fetch({incidentId});
 
-  const handleAlertTapFromIncident = (alert: any) => {
-    if (camera?.current?.setCamera) {
-      camera.current.setCamera({
-        centerCoordinate: [alert.longitude, alert.latitude],
-        zoomLevel: 15,
-        animationDuration: 500,
-      });
+      if (
+        incidentResponse?.siteAlerts &&
+        incidentResponse.siteAlerts.length > 0
+      ) {
+        // Calculate optimal camera position for incident
+        const cameraSettings = calculateIncidentCamera(
+          incidentResponse.siteAlerts,
+        );
+
+        if (cameraSettings && camera?.current?.setCamera) {
+          // Apply zoom to incident boundaries
+          camera.current.setCamera({
+            centerCoordinate: cameraSettings.centerCoordinate,
+            zoomLevel: cameraSettings.zoomLevel,
+            animationDuration: 500,
+          });
+
+          console.log('[Home] Zoomed to incident boundaries:', cameraSettings);
+        }
+      } else {
+        console.warn('[Home] No alerts found for incident zoom calculation');
+      }
+
+      // Open incident details with Redux
+      dispatch(openIncidentDetails({incidentId}));
+      setSelectedIncidentId(null);
+    } catch (error) {
+      console.error('[Home] Error handling incident tap:', error);
+      // Fallback: just open details without zoom
+      dispatch(openIncidentDetails({incidentId}));
+      setSelectedIncidentId(null);
     }
   };
 
-  // recenter the mapmap to the current coordinates of user location
+  const handleAlertTapFromIncident = (alert: any) => {
+    // Calculate optimal camera for alert
+    const cameraSettings = calculateAlertCamera(
+      alert,
+      alert.detectedBy,
+      alert.confidence,
+    );
+
+    // Open alert details with Redux
+    dispatch(openAlertDetails({alertId: alert.id}));
+
+    // Apply zoom to alert location with optimal settings
+    if (camera?.current?.setCamera && cameraSettings) {
+      camera.current.setCamera({
+        centerCoordinate: cameraSettings.centerCoordinate,
+        zoomLevel: cameraSettings.zoomLevel,
+        animationDuration: 500,
+      });
+
+      console.log('[Home] Zoomed to alert:', cameraSettings);
+    }
+  };
+
   const onPressMyLocationIcon = (
     position: MapboxGL.Location | Geolocation.GeoPosition,
   ) => {
@@ -1694,10 +1832,25 @@ const Home = ({navigation, route}) => {
       </BottomSheet>
       {/* incident details modal */}
       <IncidentDetailsBottomSheet
-        isVisible={!!selectedIncidentId}
-        incidentId={selectedIncidentId}
-        onClose={() => setSelectedIncidentId(null)}
+        isVisible={detailsUI.isIncidentDetailsVisible}
+        incidentId={detailsUI.selectedIncidentId}
+        onClose={() => dispatch(closeAllDetails())}
         onAlertTap={handleAlertTapFromIncident}
+        onStopAlerts={incidentId => {
+          // Placeholder implementation for stopping alerts
+          toast.show('Stop alerts feature will be implemented later', {
+            type: 'warning',
+          });
+        }}
+      />
+
+      {/* alert details modal */}
+      <AlertDetailsBottomSheet
+        isVisible={detailsUI.isAlertDetailsVisible}
+        alertId={detailsUI.selectedAlertId}
+        onClose={() => dispatch(closeAllDetails())}
+        onBack={() => dispatch(backToIncidentDetails())}
+        showBackButton={detailsUI.uiMode === 'alert-details'}
       />
       {/* site Info modal */}
       <BottomSheet

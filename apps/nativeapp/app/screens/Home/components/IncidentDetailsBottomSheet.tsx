@@ -23,17 +23,18 @@ interface IncidentDetailsBottomSheetProps {
   incidentId: string | null;
   onClose: () => void;
   onAlertTap: (alert: SiteAlertData) => void;
+  onStopAlerts?: (incidentId: string) => void;
 }
 
 export const IncidentDetailsBottomSheet: React.FC<
   IncidentDetailsBottomSheetProps
-> = ({isVisible, incidentId, onClose, onAlertTap}) => {
+> = ({isVisible, incidentId, onClose, onAlertTap, onStopAlerts}) => {
   // Fetch incident data
   const {
     data: incident,
     isLoading,
     isError,
-  } = trpc.siteIncident.getIncidentPublic.useQuery(
+  } = (trpc as any).siteIncident.getIncidentPublic.useQuery(
     {incidentId: incidentId || ''},
     {
       enabled: !!incidentId && isVisible,
@@ -42,7 +43,7 @@ export const IncidentDetailsBottomSheet: React.FC<
   );
 
   // Sort alerts by event date (newest first)
-  const sortedAlerts = useMemo<SiteAlertData[]>(() => {
+  const sortedAlerts = useMemo<any[]>(() => {
     if (!incident?.json?.data?.siteAlerts) return [];
     return [...incident.json.data.siteAlerts].sort(
       (a, b) =>
@@ -50,7 +51,7 @@ export const IncidentDetailsBottomSheet: React.FC<
     );
   }, [incident]);
 
-  const renderAlertItem = ({item}: {item: SiteAlertData}) => {
+  const renderAlertItem = ({item}: {item: any}) => {
     const alert = item;
     return (
       <TouchableOpacity
@@ -129,7 +130,6 @@ export const IncidentDetailsBottomSheet: React.FC<
               startAlert={incidentData.startSiteAlert}
               latestAlert={incidentData.latestSiteAlert}
               allAlerts={incidentData.siteAlerts}
-              incidentId={incidentData.id}
             />
 
             <View style={styles.alertsSection}>
@@ -140,6 +140,20 @@ export const IncidentDetailsBottomSheet: React.FC<
                 Tap any detection to view on map
               </Text>
             </View>
+
+            {onStopAlerts && (
+              <View style={styles.stopAlertsSection}>
+                <TouchableOpacity
+                  style={styles.stopAlertsButton}
+                  onPress={() => onStopAlerts(incidentData.id)}
+                  accessibilityLabel="Stop alerts for this incident"
+                  accessibilityRole="button">
+                  <Text style={styles.stopAlertsButtonText}>
+                    Stop Alerts for the Incident
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </>
         }
       />
@@ -151,7 +165,7 @@ export const IncidentDetailsBottomSheet: React.FC<
       isVisible={isVisible}
       onBackdropPress={onClose}
       backdropColor="transparent"
-      snapPoints={['35%', '50%']}
+      snapPoints={['50%']}
       initialSnapIndex={0}
       useScrollableContainer>
       <View style={styles.modalContainer}>
@@ -296,5 +310,22 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.GRADIENT_PRIMARY,
     textTransform: 'uppercase',
+  },
+  stopAlertsSection: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  stopAlertsButton: {
+    backgroundColor: Colors.ALERT,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  stopAlertsButtonText: {
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.WHITE,
   },
 });

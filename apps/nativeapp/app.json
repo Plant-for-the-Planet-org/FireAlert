@@ -1,4 +1,43 @@
 {
   "name": "FireAlert",
-  "displayName": "FireAlert"
+  "displayName": "FireAlert",
+  "scheme": "firealert",
+  "deepLinking": {
+    "ios": {
+      "bundleId": "org.firealert.app",
+      "appAssociation": {
+        "applinks": {
+          "apps": [
+            {
+              "title": "FireAlert",
+              "urls": [
+                {
+                  "type": "text/plain",
+                  "url": "https://firealert.plant-for-the-planet.org/*"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "android": {
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "firealert",
+            "host": "firealert.plant-for-the-planet.org"
+          }
+        },
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "https",
+            "host": "firealert.plant-for-the-planet.org"
+          }
+        }
+      ]
+    }
+  }
 }
