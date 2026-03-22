@@ -98,57 +98,6 @@ const detailsUISlice = createSlice({
     clearNavigationHistory: state => {
       state.navigationHistory = {};
     },
-
-    // Deep link actions
-    openIncidentFromDeepLink: (
-      state,
-      action: PayloadAction<{
-        incidentId: string;
-        cameraPosition?: CameraPosition;
-      }>,
-    ) => {
-      state.selectedIncidentId = action.payload.incidentId;
-      state.selectedAlertId = null;
-      state.uiMode = 'incident-details';
-      state.isIncidentDetailsVisible = true;
-      state.isAlertDetailsVisible = false;
-
-      // Store deep link camera position
-      if (action.payload.cameraPosition) {
-        state.currentCameraPosition = action.payload.cameraPosition;
-      }
-    },
-
-    openAlertFromDeepLink: (
-      state,
-      action: PayloadAction<{
-        alertId: string;
-        cameraPosition?: CameraPosition;
-        incidentId?: string;
-      }>,
-    ) => {
-      state.selectedAlertId = action.payload.alertId;
-      state.selectedIncidentId = action.payload.incidentId || null;
-      state.uiMode = 'alert-details';
-      state.isAlertDetailsVisible = true;
-      state.isIncidentDetailsVisible = false;
-
-      // Store deep link camera position
-      if (action.payload.cameraPosition) {
-        state.currentCameraPosition = action.payload.cameraPosition;
-      }
-    },
-
-    setDeepLinkMode: (
-      state,
-      action: PayloadAction<{isDeepLinkActive: boolean}>,
-    ) => {
-      // This can be used to show/hide deep link indicators
-      if (!action.payload.isDeepLinkActive) {
-        // Clear deep link specific state when deactivated
-        state.currentCameraPosition = undefined;
-      }
-    },
   },
 });
 
@@ -159,9 +108,6 @@ export const {
   backToIncidentDetails,
   updateCameraPosition,
   clearNavigationHistory,
-  openIncidentFromDeepLink,
-  openAlertFromDeepLink,
-  setDeepLinkMode,
 } = detailsUISlice.actions;
 
 export default detailsUISlice.reducer;

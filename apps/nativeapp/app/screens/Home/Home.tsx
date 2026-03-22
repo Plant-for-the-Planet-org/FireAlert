@@ -65,29 +65,24 @@ import {
 } from '../../components';
 import {IncidentSummaryCard} from '../../components/Incident/IncidentSummaryCard';
 import {
+  backToIncidentDetails,
+  closeAllDetails,
+  openAlertDetails,
+  openIncidentDetails,
+} from '../../redux/slices/details/detailsUISlice';
+import {
   getUserDetails,
   updateIsLoggedIn,
 } from '../../redux/slices/login/loginSlice';
-import {
-  openIncidentDetails,
-  openAlertDetails,
-  closeAllDetails,
-  backToIncidentDetails,
-  updateCameraPosition,
-  clearNavigationHistory,
-  openIncidentFromDeepLink,
-  openAlertFromDeepLink,
-  setDeepLinkMode,
-} from '../../redux/slices/details/detailsUISlice';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from './PermissionAlert/LocationPermissionAlerts';
 import {
+  AlertDetailsBottomSheet,
+  IncidentDetailsBottomSheet,
   MapDisplayModeSwitcher,
   MapDurationDropdown,
-  IncidentDetailsBottomSheet,
-  AlertDetailsBottomSheet,
 } from './components';
 
 import {highlightWave} from '../../assets/animation/lottie';
@@ -98,21 +93,19 @@ import {useAppDispatch, useAppSelector} from '../../hooks';
 import {useIncidentData} from '../../hooks/incident/useIncidentData';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
+import type {IncidentCircleResult} from '../../types/incident';
 import {useFetchSites} from '../../utils/api';
 import handleLink from '../../utils/browserLinking';
 import {categorizedRes} from '../../utils/filters';
 import {getFireIcon} from '../../utils/getFireIcon';
-import {processDeepLink, isFireAlertDeepLink} from '../../utils/deepLinking';
 import {generateIncidentCircle} from '../../utils/incident/incidentCircleUtils';
-import {
-  calculateIncidentCamera,
-  calculateAlertCamera,
-  areCamerasDifferent,
-} from '../../utils/mapZoomUtils';
 import {clearAll} from '../../utils/localStorage';
+import {
+  calculateAlertCamera,
+  calculateIncidentCamera,
+} from '../../utils/mapZoomUtils';
 import {daysFromToday} from '../../utils/moment';
 import {locationPermission} from '../../utils/permissions';
-import type {IncidentCircleResult} from '../../types/incident';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -260,74 +253,6 @@ const Home = ({navigation, route}) => {
   useEffect(() => {
     onUpdateUserLocation(location);
   }, [isCameraRefVisible, location, onUpdateUserLocation]);
-
-  // Deep link handling
-  useEffect(() => {
-    const handleDeepLink = (url: string) => {
-      if (!isFireAlertDeepLink(url)) {
-        return;
-      }
-
-      console.log('[Home] Processing deep link:', url);
-
-      try {
-        const deepLinkAction = processDeepLink(url);
-
-        if (deepLinkAction) {
-          dispatch(setDeepLinkMode({isDeepLinkActive: true}));
-
-          if (deepLinkAction.type === 'openIncidentDetails') {
-            dispatch(openIncidentFromDeepLink(deepLinkAction.payload));
-
-            // Apply camera position if provided
-            if (
-              deepLinkAction.payload.cameraPosition &&
-              camera?.current?.setCamera
-            ) {
-              camera.current.setCamera({
-                centerCoordinate:
-                  deepLinkAction.payload.cameraPosition.centerCoordinate,
-                zoomLevel: deepLinkAction.payload.cameraPosition.zoomLevel,
-                animationDuration: 500,
-              });
-            }
-          } else if (deepLinkAction.type === 'openAlertDetails') {
-            dispatch(openAlertFromDeepLink(deepLinkAction.payload));
-
-            // Apply camera position if provided
-            if (
-              deepLinkAction.payload.cameraPosition &&
-              camera?.current?.setCamera
-            ) {
-              camera.current.setCamera({
-                centerCoordinate:
-                  deepLinkAction.payload.cameraPosition.centerCoordinate,
-                zoomLevel: deepLinkAction.payload.cameraPosition.zoomLevel,
-                animationDuration: 500,
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('[Home] Error processing deep link:', error);
-      }
-    };
-
-    // Check for initial deep link (app launch)
-    const initialUrl = route?.params?.url || route?.params?.deepLink;
-    if (initialUrl) {
-      handleDeepLink(initialUrl);
-    }
-
-    // Set up deep link listener for future links
-    const subscription = Linking.addEventListener('url', event => {
-      handleDeepLink(event.url);
-    });
-
-    return () => {
-      subscription?.remove();
-    };
-  }, [dispatch, camera, route?.params]);
 
   const {data: alerts} = useFetchSites({enabled: true});
 
