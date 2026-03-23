@@ -1,0 +1,352 @@
+import {type SiteAlert, type SiteIncident} from '@prisma/client';
+import {logger} from '../../server/logger';
+import {env} from '../../env.mjs';
+import {
+  type ProximityDetectionService,
+  type ProximityDetectionResult,
+  type DistanceCalculator,
+  type IncidentMetadataManager,
+  type ExtendedSiteIncidentRepository,
+} from './types';
+import {DistanceCalculatorService} from './DistanceCalculatorService';
+import {IncidentMetadataService} from './IncidentMetadataService';
+
+/**
+ * Service for orchestrating proximity-based incident detection
+ * Integrates distance calculation, metadata management, and repository operations
+ * Supports multiple concurrent incidents per site with proximity-based association
+ */
+export class SiteIncidentProximityService implements ProximityDetectionService {
+  private distanceCalculator: DistanceCalculator;
+  private metadataManager: IncidentMetadataManager;
+  private proximityKm: number;
+
+  constructor(
+    private readonly repository: ExtendedSiteIncidentRepository,
+  ) {
+    this.distanceCalculator = new DistanceCalculatorService();
+    this.metadataManager = new IncidentMetadataService();
+    this.proximityKm = env.INCIDENT_PROXIMITY_KM;
+  }
+
+  /**
+   * Finds the best matching incident for a given alert using proximity detection
+   * @param alert - The alert to process
+   * @returns Detection result with matched incident or creation flag
+   */
+  async findBestMatchingIncident(alert: SiteAlert): Promise<ProximityDetectionResult> {
+    try {
+      // Validate input
+      this.validateAlert(alert);
+
+      logger(
+        `Starting proximity detection for alert ${alert.id} at site ${alert.siteId}`,
+        'info',
+      );
+
+      // Get all active incidents for the site
+      const activeIncidents = await this.repository.findActiveIncidentsBySiteId(
+        alert.siteId,
+      );
+
+      logger(
+        `Found ${activeIncidents.length} active incidents for site ${alert.siteId}`,
+        'debug',
+      );
+
+      // If no active incidents, create new incident
+      if (activeIncidents.length === 0) {
+        logger(
+          `No active incidents found for site ${alert.siteId}, will create new incident`,
+          'info',
+        );
+        return {
+          shouldCreateNew: true,
+          consideredIncidents: [],
+        };
+      }
+
+      // Find closest incident within proximity threshold
+      const closestMatch = this.distanceCalculator.findClosestIncident(
+        alert,
+        activeIncidents,
+        this.proximityKm,
+      );
+
+      if (closestMatch) {
+        logger(
+          `Found matching incident ${closestMatch.incident.id} at ${closestMatch.distance.toFixed(3)}km`,
+          'info',
+        );
+        return {
+          incident: closestMatch.incident,
+          distance: closestMatch.distance,
+          shouldCreateNew: false,
+          consideredIncidents: activeIncidents,
+        };
+      }
+
+      logger(
+        `No incidents within ${this.proximityKm}km threshold for alert ${alert.id}`,
+        'info',
+      );
+
+      return {
+        shouldCreateNew: true,
+        consideredIncidents: activeIncidents,
+      };
+    } catch (error) {
+      logger(
+        `Error in proximity detection for alert ${alert.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Determines if a new incident should be created based on proximity analysis
+   * @param alert - The alert to evaluate
+   * @param closestIncident - The closest incident found (if any)
+   * @returns Whether to create a new incident
+   */
+  shouldCreateNewIncident(
+    alert: SiteAlert,
+    closestIncident?: {incident: SiteIncident; distance: number},
+  ): boolean {
+    try {
+      // Validate input
+      this.validateAlert(alert);
+
+      // If no closest incident, create new
+      if (!closestIncident) {
+        logger(
+          `No closest incident found for alert ${alert.id}, creating new incident`,
+          'debug',
+        );
+        return true;
+      }
+
+      // Check if distance is within proximity threshold
+      const withinThreshold = closestIncident.distance <= this.proximityKm;
+
+      if (withinThreshold) {
+        logger(
+          `Alert ${alert.id} is ${closestIncident.distance.toFixed(3)}km from incident ${closestIncident.incident.id} (within ${this.proximityKm}km threshold), will associate`,
+          'debug',
+        );
+        return false;
+      } else {
+        logger(
+          `Alert ${alert.id} is ${closestIncident.distance.toFixed(3)}km from incident ${closestIncident.incident.id} (outside ${this.proximityKm}km threshold), creating new incident`,
+          'debug',
+        );
+        return true;
+      }
+    } catch (error) {
+      logger(
+        `Error determining incident creation for alert ${alert.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      // Default to creating new incident on error
+      return true;
+    }
+  }
+
+  /**
+   * Updates an incident with a new centre from an alert
+   * Updates both the latestSiteAlertId and the metadata centres array
+   * @param incident - The incident to update
+   * @param alert - The alert providing the new centre
+   * @returns Updated incident
+   */
+  async updateIncidentCentre(
+    incident: SiteIncident,
+    alert: SiteAlert,
+  ): Promise<SiteIncident> {
+    try {
+      // Validate inputs
+      this.validateIncident(incident);
+      this.validateAlert(alert);
+
+      logger(
+        `Updating incident ${incident.id} with new centre from alert ${alert.id}`,
+        'debug',
+      );
+
+      // Add new centre to metadata
+      const updatedMetadata = this.metadataManager.addCentre(incident, alert);
+
+      // Update incident with new metadata and latest alert
+      const updatedIncident = await this.repository.updateIncidentMetadata(
+        incident.id,
+        updatedMetadata,
+      );
+
+      // Also update the latestSiteAlertId and association
+      const finalIncident = await this.repository.updateIncident(incident.id, {
+        latestSiteAlertId: alert.id,
+      });
+
+      // Associate the alert with the incident
+      await this.repository.associateAlert(incident.id, alert.id);
+
+      logger(
+        `Successfully updated incident ${incident.id} with new centre [${alert.latitude}, ${alert.longitude}] and associated alert ${alert.id}`,
+        'info',
+      );
+
+      return finalIncident;
+    } catch (error) {
+      logger(
+        `Error updating incident centre for incident ${incident.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Creates a new incident with initial metadata from an alert
+   * @param alert - The alert to create incident from
+   * @returns Created incident
+   */
+  async createIncidentWithMetadata(alert: SiteAlert): Promise<SiteIncident> {
+    try {
+      // Validate input
+      this.validateAlert(alert);
+
+      logger(
+        `Creating new incident for alert ${alert.id} at site ${alert.siteId}`,
+        'info',
+      );
+
+      // Initialize metadata with first centre
+      const initialMetadata = this.metadataManager.initializeMetadata(alert);
+
+      // Create incident through repository
+      const incident = await this.repository.createIncident({
+        siteId: alert.siteId,
+        startSiteAlertId: alert.id,
+        latestSiteAlertId: alert.id,
+        startedAt: new Date(),
+      });
+
+      // Update incident with initial metadata
+      const updatedIncident = await this.repository.updateIncidentMetadata(
+        incident.id,
+        initialMetadata,
+      );
+
+      // Associate the alert with the incident
+      await this.repository.associateAlert(incident.id, alert.id);
+
+      logger(
+        `Successfully created incident ${updatedIncident.id} with initial centre [${alert.latitude}, ${alert.longitude}]`,
+        'info',
+      );
+
+      return updatedIncident;
+    } catch (error) {
+      logger(
+        `Error creating incident for alert ${alert.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Validates a SiteAlert object
+   * @param alert - Alert to validate
+   * @throws Error if invalid
+   */
+  private validateAlert(alert: SiteAlert): void {
+    if (!alert || typeof alert !== 'object') {
+      throw new Error('Invalid alert: must be an object');
+    }
+
+    if (!alert.id || typeof alert.id !== 'string') {
+      throw new Error('Invalid alert: missing or invalid id');
+    }
+
+    if (!alert.siteId || typeof alert.siteId !== 'string') {
+      throw new Error('Invalid alert: missing or invalid siteId');
+    }
+
+    if (
+      typeof alert.latitude !== 'number' ||
+      typeof alert.longitude !== 'number'
+    ) {
+      throw new Error('Invalid alert: latitude and longitude must be numbers');
+    }
+
+    if (!alert.eventDate || !(alert.eventDate instanceof Date)) {
+      throw new Error('Invalid alert: eventDate must be a valid Date');
+    }
+
+    if (isNaN(alert.eventDate.getTime())) {
+      throw new Error('Invalid alert: eventDate must be a valid date');
+    }
+
+    // Validate coordinate ranges
+    if (
+      isNaN(alert.latitude) ||
+      isNaN(alert.longitude) ||
+      alert.latitude < -90 ||
+      alert.latitude > 90 ||
+      alert.longitude < -180 ||
+      alert.longitude > 180
+    ) {
+      throw new Error('Invalid alert: coordinates out of valid range');
+    }
+  }
+
+  /**
+   * Validates a SiteIncident object
+   * @param incident - Incident to validate
+   * @throws Error if invalid
+   */
+  private validateIncident(incident: SiteIncident): void {
+    if (!incident || typeof incident !== 'object') {
+      throw new Error('Invalid incident: must be an object');
+    }
+
+    if (!incident.id || typeof incident.id !== 'string') {
+      throw new Error('Invalid incident: missing or invalid id');
+    }
+
+    if (!incident.siteId || typeof incident.siteId !== 'string') {
+      throw new Error('Invalid incident: missing or invalid siteId');
+    }
+  }
+
+  /**
+   * Gets the current proximity threshold
+   * @returns Proximity threshold in kilometers
+   */
+  getProximityThreshold(): number {
+    return this.proximityKm;
+  }
+
+  /**
+   * Updates the proximity threshold (for testing or configuration changes)
+   * @param proximityKm - New proximity threshold in kilometers
+   */
+  setProximityThreshold(proximityKm: number): void {
+    if (typeof proximityKm !== 'number' || proximityKm <= 0) {
+      throw new Error('Invalid proximityKm: must be a positive number');
+    }
+    
+    this.proximityKm = proximityKm;
+    logger(`Updated proximity threshold to ${proximityKm}km`, 'info');
+  }
+}
