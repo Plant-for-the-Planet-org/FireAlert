@@ -34,8 +34,8 @@ export const IncidentDetailsBottomSheet: React.FC<
     data: incident,
     isLoading,
     isError,
-  } = (trpc as any).siteIncident.getIncidentPublic.useQuery(
-    {incidentId: incidentId || ''},
+  } = (trpc as any).siteIncident.getIncident.useQuery(
+    {json: {incidentId: incidentId || ''}},
     {
       enabled: !!incidentId && isVisible,
       retryDelay: 3000,

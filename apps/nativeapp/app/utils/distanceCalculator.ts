@@ -1,5 +1,4 @@
-import turfDistance from '@turf/distance';
-import {Point, Units} from '@turf/helpers';
+import {Point, Units} from '@turf/turf';
 
 export default function distanceCalculator(
   latLong1: [number, number],
@@ -9,7 +8,7 @@ export default function distanceCalculator(
   if (latLong1[0] === latLong2[0] && latLong1[1] === latLong2[1]) {
     return 0;
   } else {
-    // calculate the distance between two latitudes and longitudes using @turf/distance
+    // calculate the distance between two latitudes and longitudes using distabce from @turf/turf
     const point1: Point = {
       type: 'Point',
       coordinates: latLong1,

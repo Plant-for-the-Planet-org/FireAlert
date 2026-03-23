@@ -1,8 +1,7 @@
 import rewind from '@mapbox/geojson-rewind';
 import MapboxGL from '@rnmapbox/maps';
 import {useQueryClient} from '@tanstack/react-query';
-import bbox from '@turf/bbox';
-import {multiPolygon, polygon} from '@turf/helpers';
+import {bbox, multiPolygon, polygon} from '@turf/turf';
 import Lottie from 'lottie-react-native';
 import moment from 'moment-timezone';
 import {
@@ -22,7 +21,6 @@ import {
   View,
 } from 'react-native';
 import {useAuth0} from 'react-native-auth0';
-// import Clipboard from '@react-native-clipboard/clipboard';
 import React, {
   useCallback,
   useContext,
@@ -35,22 +33,17 @@ import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
 
 import {
-  CopyIcon,
   CrossIcon,
   DisabledTrashOutlineIcon,
   EyeIcon,
   EyeOffIcon,
   GreenMapOutline,
   LayerIcon,
-  LocationPinIcon,
   LogoutIcon,
   MyLocIcon,
   PencilIcon,
   PencilRoundIcon,
   PointSiteIcon,
-  RadarIcon,
-  SatelliteIcon,
-  SiteIcon,
   TrashOutlineIcon,
   TrashSolidIcon,
   UserPlaceholder,
@@ -63,7 +56,6 @@ import {
   FloatingInput,
   LayerModal,
 } from '../../components';
-import {IncidentSummaryCard} from '../../components/Incident/IncidentSummaryCard';
 import {
   backToIncidentDetails,
   closeAllDetails,
@@ -710,7 +702,7 @@ const Home = ({navigation, route}) => {
       // Fetch incident data to get alert locations for zoom calculation
       const incidentResponse = await (
         trpc as any
-      ).siteIncident.getIncidentPublic.fetch({incidentId});
+      ).siteIncident.getIncident.fetch({json: {incidentId}});
 
       if (
         incidentResponse?.siteAlerts &&
@@ -961,7 +953,8 @@ const Home = ({navigation, route}) => {
                 alert?.siteIncidentId || 'none'
               }, latitude: ${alert?.latitude}, longitude: ${alert?.longitude}`,
             );
-            setSelectedAlert(alert);
+            // Use Redux state instead of selectedAlert
+            dispatch(openAlertDetails({alertId: alert.id}));
           }, ANIMATION_DURATION);
         }}
         coordinate={coordinate}>
@@ -1529,232 +1522,6 @@ const Home = ({navigation, route}) => {
           </TouchableOpacity>
         </View>
       </BottomSheet>
-      {/* fire alert info modal */}
-      <BottomSheet
-        onBackdropPress={() => {
-          console.log(
-            `[incident] Alert modal closed - alertId: ${selectedAlert?.id}`,
-          );
-          setSelectedAlert({});
-          setIncidentCircleData(null);
-        }}
-        isVisible={
-          mapDisplayMode === 'alerts' && Object.keys(selectedAlert).length > 0
-        }>
-        {Object.keys(selectedAlert).length > 0 &&
-          console.log(
-            `[incident] Alert modal opened - alertId: ${
-              selectedAlert?.id
-            }, siteIncidentId: ${
-              selectedAlert?.siteIncidentId || 'none'
-            }, site: ${selectedAlert?.site?.name || 'unknown'}`,
-          )}
-        <Toast ref={modalToast} offsetBottom={100} duration={2000} />
-        <View style={[styles.modalContainer, styles.commonPadding]}>
-          <View style={styles.modalHeader} />
-
-          {/* Debug Tags - Show alert and incident IDs */}
-          {/* <View
-            style={{
-              backgroundColor: '#f0f0f0',
-              padding: 8,
-              borderRadius: 6,
-              marginBottom: 12,
-              borderLeftWidth: 3,
-              borderLeftColor: '#E86F56',
-            }}>
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#666',
-                fontFamily: 'monospace',
-                marginBottom: 4,
-              }}>
-              [DEBUG] Alert ID: {selectedAlert?.id}
-            </Text>
-            {selectedAlert?.siteIncidentId && (
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: '#666',
-                  fontFamily: 'monospace',
-                  marginBottom: 4,
-                }}>
-                [DEBUG] Incident ID: {selectedAlert?.siteIncidentId}
-              </Text>
-            )}
-            {incident && (
-              <>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    color: '#666',
-                    fontFamily: 'monospace',
-                    marginBottom: 4,
-                  }}>
-                  [DEBUG] Incident Active: {incident.isActive ? 'Yes' : 'No'}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    color: '#666',
-                    fontFamily: 'monospace',
-                  }}>
-                  [DEBUG] Alert Count: {incident.siteAlerts.length}
-                </Text>
-              </>
-            )}
-            {!incident && selectedAlert?.siteIncidentId && (
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: '#E86F56',
-                  fontFamily: 'monospace',
-                }}>
-                [DEBUG] Loading incident data...
-              </Text>
-            )}
-          </View> */}
-
-          {/* Incident Summary Card - shown when incident data is available */}
-          {incident && (
-            <>
-              {console.log(
-                `[incident] Displaying IncidentSummaryCard - incidentId: ${
-                  incident.id
-                }, isActive: ${incident.isActive}, alertCount: ${
-                  incident.siteAlerts.length
-                }, firePoints: ${incident.siteAlerts
-                  .map(
-                    (a, i) =>
-                      `[${i}](${a.latitude.toFixed(4)},${a.longitude.toFixed(
-                        4,
-                      )})`,
-                  )
-                  .join(' ')}`,
-              )}
-              <IncidentSummaryCard
-                isActive={incident.isActive}
-                startAlert={incident.startSiteAlert}
-                latestAlert={incident.latestSiteAlert}
-                allAlerts={incident.siteAlerts}
-                incidentId={incident.id}
-              />
-            </>
-          )}
-          {!incident &&
-            selectedAlert?.siteIncidentId &&
-            (console.log(
-              `[incident] Incident data loading - alertId: ${selectedAlert?.id}, siteIncidentId: ${selectedAlert?.siteIncidentId}, isLoading: ${isIncidentLoading}, isError: ${isIncidentError}`,
-            ),
-            null)}
-
-          <View style={styles.satelliteInfoCon}>
-            <View style={styles.satelliteIcon}>
-              <SatelliteIcon />
-            </View>
-            <View style={styles.satelliteInfo}>
-              <Text style={styles.satelliteText}>
-                DETECTED BY {selectedAlert?.detectedBy}
-              </Text>
-              <Text style={styles.eventDate}>
-                <Text style={styles.eventFromNow}>
-                  {moment(selectedAlert?.localEventDate)
-                    ?.tz(selectedAlert?.localTimeZone)
-                    ?.fromNow()}
-                </Text>{' '}
-                (
-                {moment(selectedAlert?.localEventDate)
-                  ?.tz(selectedAlert?.localTimeZone)
-                  ?.format('DD MMM YYYY [at] HH:mm')}
-                )
-              </Text>
-              <Text style={styles.confidence}>
-                <Text style={styles.confidenceVal}>
-                  {selectedAlert?.confidence}
-                </Text>{' '}
-                alert confidence
-              </Text>
-            </View>
-          </View>
-          <View
-            style={[
-              styles.alertLocInfoCon,
-              {marginTop: 30, justifyContent: 'space-between'},
-            ]}>
-            <View style={styles.satelliteInfoLeft}>
-              <View style={styles.satelliteIcon}>
-                <SiteIcon />
-              </View>
-              {selectedAlert?.site?.project ? (
-                <View style={styles.satelliteInfo}>
-                  <Text style={styles.satelliteLocText}>PROJECT</Text>
-                  <Text style={styles.alertLocText}>
-                    {selectedAlert?.site?.project?.name}{' '}
-                    <Text style={{fontSize: Typography.FONT_SIZE_12}}>
-                      {selectedAlert?.site?.name}
-                    </Text>
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.satelliteInfo}>
-                  <Text style={styles.satelliteLocText}>SITE</Text>
-                  <Text style={styles.alertLocText}>
-                    {selectedAlert?.site?.name}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-          <View style={styles.separator} />
-          <View
-            style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
-            <View style={styles.satelliteInfoLeft}>
-              <View style={styles.satelliteIcon}>
-                <LocationPinIcon />
-              </View>
-              <View style={styles.satelliteInfo}>
-                <Text style={styles.satelliteLocText}>LOCATION</Text>
-                <Text style={styles.alertLocText}>
-                  {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
-                  {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={_copyToClipboard([
-                Number.parseFloat(selectedAlert?.latitude),
-                Number.parseFloat(selectedAlert?.longitude),
-              ])}>
-              <CopyIcon />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.alertRadiusInfoCon}>
-            <View style={styles.satelliteIcon}>
-              <RadarIcon />
-            </View>
-            <View style={styles.satelliteInfo}>
-              <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
-                Search for the fire within a{' '}
-                <Text
-                  style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
-                  {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
-                  km
-                </Text>{' '}
-                radius around the location.
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            onPress={handleGoogleRedirect}
-            style={styles.simpleBtn}>
-            <Text style={[styles.siteActionText, {marginLeft: 0}]}>
-              Open in Google Maps
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheet>
       {/* incident details modal */}
       <IncidentDetailsBottomSheet
         isVisible={detailsUI.isIncidentDetailsVisible}
@@ -2013,7 +1780,7 @@ const styles = StyleSheet.create({
   },
   mapControlsContainer: {
     position: 'absolute',
-    top: 200,
+    top: 80,
     left: 16,
     flexDirection: 'row',
     alignItems: 'center',

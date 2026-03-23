@@ -218,12 +218,12 @@ export function IncidentSummaryCard(
       </View>
 
       {/* View Incident Link */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.linkButton}
         onPress={handleOpenIncidentUrl}
         disabled={!incidentId}>
         <Text style={styles.linkButtonText}>View Incident Details</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }

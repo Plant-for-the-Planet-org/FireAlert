@@ -1,89 +1,84 @@
+import rewind from '@mapbox/geojson-rewind';
+import {useQueryClient} from '@tanstack/react-query';
+import {bbox, multiPolygon, point, polygon} from '@turf/turf';
 import React, {
-  useRef,
-  useMemo,
-  useState,
-  useEffect,
-  useContext,
   useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 import {
-  Text,
-  View,
+  ActivityIndicator,
+  Dimensions,
+  KeyboardAvoidingView,
   Modal,
   Platform,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
   StatusBar,
   StyleSheet,
-  ScrollView,
-  Dimensions,
-  SafeAreaView,
-  RefreshControl,
+  Text,
   TouchableOpacity,
-  ActivityIndicator,
-  KeyboardAvoidingView,
+  View,
 } from 'react-native';
-import bbox from '@turf/bbox';
-import rewind from '@mapbox/geojson-rewind';
 import DeviceInfo from 'react-native-device-info';
-import Toast from 'react-native-toast-notifications';
-import {useQueryClient} from '@tanstack/react-query';
 import LinearGradient from 'react-native-linear-gradient';
-import {useToast} from 'react-native-toast-notifications';
-import {point, polygon, multiPolygon} from '@turf/helpers';
+import Toast, {useToast} from 'react-native-toast-notifications';
 
 import {
-  Switch,
-  DropDown,
-  BottomSheet,
-  CustomButton,
-  FloatingInput,
-} from '../../components';
-import {
   AddIcon,
-  SmsIcon,
-  NatureBg,
-  NasaLogo,
   BellIcon,
-  PhoneIcon,
   CrossIcon,
-  GlobeIcon,
-  EmailIcon,
-  PlanetLogo,
-  PencilIcon,
-  LayerCheck,
-  WarningIcon,
-  LocationWave,
-  GlobeWebIcon,
+  DisabledTrashOutlineIcon,
   DistanceIcon,
   DropdownArrow,
-  TrashSolidIcon,
+  EmailIcon,
+  GlobeIcon,
+  GlobeWebIcon,
+  LayerCheck,
+  LocationWave,
   MapOutlineIcon,
+  NasaLogo,
+  NatureBg,
+  PencilIcon,
+  PhoneIcon,
+  PlanetLogo,
+  SmsIcon,
   TrashOutlineIcon,
+  TrashSolidIcon,
   VerificationWarning,
-  DisabledTrashOutlineIcon,
-  WhatsAppIcon,
+  WarningIcon,
 } from '../../assets/svgs';
+import {
+  BottomSheet,
+  CustomButton,
+  DropDown,
+  FloatingInput,
+  Switch,
+} from '../../components';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
+import {FONT_FAMILY_BOLD} from '../../styles/typography';
 import handleLink from '../../utils/browserLinking';
 import {getDeviceInfo} from '../../utils/deviceInfo';
-import {FONT_FAMILY_BOLD} from '../../styles/typography';
-// import {useAppDispatch, useAppSelector} from '../../hooks';
+// import {updateUserDetails} from '../../redux/slices/login/loginSlice';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {extractCountryCode} from '../../utils/countryCodeFilter';
-// import {updateUserDetails} from '../../redux/slices/login/loginSlice';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
+import {useNavigation} from '@react-navigation/native';
+import {useSelector} from 'react-redux';
+import {useOneSignal} from '../../hooks/notification/useOneSignal';
+import {RootState} from '../../redux/store';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
-import ProtectedSitesSettings from './ProtectedSitesSettings';
 import {
   ComingSoonBadge,
   DisabledBadge,
   DisabledNotificationInfo,
 } from './Badges';
-import {useSelector} from 'react-redux';
-import {RootState} from '../../redux/store';
-import {useNavigation} from '@react-navigation/native';
-import {useOneSignal} from '../../hooks/notification/useOneSignal';
-// import {PromptInAppUpdatePanel} from '../../PromptInAppUpdate';
+import ProtectedSitesSettings from './ProtectedSitesSettings';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;

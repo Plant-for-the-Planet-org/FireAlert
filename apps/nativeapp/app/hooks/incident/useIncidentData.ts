@@ -43,7 +43,7 @@ export function useIncidentData(
     isLoading,
     isError,
     error,
-  } = trpc.siteIncident.getIncidentPublic.useQuery(
+  } = trpc.siteIncident.getIncident.useQuery(
     {json: {incidentId: incidentId!}},
     {
       enabled: !!incidentId && enabled,

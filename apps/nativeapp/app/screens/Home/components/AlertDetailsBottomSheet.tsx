@@ -1,17 +1,26 @@
+import moment from 'moment-timezone';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import {
+  CopyIcon,
+  CrossIcon,
+  LocationPinIcon,
+  RadarIcon,
+  SatelliteIcon,
+  SiteIcon,
+} from '../../../assets/svgs';
 import {BottomSheet} from '../../../components';
-import {SatelliteIcon, LocationPinIcon, CrossIcon} from '../../../assets/svgs';
-import {Colors, Typography} from '../../../styles';
 import {trpc} from '../../../services/trpc';
-import moment from 'moment-timezone';
+import {Colors, Typography} from '../../../styles';
+import {BackArrowIcon} from '../../../assets/svgs';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -19,8 +28,8 @@ interface AlertDetailsBottomSheetProps {
   isVisible: boolean;
   alertId: string | null;
   onClose: () => void;
-  onBack: () => void;
-  showBackButton: boolean;
+  onBack?: () => void;
+  showBackButton?: boolean;
 }
 
 export const AlertDetailsBottomSheet: React.FC<
@@ -32,14 +41,27 @@ export const AlertDetailsBottomSheet: React.FC<
     isLoading,
     isError,
   } = (trpc as any).alert.getAlert.useQuery(
-    {id: alertId || ''},
+    {json: {id: alertId || ''}},
     {
       enabled: !!alertId && isVisible,
       retryDelay: 3000,
     },
   );
 
-  const alert = alertResponse?.data;
+  const alert = alertResponse?.json.data;
+
+  // Fetch incident data if alert has siteIncidentId
+  const {
+    incident,
+    isLoading: isIncidentLoading,
+    isError: isIncidentError,
+  } = trpc.siteIncident.getIncident.useQuery(
+    {json: {incidentId: alert?.siteIncidentId}},
+    {
+      enabled: !!alert?.siteIncidentId && isVisible,
+      retryDelay: 3000,
+    },
+  );
 
   const renderContent = () => {
     if (isLoading) {
@@ -52,6 +74,7 @@ export const AlertDetailsBottomSheet: React.FC<
     }
 
     if (isError || !alert) {
+      console.log({alert});
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>Failed to load alert details</Text>
@@ -63,68 +86,265 @@ export const AlertDetailsBottomSheet: React.FC<
     }
 
     return (
-      <View style={styles.alertContent}>
-        {/* Alert Header */}
-        <View style={styles.alertHeader}>
-          <View style={styles.alertIconContainer}>
-            <SatelliteIcon width={24} height={24} />
+      <>
+        {/* Debug console logs */}
+        {console.log(
+          `[incident] Alert modal opened - alertId: ${
+            alert.id
+          }, siteIncidentId: ${alert.siteIncidentId || 'none'}, site: ${
+            alert.site?.name || 'unknown'
+          }`,
+        )}
+
+        {/* Incident Summary Card - shown when incident data is available */}
+        {incident && (
+          <>
+            {console.log(
+              `[incident] Displaying incident details - incidentId: ${
+                incident.id
+              }, isActive: ${incident.isActive}, alertCount: ${
+                incident.siteAlerts.length
+              }, firePoints: ${incident.siteAlerts
+                .map(
+                  (a, i) =>
+                    `[${i}](${a.latitude.toFixed(4)},${a.longitude.toFixed(
+                      4,
+                    )})`,
+                )
+                .join(' ')}`,
+            )}
+
+            {/* Detection Details Section */}
+            <View style={styles.satelliteInfoCon}>
+              <View style={styles.satelliteIcon}>
+                <SatelliteIcon />
+              </View>
+              <View style={styles.satelliteInfo}>
+                <Text style={styles.satelliteText}>
+                  DETECTED BY {alert.detectedBy}
+                </Text>
+                <Text style={styles.eventDate}>
+                  <Text style={styles.eventFromNow}>
+                    {moment(alert.localEventDate || alert.eventDate)
+                      ?.tz(alert.localTimeZone || 'UTC')
+                      ?.fromNow()}
+                  </Text>{' '}
+                  (
+                  {moment(alert.localEventDate || alert.eventDate)
+                    ?.tz(alert.localTimeZone || 'UTC')
+                    ?.format('DD MMM YYYY [at] HH:mm')}
+                  )
+                </Text>
+                <Text style={styles.confidence}>
+                  <Text style={styles.confidenceVal}>{alert.confidence}</Text>{' '}
+                  alert confidence
+                </Text>
+              </View>
+            </View>
+
+            {/* Site Information Section */}
+            <View
+              style={[
+                styles.alertLocInfoCon,
+                {marginTop: 30, justifyContent: 'space-between'},
+              ]}>
+              <View style={styles.satelliteInfoLeft}>
+                <View style={styles.satelliteIcon}>
+                  <SiteIcon />
+                </View>
+                {alert.site?.project ? (
+                  <View style={styles.satelliteInfo}>
+                    <Text style={styles.satelliteLocText}>PROJECT</Text>
+                    <Text style={styles.alertLocText}>
+                      {alert.site.project.name}{' '}
+                      <Text style={{fontSize: Typography.FONT_SIZE_12}}>
+                        {alert.site.name}
+                      </Text>
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.satelliteInfo}>
+                    <Text style={styles.satelliteLocText}>SITE</Text>
+                    <Text style={styles.alertLocText}>{alert.site?.name}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Location Section */}
+            <View style={styles.separator} />
+            <View
+              style={[
+                styles.alertLocInfoCon,
+                {justifyContent: 'space-between'},
+              ]}>
+              <View style={styles.satelliteInfoLeft}>
+                <View style={styles.satelliteIcon}>
+                  <LocationPinIcon />
+                </View>
+                <View style={styles.satelliteInfo}>
+                  <Text style={styles.satelliteLocText}>LOCATION</Text>
+                  <Text style={styles.alertLocText}>
+                    {Number.parseFloat(alert.latitude).toFixed(5)},{' '}
+                    {Number.parseFloat(alert.longitude).toFixed(5)}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  // Copy coordinates to clipboard
+                  // This should be implemented with clipboard API
+                }}>
+                <CopyIcon />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Radius Section */}
+            <View style={styles.separator} />
+            <View style={styles.alertRadiusInfoCon}>
+              <View style={styles.satelliteIcon}>
+                <RadarIcon />
+              </View>
+              <View style={styles.satelliteInfo}>
+                <Text
+                  style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
+                  Search for fire within a{' '}
+                  <Text
+                    style={[
+                      styles.confidenceVal,
+                      {textTransform: 'lowercase'},
+                    ]}>
+                    {alert.distance == 0 ? 1 : alert.distance} km
+                  </Text>{' '}
+                  radius around the location.
+                </Text>
+              </View>
+            </View>
+
+            {/* Actions Section */}
+            <View style={styles.separator} />
+            <TouchableOpacity
+              onPress={() => {
+                // Open in Google Maps
+                // This should be implemented with Google Maps URL
+              }}
+              style={styles.simpleBtn}>
+              <Text style={[styles.siteActionText, {marginLeft: 0}]}>
+                Open in Google Maps
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+        {!incident &&
+          alert?.siteIncidentId &&
+          (console.log(
+            `[incident] Incident data loading - alertId: ${alert.id}, siteIncidentId: ${alert.siteIncidentId}, isLoading: ${isIncidentLoading}, isError: ${isIncidentError}`,
+          ),
+          null)}
+
+        <View style={styles.satelliteInfoCon}>
+          <View style={styles.satelliteIcon}>
+            <SatelliteIcon />
           </View>
-          <View style={styles.alertInfo}>
-            <Text style={styles.alertDetectedBy}>
+          <View style={styles.satelliteInfo}>
+            <Text style={styles.satelliteText}>
               DETECTED BY {alert.detectedBy}
             </Text>
-            <Text style={styles.alertTime}>
+            <Text style={styles.eventDate}>
+              <Text style={styles.eventFromNow}>
+                {moment(alert.localEventDate || alert.eventDate)
+                  ?.tz(alert.localTimeZone || 'UTC')
+                  ?.fromNow()}
+              </Text>{' '}
+              (
               {moment(alert.localEventDate || alert.eventDate)
-                .tz(alert.localTimeZone || 'UTC')
-                .format('DD MMM YYYY [at] HH:mm')}
+                ?.tz(alert.localTimeZone || 'UTC')
+                ?.format('DD MMM YYYY [at] HH:mm')}
+              )
+            </Text>
+            <Text style={styles.confidence}>
+              <Text style={styles.confidenceVal}>{alert.confidence}</Text> alert
+              confidence
             </Text>
           </View>
         </View>
-
-        {/* Alert Details */}
-        <View style={styles.alertDetails}>
-          <View style={styles.detailSection}>
-            <Text style={styles.detailSectionTitle}>Location</Text>
-            <View style={styles.locationRow}>
-              <LocationPinIcon width={16} height={16} />
-              <Text style={styles.locationText}>
+        <View
+          style={[
+            styles.alertLocInfoCon,
+            {marginTop: 30, justifyContent: 'space-between'},
+          ]}>
+          <View style={styles.satelliteInfoLeft}>
+            <View style={styles.satelliteIcon}>
+              <SiteIcon />
+            </View>
+            {alert.site?.project ? (
+              <View style={styles.satelliteInfo}>
+                <Text style={styles.satelliteLocText}>PROJECT</Text>
+                <Text style={styles.alertLocText}>
+                  {alert.site.project.name}{' '}
+                  <Text style={{fontSize: Typography.FONT_SIZE_12}}>
+                    {alert.site.name}
+                  </Text>
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.satelliteInfo}>
+                <Text style={styles.satelliteLocText}>SITE</Text>
+                <Text style={styles.alertLocText}>{alert.site?.name}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+        <View style={styles.separator} />
+        <View
+          style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
+          <View style={styles.satelliteInfoLeft}>
+            <View style={styles.satelliteIcon}>
+              <LocationPinIcon />
+            </View>
+            <View style={styles.satelliteInfo}>
+              <Text style={styles.satelliteLocText}>LOCATION</Text>
+              <Text style={styles.alertLocText}>
                 {Number.parseFloat(alert.latitude).toFixed(5)},{' '}
                 {Number.parseFloat(alert.longitude).toFixed(5)}
               </Text>
             </View>
           </View>
-
-          <View style={styles.detailSection}>
-            <Text style={styles.detailSectionTitle}>Detection Details</Text>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Confidence:</Text>
-              <Text style={styles.detailValue}>{alert.confidence}</Text>
-            </View>
-            {alert.type && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Type:</Text>
-                <Text style={styles.detailValue}>{alert.type}</Text>
-              </View>
-            )}
-            {alert.distance && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Distance:</Text>
-                <Text style={styles.detailValue}>{alert.distance} km</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Associated Incident */}
-          {alert.siteIncidentId && (
-            <View style={styles.detailSection}>
-              <Text style={styles.detailSectionTitle}>Associated Incident</Text>
-              <Text style={styles.incidentIdText}>
-                ID: {alert.siteIncidentId}
-              </Text>
-            </View>
-          )}
+          <TouchableOpacity
+            onPress={() => {
+              // Copy coordinates to clipboard
+              // This should be implemented with the clipboard API
+            }}>
+            <CopyIcon />
+          </TouchableOpacity>
         </View>
-      </View>
+        <View style={styles.separator} />
+        <View style={styles.alertRadiusInfoCon}>
+          <View style={styles.satelliteIcon}>
+            <RadarIcon />
+          </View>
+          <View style={styles.satelliteInfo}>
+            <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
+              Search for the fire within a{' '}
+              <Text
+                style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
+                {alert.distance == 0 ? 1 : alert.distance} km
+              </Text>{' '}
+              radius around the location.
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={() => {
+            // Open in Google Maps
+            // This should be implemented with Google Maps URL
+          }}
+          style={styles.simpleBtn}>
+          <Text style={[styles.siteActionText, {marginLeft: 0}]}>
+            Open in Google Maps
+          </Text>
+        </TouchableOpacity>
+      </>
     );
   };
 
@@ -136,32 +356,35 @@ export const AlertDetailsBottomSheet: React.FC<
       snapPoints={['50%']}
       initialSnapIndex={0}
       useScrollableContainer>
-      <View style={styles.modalContainer}>
-        {/* Header */}
-        <View style={styles.modalHeader}>
-          <View style={styles.modalHeaderHandle} />
-          <View style={styles.headerActions}>
-            {showBackButton && (
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={onBack}
-                accessibilityLabel="Go back to incident details"
-                accessibilityRole="button">
-                <CrossIcon width={20} height={20} style={styles.backIcon} />
-              </TouchableOpacity>
-            )}
+      <View style={[styles.modalContainer, styles.commonPadding]}>
+        <View style={styles.modalHeaderContainer}>
+          <View style={styles.modalHeader} />
+        </View>
+        <View style={styles.headerActions}>
+          {showBackButton && onBack && (
             <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBack}
+              accessibilityLabel="Go back to incident details"
+              accessibilityRole="button">
+              {/* <CrossIcon width={20} height={20} style={styles.backIcon} /> */}
+              <BackArrowIcon />
+            </TouchableOpacity>
+          )}
+          {/* <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
               accessibilityLabel="Close alert details"
               accessibilityRole="button">
               <CrossIcon width={20} height={20} />
-            </TouchableOpacity>
-          </View>
+            </TouchableOpacity> */}
         </View>
-
-        {/* Content */}
-        {renderContent()}
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContentContainer}
+          showsVerticalScrollIndicator={false}>
+          {renderContent()}
+        </ScrollView>
       </View>
     </BottomSheet>
   );
@@ -172,42 +395,47 @@ const styles = StyleSheet.create({
     flex: 1,
     bottom: 0,
     borderRadius: 15,
-    paddingBottom: 12,
     width: SCREEN_WIDTH,
     backgroundColor: Colors.WHITE,
   },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    paddingBottom: 16,
+  },
   modalHeader: {
+    width: 46,
+    height: 8,
+    marginTop: 10,
+    marginBottom: 16,
+    borderRadius: 5,
+    alignSelf: 'center',
+    backgroundColor: Colors.GRAY_MEDIUM,
+  },
+  modalHeaderContainer: {
     position: 'relative',
     paddingTop: 10,
     paddingBottom: 16,
   },
-  modalHeaderHandle: {
-    width: 46,
-    height: 8,
-    borderRadius: 5,
-    alignSelf: 'center',
-    backgroundColor: Colors.GRAY_MEDIUM,
-    marginBottom: 16,
-  },
   headerActions: {
     position: 'absolute',
     top: 10,
-    right: 16,
+    left: 16,
     flexDirection: 'row',
     gap: 12,
   },
   backButton: {
     padding: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.GRAY_LIGHTEST,
   },
   closeButton: {
     padding: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.GRAY_LIGHTEST,
   },
   backIcon: {
     transform: [{rotate: '90deg'}],
+  },
+  commonPadding: {
+    paddingHorizontal: 16,
   },
   centerContainer: {
     padding: 32,
@@ -239,90 +467,88 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.WHITE,
   },
-  alertContent: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  alertHeader: {
+  satelliteInfoCon: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.GRAY_LIGHT,
+    marginTop: 20,
   },
-  alertIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  satelliteIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.GRADIENT_PRIMARY + '20',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
-  alertInfo: {
+  satelliteInfo: {
     flex: 1,
   },
-  alertDetectedBy: {
+  satelliteText: {
     fontSize: Typography.FONT_SIZE_12,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
     marginBottom: 4,
   },
-  alertTime: {
-    fontSize: Typography.FONT_SIZE_16,
+  eventDate: {
+    fontSize: Typography.FONT_SIZE_14,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.GRAY_DEEP,
   },
-  alertDetails: {
+  eventFromNow: {
+    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
+  },
+  confidence: {
+    fontSize: Typography.FONT_SIZE_14,
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    color: Colors.GRAY_DEEP,
+  },
+  confidenceVal: {
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.GRADIENT_PRIMARY,
+  },
+  alertLocInfoCon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  satelliteInfoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    gap: 24,
   },
-  detailSection: {
-    gap: 12,
-  },
-  detailSectionTitle: {
-    fontSize: Typography.FONT_SIZE_18,
+  satelliteLocText: {
+    fontSize: Typography.FONT_SIZE_12,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.TEXT_COLOR,
     marginBottom: 4,
   },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  locationText: {
+  alertLocText: {
     fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
     color: Colors.TEXT_COLOR,
   },
-  detailRow: {
+  separator: {
+    height: 1,
+    backgroundColor: Colors.GRAY_LIGHT,
+    marginVertical: 20,
+  },
+  alertRadiusInfoCon: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    marginTop: 20,
   },
-  detailLabel: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.GRAY_DEEP,
-    flex: 1,
+  simpleBtn: {
+    backgroundColor: Colors.GRADIENT_PRIMARY,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
   },
-  detailValue: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
-    color: Colors.TEXT_COLOR,
-    flex: 1,
-    textAlign: 'right',
-  },
-  incidentIdText: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.GRAY_DEEP,
-    backgroundColor: Colors.GRAY_LIGHTEST,
-    padding: 8,
-    borderRadius: 6,
-    textAlign: 'center',
+  siteActionText: {
+    fontSize: Typography.FONT_SIZE_16,
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    color: Colors.WHITE,
   },
 });
