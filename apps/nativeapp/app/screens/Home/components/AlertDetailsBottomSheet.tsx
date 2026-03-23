@@ -1,4 +1,3 @@
-import moment from 'moment-timezone';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -8,19 +7,22 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
+  Linking,
+  Alert,
 } from 'react-native';
-import {
-  CopyIcon,
-  CrossIcon,
-  LocationPinIcon,
-  RadarIcon,
-  SatelliteIcon,
-  SiteIcon,
-} from '../../../assets/svgs';
 import {BottomSheet} from '../../../components';
 import {trpc} from '../../../services/trpc';
 import {Colors, Typography} from '../../../styles';
 import {BackArrowIcon} from '../../../assets/svgs';
+import {
+  AlertDetectionSection,
+  AlertSiteSection,
+  AlertLocationSection,
+  AlertRadiusSection,
+  AlertActionsSection,
+} from '../../../components/Alert';
+import {IncidentSummaryCard} from '../../../components/Incident/IncidentSummaryCard';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -35,6 +37,30 @@ interface AlertDetailsBottomSheetProps {
 export const AlertDetailsBottomSheet: React.FC<
   AlertDetailsBottomSheetProps
 > = ({isVisible, alertId, onClose, onBack, showBackButton}) => {
+  // Helper functions
+  const handleCopyCoordinates = (latitude: number, longitude: number) => {
+    const coordinates = `${latitude}, ${longitude}`;
+    // Copy to clipboard logic would go here
+    console.log('Copied to clipboard:', coordinates);
+  };
+
+  const handleGoogleRedirect = (latitude: number, longitude: number) => {
+    const lat = Number.parseFloat(latitude.toString());
+    const lng = Number.parseFloat(longitude.toString());
+    const scheme = Platform.select({ios: 'maps:', android: 'geo:'});
+    const url = Platform.select({
+      ios: `${scheme}0,0?q=${lat},${lng}`,
+      android: `${scheme}${lat},${lng}?q=${lat},${lng}`,
+    });
+
+    if (url) {
+      Linking.openURL(url).catch(err => {
+        console.error('Failed to open Google Maps:', err);
+        Alert.alert('Error', 'Unable to open Google Maps');
+      });
+    }
+  };
+
   // Fetch alert data
   const {
     data: alertResponse,
@@ -114,125 +140,39 @@ export const AlertDetailsBottomSheet: React.FC<
                 .join(' ')}`,
             )}
 
-            {/* Detection Details Section */}
-            <View style={styles.satelliteInfoCon}>
-              <View style={styles.satelliteIcon}>
-                <SatelliteIcon />
-              </View>
-              <View style={styles.satelliteInfo}>
-                <Text style={styles.satelliteText}>
-                  DETECTED BY {alert.detectedBy}
-                </Text>
-                <Text style={styles.eventDate}>
-                  <Text style={styles.eventFromNow}>
-                    {moment(alert.localEventDate || alert.eventDate)
-                      ?.tz(alert.localTimeZone || 'UTC')
-                      ?.fromNow()}
-                  </Text>{' '}
-                  (
-                  {moment(alert.localEventDate || alert.eventDate)
-                    ?.tz(alert.localTimeZone || 'UTC')
-                    ?.format('DD MMM YYYY [at] HH:mm')}
-                  )
-                </Text>
-                <Text style={styles.confidence}>
-                  <Text style={styles.confidenceVal}>{alert.confidence}</Text>{' '}
-                  alert confidence
-                </Text>
-              </View>
-            </View>
+            <IncidentSummaryCard
+              isActive={incident.isActive}
+              startAlert={incident.startSiteAlert}
+              latestAlert={incident.latestSiteAlert}
+              allAlerts={incident.siteAlerts}
+              incidentId={incident.id}
+            />
 
-            {/* Site Information Section */}
-            <View
-              style={[
-                styles.alertLocInfoCon,
-                {marginTop: 30, justifyContent: 'space-between'},
-              ]}>
-              <View style={styles.satelliteInfoLeft}>
-                <View style={styles.satelliteIcon}>
-                  <SiteIcon />
-                </View>
-                {alert.site?.project ? (
-                  <View style={styles.satelliteInfo}>
-                    <Text style={styles.satelliteLocText}>PROJECT</Text>
-                    <Text style={styles.alertLocText}>
-                      {alert.site.project.name}{' '}
-                      <Text style={{fontSize: Typography.FONT_SIZE_12}}>
-                        {alert.site.name}
-                      </Text>
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.satelliteInfo}>
-                    <Text style={styles.satelliteLocText}>SITE</Text>
-                    <Text style={styles.alertLocText}>{alert.site?.name}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
+            <AlertDetectionSection
+              detectedBy={alert.detectedBy}
+              localEventDate={alert.localEventDate}
+              eventDate={alert.eventDate}
+              localTimeZone={alert.localTimeZone}
+              confidence={alert.confidence}
+            />
 
-            {/* Location Section */}
-            <View style={styles.separator} />
-            <View
-              style={[
-                styles.alertLocInfoCon,
-                {justifyContent: 'space-between'},
-              ]}>
-              <View style={styles.satelliteInfoLeft}>
-                <View style={styles.satelliteIcon}>
-                  <LocationPinIcon />
-                </View>
-                <View style={styles.satelliteInfo}>
-                  <Text style={styles.satelliteLocText}>LOCATION</Text>
-                  <Text style={styles.alertLocText}>
-                    {Number.parseFloat(alert.latitude).toFixed(5)},{' '}
-                    {Number.parseFloat(alert.longitude).toFixed(5)}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => {
-                  // Copy coordinates to clipboard
-                  // This should be implemented with clipboard API
-                }}>
-                <CopyIcon />
-              </TouchableOpacity>
-            </View>
+            {alert.site && <AlertSiteSection site={alert.site} />}
 
-            {/* Search Radius Section */}
-            <View style={styles.separator} />
-            <View style={styles.alertRadiusInfoCon}>
-              <View style={styles.satelliteIcon}>
-                <RadarIcon />
-              </View>
-              <View style={styles.satelliteInfo}>
-                <Text
-                  style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
-                  Search for fire within a{' '}
-                  <Text
-                    style={[
-                      styles.confidenceVal,
-                      {textTransform: 'lowercase'},
-                    ]}>
-                    {alert.distance == 0 ? 1 : alert.distance} km
-                  </Text>{' '}
-                  radius around the location.
-                </Text>
-              </View>
-            </View>
+            <AlertLocationSection
+              latitude={alert.latitude}
+              longitude={alert.longitude}
+              onCopyCoordinates={() =>
+                handleCopyCoordinates(alert.latitude, alert.longitude)
+              }
+            />
 
-            {/* Actions Section */}
-            <View style={styles.separator} />
-            <TouchableOpacity
-              onPress={() => {
-                // Open in Google Maps
-                // This should be implemented with Google Maps URL
-              }}
-              style={styles.simpleBtn}>
-              <Text style={[styles.siteActionText, {marginLeft: 0}]}>
-                Open in Google Maps
-              </Text>
-            </TouchableOpacity>
+            <AlertRadiusSection distance={alert.distance} />
+
+            <AlertActionsSection
+              onOpenInGoogleMaps={() =>
+                handleGoogleRedirect(alert.latitude, alert.longitude)
+              }
+            />
           </>
         )}
         {!incident &&
@@ -242,108 +182,31 @@ export const AlertDetailsBottomSheet: React.FC<
           ),
           null)}
 
-        <View style={styles.satelliteInfoCon}>
-          <View style={styles.satelliteIcon}>
-            <SatelliteIcon />
-          </View>
-          <View style={styles.satelliteInfo}>
-            <Text style={styles.satelliteText}>
-              DETECTED BY {alert.detectedBy}
-            </Text>
-            <Text style={styles.eventDate}>
-              <Text style={styles.eventFromNow}>
-                {moment(alert.localEventDate || alert.eventDate)
-                  ?.tz(alert.localTimeZone || 'UTC')
-                  ?.fromNow()}
-              </Text>{' '}
-              (
-              {moment(alert.localEventDate || alert.eventDate)
-                ?.tz(alert.localTimeZone || 'UTC')
-                ?.format('DD MMM YYYY [at] HH:mm')}
-              )
-            </Text>
-            <Text style={styles.confidence}>
-              <Text style={styles.confidenceVal}>{alert.confidence}</Text> alert
-              confidence
-            </Text>
-          </View>
-        </View>
-        <View
-          style={[
-            styles.alertLocInfoCon,
-            {marginTop: 30, justifyContent: 'space-between'},
-          ]}>
-          <View style={styles.satelliteInfoLeft}>
-            <View style={styles.satelliteIcon}>
-              <SiteIcon />
-            </View>
-            {alert.site?.project ? (
-              <View style={styles.satelliteInfo}>
-                <Text style={styles.satelliteLocText}>PROJECT</Text>
-                <Text style={styles.alertLocText}>
-                  {alert.site.project.name}{' '}
-                  <Text style={{fontSize: Typography.FONT_SIZE_12}}>
-                    {alert.site.name}
-                  </Text>
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.satelliteInfo}>
-                <Text style={styles.satelliteLocText}>SITE</Text>
-                <Text style={styles.alertLocText}>{alert.site?.name}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-        <View style={styles.separator} />
-        <View
-          style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
-          <View style={styles.satelliteInfoLeft}>
-            <View style={styles.satelliteIcon}>
-              <LocationPinIcon />
-            </View>
-            <View style={styles.satelliteInfo}>
-              <Text style={styles.satelliteLocText}>LOCATION</Text>
-              <Text style={styles.alertLocText}>
-                {Number.parseFloat(alert.latitude).toFixed(5)},{' '}
-                {Number.parseFloat(alert.longitude).toFixed(5)}
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              // Copy coordinates to clipboard
-              // This should be implemented with the clipboard API
-            }}>
-            <CopyIcon />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.separator} />
-        <View style={styles.alertRadiusInfoCon}>
-          <View style={styles.satelliteIcon}>
-            <RadarIcon />
-          </View>
-          <View style={styles.satelliteInfo}>
-            <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
-              Search for the fire within a{' '}
-              <Text
-                style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
-                {alert.distance == 0 ? 1 : alert.distance} km
-              </Text>{' '}
-              radius around the location.
-            </Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          onPress={() => {
-            // Open in Google Maps
-            // This should be implemented with Google Maps URL
-          }}
-          style={styles.simpleBtn}>
-          <Text style={[styles.siteActionText, {marginLeft: 0}]}>
-            Open in Google Maps
-          </Text>
-        </TouchableOpacity>
+        <AlertDetectionSection
+          detectedBy={alert.detectedBy}
+          localEventDate={alert.localEventDate}
+          eventDate={alert.eventDate}
+          localTimeZone={alert.localTimeZone}
+          confidence={alert.confidence}
+        />
+
+        {alert.site && <AlertSiteSection site={alert.site} />}
+
+        <AlertLocationSection
+          latitude={alert.latitude}
+          longitude={alert.longitude}
+          onCopyCoordinates={() =>
+            handleCopyCoordinates(alert.latitude, alert.longitude)
+          }
+        />
+
+        <AlertRadiusSection distance={alert.distance} />
+
+        <AlertActionsSection
+          onOpenInGoogleMaps={() =>
+            handleGoogleRedirect(alert.latitude, alert.longitude)
+          }
+        />
       </>
     );
   };

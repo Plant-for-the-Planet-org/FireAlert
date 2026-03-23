@@ -8,10 +8,12 @@ import {
   Dimensions,
 } from 'react-native';
 import {BottomSheetFlatList} from '@gorhom/bottom-sheet';
-import moment from 'moment-timezone';
 import {BottomSheet} from '../../../components';
 import {IncidentSummaryCard} from '../../../components/Incident/IncidentSummaryCard';
-import {SatelliteIcon, LocationPinIcon} from '../../../assets/svgs';
+import {
+  AlertSummaryCard,
+  type AlertSummaryCardData,
+} from '../../../components/Alert';
 import {Colors, Typography} from '../../../styles';
 import {trpc} from '../../../services/trpc';
 import type {SiteAlertData} from '../../../types/incident';
@@ -53,42 +55,27 @@ export const IncidentDetailsBottomSheet: React.FC<
 
   const renderAlertItem = ({item}: {item: any}) => {
     const alert = item;
-    return (
-      <TouchableOpacity
-        style={styles.alertItem}
-        onPress={() => onAlertTap(alert)}
-        accessibilityLabel={`Alert detected at ${alert.latitude}, ${alert.longitude}`}
-        accessibilityRole="button">
-        <View style={styles.alertHeader}>
-          <View style={styles.alertIconContainer}>
-            <SatelliteIcon width={20} height={20} />
-          </View>
-          <View style={styles.alertInfo}>
-            <Text style={styles.alertDetectedBy}>
-              DETECTED BY {alert.detectedBy}
-            </Text>
-            <Text style={styles.alertTime}>
-              {moment(alert.localEventDate || alert.eventDate)
-                .tz(alert.localTimeZone || 'UTC')
-                .format('DD MMM YYYY [at] HH:mm')}
-            </Text>
-          </View>
-        </View>
 
-        <View style={styles.alertDetails}>
-          <View style={styles.alertDetailRow}>
-            <LocationPinIcon width={16} height={16} />
-            <Text style={styles.alertDetailText}>
-              {Number.parseFloat(alert.latitude).toFixed(5)},{' '}
-              {Number.parseFloat(alert.longitude).toFixed(5)}
-            </Text>
-          </View>
-          <View style={styles.alertConfidence}>
-            <Text style={styles.confidenceLabel}>Confidence: </Text>
-            <Text style={styles.confidenceValue}>{alert.confidence}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
+    // Convert alert data to AlertSummaryCardData format
+    const alertSummaryData: AlertSummaryCardData = {
+      id: alert.id,
+      eventDate: alert.eventDate,
+      localEventDate: alert.localEventDate,
+      localTimeZone: alert.localTimeZone,
+      latitude: alert.latitude,
+      longitude: alert.longitude,
+      detectedBy: alert.detectedBy,
+      confidence: alert.confidence,
+      distance: alert.distance || 1, // Default distance if not provided
+      site: alert.site,
+      siteIncidentId: alert.siteIncidentId,
+    };
+
+    return (
+      <AlertSummaryCard
+        alert={alertSummaryData}
+        onPress={() => onAlertTap(alert)}
+      />
     );
   };
 
