@@ -4,6 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {bbox, multiPolygon, polygon} from '@turf/turf';
 import Lottie from 'lottie-react-native';
 import moment from 'moment-timezone';
+import type {Feature, Polygon as GeoJsonPolygon} from 'geojson';
 import {
   ActivityIndicator,
   BackHandler,
@@ -319,7 +320,7 @@ const Home = ({navigation: _navigation, route}) => {
             latitude: a.latitude,
             longitude: a.longitude,
           })),
-          2,
+          0.5,
         ),
       }));
   }, [filteredAlerts, mapDisplayMode]);
@@ -335,7 +336,7 @@ const Home = ({navigation: _navigation, route}) => {
       longitude: a.longitude,
     }));
 
-    return generateIncidentCircle(fires, 2);
+    return generateIncidentCircle(fires, 0.5);
   }, [incident?.siteAlerts]);
 
   // Update incident circle data when calculation completes
@@ -636,33 +637,70 @@ const Home = ({navigation: _navigation, route}) => {
     setMapDurationDays(days);
   };
 
-  const handleIncidentTap = async (incidentId: string) => {
+  const handleIncidentTap = async (
+    incidentId: string,
+    incidentBoundary?: Feature<GeoJsonPolygon> | null,
+  ) => {
     try {
-      // Fetch incident data to get alert locations for zoom calculation
-      const incidentResponse = await (
-        trpc as any
-      ).siteIncident.getIncident.fetch({json: {incidentId}});
+      const focusPadding = [80, 40, Math.max(240, SCREEN_HEIGHT * 0.45), 40];
+      let hasFocused = false;
 
-      if (
-        incidentResponse?.siteAlerts &&
-        incidentResponse.siteAlerts.length > 0
-      ) {
-        // Calculate optimal camera position for incident
-        const cameraSettings = calculateIncidentCamera(
-          incidentResponse.siteAlerts,
-        );
+      // Try using already-rendered boundary first for reliable instant focus.
+      const tappedBoundary =
+        incidentBoundary ||
+        (composedIncidents.find(item => item.incidentId === incidentId)?.circle
+          ?.circlePolygon as Feature<GeoJsonPolygon> | undefined);
 
-        if (cameraSettings && camera?.current?.setCamera) {
-          // Apply zoom to incident boundaries
-          camera.current.setCamera({
-            centerCoordinate: cameraSettings.centerCoordinate,
-            zoomLevel: cameraSettings.zoomLevel,
-            animationDuration: 500,
-          });
-
+      if (tappedBoundary && camera?.current?.fitBounds) {
+        const [minLng, minLat, maxLng, maxLat] = bbox(tappedBoundary);
+        if (
+          [minLng, minLat, maxLng, maxLat].every(value =>
+            Number.isFinite(value),
+          )
+        ) {
+          camera.current.fitBounds(
+            [maxLng, maxLat],
+            [minLng, minLat],
+            focusPadding,
+            500,
+          );
+          hasFocused = true;
         }
-      } else {
-        console.warn('[Home] No alerts found for incident zoom calculation');
+      }
+
+      // Fallback to server fetch and boundary calculation if local boundary was unavailable.
+      if (!hasFocused) {
+        const incidentResponse = await (
+          trpc as any
+        ).siteIncident.getIncident.fetch({json: {incidentId}});
+
+        if (
+          incidentResponse?.siteAlerts &&
+          incidentResponse.siteAlerts.length > 0
+        ) {
+          const cameraSettings = calculateIncidentCamera(
+            incidentResponse.siteAlerts,
+          );
+
+          if (cameraSettings?.bounds && camera?.current?.fitBounds) {
+            camera.current.fitBounds(
+              cameraSettings.bounds.ne,
+              cameraSettings.bounds.sw,
+              focusPadding,
+              500,
+            );
+            hasFocused = true;
+          } else if (cameraSettings && camera?.current?.setCamera) {
+            camera.current.setCamera({
+              centerCoordinate: cameraSettings.centerCoordinate,
+              zoomLevel: cameraSettings.zoomLevel,
+              animationDuration: 500,
+            });
+            hasFocused = true;
+          }
+        } else {
+          console.warn('[Home] No alerts found for incident zoom calculation');
+        }
       }
 
       // Open incident details with Redux
@@ -939,7 +977,12 @@ const Home = ({navigation: _navigation, route}) => {
           key={`incident-${incident.incidentId}`}
           id={`incident-circle-${incident.incidentId}`}
           shape={incident.circle.circlePolygon}
-          onPress={() => handleIncidentTap(incident.incidentId)}>
+          onPress={() =>
+            handleIncidentTap(
+              incident.incidentId,
+              incident.circle?.circlePolygon,
+            )
+          }>
           <MapboxGL.FillLayer
             id={`incident-circle-fill-${incident.incidentId}`}
             style={{

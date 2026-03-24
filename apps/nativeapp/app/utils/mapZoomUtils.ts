@@ -3,7 +3,9 @@
  * for incidents and alerts in the FireAlert app
  */
 
-import type {FirePoint, IncidentCircleResult} from '../types/incident';
+import {bbox} from '@turf/turf';
+import type {FirePoint} from '../types/incident';
+import {generateIncidentCircle} from './incident/incidentCircleUtils';
 
 /**
  * Calculates optimal zoom level based on incident radius
@@ -58,12 +60,15 @@ export function calculateAlertZoom(alertType?: string, confidence?: string): num
  * @returns Camera settings object or null if calculation fails
  */
 export function calculateIncidentCamera(
-  alerts: any[], 
-  paddingKm: number = 2
+  alerts: any[],
+  paddingKm: number = 0.5,
 ): {
   centerCoordinate: [number, number];
   zoomLevel: number;
-  bounds?: [[number, number], [number, number]];
+  bounds?: {
+    ne: [number, number];
+    sw: [number, number];
+  };
 } | null {
   if (!alerts || alerts.length === 0) {
     console.warn('[mapZoom] No alerts provided for incident camera calculation');
@@ -73,39 +78,37 @@ export function calculateIncidentCamera(
   try {
     // Convert alerts to FirePoint format
     const firePoints: FirePoint[] = alerts.map(alert => ({
-      latitude: alert.latitude,
-      longitude: alert.longitude,
+      latitude: Number(alert.latitude),
+      longitude: Number(alert.longitude),
     }));
 
-    // Calculate bounds from fire points
-    const lats = firePoints.map(p => p.latitude);
-    const lngs = firePoints.map(p => p.longitude);
-    
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    
-    // Calculate center
-    const centerLat = (minLat + maxLat) / 2;
-    const centerLng = (minLng + maxLng) / 2;
-    
-    // Calculate rough radius (simplified)
-    const latDiff = maxLat - minLat;
-    const lngDiff = maxLng - minLng;
-    const radiusKm = Math.max(latDiff * 111, lngDiff * 111) / 2 + paddingKm;
-    
-    // Calculate optimal zoom
-    const zoomLevel = calculateZoomFromRadius(radiusKm);
-    
-    console.log(
-      `[mapZoom] Incident camera calculated - center: [${centerLng}, ${centerLat}], zoom: ${zoomLevel}, radius: ${radiusKm.toFixed(2)}km`
-    );
+    const incidentBoundary = generateIncidentCircle(firePoints, paddingKm);
+    if (!incidentBoundary) {
+      return null;
+    }
+
+    const bounds = bbox(incidentBoundary.circlePolygon);
+    let [minLng, minLat, maxLng, maxLat] = bounds;
+
+    // Guard against degenerate bounds for very small boundaries.
+    if (minLng === maxLng) {
+      minLng -= 0.0005;
+      maxLng += 0.0005;
+    }
+    if (minLat === maxLat) {
+      minLat -= 0.0005;
+      maxLat += 0.0005;
+    }
+
+    const zoomLevel = calculateZoomFromRadius(incidentBoundary.radiusKm);
 
     return {
-      centerCoordinate: [centerLng, centerLat],
+      centerCoordinate: incidentBoundary.centroid,
       zoomLevel,
-      bounds: [[minLng, minLat], [maxLng, maxLat]],
+      bounds: {
+        ne: [maxLng, maxLat],
+        sw: [minLng, minLat],
+      },
     };
   } catch (error) {
     console.error('[mapZoom] Error calculating incident camera:', error);
