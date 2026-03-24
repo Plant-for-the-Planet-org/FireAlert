@@ -8,10 +8,12 @@ import {
   Dimensions,
 } from 'react-native';
 import {BottomSheetFlatList} from '@gorhom/bottom-sheet';
-import moment from 'moment-timezone';
 import {BottomSheet} from '../../../components';
 import {IncidentSummaryCard} from '../../../components/Incident/IncidentSummaryCard';
-import {SatelliteIcon, LocationPinIcon} from '../../../assets/svgs';
+import {
+  AlertSummaryCard,
+  type AlertSummaryCardData,
+} from '../../../components/Alert';
 import {Colors, Typography} from '../../../styles';
 import {trpc} from '../../../services/trpc';
 import type {SiteAlertData} from '../../../types/incident';
@@ -23,18 +25,19 @@ interface IncidentDetailsBottomSheetProps {
   incidentId: string | null;
   onClose: () => void;
   onAlertTap: (alert: SiteAlertData) => void;
+  onStopAlerts?: (incidentId: string) => void;
 }
 
 export const IncidentDetailsBottomSheet: React.FC<
   IncidentDetailsBottomSheetProps
-> = ({isVisible, incidentId, onClose, onAlertTap}) => {
+> = ({isVisible, incidentId, onClose, onAlertTap, onStopAlerts}) => {
   // Fetch incident data
   const {
     data: incident,
     isLoading,
     isError,
-  } = trpc.siteIncident.getIncidentPublic.useQuery(
-    {incidentId: incidentId || ''},
+  } = (trpc as any).siteIncident.getIncident.useQuery(
+    {json: {incidentId: incidentId || ''}},
     {
       enabled: !!incidentId && isVisible,
       retryDelay: 3000,
@@ -42,7 +45,7 @@ export const IncidentDetailsBottomSheet: React.FC<
   );
 
   // Sort alerts by event date (newest first)
-  const sortedAlerts = useMemo<SiteAlertData[]>(() => {
+  const sortedAlerts = useMemo<any[]>(() => {
     if (!incident?.json?.data?.siteAlerts) return [];
     return [...incident.json.data.siteAlerts].sort(
       (a, b) =>
@@ -50,44 +53,29 @@ export const IncidentDetailsBottomSheet: React.FC<
     );
   }, [incident]);
 
-  const renderAlertItem = ({item}: {item: SiteAlertData}) => {
+  const renderAlertItem = ({item}: {item: any}) => {
     const alert = item;
-    return (
-      <TouchableOpacity
-        style={styles.alertItem}
-        onPress={() => onAlertTap(alert)}
-        accessibilityLabel={`Alert detected at ${alert.latitude}, ${alert.longitude}`}
-        accessibilityRole="button">
-        <View style={styles.alertHeader}>
-          <View style={styles.alertIconContainer}>
-            <SatelliteIcon width={20} height={20} />
-          </View>
-          <View style={styles.alertInfo}>
-            <Text style={styles.alertDetectedBy}>
-              DETECTED BY {alert.detectedBy}
-            </Text>
-            <Text style={styles.alertTime}>
-              {moment(alert.localEventDate || alert.eventDate)
-                .tz(alert.localTimeZone || 'UTC')
-                .format('DD MMM YYYY [at] HH:mm')}
-            </Text>
-          </View>
-        </View>
 
-        <View style={styles.alertDetails}>
-          <View style={styles.alertDetailRow}>
-            <LocationPinIcon width={16} height={16} />
-            <Text style={styles.alertDetailText}>
-              {Number.parseFloat(alert.latitude).toFixed(5)},{' '}
-              {Number.parseFloat(alert.longitude).toFixed(5)}
-            </Text>
-          </View>
-          <View style={styles.alertConfidence}>
-            <Text style={styles.confidenceLabel}>Confidence: </Text>
-            <Text style={styles.confidenceValue}>{alert.confidence}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
+    // Convert alert data to AlertSummaryCardData format
+    const alertSummaryData: AlertSummaryCardData = {
+      id: alert.id,
+      eventDate: alert.eventDate,
+      localEventDate: alert.localEventDate,
+      localTimeZone: alert.localTimeZone,
+      latitude: alert.latitude,
+      longitude: alert.longitude,
+      detectedBy: alert.detectedBy,
+      confidence: alert.confidence,
+      distance: alert.distance || 1, // Default distance if not provided
+      site: alert.site,
+      siteIncidentId: alert.siteIncidentId,
+    };
+
+    return (
+      <AlertSummaryCard
+        alert={alertSummaryData}
+        onPress={() => onAlertTap(alert)}
+      />
     );
   };
 
@@ -129,8 +117,21 @@ export const IncidentDetailsBottomSheet: React.FC<
               startAlert={incidentData.startSiteAlert}
               latestAlert={incidentData.latestSiteAlert}
               allAlerts={incidentData.siteAlerts}
-              incidentId={incidentData.id}
             />
+
+            {onStopAlerts && (
+              <View style={styles.stopAlertsSection}>
+                <TouchableOpacity
+                  style={styles.stopAlertsButton}
+                  onPress={() => onStopAlerts(incidentData.id)}
+                  accessibilityLabel="Stop alerts for this incident"
+                  accessibilityRole="button">
+                  <Text style={styles.stopAlertsButtonText}>
+                    Stop Alerts for the Incident
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.alertsSection}>
               <Text style={styles.alertsSectionTitle}>
@@ -151,7 +152,7 @@ export const IncidentDetailsBottomSheet: React.FC<
       isVisible={isVisible}
       onBackdropPress={onClose}
       backdropColor="transparent"
-      snapPoints={['35%', '50%']}
+      snapPoints={['50%']}
       initialSnapIndex={0}
       useScrollableContainer>
       <View style={styles.modalContainer}>
@@ -233,68 +234,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
-  alertItem: {
-    backgroundColor: Colors.GRAY_LIGHTEST + '40',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.GRAY_LIGHT,
+  stopAlertsSection: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  alertHeader: {
-    flexDirection: 'row',
+  stopAlertsButton: {
+    backgroundColor: Colors.ALERT,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 12,
   },
-  alertIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.GRADIENT_PRIMARY + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  alertInfo: {
-    flex: 1,
-  },
-  alertDetectedBy: {
-    fontSize: Typography.FONT_SIZE_10,
+  stopAlertsButtonText: {
+    fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.TEXT_COLOR,
-    marginBottom: 4,
-  },
-  alertTime: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.GRAY_DEEP,
-  },
-  alertDetails: {
-    gap: 8,
-  },
-  alertDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  alertDetailText: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.TEXT_COLOR,
-  },
-  alertConfidence: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  confidenceLabel: {
-    fontSize: Typography.FONT_SIZE_12,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.GRAY_DEEP,
-  },
-  confidenceValue: {
-    fontSize: Typography.FONT_SIZE_12,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.GRADIENT_PRIMARY,
-    textTransform: 'uppercase',
+    color: Colors.WHITE,
   },
 });

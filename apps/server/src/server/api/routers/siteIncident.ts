@@ -111,8 +111,18 @@ export const siteIncidentRouter = createTRPCRouter({
     .input(getIncidentSchema)
     .query(async ({ctx, input}) => {
       try {
-        // logger(`getIncident `, 'debug');
-        const incident = await getIncidentById(input.incidentId);
+        const incident = await ctx.prisma.siteIncident.findUnique({
+          where: {id: input.incidentId},
+          include: {
+            site: {
+              include: {project: true},
+            },
+            startSiteAlert: true,
+            latestSiteAlert: true,
+            endSiteAlert: true,
+            siteAlerts: true,
+          },
+        });
 
         if (!incident) {
           throw new TRPCError({
@@ -128,10 +138,18 @@ export const siteIncidentRouter = createTRPCRouter({
           userId: ctx.user!.id,
         });
 
-        return incident;
+        return {
+          status: 'success',
+          data: incident,
+        };
       } catch (error) {
-        console.error('Error in getIncident:', error);
-        throw error;
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Something went wrong!',
+        });
       }
     }),
 

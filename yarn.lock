@@ -4081,9 +4081,9 @@
   integrity sha512-ykALM5kYWTLn1zYuUOZ2cPWlVfrXhc18HzBDyRhoPYN0jey4iQHEFSEowfnhg1RvYnrAVjNBgHNeSAXjrDbGwg==
 
 "@trpc/client@^11.7.2":
-  version "11.7.2"
-  resolved "https://registry.npmjs.org/@trpc/client/-/client-11.7.2.tgz"
-  integrity sha512-OQxqUMfpDvjcszo9dbnqWQXnW2L5IbrKSz2H7l8s+mVM3EvYw7ztQ/gjFIN3iy0NcamiQfd4eE6qjcb9Lm+63A==
+  version "11.14.1"
+  resolved "https://registry.yarnpkg.com/@trpc/client/-/client-11.14.1.tgz#d68e6403250705d35d6ffdf5be3837b1de49e317"
+  integrity sha512-zjIq7JGm50/hIfo7/WR2BQEyngB0SDVlHJi9J3o5cLrOhUAxArYC6F8xpch1a1vatsN9rkayc6hJ3OXHDUOWow==
 
 "@trpc/next@^10.45.0":
   version "10.45.2"
@@ -4096,9 +4096,9 @@
   integrity sha512-BAqb9bGZIscroradlNx+Cc9522R+idY3BOSf5z0jHUtkxdMbjeGKxSSMxxu7JzoLqSIEC+LVzL3VvF8sdDWaZQ==
 
 "@trpc/react-query@^11.7.2":
-  version "11.7.2"
-  resolved "https://registry.npmjs.org/@trpc/react-query/-/react-query-11.7.2.tgz"
-  integrity sha512-IcLDMqx2mvlGRxkr0/m37TtPvRQ8nonITH3EwYv436x0Igx8eduR9z4tdgGBsjJY9e5W1G7cZ4zKCwrizSimFQ==
+  version "11.14.1"
+  resolved "https://registry.yarnpkg.com/@trpc/react-query/-/react-query-11.14.1.tgz#d760d2ca330aef514ac8dba20b2ea58b3ece85b3"
+  integrity sha512-fnMsYgYg2rrdp6y5tRuXj6vdpdtPZsrhv6xvYfu/xpsXQC5TU7upQUijO1SgmPIBzhTE0bKvq8OdQ6CYVQOIqQ==
 
 "@trpc/server@^10.45.0":
   version "10.45.2"
@@ -4106,9 +4106,9 @@
   integrity sha512-wOrSThNNE4HUnuhJG6PfDRp4L2009KDVxsd+2VYH8ro6o/7/jwYZ8Uu5j+VaW+mOmc8EHerHzGcdbGNQSAUPgg==
 
 "@trpc/server@^11.7.2":
-  version "11.7.2"
-  resolved "https://registry.npmjs.org/@trpc/server/-/server-11.7.2.tgz"
-  integrity sha512-AgB26PXY69sckherIhCacKLY49rxE2XP5h38vr/KMZTbLCL1p8IuIoKPjALTcugC2kbyQ7Lbqo2JDVfRSmPmfQ==
+  version "11.14.1"
+  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-11.14.1.tgz#4a99e7061a35717e8e22a0172d07850651800094"
+  integrity sha512-5sl9cpbrFm1mnDW0/SoOSQBNmwj+cal/JDUNLmLBp1thPvsbN7UerTZjeyLu0BCNxG/FKhnF12BgqYY8SEtCWw==
 
 "@turf/along@6.5.0":
   version "6.5.0"
@@ -4146,7 +4146,7 @@
     "@types/geojson" "^7946.0.10"
     tslib "^2.8.1"
 
-"@turf/area@7.3.2", "@turf/area@^7.2.0":
+"@turf/area@7.3.2":
   version "7.3.2"
   resolved "https://registry.yarnpkg.com/@turf/area/-/area-7.3.2.tgz#7e6e736cfa527114dbb3682e4d1086139757dd65"
   integrity sha512-d7IuEjAO3TSX5aVeL5WXrtCZCwxUAUOD4+LZ+VjoEe2THmYKdUknCPbH6rdhMBzLyZNuSVRmpRD/QfpCnLqoZg==
@@ -4185,7 +4185,7 @@
     "@types/geojson" "^7946.0.10"
     tslib "^2.8.1"
 
-"@turf/bbox@7.3.2", "@turf/bbox@^7.2.0":
+"@turf/bbox@7.3.2":
   version "7.3.2"
   resolved "https://registry.yarnpkg.com/@turf/bbox/-/bbox-7.3.2.tgz#a200e6a87d34c726790792151a52abe3c0044066"
   integrity sha512-iohGIDVqi8Ck7VQY2Emp490BShWKixG8wkVPQ7qO4fXRqJwrWO7ntU9XPB+r0qs6Y8kaSd+nDnvG3VFfKDb+Vg==
@@ -4467,7 +4467,7 @@
     "@types/geojson" "^7946.0.10"
     tslib "^2.8.1"
 
-"@turf/centroid@7.3.2", "@turf/centroid@^7.2.0":
+"@turf/centroid@7.3.2":
   version "7.3.2"
   resolved "https://registry.yarnpkg.com/@turf/centroid/-/centroid-7.3.2.tgz#d8a01f98626d63557363afce3cb59edaa73dd39a"
   integrity sha512-zWlX/t7goUx+FqCYzyscO7muXPSADb5nTGXWAbRR51P3Zsdx24P5tJshJhrHwIb3OR9a+YE4ig568Clex6tc2g==
@@ -4655,7 +4655,7 @@
     "@turf/helpers" "^6.5.0"
     "@turf/invariant" "^6.5.0"
 
-"@turf/distance@7.3.2", "@turf/distance@^7.2.0":
+"@turf/distance@7.3.2":
   version "7.3.2"
   resolved "https://registry.yarnpkg.com/@turf/distance/-/distance-7.3.2.tgz#5cb70f5f5b24af2216f088be05be27b35f161f95"
   integrity sha512-aY2HQDZpu/doKRUTEcBKdV2olNOD1x0wKR6ujzC+D1EZLKWOEmTJRR+6OjzB+xuv5zZbhFPe9f0MXEuNDxzwfQ==

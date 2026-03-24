@@ -1,5 +1,7 @@
+import rewind from '@mapbox/geojson-rewind';
 import {useNavigation} from '@react-navigation/native';
 import {useQueryClient} from '@tanstack/react-query';
+import {bbox, multiPolygon, point, polygon} from '@turf/turf';
 import React, {useState} from 'react';
 import {
   ActivityIndicator,
@@ -9,10 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import bbox from '@turf/bbox';
-// @ts-ignore - no type definitions available
-import rewind from '@mapbox/geojson-rewind';
-import {point, polygon, multiPolygon} from '@turf/helpers';
+
 import {AddIcon, MapOutlineIcon, TrashOutlineIcon} from '../../assets/svgs';
 import {BottomSheet, Switch} from '../../components';
 import {trpc} from '../../services/trpc';

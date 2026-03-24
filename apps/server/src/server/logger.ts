@@ -14,7 +14,10 @@ if (sourceToken) {
 
 type LoggerLevels = 'debug' | 'info' | 'warn' | 'error';
 
-export function logger(message: string, level: LoggerLevels) {
+export function logger(message: string | object, level: LoggerLevels) {
+  if (typeof message === 'object') {
+    message = JSON.stringify(message, null, 2);
+  }
   if (loggerInstance) {
     switch (level) {
       case 'debug':

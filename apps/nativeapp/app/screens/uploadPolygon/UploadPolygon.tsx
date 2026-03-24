@@ -1,42 +1,39 @@
+import rewind from '@mapbox/geojson-rewind';
 import {
-  View,
-  Text,
+  errorCodes,
+  isErrorWithCode,
+  pick,
+} from '@react-native-documents/picker';
+import {useNavigation} from '@react-navigation/native';
+import {useQueryClient} from '@tanstack/react-query';
+import {kml} from '@tmcw/togeojson';
+import {area, bbox} from '@turf/turf';
+import {convertArea, point, polygon} from '@turf/turf';
+import gjv from 'geojson-validation';
+import React, {useRef, useState} from 'react';
+import {
+  KeyboardAvoidingView,
   Modal,
   Platform,
-  StyleSheet,
   SafeAreaView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
-  KeyboardAvoidingView,
+  View,
 } from 'react-native';
-import {
-  pick,
-  isErrorWithCode,
-  errorCodes,
-} from '@react-native-documents/picker';
-import Toast from 'react-native-toast-notifications';
-import area from '@turf/area';
-import bbox from '@turf/bbox';
-import {DOMParser} from 'xmldom';
 import RNFS from 'react-native-fs';
-import {kml} from '@tmcw/togeojson';
-import gjv from 'geojson-validation';
-import rewind from '@mapbox/geojson-rewind';
-import React, {useRef, useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
-import {convertArea, point, polygon} from '@turf/helpers';
-import {useToast} from 'react-native-toast-notifications';
+import Toast, {useToast} from 'react-native-toast-notifications';
+import {DOMParser} from 'xmldom';
 
-import {
-  fileNameExtract,
-  fileExtensionExtract,
-} from '../../utils/fileExtensionExtract';
+import {BackArrowIcon, CrossIcon, UploadCloud} from '../../assets/svgs';
+import {CustomButton, DropDown, FloatingInput} from '../../components';
+import {POINT_RADIUS_ARR, RADIUS_ARR} from '../../constants';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
-import {POINT_RADIUS_ARR, RADIUS_ARR} from '../../constants';
-
-import {CustomButton, DropDown, FloatingInput} from '../../components';
-import {BackArrowIcon, CrossIcon, UploadCloud} from '../../assets/svgs';
-import {useNavigation} from '@react-navigation/native';
+import {
+  fileExtensionExtract,
+  fileNameExtract,
+} from '../../utils/fileExtensionExtract';
 
 const UploadPolygon = () => {
   const navigation = useNavigation();

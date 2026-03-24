@@ -63,7 +63,7 @@ export function composeIncidents(alerts: AlertData[]): ComposedIncident[] {
   const composedIncidents: ComposedIncident[] = [];
   let count = 0;
 
-  for (const [incidentId, incident] of incidentMap.entries()) {
+  for (const [_incidentId, incident] of incidentMap.entries()) {
     if (count >= 60) {
       break;
     }
@@ -73,7 +73,7 @@ export function composeIncidents(alerts: AlertData[]): ComposedIncident[] {
       longitude: a.longitude,
     }));
 
-    const circle = generateIncidentCircle(firePoints, 2);
+    const circle = generateIncidentCircle(firePoints, 0.5);
 
     composedIncidents.push({
       ...incident,

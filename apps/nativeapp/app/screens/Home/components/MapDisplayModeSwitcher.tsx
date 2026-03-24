@@ -1,6 +1,6 @@
 import React from 'react';
 import {StyleSheet, TouchableOpacity, View} from 'react-native';
-import {RadarIcon, IncidentActiveIcon} from '../../../assets/svgs';
+import {OrangeFireIcon, IncidentActiveIcon} from '../../../assets/svgs';
 import {Colors} from '../../../styles';
 
 export type MapDisplayMode = 'alerts' | 'incidents';
@@ -26,10 +26,10 @@ export const MapDisplayModeSwitcher: React.FC<MapDisplayModeSwitcherProps> = ({
         accessibilityLabel="Show alerts mode"
         accessibilityRole="button"
         accessibilityState={{selected: mode === 'alerts'}}>
-        <RadarIcon
+        <OrangeFireIcon
           width={20}
           height={20}
-          fill={mode === 'alerts' ? Colors.WHITE : Colors.GRAY_DEEP}
+          // fill={mode === 'alerts' ? Colors.WHITE : Colors.GRAY_DEEP}
         />
       </TouchableOpacity>
       <TouchableOpacity
@@ -45,7 +45,7 @@ export const MapDisplayModeSwitcher: React.FC<MapDisplayModeSwitcherProps> = ({
         <IncidentActiveIcon
           width={20}
           height={20}
-          fill={mode === 'incidents' ? Colors.WHITE : Colors.GRAY_DEEP}
+          // fill={mode === 'incidents' ? Colors.WHITE : Colors.GRAY_DEEP}
         />
       </TouchableOpacity>
     </View>
@@ -56,9 +56,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: Colors.WHITE,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.GRAY_LIGHT,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   segment: {
@@ -66,13 +64,20 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    borderColor: Colors.GRADIENT_PRIMARY,
   },
   leftSegment: {
-    borderRightWidth: 1,
-    borderRightColor: Colors.GRAY_LIGHT,
+    borderRightWidth: 2,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
-  rightSegment: {},
+  rightSegment: {
+    borderLeftWidth: 2,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+  },
   activeSegment: {
-    backgroundColor: Colors.GRADIENT_PRIMARY,
+    borderWidth: 4,
+    borderColor: Colors.GRADIENT_PRIMARY,
   },
 });

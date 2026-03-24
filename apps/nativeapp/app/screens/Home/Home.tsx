@@ -1,10 +1,10 @@
 import rewind from '@mapbox/geojson-rewind';
 import MapboxGL from '@rnmapbox/maps';
 import {useQueryClient} from '@tanstack/react-query';
-import bbox from '@turf/bbox';
-import {multiPolygon, polygon} from '@turf/helpers';
+import {bbox, multiPolygon, polygon} from '@turf/turf';
 import Lottie from 'lottie-react-native';
 import moment from 'moment-timezone';
+import type {Feature, Polygon as GeoJsonPolygon} from 'geojson';
 import {
   ActivityIndicator,
   BackHandler,
@@ -22,7 +22,6 @@ import {
   View,
 } from 'react-native';
 import {useAuth0} from 'react-native-auth0';
-// import Clipboard from '@react-native-clipboard/clipboard';
 import React, {
   useCallback,
   useContext,
@@ -35,22 +34,17 @@ import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
 
 import {
-  CopyIcon,
   CrossIcon,
   DisabledTrashOutlineIcon,
   EyeIcon,
   EyeOffIcon,
   GreenMapOutline,
   LayerIcon,
-  LocationPinIcon,
   LogoutIcon,
   MyLocIcon,
   PencilIcon,
   PencilRoundIcon,
   PointSiteIcon,
-  RadarIcon,
-  SatelliteIcon,
-  SiteIcon,
   TrashOutlineIcon,
   TrashSolidIcon,
   UserPlaceholder,
@@ -63,7 +57,12 @@ import {
   FloatingInput,
   LayerModal,
 } from '../../components';
-import {IncidentSummaryCard} from '../../components/Incident/IncidentSummaryCard';
+import {
+  backToIncidentDetails,
+  closeAllDetails,
+  openAlertDetails,
+  openIncidentDetails,
+} from '../../redux/slices/details/detailsUISlice';
 import {
   getUserDetails,
   updateIsLoggedIn,
@@ -73,9 +72,10 @@ import {
   PermissionDeniedAlert,
 } from './PermissionAlert/LocationPermissionAlerts';
 import {
+  AlertDetailsBottomSheet,
+  IncidentDetailsBottomSheet,
   MapDisplayModeSwitcher,
   MapDurationDropdown,
-  IncidentDetailsBottomSheet,
 } from './components';
 
 import {highlightWave} from '../../assets/animation/lottie';
@@ -86,15 +86,19 @@ import {useAppDispatch, useAppSelector} from '../../hooks';
 import {useIncidentData} from '../../hooks/incident/useIncidentData';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
+import type {IncidentCircleResult} from '../../types/incident';
 import {useFetchSites} from '../../utils/api';
 import handleLink from '../../utils/browserLinking';
 import {categorizedRes} from '../../utils/filters';
 import {getFireIcon} from '../../utils/getFireIcon';
+import {generateIncidentCircle} from '../../utils/incident/incidentCircleUtils';
 import {clearAll} from '../../utils/localStorage';
+import {
+  calculateAlertCamera,
+  calculateIncidentCamera,
+} from '../../utils/mapZoomUtils';
 import {daysFromToday} from '../../utils/moment';
 import {locationPermission} from '../../utils/permissions';
-import {generateIncidentCircle} from '../../utils/incident/incidentCircleUtils';
-import type {IncidentCircleResult} from '../../types/incident';
 
 const IS_ANDROID = Platform.OS === 'android';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -120,12 +124,12 @@ const images: Record<CompassImage, ImageSourcePropType> = {
   compass1: require('../../assets/images/compassImage.png'),
 };
 
-const Home = ({navigation, route}) => {
+const Home = ({navigation: _navigation, route}) => {
   const siteInfo = route?.params;
   const {state} = useMapLayers(MapLayerContext);
-  const {clearSession, clearCredentials, error} = useAuth0();
+  const {clearSession, clearCredentials} = useAuth0();
 
-  const {selected, setSelected, selectedSiteBar, passMapInfo} =
+  const {setSelected, selectedSiteBar, passMapInfo} =
     useContext(BottomBarContext);
   const {userDetails, configData} = useAppSelector(
     appState => appState.loginSlice,
@@ -171,14 +175,17 @@ const Home = ({navigation, route}) => {
     'alerts',
   );
   const [mapDurationDays, setMapDurationDays] = useState<number>(7);
-  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(
+  const [_selectedIncidentId, setSelectedIncidentId] = useState<string | null>(
     null,
   );
+
+  // Redux state for details UI
+  const detailsUI = useAppSelector((state: any) => state.detailsUISlice);
+  const dispatch = useAppDispatch();
 
   const map = useRef(null);
   const toast = useToast();
   const modalToast = useRef();
-  const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const camera = useRef<MapboxGL.Camera | null>(null);
 
@@ -192,7 +199,7 @@ const Home = ({navigation, route}) => {
       passMapInfo({centerCoordinates, currZoom});
     }
     passProp();
-  }, [selectedSiteBar]);
+  }, [passMapInfo, selectedSiteBar]);
 
   useEffect(() => {
     if (
@@ -243,38 +250,12 @@ const Home = ({navigation, route}) => {
   const {data: alerts} = useFetchSites({enabled: true});
 
   // Fetch incident data when an alert with siteIncidentId is selected
-  const {
-    incident,
-    isLoading: isIncidentLoading,
-    isError: isIncidentError,
-  } = useIncidentData({
+  const {incident} = useIncidentData({
     incidentId: selectedAlert?.siteIncidentId,
     enabled: !!selectedAlert?.siteIncidentId,
   });
 
-  // Log incident data changes
-  useEffect(() => {
-    if (incident) {
-      console.log(
-        `[incident] Incident data received in Home - incidentId: ${incident.id}, isActive: ${incident.isActive}, alertCount: ${incident.siteAlerts.length}`,
-      );
-    }
-  }, [incident]);
-
-  // Log selected alert changes
-  useEffect(() => {
-    if (Object.keys(selectedAlert).length > 0) {
-      console.log(
-        `[incident] Selected alert changed - alertId: ${
-          selectedAlert?.id
-        }, siteIncidentId: ${selectedAlert?.siteIncidentId || 'none'}, site: ${
-          selectedAlert?.site?.name || 'unknown'
-        }`,
-      );
-    }
-  }, [selectedAlert]);
-
-  const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
+  const {data: sites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],
     {
       enabled: true,
@@ -339,7 +320,7 @@ const Home = ({navigation, route}) => {
             latitude: a.latitude,
             longitude: a.longitude,
           })),
-          2,
+          0.5,
         ),
       }));
   }, [filteredAlerts, mapDisplayMode]);
@@ -347,54 +328,19 @@ const Home = ({navigation, route}) => {
   // Calculate incident circle with memoization
   const incidentCircle = useMemo(() => {
     if (!incident?.siteAlerts) {
-      console.log('[incident] No siteAlerts available for circle calculation');
       return null;
     }
-    console.log(
-      `[incident] Starting incident circle calculation - incidentId: ${incident.id}, fireCount: ${incident.siteAlerts.length}`,
-    );
+
     const fires = incident.siteAlerts.map(a => ({
       latitude: a.latitude,
       longitude: a.longitude,
     }));
-    console.log(
-      `[incident] Fire points for circle - ${fires
-        .map(
-          (f, i) =>
-            `[${i}] lat:${f.latitude.toFixed(4)}, lon:${f.longitude.toFixed(
-              4,
-            )}`,
-        )
-        .join(' | ')}`,
-    );
-    const result = generateIncidentCircle(fires, 2);
-    if (result) {
-      console.log(
-        `[incident] Circle calculation completed - radiusKm: ${result.radiusKm.toFixed(
-          2,
-        )}, areaKm2: ${result.areaKm2.toFixed(
-          2,
-        )}, centroid: [${result.centroid[1].toFixed(
-          4,
-        )}, ${result.centroid[0].toFixed(4)}]`,
-      );
-    } else {
-      console.warn('[incident] Circle calculation returned null');
-    }
-    return result;
-  }, [incident?.siteAlerts, incident?.id]);
+
+    return generateIncidentCircle(fires, 0.5);
+  }, [incident?.siteAlerts]);
 
   // Update incident circle data when calculation completes
   useEffect(() => {
-    if (incidentCircle) {
-      console.log(
-        `[incident] Incident circle data updated - preparing to render on map - radiusKm: ${incidentCircle.radiusKm.toFixed(
-          2,
-        )}, areaKm2: ${incidentCircle.areaKm2.toFixed(2)}`,
-      );
-    } else {
-      console.log('[incident] Incident circle data cleared or not available');
-    }
     setIncidentCircleData(incidentCircle);
   }, [incidentCircle]);
 
@@ -402,7 +348,7 @@ const Home = ({navigation, route}) => {
     retryDelay: 3000,
     onSuccess: () => {
       const request = {
-        onSuccess: async message => {},
+        onSuccess: async _message => {},
         onFail: () => {
           toast.show('something went wrong', {type: 'danger'});
         },
@@ -420,7 +366,7 @@ const Home = ({navigation, route}) => {
 
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
-    onSuccess: (res, req) => {
+    onSuccess: (res, _req) => {
       queryClient.setQueryData(
         [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
         oldData =>
@@ -529,7 +475,7 @@ const Home = ({navigation, route}) => {
     trpc.site as any
   ).pauseAlertForProtectedSite.useMutation({
     retryDelay: 3000,
-    onSuccess: async (res, req) => {
+    onSuccess: async (res, _req) => {
       queryClient.setQueryData(
         [
           ['site', 'getProtectedSites'],
@@ -691,34 +637,121 @@ const Home = ({navigation, route}) => {
     setMapDurationDays(days);
   };
 
-  const handleIncidentTap = (incidentId: string) => {
-    setSelectedIncidentId(incidentId);
+  const handleIncidentTap = async (
+    incidentId: string,
+    incidentBoundary?: Feature<GeoJsonPolygon> | null,
+  ) => {
+    try {
+      const focusPadding = [80, 40, Math.max(240, SCREEN_HEIGHT * 0.45), 40];
+      let hasFocused = false;
+
+      // Try using already-rendered boundary first for reliable instant focus.
+      const tappedBoundary =
+        incidentBoundary ||
+        (composedIncidents.find(item => item.incidentId === incidentId)?.circle
+          ?.circlePolygon as Feature<GeoJsonPolygon> | undefined);
+
+      if (tappedBoundary && camera?.current?.fitBounds) {
+        const [minLng, minLat, maxLng, maxLat] = bbox(tappedBoundary);
+        if (
+          [minLng, minLat, maxLng, maxLat].every(value =>
+            Number.isFinite(value),
+          )
+        ) {
+          camera.current.fitBounds(
+            [maxLng, maxLat],
+            [minLng, minLat],
+            focusPadding,
+            500,
+          );
+          hasFocused = true;
+        }
+      }
+
+      // Fallback to server fetch and boundary calculation if local boundary was unavailable.
+      if (!hasFocused) {
+        const incidentResponse = await (
+          trpc as any
+        ).siteIncident.getIncident.fetch({json: {incidentId}});
+
+        if (
+          incidentResponse?.siteAlerts &&
+          incidentResponse.siteAlerts.length > 0
+        ) {
+          const cameraSettings = calculateIncidentCamera(
+            incidentResponse.siteAlerts,
+          );
+
+          if (cameraSettings?.bounds && camera?.current?.fitBounds) {
+            camera.current.fitBounds(
+              cameraSettings.bounds.ne,
+              cameraSettings.bounds.sw,
+              focusPadding,
+              500,
+            );
+            hasFocused = true;
+          } else if (cameraSettings && camera?.current?.setCamera) {
+            camera.current.setCamera({
+              centerCoordinate: cameraSettings.centerCoordinate,
+              zoomLevel: cameraSettings.zoomLevel,
+              animationDuration: 500,
+            });
+            hasFocused = true;
+          }
+        } else {
+          console.warn('[Home] No alerts found for incident zoom calculation');
+        }
+      }
+
+      // Open incident details with Redux
+      dispatch(openIncidentDetails({incidentId}));
+      setSelectedIncidentId(null);
+    } catch (error) {
+      console.error('[Home] Error handling incident tap:', error);
+      // Fallback: just open details without zoom
+      dispatch(openIncidentDetails({incidentId}));
+      setSelectedIncidentId(null);
+    }
   };
 
   const handleAlertTapFromIncident = (alert: any) => {
-    if (camera?.current?.setCamera) {
+    // Calculate optimal camera for alert
+    const cameraSettings = calculateAlertCamera(
+      alert,
+      alert.detectedBy,
+      alert.confidence,
+    );
+
+    // Open alert details with Redux
+    dispatch(
+      openAlertDetails({alertId: alert.id, fromIncidentDetails: true}),
+    );
+
+    // Apply zoom to alert location with optimal settings
+    if (camera?.current?.setCamera && cameraSettings) {
       camera.current.setCamera({
-        centerCoordinate: [alert.longitude, alert.latitude],
-        zoomLevel: 15,
+        centerCoordinate: cameraSettings.centerCoordinate,
+        zoomLevel: cameraSettings.zoomLevel,
         animationDuration: 500,
       });
+
     }
   };
 
-  // recenter the mapmap to the current coordinates of user location
-  const onPressMyLocationIcon = (
-    position: MapboxGL.Location | Geolocation.GeoPosition,
-  ) => {
-    if (isCameraRefVisible && camera?.current?.setCamera) {
-      setIsInitial(false);
-      camera.current.setCamera({
-        centerCoordinate: [position.coords.longitude, position.coords.latitude],
-        // centerCoordinate: [-90.133284, 18.675638],
-        zoomLevel: ZOOM_LEVEL,
-        animationDuration: ANIMATION_DURATION,
-      });
-    }
-  };
+  const onPressMyLocationIcon = useCallback(
+    (position: MapboxGL.Location | Geolocation.GeoPosition) => {
+      if (isCameraRefVisible && camera?.current?.setCamera) {
+        setIsInitial(false);
+        camera.current.setCamera({
+          centerCoordinate: [position.coords.longitude, position.coords.latitude],
+          // centerCoordinate: [-90.133284, 18.675638],
+          zoomLevel: ZOOM_LEVEL,
+          animationDuration: ANIMATION_DURATION,
+        });
+      }
+    },
+    [isCameraRefVisible],
+  );
 
   // only for the first time map will follow the user's current location by default
   const onUpdateUserLocation = useCallback(
@@ -727,6 +760,7 @@ const Home = ({navigation, route}) => {
         onPressMyLocationIcon(userLocation);
       }
     },
+    [isInitial, onPressMyLocationIcon],
   );
 
   const onPressLocationAlertPrimaryBtn = () => {
@@ -830,23 +864,6 @@ const Home = ({navigation, route}) => {
 
   const handleOpenPlatform = () => handleLink(WEB_URLS.PP_ECO);
 
-  const handleGoogleRedirect = () => {
-    const lat = Number.parseFloat(selectedAlert?.latitude);
-    const lng = Number.parseFloat(selectedAlert?.longitude);
-    const scheme = Platform.select({ios: 'maps:', android: 'geo:'});
-    const latLng = `${lat},${lng}`;
-    const url = Platform.select({
-      ios: `${scheme}//?q=${lat},${lng}`,
-      android: `${scheme}${latLng}`,
-    });
-    handleLink(url, lat, lng);
-  };
-
-  const _copyToClipboard = loc => () => {
-    // Clipboard.setString(JSON.stringify(loc));
-    modalToast.current.show('copied');
-  };
-
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
 
@@ -875,7 +892,7 @@ const Home = ({navigation, route}) => {
         id={id}
         key={id}
         title={title}
-        onSelected={e => {
+        onSelected={_e => {
           camera.current.setCamera({
             centerCoordinate: [
               alertsArr[counter]?.longitude,
@@ -891,14 +908,13 @@ const Home = ({navigation, route}) => {
           });
           setTimeout(() => {
             const alert = alertsArr[counter];
-            console.log(
-              `[incident] Fire alert marker tapped - alertId: ${
-                alert?.id
-              }, siteIncidentId: ${
-                alert?.siteIncidentId || 'none'
-              }, latitude: ${alert?.latitude}, longitude: ${alert?.longitude}`,
+            // Use Redux state instead of selectedAlert
+            dispatch(
+              openAlertDetails({
+                alertId: alert.id,
+                fromIncidentDetails: false,
+              }),
             );
-            setSelectedAlert(alert);
           }, ANIMATION_DURATION);
         }}
         coordinate={coordinate}>
@@ -961,7 +977,12 @@ const Home = ({navigation, route}) => {
           key={`incident-${incident.incidentId}`}
           id={`incident-circle-${incident.incidentId}`}
           shape={incident.circle.circlePolygon}
-          onPress={() => handleIncidentTap(incident.incidentId)}>
+          onPress={() =>
+            handleIncidentTap(
+              incident.incidentId,
+              incident.circle?.circlePolygon,
+            )
+          }>
           <MapboxGL.FillLayer
             id={`incident-circle-fill-${incident.incidentId}`}
             style={{
@@ -1028,7 +1049,7 @@ const Home = ({navigation, route}) => {
         features:
           (formattedSites?.polygon ?? [])
             .concat(formattedSites?.multipolygon ?? [])
-            ?.map((singleSite, i) => {
+            ?.map(singleSite => {
               return {
                 type: 'Feature',
                 properties: {site: singleSite},
@@ -1142,36 +1163,16 @@ const Home = ({navigation, route}) => {
    */
   const renderIncidentCircle = () => {
     if (!incidentCircleData) {
-      console.log(
-        '[incident] No incident circle data available - skipping render',
-      );
       return null;
     }
 
     if (!incident) {
-      console.log('[incident] No incident data available - skipping render');
       return null;
     }
 
     const circleColor = incident.isActive
       ? Colors.INCIDENT_ACTIVE_COLOR
       : Colors.INCIDENT_RESOLVED_COLOR;
-
-    console.log(
-      `[incident] Rendering incident circle on map - incidentId: ${incident.id}, isActive: ${incident.isActive}, color: ${circleColor}`,
-    );
-    console.log(
-      `[incident] Circle polygon details - type: ${
-        incidentCircleData.circlePolygon.geometry.type
-      }, coordinates: ${
-        incidentCircleData.circlePolygon.geometry.coordinates[0]?.length || 0
-      } points, radius: ${incidentCircleData.radiusKm.toFixed(
-        2,
-      )}km, area: ${incidentCircleData.areaKm2.toFixed(2)}km²`,
-    );
-    console.log(
-      `[incident] Circle centroid - lat: ${incidentCircleData.centroid[1]}, lon: ${incidentCircleData.centroid[0]}`,
-    );
 
     return (
       <MapboxGL.ShapeSource
@@ -1238,88 +1239,6 @@ const Home = ({navigation, route}) => {
       {Object.keys(selectedAlert).length ? (
         <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
       ) : null}
-
-      {/* Debug Overlay - Show incident circle rendering status */}
-      {incidentCircleData && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 10,
-            backgroundColor: 'rgba(232, 111, 86, 0.9)',
-            padding: 8,
-            borderRadius: 6,
-            zIndex: 100,
-          }}>
-          <Text
-            style={{
-              fontSize: 10,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 4,
-            }}>
-            [CIRCLE] Rendered
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 2,
-            }}>
-            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-            }}>
-            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
-          </Text>
-        </View>
-      )}
-
-      {/* Debug Overlay - Show incident circle rendering status */}
-      {incidentCircleData && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 10,
-            backgroundColor: 'rgba(232, 111, 86, 0.9)',
-            padding: 8,
-            borderRadius: 6,
-            zIndex: 100,
-          }}>
-          <Text
-            style={{
-              fontSize: 10,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 4,
-            }}>
-            [CIRCLE] Rendered
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 2,
-            }}>
-            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-            }}>
-            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
-          </Text>
-        </View>
-      )}
       <StatusBar
         animated
         translucent
@@ -1466,238 +1385,30 @@ const Home = ({navigation, route}) => {
           </TouchableOpacity>
         </View>
       </BottomSheet>
-      {/* fire alert info modal */}
-      <BottomSheet
-        onBackdropPress={() => {
-          console.log(
-            `[incident] Alert modal closed - alertId: ${selectedAlert?.id}`,
-          );
-          setSelectedAlert({});
-          setIncidentCircleData(null);
-        }}
-        isVisible={
-          mapDisplayMode === 'alerts' && Object.keys(selectedAlert).length > 0
-        }>
-        {Object.keys(selectedAlert).length > 0 &&
-          console.log(
-            `[incident] Alert modal opened - alertId: ${
-              selectedAlert?.id
-            }, siteIncidentId: ${
-              selectedAlert?.siteIncidentId || 'none'
-            }, site: ${selectedAlert?.site?.name || 'unknown'}`,
-          )}
-        <Toast ref={modalToast} offsetBottom={100} duration={2000} />
-        <View style={[styles.modalContainer, styles.commonPadding]}>
-          <View style={styles.modalHeader} />
-
-          {/* Debug Tags - Show alert and incident IDs */}
-          {/* <View
-            style={{
-              backgroundColor: '#f0f0f0',
-              padding: 8,
-              borderRadius: 6,
-              marginBottom: 12,
-              borderLeftWidth: 3,
-              borderLeftColor: '#E86F56',
-            }}>
-            <Text
-              style={{
-                fontSize: 10,
-                color: '#666',
-                fontFamily: 'monospace',
-                marginBottom: 4,
-              }}>
-              [DEBUG] Alert ID: {selectedAlert?.id}
-            </Text>
-            {selectedAlert?.siteIncidentId && (
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: '#666',
-                  fontFamily: 'monospace',
-                  marginBottom: 4,
-                }}>
-                [DEBUG] Incident ID: {selectedAlert?.siteIncidentId}
-              </Text>
-            )}
-            {incident && (
-              <>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    color: '#666',
-                    fontFamily: 'monospace',
-                    marginBottom: 4,
-                  }}>
-                  [DEBUG] Incident Active: {incident.isActive ? 'Yes' : 'No'}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 10,
-                    color: '#666',
-                    fontFamily: 'monospace',
-                  }}>
-                  [DEBUG] Alert Count: {incident.siteAlerts.length}
-                </Text>
-              </>
-            )}
-            {!incident && selectedAlert?.siteIncidentId && (
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: '#E86F56',
-                  fontFamily: 'monospace',
-                }}>
-                [DEBUG] Loading incident data...
-              </Text>
-            )}
-          </View> */}
-
-          {/* Incident Summary Card - shown when incident data is available */}
-          {incident && (
-            <>
-              {console.log(
-                `[incident] Displaying IncidentSummaryCard - incidentId: ${
-                  incident.id
-                }, isActive: ${incident.isActive}, alertCount: ${
-                  incident.siteAlerts.length
-                }, firePoints: ${incident.siteAlerts
-                  .map(
-                    (a, i) =>
-                      `[${i}](${a.latitude.toFixed(4)},${a.longitude.toFixed(
-                        4,
-                      )})`,
-                  )
-                  .join(' ')}`,
-              )}
-              <IncidentSummaryCard
-                isActive={incident.isActive}
-                startAlert={incident.startSiteAlert}
-                latestAlert={incident.latestSiteAlert}
-                allAlerts={incident.siteAlerts}
-                incidentId={incident.id}
-              />
-            </>
-          )}
-          {!incident &&
-            selectedAlert?.siteIncidentId &&
-            (console.log(
-              `[incident] Incident data loading - alertId: ${selectedAlert?.id}, siteIncidentId: ${selectedAlert?.siteIncidentId}, isLoading: ${isIncidentLoading}, isError: ${isIncidentError}`,
-            ),
-            null)}
-
-          <View style={styles.satelliteInfoCon}>
-            <View style={styles.satelliteIcon}>
-              <SatelliteIcon />
-            </View>
-            <View style={styles.satelliteInfo}>
-              <Text style={styles.satelliteText}>
-                DETECTED BY {selectedAlert?.detectedBy}
-              </Text>
-              <Text style={styles.eventDate}>
-                <Text style={styles.eventFromNow}>
-                  {moment(selectedAlert?.localEventDate)
-                    ?.tz(selectedAlert?.localTimeZone)
-                    ?.fromNow()}
-                </Text>{' '}
-                (
-                {moment(selectedAlert?.localEventDate)
-                  ?.tz(selectedAlert?.localTimeZone)
-                  ?.format('DD MMM YYYY [at] HH:mm')}
-                )
-              </Text>
-              <Text style={styles.confidence}>
-                <Text style={styles.confidenceVal}>
-                  {selectedAlert?.confidence}
-                </Text>{' '}
-                alert confidence
-              </Text>
-            </View>
-          </View>
-          <View
-            style={[
-              styles.alertLocInfoCon,
-              {marginTop: 30, justifyContent: 'space-between'},
-            ]}>
-            <View style={styles.satelliteInfoLeft}>
-              <View style={styles.satelliteIcon}>
-                <SiteIcon />
-              </View>
-              {selectedAlert?.site?.project ? (
-                <View style={styles.satelliteInfo}>
-                  <Text style={styles.satelliteLocText}>PROJECT</Text>
-                  <Text style={styles.alertLocText}>
-                    {selectedAlert?.site?.project?.name}{' '}
-                    <Text style={{fontSize: Typography.FONT_SIZE_12}}>
-                      {selectedAlert?.site?.name}
-                    </Text>
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.satelliteInfo}>
-                  <Text style={styles.satelliteLocText}>SITE</Text>
-                  <Text style={styles.alertLocText}>
-                    {selectedAlert?.site?.name}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-          <View style={styles.separator} />
-          <View
-            style={[styles.alertLocInfoCon, {justifyContent: 'space-between'}]}>
-            <View style={styles.satelliteInfoLeft}>
-              <View style={styles.satelliteIcon}>
-                <LocationPinIcon />
-              </View>
-              <View style={styles.satelliteInfo}>
-                <Text style={styles.satelliteLocText}>LOCATION</Text>
-                <Text style={styles.alertLocText}>
-                  {Number.parseFloat(selectedAlert?.latitude).toFixed(5)},{' '}
-                  {Number.parseFloat(selectedAlert?.longitude).toFixed(5)}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              onPress={_copyToClipboard([
-                Number.parseFloat(selectedAlert?.latitude),
-                Number.parseFloat(selectedAlert?.longitude),
-              ])}>
-              <CopyIcon />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.alertRadiusInfoCon}>
-            <View style={styles.satelliteIcon}>
-              <RadarIcon />
-            </View>
-            <View style={styles.satelliteInfo}>
-              <Text style={[styles.alertLocText, {width: SCREEN_WIDTH / 1.3}]}>
-                Search for the fire within a{' '}
-                <Text
-                  style={[styles.confidenceVal, {textTransform: 'lowercase'}]}>
-                  {selectedAlert?.distance == 0 ? 1 : selectedAlert?.distance}{' '}
-                  km
-                </Text>{' '}
-                radius around the location.
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            onPress={handleGoogleRedirect}
-            style={styles.simpleBtn}>
-            <Text style={[styles.siteActionText, {marginLeft: 0}]}>
-              Open in Google Maps
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheet>
       {/* incident details modal */}
       <IncidentDetailsBottomSheet
-        isVisible={!!selectedIncidentId}
-        incidentId={selectedIncidentId}
-        onClose={() => setSelectedIncidentId(null)}
+        isVisible={detailsUI.isIncidentDetailsVisible}
+        incidentId={detailsUI.selectedIncidentId}
+        onClose={() => dispatch(closeAllDetails())}
         onAlertTap={handleAlertTapFromIncident}
+        onStopAlerts={_incidentId => {
+          // Placeholder implementation for stopping alerts
+          toast.show('Stop alerts feature will be implemented later', {
+            type: 'warning',
+          });
+        }}
+      />
+
+      {/* alert details modal */}
+      <AlertDetailsBottomSheet
+        isVisible={detailsUI.isAlertDetailsVisible}
+        alertId={detailsUI.selectedAlertId}
+        onClose={() => dispatch(closeAllDetails())}
+        onBack={() => dispatch(backToIncidentDetails())}
+        showBackButton={
+          detailsUI.uiMode === 'alert-details' &&
+          detailsUI.alertOpenedFromIncidentDetails
+        }
       />
       {/* site Info modal */}
       <BottomSheet
@@ -1935,7 +1646,7 @@ const styles = StyleSheet.create({
   },
   mapControlsContainer: {
     position: 'absolute',
-    top: 200,
+    top: 80,
     left: 16,
     flexDirection: 'row',
     alignItems: 'center',
