@@ -18,6 +18,7 @@ interface DetailsUIState {
   uiMode: DetailsUIMode;
   isIncidentDetailsVisible: boolean;
   isAlertDetailsVisible: boolean;
+  alertOpenedFromIncidentDetails: boolean;
   navigationHistory: NavigationHistory;
   currentCameraPosition?: CameraPosition;
 }
@@ -28,6 +29,7 @@ const initialState: DetailsUIState = {
   uiMode: 'none',
   isIncidentDetailsVisible: false,
   isAlertDetailsVisible: false,
+  alertOpenedFromIncidentDetails: false,
   navigationHistory: {},
   currentCameraPosition: undefined,
 };
@@ -48,6 +50,7 @@ const detailsUISlice = createSlice({
       state.uiMode = 'incident-details';
       state.isIncidentDetailsVisible = true;
       state.isAlertDetailsVisible = false;
+      state.alertOpenedFromIncidentDetails = false;
 
       // Store current camera position in history if provided
       if (action.payload.cameraPosition) {
@@ -58,12 +61,18 @@ const detailsUISlice = createSlice({
 
     openAlertDetails: (
       state,
-      action: PayloadAction<{alertId: string; cameraPosition?: CameraPosition}>,
+      action: PayloadAction<{
+        alertId: string;
+        cameraPosition?: CameraPosition;
+        fromIncidentDetails?: boolean;
+      }>,
     ) => {
       state.selectedAlertId = action.payload.alertId;
       state.uiMode = 'alert-details';
       state.isAlertDetailsVisible = true;
       state.isIncidentDetailsVisible = false;
+      state.alertOpenedFromIncidentDetails =
+        !!action.payload.fromIncidentDetails;
 
       // Store current camera position in history if provided
       if (action.payload.cameraPosition) {
@@ -78,16 +87,21 @@ const detailsUISlice = createSlice({
       state.uiMode = 'none';
       state.isIncidentDetailsVisible = false;
       state.isAlertDetailsVisible = false;
+      state.alertOpenedFromIncidentDetails = false;
       state.navigationHistory = {};
       state.currentCameraPosition = undefined;
     },
 
     backToIncidentDetails: state => {
-      if (state.selectedIncidentId) {
+      if (
+        state.selectedIncidentId ||
+        state.navigationHistory.previousMode === 'incident-details'
+      ) {
         state.selectedAlertId = null;
         state.uiMode = 'incident-details';
         state.isIncidentDetailsVisible = true;
         state.isAlertDetailsVisible = false;
+        state.alertOpenedFromIncidentDetails = false;
       }
     },
 

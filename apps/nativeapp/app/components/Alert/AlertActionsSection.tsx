@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 20,
+    marginBottom: 20,
   },
   siteActionText: {
     fontSize: Typography.FONT_SIZE_16,

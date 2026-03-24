@@ -123,12 +123,12 @@ const images: Record<CompassImage, ImageSourcePropType> = {
   compass1: require('../../assets/images/compassImage.png'),
 };
 
-const Home = ({navigation, route}) => {
+const Home = ({navigation: _navigation, route}) => {
   const siteInfo = route?.params;
   const {state} = useMapLayers(MapLayerContext);
-  const {clearSession, clearCredentials, error} = useAuth0();
+  const {clearSession, clearCredentials} = useAuth0();
 
-  const {selected, setSelected, selectedSiteBar, passMapInfo} =
+  const {setSelected, selectedSiteBar, passMapInfo} =
     useContext(BottomBarContext);
   const {userDetails, configData} = useAppSelector(
     appState => appState.loginSlice,
@@ -174,7 +174,7 @@ const Home = ({navigation, route}) => {
     'alerts',
   );
   const [mapDurationDays, setMapDurationDays] = useState<number>(7);
-  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(
+  const [_selectedIncidentId, setSelectedIncidentId] = useState<string | null>(
     null,
   );
 
@@ -198,7 +198,7 @@ const Home = ({navigation, route}) => {
       passMapInfo({centerCoordinates, currZoom});
     }
     passProp();
-  }, [selectedSiteBar]);
+  }, [passMapInfo, selectedSiteBar]);
 
   useEffect(() => {
     if (
@@ -249,38 +249,12 @@ const Home = ({navigation, route}) => {
   const {data: alerts} = useFetchSites({enabled: true});
 
   // Fetch incident data when an alert with siteIncidentId is selected
-  const {
-    incident,
-    isLoading: isIncidentLoading,
-    isError: isIncidentError,
-  } = useIncidentData({
+  const {incident} = useIncidentData({
     incidentId: selectedAlert?.siteIncidentId,
     enabled: !!selectedAlert?.siteIncidentId,
   });
 
-  // Log incident data changes
-  useEffect(() => {
-    if (incident) {
-      console.log(
-        `[incident] Incident data received in Home - incidentId: ${incident.id}, isActive: ${incident.isActive}, alertCount: ${incident.siteAlerts.length}`,
-      );
-    }
-  }, [incident]);
-
-  // Log selected alert changes
-  useEffect(() => {
-    if (Object.keys(selectedAlert).length > 0) {
-      console.log(
-        `[incident] Selected alert changed - alertId: ${
-          selectedAlert?.id
-        }, siteIncidentId: ${selectedAlert?.siteIncidentId || 'none'}, site: ${
-          selectedAlert?.site?.name || 'unknown'
-        }`,
-      );
-    }
-  }, [selectedAlert]);
-
-  const {data: sites, refetch: refetchSites} = trpc.site.getSites.useQuery(
+  const {data: sites} = trpc.site.getSites.useQuery(
     ['site', 'getSites'],
     {
       enabled: true,
@@ -353,54 +327,19 @@ const Home = ({navigation, route}) => {
   // Calculate incident circle with memoization
   const incidentCircle = useMemo(() => {
     if (!incident?.siteAlerts) {
-      console.log('[incident] No siteAlerts available for circle calculation');
       return null;
     }
-    console.log(
-      `[incident] Starting incident circle calculation - incidentId: ${incident.id}, fireCount: ${incident.siteAlerts.length}`,
-    );
+
     const fires = incident.siteAlerts.map(a => ({
       latitude: a.latitude,
       longitude: a.longitude,
     }));
-    console.log(
-      `[incident] Fire points for circle - ${fires
-        .map(
-          (f, i) =>
-            `[${i}] lat:${f.latitude.toFixed(4)}, lon:${f.longitude.toFixed(
-              4,
-            )}`,
-        )
-        .join(' | ')}`,
-    );
-    const result = generateIncidentCircle(fires, 2);
-    if (result) {
-      console.log(
-        `[incident] Circle calculation completed - radiusKm: ${result.radiusKm.toFixed(
-          2,
-        )}, areaKm2: ${result.areaKm2.toFixed(
-          2,
-        )}, centroid: [${result.centroid[1].toFixed(
-          4,
-        )}, ${result.centroid[0].toFixed(4)}]`,
-      );
-    } else {
-      console.warn('[incident] Circle calculation returned null');
-    }
-    return result;
-  }, [incident?.siteAlerts, incident?.id]);
+
+    return generateIncidentCircle(fires, 2);
+  }, [incident?.siteAlerts]);
 
   // Update incident circle data when calculation completes
   useEffect(() => {
-    if (incidentCircle) {
-      console.log(
-        `[incident] Incident circle data updated - preparing to render on map - radiusKm: ${incidentCircle.radiusKm.toFixed(
-          2,
-        )}, areaKm2: ${incidentCircle.areaKm2.toFixed(2)}`,
-      );
-    } else {
-      console.log('[incident] Incident circle data cleared or not available');
-    }
     setIncidentCircleData(incidentCircle);
   }, [incidentCircle]);
 
@@ -408,7 +347,7 @@ const Home = ({navigation, route}) => {
     retryDelay: 3000,
     onSuccess: () => {
       const request = {
-        onSuccess: async message => {},
+        onSuccess: async _message => {},
         onFail: () => {
           toast.show('something went wrong', {type: 'danger'});
         },
@@ -426,7 +365,7 @@ const Home = ({navigation, route}) => {
 
   const updateSite = trpc.site.updateSite.useMutation({
     retryDelay: 3000,
-    onSuccess: (res, req) => {
+    onSuccess: (res, _req) => {
       queryClient.setQueryData(
         [['site', 'getSites'], {input: ['site', 'getSites'], type: 'query'}],
         oldData =>
@@ -535,7 +474,7 @@ const Home = ({navigation, route}) => {
     trpc.site as any
   ).pauseAlertForProtectedSite.useMutation({
     retryDelay: 3000,
-    onSuccess: async (res, req) => {
+    onSuccess: async (res, _req) => {
       queryClient.setQueryData(
         [
           ['site', 'getProtectedSites'],
@@ -721,7 +660,6 @@ const Home = ({navigation, route}) => {
             animationDuration: 500,
           });
 
-          console.log('[Home] Zoomed to incident boundaries:', cameraSettings);
         }
       } else {
         console.warn('[Home] No alerts found for incident zoom calculation');
@@ -747,7 +685,9 @@ const Home = ({navigation, route}) => {
     );
 
     // Open alert details with Redux
-    dispatch(openAlertDetails({alertId: alert.id}));
+    dispatch(
+      openAlertDetails({alertId: alert.id, fromIncidentDetails: true}),
+    );
 
     // Apply zoom to alert location with optimal settings
     if (camera?.current?.setCamera && cameraSettings) {
@@ -757,23 +697,23 @@ const Home = ({navigation, route}) => {
         animationDuration: 500,
       });
 
-      console.log('[Home] Zoomed to alert:', cameraSettings);
     }
   };
 
-  const onPressMyLocationIcon = (
-    position: MapboxGL.Location | Geolocation.GeoPosition,
-  ) => {
-    if (isCameraRefVisible && camera?.current?.setCamera) {
-      setIsInitial(false);
-      camera.current.setCamera({
-        centerCoordinate: [position.coords.longitude, position.coords.latitude],
-        // centerCoordinate: [-90.133284, 18.675638],
-        zoomLevel: ZOOM_LEVEL,
-        animationDuration: ANIMATION_DURATION,
-      });
-    }
-  };
+  const onPressMyLocationIcon = useCallback(
+    (position: MapboxGL.Location | Geolocation.GeoPosition) => {
+      if (isCameraRefVisible && camera?.current?.setCamera) {
+        setIsInitial(false);
+        camera.current.setCamera({
+          centerCoordinate: [position.coords.longitude, position.coords.latitude],
+          // centerCoordinate: [-90.133284, 18.675638],
+          zoomLevel: ZOOM_LEVEL,
+          animationDuration: ANIMATION_DURATION,
+        });
+      }
+    },
+    [isCameraRefVisible],
+  );
 
   // only for the first time map will follow the user's current location by default
   const onUpdateUserLocation = useCallback(
@@ -782,6 +722,7 @@ const Home = ({navigation, route}) => {
         onPressMyLocationIcon(userLocation);
       }
     },
+    [isInitial, onPressMyLocationIcon],
   );
 
   const onPressLocationAlertPrimaryBtn = () => {
@@ -885,23 +826,6 @@ const Home = ({navigation, route}) => {
 
   const handleOpenPlatform = () => handleLink(WEB_URLS.PP_ECO);
 
-  const handleGoogleRedirect = () => {
-    const lat = Number.parseFloat(selectedAlert?.latitude);
-    const lng = Number.parseFloat(selectedAlert?.longitude);
-    const scheme = Platform.select({ios: 'maps:', android: 'geo:'});
-    const latLng = `${lat},${lng}`;
-    const url = Platform.select({
-      ios: `${scheme}//?q=${lat},${lng}`,
-      android: `${scheme}${latLng}`,
-    });
-    handleLink(url, lat, lng);
-  };
-
-  const _copyToClipboard = loc => () => {
-    // Clipboard.setString(JSON.stringify(loc));
-    modalToast.current.show('copied');
-  };
-
   const handleLayer = () => setVisible(true);
   const closeMapLayer = () => setVisible(false);
 
@@ -930,7 +854,7 @@ const Home = ({navigation, route}) => {
         id={id}
         key={id}
         title={title}
-        onSelected={e => {
+        onSelected={_e => {
           camera.current.setCamera({
             centerCoordinate: [
               alertsArr[counter]?.longitude,
@@ -946,15 +870,13 @@ const Home = ({navigation, route}) => {
           });
           setTimeout(() => {
             const alert = alertsArr[counter];
-            console.log(
-              `[incident] Fire alert marker tapped - alertId: ${
-                alert?.id
-              }, siteIncidentId: ${
-                alert?.siteIncidentId || 'none'
-              }, latitude: ${alert?.latitude}, longitude: ${alert?.longitude}`,
-            );
             // Use Redux state instead of selectedAlert
-            dispatch(openAlertDetails({alertId: alert.id}));
+            dispatch(
+              openAlertDetails({
+                alertId: alert.id,
+                fromIncidentDetails: false,
+              }),
+            );
           }, ANIMATION_DURATION);
         }}
         coordinate={coordinate}>
@@ -1084,7 +1006,7 @@ const Home = ({navigation, route}) => {
         features:
           (formattedSites?.polygon ?? [])
             .concat(formattedSites?.multipolygon ?? [])
-            ?.map((singleSite, i) => {
+            ?.map(singleSite => {
               return {
                 type: 'Feature',
                 properties: {site: singleSite},
@@ -1198,36 +1120,16 @@ const Home = ({navigation, route}) => {
    */
   const renderIncidentCircle = () => {
     if (!incidentCircleData) {
-      console.log(
-        '[incident] No incident circle data available - skipping render',
-      );
       return null;
     }
 
     if (!incident) {
-      console.log('[incident] No incident data available - skipping render');
       return null;
     }
 
     const circleColor = incident.isActive
       ? Colors.INCIDENT_ACTIVE_COLOR
       : Colors.INCIDENT_RESOLVED_COLOR;
-
-    console.log(
-      `[incident] Rendering incident circle on map - incidentId: ${incident.id}, isActive: ${incident.isActive}, color: ${circleColor}`,
-    );
-    console.log(
-      `[incident] Circle polygon details - type: ${
-        incidentCircleData.circlePolygon.geometry.type
-      }, coordinates: ${
-        incidentCircleData.circlePolygon.geometry.coordinates[0]?.length || 0
-      } points, radius: ${incidentCircleData.radiusKm.toFixed(
-        2,
-      )}km, area: ${incidentCircleData.areaKm2.toFixed(2)}km²`,
-    );
-    console.log(
-      `[incident] Circle centroid - lat: ${incidentCircleData.centroid[1]}, lon: ${incidentCircleData.centroid[0]}`,
-    );
 
     return (
       <MapboxGL.ShapeSource
@@ -1294,88 +1196,6 @@ const Home = ({navigation, route}) => {
       {Object.keys(selectedAlert).length ? (
         <Lottie source={highlightWave} autoPlay loop style={styles.alertSpot} />
       ) : null}
-
-      {/* Debug Overlay - Show incident circle rendering status */}
-      {incidentCircleData && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 10,
-            backgroundColor: 'rgba(232, 111, 86, 0.9)',
-            padding: 8,
-            borderRadius: 6,
-            zIndex: 100,
-          }}>
-          <Text
-            style={{
-              fontSize: 10,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 4,
-            }}>
-            [CIRCLE] Rendered
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 2,
-            }}>
-            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-            }}>
-            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
-          </Text>
-        </View>
-      )}
-
-      {/* Debug Overlay - Show incident circle rendering status */}
-      {incidentCircleData && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 60,
-            right: 10,
-            backgroundColor: 'rgba(232, 111, 86, 0.9)',
-            padding: 8,
-            borderRadius: 6,
-            zIndex: 100,
-          }}>
-          <Text
-            style={{
-              fontSize: 10,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 4,
-            }}>
-            [CIRCLE] Rendered
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-              marginBottom: 2,
-            }}>
-            Radius: {incidentCircleData.radiusKm.toFixed(1)}km
-          </Text>
-          <Text
-            style={{
-              fontSize: 9,
-              color: '#fff',
-              fontFamily: 'monospace',
-            }}>
-            Area: {incidentCircleData.areaKm2.toFixed(2)}km²
-          </Text>
-        </View>
-      )}
       <StatusBar
         animated
         translucent
@@ -1528,7 +1348,7 @@ const Home = ({navigation, route}) => {
         incidentId={detailsUI.selectedIncidentId}
         onClose={() => dispatch(closeAllDetails())}
         onAlertTap={handleAlertTapFromIncident}
-        onStopAlerts={incidentId => {
+        onStopAlerts={_incidentId => {
           // Placeholder implementation for stopping alerts
           toast.show('Stop alerts feature will be implemented later', {
             type: 'warning',
@@ -1542,7 +1362,10 @@ const Home = ({navigation, route}) => {
         alertId={detailsUI.selectedAlertId}
         onClose={() => dispatch(closeAllDetails())}
         onBack={() => dispatch(backToIncidentDetails())}
-        showBackButton={detailsUI.uiMode === 'alert-details'}
+        showBackButton={
+          detailsUI.uiMode === 'alert-details' &&
+          detailsUI.alertOpenedFromIncidentDetails
+        }
       />
       {/* site Info modal */}
       <BottomSheet

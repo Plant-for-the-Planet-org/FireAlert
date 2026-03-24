@@ -42,13 +42,11 @@ const styles = StyleSheet.create({
   alertRadiusInfoCon: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
   },
   satelliteIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.GRADIENT_PRIMARY + '20',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

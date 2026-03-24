@@ -51,7 +51,6 @@ const styles = StyleSheet.create({
   satelliteInfoCon: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
   },
   satelliteIcon: {
     width: 40,

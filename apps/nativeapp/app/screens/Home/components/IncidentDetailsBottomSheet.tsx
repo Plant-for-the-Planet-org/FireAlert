@@ -119,15 +119,6 @@ export const IncidentDetailsBottomSheet: React.FC<
               allAlerts={incidentData.siteAlerts}
             />
 
-            <View style={styles.alertsSection}>
-              <Text style={styles.alertsSectionTitle}>
-                All Fire Detections ({sortedAlerts.length})
-              </Text>
-              <Text style={styles.alertsSectionSubtitle}>
-                Tap any detection to view on map
-              </Text>
-            </View>
-
             {onStopAlerts && (
               <View style={styles.stopAlertsSection}>
                 <TouchableOpacity
@@ -141,6 +132,15 @@ export const IncidentDetailsBottomSheet: React.FC<
                 </TouchableOpacity>
               </View>
             )}
+
+            <View style={styles.alertsSection}>
+              <Text style={styles.alertsSectionTitle}>
+                All Fire Detections ({sortedAlerts.length})
+              </Text>
+              <Text style={styles.alertsSectionSubtitle}>
+                Tap any detection to view on map
+              </Text>
+            </View>
           </>
         }
       />
@@ -233,70 +233,6 @@ const styles = StyleSheet.create({
   alertsListContent: {
     paddingHorizontal: 16,
     paddingBottom: 16,
-  },
-  alertItem: {
-    backgroundColor: Colors.GRAY_LIGHTEST + '40',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.GRAY_LIGHT,
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  alertIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.GRADIENT_PRIMARY + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  alertInfo: {
-    flex: 1,
-  },
-  alertDetectedBy: {
-    fontSize: Typography.FONT_SIZE_10,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.TEXT_COLOR,
-    marginBottom: 4,
-  },
-  alertTime: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.GRAY_DEEP,
-  },
-  alertDetails: {
-    gap: 8,
-  },
-  alertDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  alertDetailText: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.TEXT_COLOR,
-  },
-  alertConfidence: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  confidenceLabel: {
-    fontSize: Typography.FONT_SIZE_12,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.GRAY_DEEP,
-  },
-  confidenceValue: {
-    fontSize: Typography.FONT_SIZE_12,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.GRADIENT_PRIMARY,
-    textTransform: 'uppercase',
   },
   stopAlertsSection: {
     paddingHorizontal: 16,

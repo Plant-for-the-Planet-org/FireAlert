@@ -1,28 +1,27 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
-  ScrollView,
+  Linking,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Platform,
-  Linking,
-  Alert,
 } from 'react-native';
-import {BottomSheet} from '../../../components';
-import {trpc} from '../../../services/trpc';
-import {Colors, Typography} from '../../../styles';
+import {BottomSheetFlatList} from '@gorhom/bottom-sheet';
 import {BackArrowIcon} from '../../../assets/svgs';
+import {BottomSheet} from '../../../components';
 import {
+  AlertActionsSection,
   AlertDetectionSection,
-  AlertSiteSection,
   AlertLocationSection,
   AlertRadiusSection,
-  AlertActionsSection,
+  AlertSiteSection,
 } from '../../../components/Alert';
-import {IncidentSummaryCard} from '../../../components/Incident/IncidentSummaryCard';
+import {trpc} from '../../../services/trpc';
+import {Colors, Typography} from '../../../styles';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -36,13 +35,14 @@ interface AlertDetailsBottomSheetProps {
 
 export const AlertDetailsBottomSheet: React.FC<
   AlertDetailsBottomSheetProps
-> = ({isVisible, alertId, onClose, onBack, showBackButton}) => {
-  // Helper functions
-  const handleCopyCoordinates = (latitude: number, longitude: number) => {
-    const coordinates = `${latitude}, ${longitude}`;
-    // Copy to clipboard logic would go here
-    console.log('Copied to clipboard:', coordinates);
-  };
+> = ({
+  isVisible,
+  alertId,
+  onClose,
+  onBack,
+  showBackButton,
+}) => {
+  const handleCopyCoordinates = (_latitude: number, _longitude: number) => {};
 
   const handleGoogleRedirect = (latitude: number, longitude: number) => {
     const lat = Number.parseFloat(latitude.toString());
@@ -76,19 +76,6 @@ export const AlertDetailsBottomSheet: React.FC<
 
   const alert = alertResponse?.json.data;
 
-  // Fetch incident data if alert has siteIncidentId
-  const {
-    incident,
-    isLoading: isIncidentLoading,
-    isError: isIncidentError,
-  } = trpc.siteIncident.getIncident.useQuery(
-    {json: {incidentId: alert?.siteIncidentId}},
-    {
-      enabled: !!alert?.siteIncidentId && isVisible,
-      retryDelay: 3000,
-    },
-  );
-
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -100,7 +87,6 @@ export const AlertDetailsBottomSheet: React.FC<
     }
 
     if (isError || !alert) {
-      console.log({alert});
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>Failed to load alert details</Text>
@@ -111,43 +97,13 @@ export const AlertDetailsBottomSheet: React.FC<
       );
     }
 
-    return (
-      <>
-        {/* Debug console logs */}
-        {console.log(
-          `[incident] Alert modal opened - alertId: ${
-            alert.id
-          }, siteIncidentId: ${alert.siteIncidentId || 'none'}, site: ${
-            alert.site?.name || 'unknown'
-          }`,
-        )}
-
-        {/* Incident Summary Card - shown when incident data is available */}
-        {incident && (
-          <>
-            {console.log(
-              `[incident] Displaying incident details - incidentId: ${
-                incident.id
-              }, isActive: ${incident.isActive}, alertCount: ${
-                incident.siteAlerts.length
-              }, firePoints: ${incident.siteAlerts
-                .map(
-                  (a, i) =>
-                    `[${i}](${a.latitude.toFixed(4)},${a.longitude.toFixed(
-                      4,
-                    )})`,
-                )
-                .join(' ')}`,
-            )}
-
-            <IncidentSummaryCard
-              isActive={incident.isActive}
-              startAlert={incident.startSiteAlert}
-              latestAlert={incident.latestSiteAlert}
-              allAlerts={incident.siteAlerts}
-              incidentId={incident.id}
-            />
-
+    // Create data array for BottomSheetFlatList
+    const alertData = [
+      {
+        id: 'detection',
+        type: 'detection',
+        component: (
+          <View style={styles.detectionSectionContainer}>
             <AlertDetectionSection
               detectedBy={alert.detectedBy}
               localEventDate={alert.localEventDate}
@@ -155,59 +111,58 @@ export const AlertDetailsBottomSheet: React.FC<
               localTimeZone={alert.localTimeZone}
               confidence={alert.confidence}
             />
+          </View>
+        ),
+      },
+      ...(alert.site
+        ? [
+            {
+              id: 'site',
+              type: 'site',
+              component: <AlertSiteSection site={alert.site} />,
+            },
+          ]
+        : []),
+      {
+        id: 'location',
+        type: 'location',
+        component: (
+          <AlertLocationSection
+            latitude={alert.latitude}
+            longitude={alert.longitude}
+            onCopyCoordinates={() =>
+              handleCopyCoordinates(alert.latitude, alert.longitude)
+            }
+          />
+        ),
+      },
+      {
+        id: 'radius',
+        type: 'radius',
+        component: <AlertRadiusSection distance={alert.distance} />,
+      },
+      {
+        id: 'actions',
+        type: 'actions',
+        component: (
+          <AlertActionsSection
+            onOpenInGoogleMaps={() =>
+              handleGoogleRedirect(alert.latitude, alert.longitude)
+            }
+          />
+        ),
+      },
+    ];
 
-            {alert.site && <AlertSiteSection site={alert.site} />}
-
-            <AlertLocationSection
-              latitude={alert.latitude}
-              longitude={alert.longitude}
-              onCopyCoordinates={() =>
-                handleCopyCoordinates(alert.latitude, alert.longitude)
-              }
-            />
-
-            <AlertRadiusSection distance={alert.distance} />
-
-            <AlertActionsSection
-              onOpenInGoogleMaps={() =>
-                handleGoogleRedirect(alert.latitude, alert.longitude)
-              }
-            />
-          </>
-        )}
-        {!incident &&
-          alert?.siteIncidentId &&
-          (console.log(
-            `[incident] Incident data loading - alertId: ${alert.id}, siteIncidentId: ${alert.siteIncidentId}, isLoading: ${isIncidentLoading}, isError: ${isIncidentError}`,
-          ),
-          null)}
-
-        <AlertDetectionSection
-          detectedBy={alert.detectedBy}
-          localEventDate={alert.localEventDate}
-          eventDate={alert.eventDate}
-          localTimeZone={alert.localTimeZone}
-          confidence={alert.confidence}
-        />
-
-        {alert.site && <AlertSiteSection site={alert.site} />}
-
-        <AlertLocationSection
-          latitude={alert.latitude}
-          longitude={alert.longitude}
-          onCopyCoordinates={() =>
-            handleCopyCoordinates(alert.latitude, alert.longitude)
-          }
-        />
-
-        <AlertRadiusSection distance={alert.distance} />
-
-        <AlertActionsSection
-          onOpenInGoogleMaps={() =>
-            handleGoogleRedirect(alert.latitude, alert.longitude)
-          }
-        />
-      </>
+    return (
+      <BottomSheetFlatList
+        data={alertData}
+        renderItem={({item}) => item.component}
+        keyExtractor={item => item.id}
+        style={styles.alertsList}
+        contentContainerStyle={styles.alertsListContent}
+        showsVerticalScrollIndicator={false}
+      />
     );
   };
 
@@ -230,24 +185,11 @@ export const AlertDetailsBottomSheet: React.FC<
               onPress={onBack}
               accessibilityLabel="Go back to incident details"
               accessibilityRole="button">
-              {/* <CrossIcon width={20} height={20} style={styles.backIcon} /> */}
               <BackArrowIcon />
             </TouchableOpacity>
           )}
-          {/* <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
-              accessibilityLabel="Close alert details"
-              accessibilityRole="button">
-              <CrossIcon width={20} height={20} />
-            </TouchableOpacity> */}
         </View>
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContentContainer}
-          showsVerticalScrollIndicator={false}>
-          {renderContent()}
-        </ScrollView>
+        {renderContent()}
       </View>
     </BottomSheet>
   );
@@ -260,12 +202,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     width: SCREEN_WIDTH,
     backgroundColor: Colors.WHITE,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContentContainer: {
-    paddingBottom: 16,
   },
   modalHeader: {
     width: 46,
@@ -290,12 +226,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-  },
-  closeButton: {
-    padding: 8,
-  },
-  backIcon: {
-    transform: [{rotate: '90deg'}],
   },
   commonPadding: {
     paddingHorizontal: 16,
@@ -330,88 +260,18 @@ const styles = StyleSheet.create({
     fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
     color: Colors.WHITE,
   },
-  satelliteInfoCon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  satelliteIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.GRADIENT_PRIMARY + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  satelliteInfo: {
+  alertsList: {
     flex: 1,
   },
-  satelliteText: {
-    fontSize: Typography.FONT_SIZE_12,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.TEXT_COLOR,
-    marginBottom: 4,
+  alertsListContent: {
+    paddingHorizontal: 0,
   },
-  eventDate: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.GRAY_DEEP,
-  },
-  eventFromNow: {
-    fontFamily: Typography.FONT_FAMILY_SEMI_BOLD,
-  },
-  confidence: {
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.GRAY_DEEP,
-  },
-  confidenceVal: {
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.GRADIENT_PRIMARY,
-  },
-  alertLocInfoCon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  satelliteInfoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  satelliteLocText: {
-    fontSize: Typography.FONT_SIZE_12,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.TEXT_COLOR,
-    marginBottom: 4,
-  },
-  alertLocText: {
-    fontSize: Typography.FONT_SIZE_16,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    color: Colors.TEXT_COLOR,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: Colors.GRAY_LIGHT,
-    marginVertical: 20,
-  },
-  alertRadiusInfoCon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  simpleBtn: {
-    backgroundColor: Colors.GRADIENT_PRIMARY,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  siteActionText: {
-    fontSize: Typography.FONT_SIZE_16,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.WHITE,
+  detectionSectionContainer: {
+    backgroundColor: Colors.GRAY_LIGHTEST + '40',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.GRAY_LIGHT,
+    marginBottom: 8,
   },
 });
