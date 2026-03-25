@@ -4,8 +4,7 @@
  */
 
 import React, {useMemo} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
-import {Linking} from 'react-native';
+import {View, Text, StyleSheet} from 'react-native';
 import moment from 'moment-timezone';
 import {
   OrangeFireIcon,
@@ -21,7 +20,6 @@ import {
 } from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {calculateIncidentArea} from '../../utils/incident/incidentCircleUtils';
-import {Config} from '../../../config';
 import type {IncidentSummaryCardProps} from '../../types/incident';
 
 /**
@@ -63,14 +61,14 @@ export interface IncidentSummaryCardProps {
 export function IncidentSummaryCard(
   props: IncidentSummaryCardProps,
 ): React.ReactElement {
-  const {isActive, startAlert, latestAlert, allAlerts, incidentId} = props;
+  const {isActive, startAlert, latestAlert, allAlerts} = props;
 
   // Calculate incident metrics
   const totalFires = allAlerts.length;
   const areaAffected = useMemo(() => {
     return calculateIncidentArea(
       allAlerts.map(a => ({latitude: a.latitude, longitude: a.longitude})),
-      2,
+      0.5,
     );
   }, [allAlerts]);
 
@@ -78,27 +76,6 @@ export function IncidentSummaryCard(
   const backgroundColor = isActive ? Colors.FIRE_ORANGE : Colors.FIRE_GRAY;
   const badgeColor = isActive ? Colors.FIRE_ORANGE : Colors.PLANET_DARK_GRAY;
   const badgeText = isActive ? 'Active' : 'Resolved';
-
-  // Handle opening incident URL in browser
-  const handleOpenIncidentUrl = async () => {
-    if (!incidentId) {
-      Alert.alert('Error', 'Incident ID not available');
-      return;
-    }
-
-    const url = `${Config.APP_URL}/incident/${incidentId}`;
-
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('Error', 'Unable to open the incident URL');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to open the incident URL');
-    }
-  };
 
   return (
     <View
@@ -218,12 +195,12 @@ export function IncidentSummaryCard(
       </View>
 
       {/* View Incident Link */}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.linkButton}
         onPress={handleOpenIncidentUrl}
         disabled={!incidentId}>
         <Text style={styles.linkButtonText}>View Incident Details</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }

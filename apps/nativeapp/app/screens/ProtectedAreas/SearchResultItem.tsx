@@ -1,3 +1,6 @@
+import rewind from '@mapbox/geojson-rewind';
+import {useNavigation} from '@react-navigation/native';
+import {bbox, multiPolygon, point, polygon} from '@turf/turf';
 import React, {useRef} from 'react';
 import {
   ScrollView,
@@ -7,15 +10,11 @@ import {
   View,
 } from 'react-native';
 import {SvgXml} from 'react-native-svg';
-import {protectedAreaSearchResultIcon} from '../../assets/svgs';
-import bbox from '@turf/bbox';
-// @ts-ignore - no type definitions available
-import rewind from '@mapbox/geojson-rewind';
-import {point, polygon, multiPolygon} from '@turf/helpers';
-import {Colors, Typography} from '../../styles';
-import {trpc} from '../../services/trpc';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import {useNavigation} from '@react-navigation/native';
+
+import {protectedAreaSearchResultIcon} from '../../assets/svgs';
+import {trpc} from '../../services/trpc';
+import {Colors, Typography} from '../../styles';
 
 export type Result = {
   name: string;
