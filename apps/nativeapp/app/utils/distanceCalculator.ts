@@ -1,4 +1,5 @@
-import {Point, Units} from '@turf/turf';
+import type {Point, Units} from '@turf/turf';
+import {distance} from '@turf/turf';
 
 export default function distanceCalculator(
   latLong1: [number, number],
@@ -17,10 +18,10 @@ export default function distanceCalculator(
       type: 'Point',
       coordinates: latLong2,
     };
-    const distance = turfDistance(point1, point2, {
+    const _distance = distance(point1, point2, {
       units: unit,
     });
 
-    return distance;
+    return _distance;
   }
 }
