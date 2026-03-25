@@ -65,6 +65,13 @@ const BottomSheet = ({
     }
   }, [swipeDirection]);
 
+  const shouldEnableDynamicSizing = useMemo(
+    () =>
+      enableDynamicSizing ||
+      (!snapPoints?.length && !useScrollableContainer),
+    [enableDynamicSizing, snapPoints, useScrollableContainer],
+  );
+
   const resolvedSnapPoints = useMemo(
     () => (snapPoints?.length ? snapPoints : [maxHeight]),
     [maxHeight, snapPoints],
@@ -132,7 +139,8 @@ const BottomSheet = ({
       index={initialSnapIndex}
       snapPoints={resolvedSnapPoints}
       enablePanDownToClose={enablePanDownToClose}
-      enableDynamicSizing={enableDynamicSizing}
+      enableDynamicSizing={shouldEnableDynamicSizing}
+      maxDynamicContentSize={maxHeight}
       backdropComponent={renderBackdrop}
       onChange={handleSheetChange}
       onDismiss={handleModalDismiss}
@@ -143,7 +151,7 @@ const BottomSheet = ({
       {useScrollableContainer ? (
         children
       ) : (
-        <BottomSheetView style={[styles.content, {minHeight: maxHeight}]}>
+        <BottomSheetView style={[styles.content, {maxHeight}]}>
           {children}
         </BottomSheetView>
       )}
@@ -163,7 +171,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     width: '100%',
-    minHeight: SCREEN_HEIGHT / 2,
   },
   transparentBackground: {
     backgroundColor: 'transparent',

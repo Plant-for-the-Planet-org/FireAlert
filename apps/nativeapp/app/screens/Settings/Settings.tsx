@@ -1377,8 +1377,9 @@ const Settings = () => {
         <BottomSheet
           isVisible={sitesInfoModal}
           backdropColor={Colors.BLACK + '80'}
+          enableDynamicSizing
           onBackdropPress={() => setSitesInfoModal(false)}>
-          <View style={[styles.modalContainer, styles.commonPadding]}>
+          <View style={[styles.siteInfoModalContainer, styles.commonPadding]}>
             <View style={styles.modalHeader} />
             <View style={styles.siteTitleCon}>
               <View>
@@ -1612,6 +1613,12 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     paddingBottom: 40,
     // height: SCREEN_HEIGHT / 3,
+    backgroundColor: Colors.WHITE,
+  },
+  siteInfoModalContainer: {
+    borderRadius: 15,
+    width: SCREEN_WIDTH,
+    paddingBottom: 40,
     backgroundColor: Colors.WHITE,
   },
   modalLayer: {

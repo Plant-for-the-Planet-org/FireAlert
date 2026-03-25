@@ -191,6 +191,9 @@ const Home = ({navigation: _navigation, route}) => {
 
   useEffect(() => {
     async function passProp() {
+      if (!map.current?.getCenter || !map.current?.getZoom) {
+        return;
+      }
       setSelectedSite({});
       setSelectedArea(null);
       setSelectedAlert({});
@@ -255,16 +258,13 @@ const Home = ({navigation: _navigation, route}) => {
     enabled: !!selectedAlert?.siteIncidentId,
   });
 
-  const {data: sites} = trpc.site.getSites.useQuery(
-    ['site', 'getSites'],
-    {
-      enabled: true,
-      retryDelay: 3000,
-      onError: () => {
-        toast.show('something went wrong', {type: 'danger'});
-      },
+  const {data: sites} = trpc.site.getSites.useQuery(['site', 'getSites'], {
+    enabled: true,
+    retryDelay: 3000,
+    onError: () => {
+      toast.show('something went wrong', {type: 'danger'});
     },
-  );
+  });
 
   // Fetch protected sites to optionally highlight one on app open
   const {data: protectedSites} = (trpc.site as any).getProtectedSites.useQuery(
@@ -723,9 +723,7 @@ const Home = ({navigation: _navigation, route}) => {
     );
 
     // Open alert details with Redux
-    dispatch(
-      openAlertDetails({alertId: alert.id, fromIncidentDetails: true}),
-    );
+    dispatch(openAlertDetails({alertId: alert.id, fromIncidentDetails: true}));
 
     // Apply zoom to alert location with optimal settings
     if (camera?.current?.setCamera && cameraSettings) {
@@ -734,7 +732,6 @@ const Home = ({navigation: _navigation, route}) => {
         zoomLevel: cameraSettings.zoomLevel,
         animationDuration: 500,
       });
-
     }
   };
 
@@ -743,7 +740,10 @@ const Home = ({navigation: _navigation, route}) => {
       if (isCameraRefVisible && camera?.current?.setCamera) {
         setIsInitial(false);
         camera.current.setCamera({
-          centerCoordinate: [position.coords.longitude, position.coords.latitude],
+          centerCoordinate: [
+            position.coords.longitude,
+            position.coords.latitude,
+          ],
           // centerCoordinate: [-90.133284, 18.675638],
           zoomLevel: ZOOM_LEVEL,
           animationDuration: ANIMATION_DURATION,
@@ -843,7 +843,7 @@ const Home = ({navigation: _navigation, route}) => {
           await clearAll();
         })
         .catch(error => {
-          console.log('Error ocurred', error);
+          console.error('Error ocurred', error);
         });
     }, 300);
   };
@@ -936,12 +936,13 @@ const Home = ({navigation: _navigation, route}) => {
           let pointInfo = formattedSites?.point?.filter(
             site => site.id === e?.id,
           )[0];
+
           camera.current.setCamera({
             centerCoordinate: pointInfo?.geometry?.coordinates,
             zoomLevel: 15,
             animationDuration: 500,
           });
-          setSelectedSite({site: pointInfo});
+          setSelectedSite({...{site: pointInfo}});
         }}
         coordinate={coordinate}>
         <PointSiteIcon />
@@ -1414,6 +1415,7 @@ const Home = ({navigation: _navigation, route}) => {
       <BottomSheet
         isVisible={!!Object.keys(selectedSite)?.length}
         backdropColor={'transparent'}
+        enableDynamicSizing
         onBackdropPress={() => {
           setSelectedArea(null);
           setSelectedSite({});
