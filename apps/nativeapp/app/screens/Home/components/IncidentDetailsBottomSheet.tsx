@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import React, {useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import {BottomSheetFlatList} from '@gorhom/bottom-sheet';
+import {useToast} from 'react-native-toast-notifications';
 import {BottomSheet} from '../../../components';
 import {IncidentSummaryCard} from '../../../components/Incident/IncidentSummaryCard';
 import {
@@ -25,17 +26,19 @@ interface IncidentDetailsBottomSheetProps {
   incidentId: string | null;
   onClose: () => void;
   onAlertTap: (alert: SiteAlertData) => void;
-  onStopAlerts?: (incidentId: string) => void;
 }
 
 export const IncidentDetailsBottomSheet: React.FC<
   IncidentDetailsBottomSheetProps
-> = ({isVisible, incidentId, onClose, onAlertTap, onStopAlerts}) => {
+> = ({isVisible, incidentId, onClose, onAlertTap}) => {
+  const toast = useToast();
+
   // Fetch incident data
   const {
     data: incident,
     isLoading,
     isError,
+    refetch,
   } = (trpc as any).siteIncident.getIncident.useQuery(
     {json: {incidentId: incidentId || ''}},
     {
@@ -52,6 +55,60 @@ export const IncidentDetailsBottomSheet: React.FC<
         new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime(),
     );
   }, [incident]);
+
+  const stopAlertsMutation = (trpc as any).siteIncident.updateIncidentReviewStatus.useMutation(
+    {
+      retry: 1,
+      onSuccess: async (res: any) => {
+        toast.show(
+          res?.json?.message ||
+            res?.message ||
+            'Alerts stopped for this incident.',
+          {
+            type: 'success',
+          },
+        );
+        await refetch();
+      },
+      onError: (error: any) => {
+        toast.show(
+          error?.message || 'Failed to stop alerts for this incident.',
+          {
+            type: 'danger',
+          },
+        );
+      },
+    },
+  );
+
+  const handleStopAlerts = useCallback(
+    (incidentData: any) => {
+      if (!incidentData?.id) {
+        toast.show('Incident details are not ready yet.', {type: 'warning'});
+        return;
+      }
+
+      if (!incidentData.isActive) {
+        toast.show('Incident is already closed.', {type: 'warning'});
+        return;
+      }
+
+      if (incidentData.reviewStatus === 'STOP_ALERTS') {
+        toast.show('Alerts are already stopped for this incident.', {
+          type: 'warning',
+        });
+        return;
+      }
+
+      stopAlertsMutation.mutate({
+        json: {
+          incidentId: incidentData.id,
+          status: 'STOP_ALERTS',
+        },
+      });
+    },
+    [stopAlertsMutation, toast],
+  );
 
   const renderAlertItem = ({item}: {item: any}) => {
     const alert = item;
@@ -101,6 +158,7 @@ export const IncidentDetailsBottomSheet: React.FC<
     }
 
     const incidentData = incident.json.data;
+    const isAlertsStopped = incidentData.reviewStatus === 'STOP_ALERTS';
 
     return (
       <BottomSheetFlatList
@@ -119,19 +177,35 @@ export const IncidentDetailsBottomSheet: React.FC<
               allAlerts={incidentData.siteAlerts}
             />
 
-            {onStopAlerts && (
-              <View style={styles.stopAlertsSection}>
-                <TouchableOpacity
-                  style={styles.stopAlertsButton}
-                  onPress={() => onStopAlerts(incidentData.id)}
-                  accessibilityLabel="Stop alerts for this incident"
-                  accessibilityRole="button">
-                  <Text style={styles.stopAlertsButtonText}>
-                    Stop Alerts for the Incident
+            <View style={styles.stopAlertsSection}>
+              <TouchableOpacity
+                style={[
+                  styles.stopAlertsButton,
+                  isAlertsStopped && styles.stopAlertsButtonOutlined,
+                ]}
+                onPress={() => handleStopAlerts(incidentData)}
+                disabled={stopAlertsMutation.status === 'pending'}
+                accessibilityLabel="Stop alerts for this incident"
+                accessibilityRole="button">
+                {stopAlertsMutation.status === 'pending' ? (
+                  <ActivityIndicator
+                    color={
+                      isAlertsStopped ? Colors.GRADIENT_PRIMARY : Colors.WHITE
+                    }
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.stopAlertsButtonText,
+                      isAlertsStopped && styles.stopAlertsButtonTextOutlined,
+                    ]}>
+                    {isAlertsStopped
+                      ? 'Alerts Stopped for this Incident'
+                      : 'Stop Alerts for the Incident'}
                   </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+                )}
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.alertsSection}>
               <Text style={styles.alertsSectionTitle}>
@@ -240,15 +314,23 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   stopAlertsButton: {
-    backgroundColor: Colors.ALERT,
+    backgroundColor: Colors.GRADIENT_PRIMARY,
+    borderColor: Colors.GRADIENT_PRIMARY,
+    borderWidth: 1,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
   },
+  stopAlertsButtonOutlined: {
+    backgroundColor: 'transparent',
+  },
   stopAlertsButtonText: {
     fontSize: Typography.FONT_SIZE_16,
     fontFamily: Typography.FONT_FAMILY_BOLD,
     color: Colors.WHITE,
+  },
+  stopAlertsButtonTextOutlined: {
+    color: Colors.GRADIENT_PRIMARY,
   },
 });

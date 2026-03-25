@@ -673,14 +673,14 @@ const Home = ({navigation: _navigation, route}) => {
         const incidentResponse = await (
           trpc as any
         ).siteIncident.getIncident.fetch({json: {incidentId}});
+        const incidentData =
+          incidentResponse?.json?.data ||
+          incidentResponse?.data ||
+          incidentResponse;
+        const incidentAlerts = incidentData?.siteAlerts || [];
 
-        if (
-          incidentResponse?.siteAlerts &&
-          incidentResponse.siteAlerts.length > 0
-        ) {
-          const cameraSettings = calculateIncidentCamera(
-            incidentResponse.siteAlerts,
-          );
+        if (incidentAlerts.length > 0) {
+          const cameraSettings = calculateIncidentCamera(incidentAlerts);
 
           if (cameraSettings?.bounds && camera?.current?.fitBounds) {
             camera.current.fitBounds(
@@ -1392,12 +1392,6 @@ const Home = ({navigation: _navigation, route}) => {
         incidentId={detailsUI.selectedIncidentId}
         onClose={() => dispatch(closeAllDetails())}
         onAlertTap={handleAlertTapFromIncident}
-        onStopAlerts={_incidentId => {
-          // Placeholder implementation for stopping alerts
-          toast.show('Stop alerts feature will be implemented later', {
-            type: 'warning',
-          });
-        }}
       />
 
       {/* alert details modal */}

@@ -35,13 +35,7 @@ interface AlertDetailsBottomSheetProps {
 
 export const AlertDetailsBottomSheet: React.FC<
   AlertDetailsBottomSheetProps
-> = ({
-  isVisible,
-  alertId,
-  onClose,
-  onBack,
-  showBackButton,
-}) => {
+> = ({isVisible, alertId, onClose, onBack, showBackButton}) => {
   const handleCopyCoordinates = (_latitude: number, _longitude: number) => {};
 
   const handleGoogleRedirect = (latitude: number, longitude: number) => {
@@ -267,11 +261,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   detectionSectionContainer: {
-    backgroundColor: Colors.GRAY_LIGHTEST + '40',
+    backgroundColor: Colors.GRAY_LIGHT + '40',
     borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.GRAY_LIGHT,
-    marginBottom: 8,
   },
 });
