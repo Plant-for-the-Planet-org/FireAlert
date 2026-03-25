@@ -33,7 +33,7 @@ export default function fireApi({method, URL, data, header, token}) {
 
   return request()
     .then(response => {
-      console.log('response', response);
+      // console.log('response', response);
       return response;
     })
     .catch(error => {

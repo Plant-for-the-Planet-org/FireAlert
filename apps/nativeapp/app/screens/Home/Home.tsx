@@ -843,7 +843,7 @@ const Home = ({navigation: _navigation, route}) => {
           await clearAll();
         })
         .catch(error => {
-          console.log('Error ocurred', error);
+          console.error('Error ocurred', error);
         });
     }, 300);
   };
@@ -933,13 +933,10 @@ const Home = ({navigation: _navigation, route}) => {
         key={id}
         title={title}
         onSelected={e => {
-          console.log('[0] Is it called?');
-          console.log({formattedSites, eId: e?.id});
-
           let pointInfo = formattedSites?.point?.filter(
             site => site.id === e?.id,
           )[0];
-          console.log(pointInfo);
+
           camera.current.setCamera({
             centerCoordinate: pointInfo?.geometry?.coordinates,
             zoomLevel: 15,
