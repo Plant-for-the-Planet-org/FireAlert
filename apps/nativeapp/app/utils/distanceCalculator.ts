@@ -1,10 +1,10 @@
-import type {Point, Units} from '@turf/turf';
+import type {Point} from 'geojson';
 import {distance} from '@turf/turf';
 
 export default function distanceCalculator(
   latLong1: [number, number],
   latLong2: [number, number],
-  unit: Units,
+  unit: 'meters' | 'kilometers' | 'feets' | 'miles',
 ) {
   if (latLong1[0] === latLong2[0] && latLong1[1] === latLong2[1]) {
     return 0;

@@ -232,9 +232,13 @@ export default function ProtectedSitesSettings({
       <BottomSheet
         isVisible={sitesInfoModal}
         backdropColor={Colors.BLACK + '80'}
+        enableDynamicSizing
         onBackdropPress={() => setSitesInfoModal(false)}>
         <View
-          style={[settingsStyles.modalContainer, settingsStyles.commonPadding]}>
+          style={[
+            settingsStyles.siteInfoModalContainer,
+            settingsStyles.commonPadding,
+          ]}>
           <View style={settingsStyles.modalHeader} />
           <View style={settingsStyles.siteTitleCon}>
             <View>

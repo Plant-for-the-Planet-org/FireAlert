@@ -1,4 +1,4 @@
-import React, {createContext, useState, ReactNode} from 'react';
+import React, {createContext, useCallback, useMemo, useState, ReactNode} from 'react';
 
 interface BottomBarContextProps {
   mapInfo: any;
@@ -28,29 +28,43 @@ export const BottomBarProvider: React.FC<BottomBarProviderProps> = ({
   const [selected, setSelected] = useState(0);
   const [mapInfo, setMapInfo] = useState({});
 
-  const openModal = () => {
-    setModalVisible(!modalVisible);
-  };
+  const openModal = useCallback(() => {
+    setModalVisible(prev => !prev);
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setModalVisible(false);
-  };
+  }, []);
 
-  const passMapInfo = (payload: any) => setMapInfo(payload);
+  const passMapInfo = useCallback((payload: any) => {
+    setMapInfo(payload);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      mapInfo,
+      selected,
+      openModal,
+      closeModal,
+      setSelected,
+      passMapInfo,
+      modalVisible,
+      selectedSiteBar,
+      setSelectedSiteBar,
+    }),
+    [
+      mapInfo,
+      selected,
+      openModal,
+      closeModal,
+      passMapInfo,
+      modalVisible,
+      selectedSiteBar,
+    ],
+  );
 
   return (
-    <BottomBarContext.Provider
-      value={{
-        mapInfo,
-        selected,
-        openModal,
-        closeModal,
-        setSelected,
-        passMapInfo,
-        modalVisible,
-        selectedSiteBar,
-        setSelectedSiteBar,
-      }}>
+    <BottomBarContext.Provider value={value}>
       {children}
     </BottomBarContext.Provider>
   );
