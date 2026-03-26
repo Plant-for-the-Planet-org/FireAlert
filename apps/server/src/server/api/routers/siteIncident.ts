@@ -223,7 +223,14 @@ export const siteIncidentRouter = createTRPCRouter({
         input.status,
       );
 
-      return updatedIncident;
+      return {
+        status: 'success',
+        message:
+          input.status === 'STOP_ALERTS'
+            ? 'Alerts stopped for this incident.'
+            : 'Incident review status updated.',
+        data: updatedIncident,
+      };
     }),
 
   /**
@@ -266,6 +273,10 @@ export const siteIncidentRouter = createTRPCRouter({
         },
       });
 
-      return closedIncident;
+      return {
+        status: 'success',
+        message: 'Incident closed successfully.',
+        data: closedIncident,
+      };
     }),
 });

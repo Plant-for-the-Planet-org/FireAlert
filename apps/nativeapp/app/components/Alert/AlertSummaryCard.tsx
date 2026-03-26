@@ -57,11 +57,9 @@ AlertSummaryCard.displayName = 'AlertSummaryCard';
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.GRAY_LIGHTEST + '40',
+    backgroundColor: Colors.GRAY_LIGHT + '40',
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: Colors.GRAY_LIGHT,
   },
 });
