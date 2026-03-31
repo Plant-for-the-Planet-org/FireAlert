@@ -9,7 +9,6 @@ require_relative '../../../node_modules/@react-native-community/cli-platform-ios
 platform :ios, '15.1'
 
 ENV['RCT_NEW_ARCH_ENABLED'] = '0'
-ENV['USE_HERMES'] = '1'
 
 prepare_react_native_project!
 
@@ -25,7 +24,6 @@ end
 
 target 'FireAlert' do
   config = use_native_modules!
-  $react_native_path = config[:reactNativePath]
 
   use_react_native!(
     :path => config[:reactNativePath],
@@ -39,17 +37,18 @@ target 'FireAlert' do
   post_install do |installer|
     $RNMapboxMaps.post_install(installer)
 
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false
+    )
+
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
-        # ✅ KEY FIX: allow non-modular includes (Reanimated 3.x C++ headers)
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
         config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
         config.build_settings['CLANG_WARN_NON_MODULAR_INCLUDE_IN_FRAMEWORK_MODULE'] = 'NO'
 
-        # C++20 required by Reanimated 3.19+
-        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
-
-        # Strip -Werror=non-modular flag safely (handles both String and Array)
         flags = config.build_settings['OTHER_CFLAGS']
         if flags.is_a?(Array)
           config.build_settings['OTHER_CFLAGS'] = flags.reject { |f|
@@ -62,28 +61,24 @@ target 'FireAlert' do
             .join(' ')
         end
 
-        # Mapbox: required when using static linkage
         if target.name == 'MapboxMaps' || target.name.start_with?('RNMapbox')
           config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
         end
 
-        case target.name
-        when 'hermes-engine'
-          config.build_settings['USE_HERMES'] = 'YES'
-          config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
-          config.build_settings['ENABLE_BITCODE'] = 'NO'
-        when 'OneSignalXCFramework'
-          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = '$(inherited)'
-          config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+        if target.name == 'fmt'
+          # Workaround for Apple Clang + fmt 11 consteval failures.
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+
+          definitions = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
+          definitions = ['$(inherited)'] if definitions.nil?
+          definitions = definitions.split(' ') if definitions.is_a?(String)
+          unless definitions.include?('FMT_USE_CONSTEVAL=0')
+            definitions << 'FMT_USE_CONSTEVAL=0'
+          end
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = definitions
         end
       end
     end
-
-    react_native_post_install(
-      installer,
-      config[:reactNativePath],
-      :mac_catalyst_enabled => false
-    )
   end
 end
 
