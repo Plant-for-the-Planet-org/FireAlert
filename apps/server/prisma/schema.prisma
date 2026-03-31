@@ -169,6 +169,7 @@ model SiteIncident {
     startNotificationId String?
     endNotificationId   String?
     reviewStatus        SiteIncidentReviewStatus @default(TO_REVIEW)
+    relatedIncidentId   String?
     createdAt           DateTime                 @default(now())
     updatedAt           DateTime                 @updatedAt
     site                Site                     @relation(fields: [siteId], references: [id], onDelete: Cascade)
@@ -176,12 +177,15 @@ model SiteIncident {
     latestSiteAlert     SiteAlert                @relation("latestAlert", fields: [latestSiteAlertId], references: [id])
     endSiteAlert        SiteAlert?               @relation("endAlert", fields: [endSiteAlertId], references: [id])
     siteAlerts          SiteAlert[]              @relation("incidentAlerts")
+    relatedIncident     SiteIncident?            @relation("relatedIncidentChain", fields: [relatedIncidentId], references: [id], onDelete: SetNull)
+    parentIncidents     SiteIncident[]           @relation("relatedIncidentChain")
 
     metadata Json?
 
     @@index([siteId])
     @@index([isActive, isProcessed])
     @@index([startedAt])
+    @@index([relatedIncidentId])
 }
 
 model Notification {
