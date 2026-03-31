@@ -1,4 +1,3 @@
-# File: ios/Podfile  (REPLACE ENTIRE FILE)
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
@@ -7,35 +6,26 @@ require Pod::Executable.execute_command('node', ['-p',
 
 require_relative '../../../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
-$RNMapboxMapsImpl = 'mapbox'
-
-# React Native >= 0.76 requires iOS 15.1 minimum; set to 15.1 to satisfy ReactCommon / turbomodule pods.
 platform :ios, '15.1'
 
-# Disable New Architecture to ensure compatibility
 ENV['RCT_NEW_ARCH_ENABLED'] = '0'
-
-# iOS-only Hermes configuration to fix PhaseScriptExecution errors
 ENV['USE_HERMES'] = '1'
 
 prepare_react_native_project!
 
-# RNMapbox configuration
 $RNMapboxMapsImpl = 'mapbox'
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage
   use_frameworks! :linkage => linkage.to_sym
 else
-  use_frameworks!
+  # Static linkage required for Reanimated 3.x C++ modules
+  use_frameworks! :linkage => :static
 end
 
 target 'FireAlert' do
   config = use_native_modules!
   $react_native_path = config[:reactNativePath]
-
-  # legacy radial gradient commented out — omitted because project doesn't use it.
-  # pod 'SRSRadialGradient', :path => '../../../node_modules/react-native-radial-gradient/ios'
 
   use_react_native!(
     :path => config[:reactNativePath],
@@ -48,9 +38,35 @@ target 'FireAlert' do
 
   post_install do |installer|
     $RNMapboxMaps.post_install(installer)
-    
+
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
+        # ✅ KEY FIX: allow non-modular includes (Reanimated 3.x C++ headers)
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+        config.build_settings['CLANG_WARN_NON_MODULAR_INCLUDE_IN_FRAMEWORK_MODULE'] = 'NO'
+
+        # C++20 required by Reanimated 3.19+
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
+
+        # Strip -Werror=non-modular flag safely (handles both String and Array)
+        flags = config.build_settings['OTHER_CFLAGS']
+        if flags.is_a?(Array)
+          config.build_settings['OTHER_CFLAGS'] = flags.reject { |f|
+            f == '-Werror=non-modular-include-in-framework-module'
+          }
+        elsif flags.is_a?(String)
+          config.build_settings['OTHER_CFLAGS'] = flags
+            .split(' ')
+            .reject { |f| f == '-Werror=non-modular-include-in-framework-module' }
+            .join(' ')
+        end
+
+        # Mapbox: required when using static linkage
+        if target.name == 'MapboxMaps' || target.name.start_with?('RNMapbox')
+          config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+        end
+
         case target.name
         when 'hermes-engine'
           config.build_settings['USE_HERMES'] = 'YES'
@@ -62,7 +78,7 @@ target 'FireAlert' do
         end
       end
     end
-    
+
     react_native_post_install(
       installer,
       config[:reactNativePath],

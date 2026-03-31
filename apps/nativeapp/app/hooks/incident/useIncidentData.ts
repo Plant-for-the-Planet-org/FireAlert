@@ -11,8 +11,20 @@ export function useIncidentData(
   const {incidentId, enabled = true} = params;
   const safeIncidentId = incidentId ?? '';
 
-  const {data, isLoading, isError, error} = trpc.siteIncident.getIncidentPublic.useQuery(
-    {json: {incidentId: safeIncidentId}},
+  useEffect(() => {
+    console.log(
+      `[incident] useIncidentData hook initialized - incidentId: ${incidentId}, enabled: ${enabled}`,
+    );
+  }, [incidentId, enabled]);
+
+  // Fetch incident data using tRPC
+  const {
+    data: response,
+    isLoading,
+    isError,
+    error,
+  } = trpc.siteIncident.getIncident.useQuery(
+    {json: {incidentId: incidentId!}},
     {
       enabled: Boolean(incidentId) && enabled,
       retry: 1,

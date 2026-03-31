@@ -1,24 +1,22 @@
+import MapboxGL from '@rnmapbox/maps';
+import {bbox, point} from '@turf/turf';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 import {
-  View,
-  Text,
-  Modal,
+  BackHandler,
+  ImageSourcePropType,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   StatusBar,
   StyleSheet,
-  BackHandler,
+  Text,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  ImageSourcePropType,
+  View,
 } from 'react-native';
-import bbox from '@turf/bbox';
-import {point} from '@turf/helpers';
-import MapboxGL from '@rnmapbox/maps';
-import {SvgXml} from 'react-native-svg';
-import Toast from 'react-native-toast-notifications';
-import {useToast} from 'react-native-toast-notifications';
 import Geolocation from 'react-native-geolocation-service';
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import {SvgXml} from 'react-native-svg';
+import Toast, {useToast} from 'react-native-toast-notifications';
 
 import {
   CrossIcon,
@@ -27,26 +25,26 @@ import {
   active_marker,
 } from '../../assets/svgs';
 import {
-  PermissionDeniedAlert,
   PermissionBlockedAlert,
+  PermissionDeniedAlert,
 } from '../Home/PermissionAlert/LocationPermissionAlerts';
 
-import {
-  DropDown,
-  AlertModal,
-  LayerModal,
-  CustomButton,
-  FloatingInput,
-} from '../../components';
-import {trpc} from '../../services/trpc';
-import {useFetchSites} from '../../utils/api';
-import {Colors, Typography} from '../../styles';
-import {POINT_RADIUS_ARR} from '../../constants';
+import {useNavigation} from '@react-navigation/native';
 import {useQueryClient} from '@tanstack/react-query';
-import {locationPermission} from '../../utils/permissions';
+import {
+  AlertModal,
+  CustomButton,
+  DropDown,
+  FloatingInput,
+  LayerModal,
+} from '../../components';
+import {POINT_RADIUS_ARR} from '../../constants';
 import {BottomBarContext} from '../../global/reducers/bottomBar';
 import {MapLayerContext, useMapLayers} from '../../global/reducers/mapLayers';
-import {useNavigation} from '@react-navigation/native';
+import {trpc} from '../../services/trpc';
+import {Colors, Typography} from '../../styles';
+import {useFetchSites} from '../../utils/api';
+import {locationPermission} from '../../utils/permissions';
 
 const IS_ANDROID = Platform.OS === 'android';
 

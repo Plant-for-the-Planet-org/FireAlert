@@ -1,5 +1,15 @@
 import {type SiteIncident} from '@prisma/client';
 
+import {
+  type SiteAlert,
+  type Site,
+  type Notification,
+  SiteIncidentReviewStatus,
+} from '@prisma/client';
+
+/**
+ * Core SiteIncident interface representing a grouped fire event
+ */
 export interface SiteIncidentInterface {
   id: string;
   siteId: string;
@@ -12,7 +22,7 @@ export interface SiteIncidentInterface {
   isProcessed: boolean;
   startNotificationId?: string | null;
   endNotificationId?: string | null;
-  reviewStatus: string;
+  reviewStatus: SiteIncidentReviewStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,7 +42,7 @@ export interface UpdateIncidentData {
   isProcessed?: boolean;
   startNotificationId?: string | null;
   endNotificationId?: string | null;
-  reviewStatus?: string;
+  reviewStatus?: SiteIncidentReviewStatus;
 }
 
 export interface IncidentMetrics {
@@ -61,4 +71,31 @@ export interface IncidentState {
   alertCount: number;
   shouldResolve: boolean;
   inactiveMinutes: number;
+}
+
+/**
+ * Geometry data for spatial operations
+ */
+export interface GeometryData {
+  type: 'Point' | 'Polygon' | 'MultiPolygon' | 'GeometryCollection';
+  coordinates?: unknown;
+  geometries?: unknown;
+}
+
+/**
+ * Incident notification status
+ */
+export enum NotificationStatus {
+  START = 'START',
+  START_SENT = 'START_SENT',
+  END = 'END',
+  END_SENT = 'END_SENT',
+}
+
+/**
+ * Incident review status
+ */
+export enum ReviewStatus {
+  TO_REVIEW = 'TO_REVIEW',
+  STOP_ALERTS = 'STOP_ALERTS',
 }
