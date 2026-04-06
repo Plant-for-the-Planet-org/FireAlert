@@ -1,4 +1,5 @@
 import {
+  type Prisma,
   type SiteAlert,
   type SiteIncident,
   SiteIncidentReviewStatus,
@@ -13,6 +14,59 @@ import {type SiteIncidentRepository} from './SiteIncidentRepository';
 import {type IncidentResolver} from './IncidentResolver';
 import {SiteIncidentProximityService} from './SiteIncidentProximityService';
 import {type RelatedSiteIncident} from './types';
+
+const relatedIncidentInclude = {
+  site: {
+    select: {
+      id: true,
+      name: true,
+      geometry: true,
+      project: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+  startSiteAlert: {
+    select: {
+      id: true,
+      eventDate: true,
+      latitude: true,
+      longitude: true,
+      detectedBy: true,
+      confidence: true,
+    },
+  },
+  latestSiteAlert: {
+    select: {
+      id: true,
+      eventDate: true,
+      latitude: true,
+      longitude: true,
+      detectedBy: true,
+      confidence: true,
+    },
+  },
+  siteAlerts: {
+    select: {
+      id: true,
+      eventDate: true,
+      latitude: true,
+      longitude: true,
+      detectedBy: true,
+      confidence: true,
+    },
+    orderBy: {
+      eventDate: 'asc',
+    },
+  },
+} satisfies Prisma.SiteIncidentInclude;
+
+export type RelatedIncidentWithDetails = Prisma.SiteIncidentGetPayload<{
+  include: typeof relatedIncidentInclude;
+}>;
 
 /**
  * SiteIncidentService orchestrates the incident lifecycle
@@ -320,6 +374,118 @@ export class SiteIncidentService {
   }
 
   /**
+   * Gets all related incidents for a given incident by traversing
+   * the incident chain in both directions (parent <-> child).
+   * @param incidentId - Incident ID to start traversal from
+   * @returns Current incident + flattened related incidents
+   */
+  async getRelatedIncidentChain(
+    incidentId: string,
+  ): Promise<{
+    currentIncident: RelatedIncidentWithDetails;
+    relatedIncidents: RelatedIncidentWithDetails[];
+  } | null> {
+    if (
+      !incidentId ||
+      typeof incidentId !== 'string' ||
+      incidentId.trim().length === 0
+    ) {
+      const error = new Error('Invalid incidentId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    const currentIncident = await this.repository.prisma.siteIncident.findUnique({
+      where: {id: incidentId},
+      include: relatedIncidentInclude,
+    });
+
+    if (!currentIncident) {
+      return null;
+    }
+
+    const siteId = currentIncident.siteId;
+    const visited = new Set<string>();
+    const queue: string[] = [incidentId];
+
+    while (queue.length > 0) {
+      const frontier = queue.splice(0, 50).filter(id => !visited.has(id));
+      if (frontier.length === 0) {
+        continue;
+      }
+
+      frontier.forEach(id => visited.add(id));
+
+      const neighbors = await this.repository.prisma.siteIncident.findMany({
+        where: {
+          siteId,
+          OR: [
+            {
+              id: {
+                in: frontier,
+              },
+            },
+            {
+              relatedIncidentId: {
+                in: frontier,
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          siteId: true,
+          relatedIncidentId: true,
+        },
+      });
+
+      for (const neighbor of neighbors) {
+        if (neighbor.siteId !== siteId) {
+          logger(
+            `Ignoring cross-site relation during related chain traversal: ${neighbor.id}`,
+            'warn',
+          );
+          continue;
+        }
+
+        if (!visited.has(neighbor.id)) {
+          queue.push(neighbor.id);
+        }
+
+        const childId = neighbor.relatedIncidentId;
+        if (childId && !visited.has(childId)) {
+          queue.push(childId);
+        }
+      }
+    }
+
+    const allIncidents = await this.repository.prisma.siteIncident.findMany({
+      where: {
+        siteId,
+        id: {
+          in: Array.from(visited),
+        },
+      },
+      include: relatedIncidentInclude,
+      orderBy: {
+        startedAt: 'desc',
+      },
+    });
+
+    const currentFromList =
+      allIncidents.find(incident => incident.id === incidentId) ||
+      currentIncident;
+    const relatedIncidents = allIncidents.filter(
+      incident => incident.id !== incidentId,
+    );
+
+    return {
+      currentIncident: currentFromList,
+      relatedIncidents,
+    };
+  }
+
+  /**
    * Records performance metrics
    * @param operation - Operation name
    * @param duration - Duration in milliseconds
@@ -510,11 +676,11 @@ export class SiteIncidentService {
                 in: descendantIncidentIds,
               },
               siteId: updatedIncident.siteId,
-            } as any,
+            },
             data: {
               reviewStatus: SiteIncidentReviewStatus.STOP_ALERTS,
               updatedAt: new Date(),
-            } as any,
+            },
           });
 
           logger(
@@ -621,7 +787,7 @@ export class SiteIncidentService {
     let currentId = incidentId;
 
     while (true) {
-      const currentIncident = (await this.repository.prisma.siteIncident.findUnique(
+      const currentIncident = await this.repository.prisma.siteIncident.findUnique(
         {
           where: {
             id: currentId,
@@ -630,13 +796,9 @@ export class SiteIncidentService {
             id: true,
             siteId: true,
             relatedIncidentId: true,
-          } as any,
+          },
         },
-      )) as unknown as {
-        id: string;
-        siteId: string;
-        relatedIncidentId: string | null;
-      } | null;
+      );
 
       if (!currentIncident || currentIncident.siteId !== siteId) {
         return descendants;
@@ -647,22 +809,16 @@ export class SiteIncidentService {
         return descendants;
       }
 
-      const childIncident = (await this.repository.prisma.siteIncident.findUnique(
-        {
-          where: {
-            id: childId,
-          },
-          select: {
-            id: true,
-            siteId: true,
-            relatedIncidentId: true,
-          } as any,
+      const childIncident = await this.repository.prisma.siteIncident.findUnique({
+        where: {
+          id: childId,
         },
-      )) as unknown as {
-        id: string;
-        siteId: string;
-        relatedIncidentId: string | null;
-      } | null;
+        select: {
+          id: true,
+          siteId: true,
+          relatedIncidentId: true,
+        },
+      });
 
       if (!childIncident || childIncident.siteId !== siteId) {
         return descendants;

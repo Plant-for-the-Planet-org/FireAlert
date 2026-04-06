@@ -18,6 +18,8 @@ interface IncidentSummaryProps {
   startAlert: AlertData;
   latestAlert: AlertData;
   allAlerts: AlertData[];
+  combinedAlerts?: AlertData[];
+  showCombinedSummary?: boolean;
 }
 
 function formatDate(date: Date): string {
@@ -88,33 +90,29 @@ const IncidentAreaIcon = ({isActive}: {isActive: boolean}) => (
   />
 );
 
-const PinIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="text-planet-dark-gray/60">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-    <circle cx="12" cy="10" r="3"></circle>
-  </svg>
-);
-
 export function IncidentSummary({
   isActive,
   startAlert,
   latestAlert,
   allAlerts,
+  combinedAlerts,
+  showCombinedSummary = false,
 }: IncidentSummaryProps) {
   const totalFires = allAlerts.length;
   const areaAffected = calculateIncidentArea(
     allAlerts.map(a => ({latitude: a.latitude, longitude: a.longitude})),
     // 2,
   );
+  const shouldRenderCombinedSummary =
+    showCombinedSummary &&
+    Array.isArray(combinedAlerts) &&
+    combinedAlerts.length > 0;
+  const combinedFires = combinedAlerts || [];
+  const combinedAreaAffected = shouldRenderCombinedSummary
+    ? calculateIncidentArea(
+        combinedFires.map(a => ({latitude: a.latitude, longitude: a.longitude})),
+      )
+    : null;
 
   return (
     <BaseCard
@@ -239,6 +237,47 @@ export function IncidentSummary({
           </div>
         </div>
       </div>
+
+      {shouldRenderCombinedSummary && combinedAreaAffected && (
+        <div className="w-full mt-4 pt-4 border-t border-white/50">
+          <p className="text-planet-dark-gray/70 text-xs font-semibold font-sans uppercase mt-0 mb-2">
+            For Combined Incidents
+          </p>
+          <div className="w-full flex flex-wrap gap-2">
+            <div className="flex-1 flex flex-wrap gap-2 bg-white/25 p-4 rounded-2xl">
+              <div className="bg-transparent h-4 w-4 mb-2 flex justify-start items-center aspect-square rounded-full">
+                <Image
+                  src={(isActive ? orangeAlertIcon : blackAlertIcon) as string}
+                  alt="Fire Icon"
+                  className="w-5 h-5"
+                />
+              </div>
+              <div>
+                <p className="text-planet-dark-gray/70 text-sm font-sans m-0">
+                  Combined Fires
+                </p>
+                <p className="text-planet-dark-gray font-bold font-sans m-0">
+                  {combinedFires.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-1 flex flex-wrap gap-2 bg-white/25 rounded-2xl p-4">
+              <div className="bg-transparent h-4 w-4 mb-2 flex justify-start items-center aspect-square rounded-full">
+                <IncidentAreaIcon isActive={isActive} />
+              </div>
+              <div>
+                <p className="text-planet-dark-gray/70 text-sm font-sans m-0">
+                  Combined Area
+                </p>
+                <p className="text-planet-dark-gray font-bold font-sans m-0">
+                  {combinedAreaAffected}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </BaseCard>
   );
 }

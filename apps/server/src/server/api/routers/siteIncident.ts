@@ -1,6 +1,7 @@
 import {TRPCError} from '@trpc/server';
 import {
   getIncidentSchema,
+  getRelatedIncidentsSchema,
   getActiveIncidentsSchema,
   getIncidentHistorySchema,
   updateIncidentReviewStatusSchema,
@@ -92,6 +93,39 @@ export const siteIncidentRouter = createTRPCRouter({
         return {
           status: 'success',
           data: incident,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Something went wrong!',
+        });
+      }
+    }),
+
+  /**
+   * Get all related incidents for a single incident ID (public endpoint for sharing)
+   */
+  getRelatedIncidentsPublic: publicProcedure
+    .input(getRelatedIncidentsSchema)
+    .query(async ({input}) => {
+      try {
+        const incidentChain = await siteIncidentService.getRelatedIncidentChain(
+          input.incidentId,
+        );
+
+        if (!incidentChain) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Incident not found',
+          });
+        }
+
+        return {
+          status: 'success',
+          data: incidentChain,
         };
       } catch (error) {
         if (error instanceof TRPCError) {

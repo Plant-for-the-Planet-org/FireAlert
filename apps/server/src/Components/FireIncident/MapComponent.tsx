@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import React, {useEffect, useMemo} from 'react';
 import type {FC} from 'react';
 import Map, {
   NavigationControl,
@@ -23,6 +23,17 @@ export interface MapMarker {
   longitude: number;
   id: string;
   theme: AlertTheme;
+}
+
+export interface IncidentFirePoint {
+  latitude: number;
+  longitude: number;
+}
+
+export interface RelatedIncidentBoundary {
+  incidentId: string;
+  isActive: boolean;
+  fires: IncidentFirePoint[];
 }
 
 // GeoJSON type definitions
@@ -54,6 +65,14 @@ interface Props {
   incidentCircleColor?: 'orange' | 'gray';
   /** Buffer distance in kilometers for smoothing incident polygon vertices (default: 0.5km) */
   bufferKm?: number;
+  /** Related incident boundaries rendered with lower opacity */
+  relatedIncidentBoundaries?: RelatedIncidentBoundary[];
+  /** Toggle to render related incident boundaries */
+  showRelatedIncidentBoundaries?: boolean;
+  /** Combined boundary points from current + related incidents */
+  combinedIncidentFires?: IncidentFirePoint[];
+  /** Toggle to render combined boundary */
+  showCombinedIncidentBoundary?: boolean;
 }
 
 type BBox = [number, number, number, number];
@@ -111,6 +130,10 @@ const MapComponent: FC<Props> = ({
   onMarkerClick,
   incidentCircleColor,
   bufferKm = 0.5,
+  relatedIncidentBoundaries = [],
+  showRelatedIncidentBoundaries = false,
+  combinedIncidentFires = [],
+  showCombinedIncidentBoundary = false,
 }) => {
   // Convert polygon data to GeoJSON format
   const polygonGeoJSON = polygon
@@ -124,9 +147,21 @@ const MapComponent: FC<Props> = ({
   // Calculate the bounding box and center point
   let bbox: BBox | null = null;
 
-  // Calculate bbox from markers if available
-  if (markers.length > 0) {
-    bbox = markers.reduce<BBox>(
+  const relatedBoundaryPoints = relatedIncidentBoundaries.flatMap(
+    incident => incident.fires,
+  );
+  const allVisiblePoints = [
+    ...markers.map(marker => ({
+      latitude: marker.latitude,
+      longitude: marker.longitude,
+    })),
+    ...(showRelatedIncidentBoundaries ? relatedBoundaryPoints : []),
+    ...(showCombinedIncidentBoundary ? combinedIncidentFires : []),
+  ];
+
+  // Calculate bbox from all currently visible incident points
+  if (allVisiblePoints.length > 0) {
+    bbox = allVisiblePoints.reduce<BBox>(
       (acc, marker) => [
         Math.min(acc[0], marker.longitude),
         Math.min(acc[1], marker.latitude),
@@ -165,21 +200,35 @@ const MapComponent: FC<Props> = ({
     bbox && bbox[0] !== Infinity
       ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]
       : defaultCenter;
+  const centerLongitude = center[0];
+  const centerLatitude = center[1];
 
   // Calculate the zoom level based on the size of the bounding box
   const zoomLevel = bbox && bbox[0] !== Infinity ? getZoomLevel(bbox) : 13;
 
   const mapRef = React.useRef<MapRef | null>(null);
-  const [viewState, setViewState] = React.useState({
-    latitude: center[1],
-    longitude: center[0],
-    zoom: zoomLevel,
-  });
+
+  const syncViewportToDerivedBounds = React.useCallback(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) {
+      return;
+    }
+
+    map.jumpTo({
+      center: [centerLongitude, centerLatitude],
+      zoom: zoomLevel,
+    });
+  }, [centerLongitude, centerLatitude, zoomLevel]);
+
+  useEffect(() => {
+    syncViewportToDerivedBounds();
+  }, [syncViewportToDerivedBounds]);
 
   const onMapLoad = React.useCallback(() => {
     const map = mapRef?.current?.getMap();
     map?.setStyle(mapStyle);
-  }, []);
+    syncViewportToDerivedBounds();
+  }, [syncViewportToDerivedBounds]);
 
   const defaultLottieOptions = {
     loop: true,
@@ -222,14 +271,50 @@ const MapComponent: FC<Props> = ({
     return generateIncidentPolygon(fires, bufferKm);
   }, [markers, incidentCircleColor, bufferKm]);
 
+  const relatedIncidentPolygons = useMemo(() => {
+    if (!showRelatedIncidentBoundaries) {
+      return [];
+    }
+
+    return relatedIncidentBoundaries
+      .map(boundary => ({
+        incidentId: boundary.incidentId,
+        isActive: boundary.isActive,
+        polygon:
+          boundary.fires.length > 0
+            ? generateIncidentPolygon(boundary.fires, bufferKm)
+            : null,
+      }))
+      .filter(
+        (
+          boundary,
+        ): boundary is {
+          incidentId: string;
+          isActive: boolean;
+          polygon: NonNullable<ReturnType<typeof generateIncidentPolygon>>;
+        } => Boolean(boundary.polygon),
+      );
+  }, [relatedIncidentBoundaries, showRelatedIncidentBoundaries, bufferKm]);
+
+  const combinedIncidentPolygon = useMemo(() => {
+    if (!showCombinedIncidentBoundary || combinedIncidentFires.length === 0) {
+      return null;
+    }
+
+    return generateIncidentPolygon(combinedIncidentFires, bufferKm);
+  }, [combinedIncidentFires, showCombinedIncidentBoundary, bufferKm]);
+
   // Circle color based on incident status
   const circleColor = incidentCircleColor === 'orange' ? '#e86f56' : '#6b7280';
 
   return (
     <Map
-      initialViewState={viewState}
+      initialViewState={{
+        latitude: centerLatitude,
+        longitude: centerLongitude,
+        zoom: zoomLevel,
+      }}
       onLoad={onMapLoad}
-      onMove={evt => setViewState(evt.viewState)}
       ref={mapRef}
       style={{width: '100%', height: '100%'}}
       mapStyle={mapStyle}
@@ -285,6 +370,61 @@ const MapComponent: FC<Props> = ({
           />
         </Source>
       )}
+
+      {combinedIncidentPolygon && (
+        <Source
+          id="combined-incident-polygon"
+          type="geojson"
+          data={combinedIncidentPolygon}>
+          <Layer
+            id="combined-incident-polygon-fill"
+            type="fill"
+            paint={{
+              'fill-color': '#1f2937',
+              'fill-opacity': 0.04,
+            }}
+          />
+          <Layer
+            id="combined-incident-polygon-line"
+            type="line"
+            paint={{
+              'line-width': 2,
+              'line-color': '#1f2937',
+              'line-opacity': 0.6,
+              'line-dasharray': [2, 2],
+            }}
+          />
+        </Source>
+      )}
+
+      {relatedIncidentPolygons.map(incident => {
+        const relatedColor = incident.isActive ? '#e86f56' : '#6b7280';
+        return (
+          <Source
+            key={incident.incidentId}
+            id={`related-incident-polygon-${incident.incidentId}`}
+            type="geojson"
+            data={incident.polygon}>
+            <Layer
+              id={`related-incident-polygon-fill-${incident.incidentId}`}
+              type="fill"
+              paint={{
+                'fill-color': relatedColor,
+                'fill-opacity': 0.06,
+              }}
+            />
+            <Layer
+              id={`related-incident-polygon-line-${incident.incidentId}`}
+              type="line"
+              paint={{
+                'line-width': 2,
+                'line-color': relatedColor,
+                'line-opacity': 0.45,
+              }}
+            />
+          </Source>
+        );
+      })}
 
       {incidentPolygon && (
         <Source id="incident-polygon" type="geojson" data={incidentPolygon}>
