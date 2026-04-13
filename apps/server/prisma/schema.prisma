@@ -288,6 +288,10 @@ enum NotificationStatus {
     START_SENT
     END_SCHEDULED
     END_SENT
+    MERGE_START_SCHEDULED
+    MERGE_START_SENT
+    MERGE_END_SCHEDULED
+    MERGE_END_SENT
 }
 
 enum SiteIncidentReviewStatus {

@@ -3,208 +3,301 @@ import {logger} from '../../server/logger';
 import {
   type NotificationQueueItem,
   type IncidentNotificationMetadata,
+  type IncidentNotificationCreationStats,
 } from '../../Interfaces/SiteIncidentNotifications';
 import {
   NotificationStatus,
-  SiteIncidentReviewStatus,
+  type Prisma,
   type SiteIncident,
 } from '@prisma/client';
 import {isSiteIncidentMethod} from './NotificationRoutingConfig';
+import {
+  IncidentNotificationEligibilityService,
+} from './IncidentNotificationEligibilityService';
+
+type AlertMethodInfo = {
+  method: string;
+  destination: string;
+  isVerified: boolean;
+  isEnabled: boolean;
+};
+
+const incidentNotificationInclude = {
+  parentIncidents: {
+    select: {
+      id: true,
+    },
+  },
+  _count: {
+    select: {
+      siteAlerts: true,
+    },
+  },
+  site: {
+    include: {
+      user: {
+        include: {
+          alertMethods: true,
+        },
+      },
+      siteRelations: {
+        include: {
+          user: {
+            include: {
+              alertMethods: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.SiteIncidentInclude;
+
+type IncidentWithNotificationRelations = Prisma.SiteIncidentGetPayload<{
+  include: typeof incidentNotificationInclude;
+}>;
+
+type QueueBuildResult = {
+  queue: NotificationQueueItem[];
+  skippedStopAlerts: number;
+  skippedSingleAlertEnd: number;
+  skippedParentEnd: number;
+  createdMergeStart: number;
+  createdMergeEnd: number;
+};
 
 export class CreateIncidentNotifications {
-  static async run(): Promise<number> {
+  private readonly eligibilityService = new IncidentNotificationEligibilityService(
+    prisma,
+  );
+
+  static async run(): Promise<IncidentNotificationCreationStats> {
     const instance = new CreateIncidentNotifications();
     return await instance.process();
   }
 
-  async process(): Promise<number> {
+  async process(): Promise<IncidentNotificationCreationStats> {
     const BATCH_SIZE = 50;
-    let totalNotificationsCreated = 0;
-    let totalIncidentsProcessed = 0;
     let batchNumber = 0;
-    const skippedByMethod: Record<string, number> = {
-      email: 0,
-      sms: 0,
-      whatsapp: 0,
+
+    const stats: IncidentNotificationCreationStats = {
+      totalNotificationsCreated: 0,
+      totalIncidentsProcessed: 0,
+      batchesProcessed: 0,
+      skippedStopAlerts: 0,
+      skippedSingleAlertEnd: 0,
+      skippedParentEnd: 0,
+      createdMergeStart: 0,
+      createdMergeEnd: 0,
     };
 
-    // Process all unprocessed incidents in batches
     while (true) {
-      batchNumber++;
-
-      // 1. Fetch batch of unprocessed incidents
       const incidents = await this.processUnprocessedIncidents(BATCH_SIZE);
-
       if (incidents.length === 0) {
         break;
       }
 
-      totalIncidentsProcessed += incidents.length;
+      batchNumber++;
+      stats.totalIncidentsProcessed += incidents.length;
 
-      // 2. Create notification queue for this batch
-      const notificationQueue = await this.createNotificationQueue(
-        incidents,
-        skippedByMethod,
-      );
+      const queueBuildResult = await this.createNotificationQueue(incidents);
+      stats.skippedStopAlerts += queueBuildResult.skippedStopAlerts;
+      stats.skippedSingleAlertEnd += queueBuildResult.skippedSingleAlertEnd;
+      stats.skippedParentEnd += queueBuildResult.skippedParentEnd;
+      stats.createdMergeStart += queueBuildResult.createdMergeStart;
+      stats.createdMergeEnd += queueBuildResult.createdMergeEnd;
 
-      if (notificationQueue.length === 0) {
-        // Mark incidents as processed even if no notifications were generated
-        await this.markIncidentsAsProcessed(incidents.map(i => i.id));
+      const processedIncidentIds = incidents.map(incident => incident.id);
+
+      if (queueBuildResult.queue.length === 0) {
+        await this.markIncidentsAsProcessed(processedIncidentIds);
         continue;
       }
 
-      // 3. Persist notifications and update incidents
-      await this.executeTransaction(
-        notificationQueue,
-        incidents.map(i => i.id),
-      );
-
-      totalNotificationsCreated += notificationQueue.length;
+      await this.executeTransaction(queueBuildResult.queue, processedIncidentIds);
+      stats.totalNotificationsCreated += queueBuildResult.queue.length;
     }
 
+    stats.batchesProcessed = batchNumber;
+
     logger(
-      `CreateIncidentNotifications: Processed ${totalIncidentsProcessed} incidents in ${batchNumber} batches, Created ${totalNotificationsCreated} notifications (email, sms, whatsapp methods only)`,
-      'info',
-    );
-    const totalSkipped =
-      skippedByMethod.email + skippedByMethod.sms + skippedByMethod.whatsapp;
-    logger(
-      `CreateIncidentNotifications: Skipped ${totalSkipped} notifications due to STOP_ALERTS (email=${skippedByMethod.email}, sms=${skippedByMethod.sms}, whatsapp=${skippedByMethod.whatsapp})`,
+      `CreateIncidentNotifications: Processed ${stats.totalIncidentsProcessed} incidents in ${stats.batchesProcessed} batches, created ${stats.totalNotificationsCreated} incident notifications (mergeStart=${stats.createdMergeStart}, mergeEnd=${stats.createdMergeEnd}, skippedStopAlerts=${stats.skippedStopAlerts}, skippedSingleAlertEnd=${stats.skippedSingleAlertEnd}, skippedParentEnd=${stats.skippedParentEnd})`,
       'info',
     );
 
-    return totalNotificationsCreated;
+    return stats;
   }
 
-  // Fetch incidents that need notifications
-  // TODO: Revisit this logic - currently only processes incidents updated in last 6 hours
-  // Consider: Should we process all unprocessed incidents regardless of age?
-  // Or should the 6-hour window be configurable via environment variable?
-  private async processUnprocessedIncidents(batchSize: number) {
+  private async processUnprocessedIncidents(
+    batchSize: number,
+  ): Promise<IncidentWithNotificationRelations[]> {
     const SIX_HOURS_AGO = new Date(Date.now() - 6 * 60 * 60 * 1000);
 
-    const incidents = await prisma.siteIncident.findMany({
+    return await prisma.siteIncident.findMany({
       where: {
         isProcessed: false,
         updatedAt: {
           gte: SIX_HOURS_AGO,
         },
       },
-      include: {
-        site: {
-          include: {
-            user: {
-              include: {
-                alertMethods: true,
-              },
-            },
-            siteRelations: {
-              include: {
-                user: {
-                  include: {
-                    alertMethods: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      include: incidentNotificationInclude,
       take: batchSize,
     });
-    return incidents;
   }
 
   private async createNotificationQueue(
-    incidents: any[],
-    skippedByMethod: Record<string, number>,
-  ): Promise<NotificationQueueItem[]> {
+    incidents: IncidentWithNotificationRelations[],
+  ): Promise<QueueBuildResult> {
     const queue: NotificationQueueItem[] = [];
-    const methodCounters = new Map<string, Map<string, number>>();
+    const result: QueueBuildResult = {
+      queue,
+      skippedStopAlerts: 0,
+      skippedSingleAlertEnd: 0,
+      skippedParentEnd: 0,
+      createdMergeStart: 0,
+      createdMergeEnd: 0,
+    };
 
     for (const incident of incidents) {
-      const site = incident.site;
-      if (!site) continue;
-
-      const siteId = site.id;
-
-      // Flatten all available alert methods
-      let allAlertMethods: any[] = [];
-      if (site.user && site.user.alertMethods) {
-        allAlertMethods.push(...site.user.alertMethods);
-      }
-      if (site.siteRelations) {
-        site.siteRelations.forEach((rel: any) => {
-          if (rel.user && rel.user.alertMethods) {
-            allAlertMethods.push(...rel.user.alertMethods);
-          }
-        });
+      const validMethods = this.getValidIncidentMethods(incident);
+      if (validMethods.length === 0) {
+        continue;
       }
 
-      // Filter Verified & Enabled & SiteIncident methods only
-      const validMethods = allAlertMethods.filter(
-        (m: any) =>
-          m.isVerified && m.isEnabled && isSiteIncidentMethod(m.method),
-      );
+      const eligibility =
+        await this.eligibilityService.evaluateIncident(incident);
 
-      if (validMethods.length === 0) continue;
-
-      if (incident.reviewStatus === SiteIncidentReviewStatus.STOP_ALERTS) {
-        for (const method of validMethods) {
-          const methodKey = method.method;
-          skippedByMethod[methodKey] = (skippedByMethod[methodKey] || 0) + 1;
+      if (!eligibility.eligible) {
+        if (eligibility.reason === 'STOP_ALERTS') {
+          result.skippedStopAlerts++;
+        } else if (eligibility.reason === 'SINGLE_ALERT_END') {
+          result.skippedSingleAlertEnd++;
+        } else if (eligibility.reason === 'PARENT_END_SUPPRESSED') {
+          result.skippedParentEnd++;
         }
         continue;
       }
 
-      // Determine Notification Type
-      const isStart = incident.isActive;
-      const notificationStatus = isStart
-        ? NotificationStatus.START_SCHEDULED
-        : NotificationStatus.END_SCHEDULED;
-      const metadataType = isStart ? 'INCIDENT_START' : 'INCIDENT_END';
-
-      // Determine referencing SiteAlertId
-      // For Start: startSiteAlertId
-      // For End: endSiteAlertId ?? latestSiteAlertId
+      const isStart = eligibility.notificationKind === 'START';
+      const isMerged = eligibility.isMergedChild;
+      const notificationStatus = this.getScheduledStatus(isStart, isMerged);
+      const metadataType = this.getMetadataType(isStart, isMerged);
       const targetSiteAlertId = isStart
         ? incident.startSiteAlertId
         : incident.endSiteAlertId || incident.latestSiteAlertId;
 
-      // Metadata Construction
       const metadata: IncidentNotificationMetadata = {
         type: metadataType,
         incidentId: incident.id,
-        siteId: site.id,
-        siteName: site.name || 'Unnamed Site',
+        siteId: incident.site.id,
+        siteName: incident.site.name || 'Unnamed Site',
       };
 
       if (!isStart) {
-        if (incident.startedAt && incident.endedAt) {
-          const duration = Math.round(
-            (new Date(incident.endedAt).getTime() -
-              new Date(incident.startedAt).getTime()) /
-              60000,
-          );
-          metadata.durationMinutes = duration;
+        if (isMerged && eligibility.aggregateSummary) {
+          metadata.detectionCount = eligibility.aggregateSummary.detectionCount;
+          metadata.durationMinutes = eligibility.aggregateSummary.durationMinutes;
+          metadata.aggregatedDetectionCount =
+            eligibility.aggregateSummary.detectionCount;
+          metadata.aggregatedDurationMinutes =
+            eligibility.aggregateSummary.durationMinutes;
+          metadata.mergedIncidentCount =
+            eligibility.aggregateSummary.mergedIncidentCount;
+          metadata.mergedParentIncidentCount =
+            eligibility.aggregateSummary.mergedParentIncidentCount;
+        } else {
+          metadata.detectionCount = incident._count.siteAlerts;
+          if (incident.endedAt) {
+            metadata.durationMinutes = Math.round(
+              (new Date(incident.endedAt).getTime() -
+                new Date(incident.startedAt).getTime()) /
+                60000,
+            );
+          }
         }
+      } else if (isMerged) {
+        metadata.mergedParentIncidentCount = incident.parentIncidents.length;
+        metadata.mergedIncidentCount = incident.parentIncidents.length + 1;
       }
 
-      // Add to Queue for each valid method
       for (const method of validMethods) {
         queue.push({
           siteIncidentId: incident.id,
           siteAlertId: targetSiteAlertId,
-          siteId: site.id,
+          siteId: incident.site.id,
           alertMethod: method.method,
           destination: method.destination,
-          notificationStatus: notificationStatus,
-          metadata: metadata,
+          notificationStatus,
+          metadata,
         });
+      }
+
+      if (isMerged && isStart) {
+        result.createdMergeStart += validMethods.length;
+      } else if (isMerged && !isStart) {
+        result.createdMergeEnd += validMethods.length;
       }
     }
 
-    return queue;
+    return result;
+  }
+
+  private getValidIncidentMethods(
+    incident: IncidentWithNotificationRelations,
+  ): AlertMethodInfo[] {
+    const site = incident.site;
+    const allAlertMethods: AlertMethodInfo[] = [];
+
+    if (site.user?.alertMethods) {
+      allAlertMethods.push(...site.user.alertMethods);
+    }
+
+    if (site.siteRelations) {
+      for (const relation of site.siteRelations) {
+        if (relation.user?.alertMethods) {
+          allAlertMethods.push(...relation.user.alertMethods);
+        }
+      }
+    }
+
+    return allAlertMethods.filter(
+      method =>
+        method.isVerified &&
+        method.isEnabled &&
+        isSiteIncidentMethod(method.method),
+    );
+  }
+
+  private getScheduledStatus(
+    isStart: boolean,
+    isMerged: boolean,
+  ): NotificationStatus {
+    if (isStart && isMerged) {
+      return NotificationStatus.MERGE_START_SCHEDULED;
+    }
+    if (!isStart && isMerged) {
+      return NotificationStatus.MERGE_END_SCHEDULED;
+    }
+    if (isStart) {
+      return NotificationStatus.START_SCHEDULED;
+    }
+    return NotificationStatus.END_SCHEDULED;
+  }
+
+  private getMetadataType(
+    isStart: boolean,
+    isMerged: boolean,
+  ): IncidentNotificationMetadata['type'] {
+    if (isStart && isMerged) {
+      return 'INCIDENT_MERGE_START';
+    }
+    if (!isStart && isMerged) {
+      return 'INCIDENT_MERGE_END';
+    }
+    if (isStart) {
+      return 'INCIDENT_START';
+    }
+    return 'INCIDENT_END';
   }
 
   private async markIncidentsAsProcessed(incidentIds: string[]) {
@@ -219,11 +312,7 @@ export class CreateIncidentNotifications {
     queue: NotificationQueueItem[],
     processedIncidentIds: string[],
   ) {
-    // Process in batches if queue is large? Transaction limit is high but good to be safe.
-    // For now assuming 50 incidents * ~2-3 methods = 150 notifications. OK for one transaction.
-
     await prisma.$transaction(async tx => {
-      // 1. Create all notifications and capture their IDs + metadata
       const createdNotifications = await Promise.all(
         queue.map(item =>
           tx.notification.create({
@@ -234,34 +323,38 @@ export class CreateIncidentNotifications {
               isDelivered: false,
               isSkipped: false,
               notificationStatus: item.notificationStatus,
-              metadata: item.metadata as any, // Json type casting
+              metadata: this.toInputJsonMetadata(item.metadata),
             },
           }),
         ),
       );
 
-      // Build a per-incident map of start/end notification IDs based on metadata
       const incidentNotificationMap = new Map<
         string,
         {start?: string; end?: string}
       >();
 
-      for (const notif of createdNotifications) {
-        const meta = notif.metadata as IncidentNotificationMetadata | null | undefined;
+      for (const notification of createdNotifications) {
+        const meta = notification.metadata as IncidentNotificationMetadata | null;
         if (!meta?.incidentId) continue;
 
         const existing = incidentNotificationMap.get(meta.incidentId) ?? {};
-
-        if (meta.type === 'INCIDENT_START' && !existing.start) {
-          existing.start = notif.id;
-        } else if (meta.type === 'INCIDENT_END' && !existing.end) {
-          existing.end = notif.id;
+        if (
+          (meta.type === 'INCIDENT_START' ||
+            meta.type === 'INCIDENT_MERGE_START') &&
+          !existing.start
+        ) {
+          existing.start = notification.id;
+        } else if (
+          (meta.type === 'INCIDENT_END' || meta.type === 'INCIDENT_MERGE_END') &&
+          !existing.end
+        ) {
+          existing.end = notification.id;
         }
 
         incidentNotificationMap.set(meta.incidentId, existing);
       }
 
-      // 2. Mark incidents as processed
       if (processedIncidentIds.length > 0) {
         await tx.siteIncident.updateMany({
           where: {id: {in: processedIncidentIds}},
@@ -269,20 +362,21 @@ export class CreateIncidentNotifications {
         });
       }
 
-      // 3. Update startNotificationId / endNotificationId on SiteIncident
       const incidentUpdatePromises: Promise<SiteIncident>[] = [];
-      for (const [incidentId, {start, end}] of incidentNotificationMap) {
+      for (const [incidentId, notificationRefs] of Array.from(
+        incidentNotificationMap.entries(),
+      )) {
         const data: {
           startNotificationId?: string;
           endNotificationId?: string;
         } = {};
 
-        if (start) {
-          data.startNotificationId = start;
+        if (notificationRefs.start) {
+          data.startNotificationId = notificationRefs.start;
         }
 
-        if (end) {
-          data.endNotificationId = end;
+        if (notificationRefs.end) {
+          data.endNotificationId = notificationRefs.end;
         }
 
         if (Object.keys(data).length === 0) continue;
@@ -299,12 +393,7 @@ export class CreateIncidentNotifications {
         await Promise.all(incidentUpdatePromises);
       }
 
-      // 4. Update Site lastMessageCreated (Only for START notifications?)
-      // The requirement says: "Update Site.lastMessageCreated".
-      // Usually we do this to rate limit per site.
-      // With Incidents, we rate limit by "One Incident per X hours".
-      // But updating lastMessageCreated is still good practice for "Last time we bugged the user".
-      const siteIdsToUpdate = [...new Set(queue.map(q => q.siteId))];
+      const siteIdsToUpdate = Array.from(new Set(queue.map(item => item.siteId)));
       if (siteIdsToUpdate.length > 0) {
         await tx.site.updateMany({
           where: {id: {in: siteIdsToUpdate}},
@@ -312,5 +401,14 @@ export class CreateIncidentNotifications {
         });
       }
     });
+  }
+
+  private toInputJsonMetadata(
+    metadata: IncidentNotificationMetadata,
+  ): Prisma.InputJsonObject {
+    const entries = Object.entries(metadata).filter(
+      ([, value]) => value !== undefined,
+    );
+    return Object.fromEntries(entries) as Prisma.InputJsonObject;
   }
 }
