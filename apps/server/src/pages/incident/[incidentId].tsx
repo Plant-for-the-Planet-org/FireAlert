@@ -23,7 +23,7 @@ import {GoogleMapsButton} from '../../Components/FireIncident/GoogleMapsButton';
 import {IncidentSummary} from '../../Components/FireIncident/IncidentSummary';
 import {LocationInfo} from '../../Components/FireIncident/LocationInfo';
 import {RelatedIncidentsList} from '../../Components/FireIncident/RelatedIncidentsList';
-import {INCIDENT_PAGE_FEATURE_FLAGS} from './featureFlags';
+import {INCIDENT_PAGE_FEATURE_FLAGS} from '../../utils/featureFlags';
 import {appRouter} from '../../server/api/root';
 import {api} from '../../utils/api';
 
@@ -105,10 +105,11 @@ const IncidentPage = (
     {incidentId},
     {retry: 0},
   );
-  const relatedIncidentsQuery = api.siteIncident.getRelatedIncidentsPublic.useQuery(
-    {incidentId},
-    {retry: 0},
-  );
+  const relatedIncidentsQuery =
+    api.siteIncident.getRelatedIncidentsPublic.useQuery(
+      {incidentId},
+      {retry: 0},
+    );
 
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
@@ -233,7 +234,7 @@ const IncidentPage = (
           ({
             latitude: Number(alert.latitude),
             longitude: Number(alert.longitude),
-          }) as IncidentFirePoint,
+          } as IncidentFirePoint),
       ),
     }))
     .filter(relatedIncident => relatedIncident.fires.length > 0);
@@ -292,7 +293,9 @@ const IncidentPage = (
                   onMarkerClick={id => setSelectedAlertId(id)}
                   incidentCircleColor={incident?.isActive ? 'orange' : 'gray'}
                   relatedIncidentBoundaries={relatedIncidentBoundaries}
-                  showRelatedIncidentBoundaries={shouldShowRelatedIncidentsOnMap}
+                  showRelatedIncidentBoundaries={
+                    shouldShowRelatedIncidentsOnMap
+                  }
                   combinedIncidentFires={combinedIncidentFires}
                   showCombinedIncidentBoundary={shouldShowCombinedBoundary}
                 />
