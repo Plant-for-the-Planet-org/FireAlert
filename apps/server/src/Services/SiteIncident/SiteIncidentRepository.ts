@@ -184,7 +184,7 @@ export class SiteIncidentRepository {
               id: data.startSiteAlertId,
             },
           },
-        } as any,
+        },
       });
 
       logger(
@@ -231,9 +231,9 @@ export class SiteIncidentRepository {
       const incident = await this.prisma.siteIncident.update({
         where: {id},
         data: {
-          ...(data as any),
+          ...data,
           updatedAt: new Date(),
-        } as any,
+        },
       });
 
       logger(
@@ -556,11 +556,11 @@ export class SiteIncidentRepository {
           },
           siteId,
           isActive: true,
-        } as any,
+        },
         data: {
           relatedIncidentId: childIncidentId,
           updatedAt: new Date(),
-        } as any,
+        },
       });
 
       logger(
