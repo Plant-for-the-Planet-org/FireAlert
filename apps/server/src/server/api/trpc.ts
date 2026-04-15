@@ -28,6 +28,21 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   };
 };
 
+export const createServerSideTRPCContext = (
+  opts: Partial<CreateContextOptions> = {},
+) => {
+  return createInnerTRPCContext({
+    req: (opts.req ??
+      ({
+        headers: {},
+        url: '',
+      } as Partial<NextApiRequest>)) as NextApiRequest,
+    user: opts.user ?? null,
+    isAdmin: opts.isAdmin ?? false,
+    isImpersonatedUser: opts.isImpersonatedUser ?? false,
+  });
+};
+
 export const createTRPCContext = (
   opts: CreateNextContextOptions,
   user: User | null,
@@ -97,6 +112,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
     if (procedure == 'profile') {
       return next({
         ctx: {
+          ...ctx,
           token: {
             ...decodedToken,
             access_token,
@@ -123,6 +139,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
     if (!impersonateUserId) {
       return next({
         ctx: {
+          ...ctx,
           token: {
             ...decodedToken,
             access_token,
@@ -157,6 +174,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
     // Move to next with user, impersonatedUser, and isAdmin as true
     return next({
       ctx: {
+        ...ctx,
         token: {
           ...decodedToken,
           access_token,
@@ -180,6 +198,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   // Move to next with user as user, and isAdmin as false, and impersonatedUser as null.
   return next({
     ctx: {
+      ...ctx,
       token: {
         ...decodedToken,
         access_token,

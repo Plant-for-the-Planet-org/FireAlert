@@ -23,6 +23,7 @@ import {GoogleMapsButton} from '../../Components/FireIncident/GoogleMapsButton';
 import {IncidentSummary} from '../../Components/FireIncident/IncidentSummary';
 import {LocationInfo} from '../../Components/FireIncident/LocationInfo';
 import {RelatedIncidentsList} from '../../Components/FireIncident/RelatedIncidentsList';
+import {createServerSideTRPCContext} from '../../server/api/trpc';
 import {INCIDENT_PAGE_FEATURE_FLAGS} from '../../utils/featureFlags';
 import {appRouter} from '../../server/api/root';
 import {api} from '../../utils/api';
@@ -363,13 +364,7 @@ export async function getStaticProps(
 ) {
   const helpers = createServerSideHelpers({
     router: appRouter,
-    ctx: {
-      req: {} as never,
-      prisma: {} as never,
-      user: null,
-      isAdmin: false,
-      isImpersonatedUser: false,
-    },
+    ctx: createServerSideTRPCContext(),
     transformer: superjson,
   });
   const incidentId = context.params?.incidentId as string;

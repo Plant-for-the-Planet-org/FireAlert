@@ -40,11 +40,6 @@ export class DistanceCalculatorService implements DistanceCalculator {
         throw new Error(`Invalid distance calculation result: ${distanceKm}`);
       }
 
-      logger(
-        `Calculated distance: ${distanceKm.toFixed(3)}km between points [${point1.latitude}, ${point1.longitude}] and [${point2.latitude}, ${point2.longitude}]`,
-        'debug',
-      );
-
       return distanceKm;
     } catch (error) {
       logger(
@@ -102,7 +97,6 @@ export class DistanceCalculatorService implements DistanceCalculator {
     // Validate inputs
     this.validateAlert(alert);
     if (!Array.isArray(incidents) || incidents.length === 0) {
-      logger('No incidents provided for proximity check', 'debug');
       return [];
     }
 
@@ -121,19 +115,10 @@ export class DistanceCalculatorService implements DistanceCalculator {
       try {
         const centre = this.getIncidentCentre(incident);
         if (!centre) {
-          logger(
-            `Skipping incident ${incident.id}: no centre data available`,
-            'debug',
-          );
           continue;
         }
 
         const distance = this.calculateDistance(alertPoint, centre);
-
-        logger(
-          `Distance to incident ${incident.id}: ${distance.toFixed(3)}km`,
-          'debug',
-        );
 
         if (distance <= proximityKm) {
           matches.push({incident, distance});
@@ -149,11 +134,6 @@ export class DistanceCalculatorService implements DistanceCalculator {
     }
 
     matches.sort((a, b) => a.distance - b.distance);
-
-    logger(
-      `Found ${matches.length} incidents within ${proximityKm}km for alert ${alert.id}`,
-      'info',
-    );
 
     return matches;
   }

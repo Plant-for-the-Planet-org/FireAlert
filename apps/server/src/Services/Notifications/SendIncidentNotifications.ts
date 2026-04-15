@@ -99,6 +99,8 @@ export class SendIncidentNotifications {
       const successfulIds: string[] = [];
       const failedIds: string[] = [];
       const successfulDestinations: string[] = [];
+      let skippedMissingMetadataCount = 0;
+      let processingErrorCount = 0;
 
       await Promise.all(
         notifications.map(async notification => {
@@ -113,10 +115,7 @@ export class SendIncidentNotifications {
 
             const metadata = rawMetadata as IncidentNotificationMetadata | null;
             if (!metadata?.incidentId || !metadata?.type) {
-              logger(
-                `Notification ${id} missing incident metadata type/incidentId, marking as skipped`,
-                'warn',
-              );
+              skippedMissingMetadataCount++;
               failedIds.push(id);
               return;
             }
@@ -172,13 +171,8 @@ export class SendIncidentNotifications {
             } else {
               failedIds.push(id);
             }
-          } catch (error: unknown) {
-            const errorMessage =
-              error instanceof Error ? error.message : 'Unknown error';
-            logger(
-              `Error sending notification ${notification.id}: ${errorMessage}`,
-              'error',
-            );
+          } catch {
+            processingErrorCount++;
             failedIds.push(notification.id);
           }
         }),
@@ -201,6 +195,11 @@ export class SendIncidentNotifications {
           data: {isSkipped: true},
         });
       }
+
+      logger(
+        `Completed incident notification batch ${batchCount + 1}. Successful: ${successfulIds.length}, Failed: ${failedIds.length}, MissingMetadata: ${skippedMissingMetadataCount}, Errors: ${processingErrorCount}`,
+        'info',
+      );
 
       batchCount++;
       await new Promise(resolve => setTimeout(resolve, 700));
