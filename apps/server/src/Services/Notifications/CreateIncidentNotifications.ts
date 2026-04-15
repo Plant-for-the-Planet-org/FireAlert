@@ -312,95 +312,102 @@ export class CreateIncidentNotifications {
     queue: NotificationQueueItem[],
     processedIncidentIds: string[],
   ) {
-    await prisma.$transaction(async tx => {
-      const createdNotifications = await Promise.all(
-        queue.map(item =>
-          tx.notification.create({
-            data: {
-              siteAlertId: item.siteAlertId,
-              alertMethod: item.alertMethod,
-              destination: item.destination,
-              isDelivered: false,
-              isSkipped: false,
-              notificationStatus: item.notificationStatus,
-              metadata: this.toInputJsonMetadata(item.metadata),
-            },
-          }),
-        ),
-      );
-
-      const incidentNotificationMap = new Map<
-        string,
-        {start?: string; end?: string}
-      >();
-
-      for (const notification of createdNotifications) {
-        const meta = notification.metadata as IncidentNotificationMetadata | null;
-        if (!meta?.incidentId) continue;
-
-        const existing = incidentNotificationMap.get(meta.incidentId) ?? {};
-        if (
-          (meta.type === 'INCIDENT_START' ||
-            meta.type === 'INCIDENT_MERGE_START') &&
-          !existing.start
-        ) {
-          existing.start = notification.id;
-        } else if (
-          (meta.type === 'INCIDENT_END' || meta.type === 'INCIDENT_MERGE_END') &&
-          !existing.end
-        ) {
-          existing.end = notification.id;
-        }
-
-        incidentNotificationMap.set(meta.incidentId, existing);
-      }
-
-      if (processedIncidentIds.length > 0) {
-        await tx.siteIncident.updateMany({
-          where: {id: {in: processedIncidentIds}},
-          data: {isProcessed: true},
-        });
-      }
-
-      const incidentUpdatePromises: Promise<SiteIncident>[] = [];
-      for (const [incidentId, notificationRefs] of Array.from(
-        incidentNotificationMap.entries(),
-      )) {
-        const data: {
-          startNotificationId?: string;
-          endNotificationId?: string;
-        } = {};
-
-        if (notificationRefs.start) {
-          data.startNotificationId = notificationRefs.start;
-        }
-
-        if (notificationRefs.end) {
-          data.endNotificationId = notificationRefs.end;
-        }
-
-        if (Object.keys(data).length === 0) continue;
-
-        incidentUpdatePromises.push(
-          tx.siteIncident.update({
-            where: {id: incidentId},
-            data,
-          }),
+    await prisma.$transaction(
+      async tx => {
+        const createdNotifications = await Promise.all(
+          queue.map(item =>
+            tx.notification.create({
+              data: {
+                siteAlertId: item.siteAlertId,
+                alertMethod: item.alertMethod,
+                destination: item.destination,
+                isDelivered: false,
+                isSkipped: false,
+                notificationStatus: item.notificationStatus,
+                metadata: this.toInputJsonMetadata(item.metadata),
+              },
+            }),
+          ),
         );
-      }
 
-      if (incidentUpdatePromises.length > 0) {
-        await Promise.all(incidentUpdatePromises);
-      }
+        const incidentNotificationMap = new Map<
+          string,
+          {start?: string; end?: string}
+        >();
 
-      const siteIdsToUpdate = Array.from(new Set(queue.map(item => item.siteId)));
-      if (siteIdsToUpdate.length > 0) {
-        await tx.site.updateMany({
-          where: {id: {in: siteIdsToUpdate}},
-          data: {lastMessageCreated: new Date()},
-        });
-      }
-    });
+        for (const notification of createdNotifications) {
+          const meta = notification.metadata as IncidentNotificationMetadata | null;
+          if (!meta?.incidentId) continue;
+
+          const existing = incidentNotificationMap.get(meta.incidentId) ?? {};
+          if (
+            (meta.type === 'INCIDENT_START' ||
+              meta.type === 'INCIDENT_MERGE_START') &&
+            !existing.start
+          ) {
+            existing.start = notification.id;
+          } else if (
+            (meta.type === 'INCIDENT_END' ||
+              meta.type === 'INCIDENT_MERGE_END') &&
+            !existing.end
+          ) {
+            existing.end = notification.id;
+          }
+
+          incidentNotificationMap.set(meta.incidentId, existing);
+        }
+
+        if (processedIncidentIds.length > 0) {
+          await tx.siteIncident.updateMany({
+            where: {id: {in: processedIncidentIds}},
+            data: {isProcessed: true},
+          });
+        }
+
+        const incidentUpdatePromises: Promise<SiteIncident>[] = [];
+        for (const [incidentId, notificationRefs] of Array.from(
+          incidentNotificationMap.entries(),
+        )) {
+          const data: {
+            startNotificationId?: string;
+            endNotificationId?: string;
+          } = {};
+
+          if (notificationRefs.start) {
+            data.startNotificationId = notificationRefs.start;
+          }
+
+          if (notificationRefs.end) {
+            data.endNotificationId = notificationRefs.end;
+          }
+
+          if (Object.keys(data).length === 0) continue;
+
+          incidentUpdatePromises.push(
+            tx.siteIncident.update({
+              where: {id: incidentId},
+              data,
+            }),
+          );
+        }
+
+        if (incidentUpdatePromises.length > 0) {
+          await Promise.all(incidentUpdatePromises);
+        }
+
+        const siteIdsToUpdate = Array.from(new Set(queue.map(item => item.siteId)));
+        if (siteIdsToUpdate.length > 0) {
+          await tx.site.updateMany({
+            where: {id: {in: siteIdsToUpdate}},
+            data: {lastMessageCreated: new Date()},
+          });
+        }
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000,
+      },
+    );
   }
 
   private toInputJsonMetadata(
