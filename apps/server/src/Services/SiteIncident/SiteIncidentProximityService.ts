@@ -1,8 +1,4 @@
-import {
-  type SiteAlert,
-  type SiteIncident,
-  SiteIncidentReviewStatus,
-} from '@prisma/client';
+import {type SiteAlert, type SiteIncident, type SiteIncidentReviewStatus} from '@prisma/client';
 import {logger} from '../../server/logger';
 import {env} from '../../env.mjs';
 import {
@@ -44,27 +40,13 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
       // Validate input
       this.validateAlert(alert);
 
-      logger(
-        `Starting proximity detection for alert ${alert.id} at site ${alert.siteId}`,
-        'info',
-      );
-
       // Get all active incidents for the site
       const activeIncidents = await this.repository.findActiveIncidentsBySiteId(
         alert.siteId,
       );
 
-      logger(
-        `Found ${activeIncidents.length} active incidents for site ${alert.siteId}`,
-        'debug',
-      );
-
       // If no active incidents, create new incident
       if (activeIncidents.length === 0) {
-        logger(
-          `No active incidents found for site ${alert.siteId}, will create new incident`,
-          'info',
-        );
         return {
           shouldCreateNew: true,
           consideredIncidents: [],
@@ -89,10 +71,6 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
       );
 
       if (proximityMatches.length === 0) {
-        logger(
-          `No incidents within ${this.proximityKm}km threshold for alert ${alert.id}`,
-          'info',
-        );
         return {
           shouldCreateNew: true,
           consideredIncidents: activeIncidents as RelatedSiteIncident[],
@@ -139,11 +117,6 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
         if (!singleTerminalMatch) {
           throw new Error('Unexpected empty terminal match result');
         }
-
-        logger(
-          `Found matching terminal incident ${singleTerminalMatch.terminalIncident.id} at ${singleTerminalMatch.distance.toFixed(3)}km`,
-          'info',
-        );
         return {
           incident: singleTerminalMatch.terminalIncident,
           distance: singleTerminalMatch.distance,
@@ -154,11 +127,6 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
           mergeParentIncidents: [],
         };
       }
-
-      logger(
-        `Found ${terminalIncidents.length} terminal incidents in proximity for alert ${alert.id}; creating merged child incident`,
-        'info',
-      );
 
       return {
         shouldCreateNew: true,
@@ -194,10 +162,6 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
 
       // If no closest incident, create new
       if (!closestIncident) {
-        logger(
-          `No closest incident found for alert ${alert.id}, creating new incident`,
-          'debug',
-        );
         return true;
       }
 
@@ -205,16 +169,8 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
       const withinThreshold = closestIncident.distance <= this.proximityKm;
 
       if (withinThreshold) {
-        logger(
-          `Alert ${alert.id} is ${closestIncident.distance.toFixed(3)}km from incident ${closestIncident.incident.id} (within ${this.proximityKm}km threshold), will associate`,
-          'debug',
-        );
         return false;
       } else {
-        logger(
-          `Alert ${alert.id} is ${closestIncident.distance.toFixed(3)}km from incident ${closestIncident.incident.id} (outside ${this.proximityKm}km threshold), creating new incident`,
-          'debug',
-        );
         return true;
       }
     } catch (error) {
@@ -245,19 +201,11 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
       this.validateIncident(incident);
       this.validateAlert(alert);
 
-      logger(
-        `Updating incident ${incident.id} with new centre from alert ${alert.id}`,
-        'debug',
-      );
-
       // Add new centre to metadata
       const updatedMetadata = this.metadataManager.addCentre(incident, alert);
 
       // Update incident with new metadata and latest alert
-      const updatedIncident = await this.repository.updateIncidentMetadata(
-        incident.id,
-        updatedMetadata,
-      );
+      await this.repository.updateIncidentMetadata(incident.id, updatedMetadata);
 
       // Also update the latestSiteAlertId and association
       const finalIncident = await this.repository.updateIncident(incident.id, {
@@ -266,11 +214,6 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
 
       // Associate the alert with the incident
       await this.repository.associateAlert(incident.id, alert.id);
-
-      logger(
-        `Successfully updated incident ${incident.id} with new centre [${alert.latitude}, ${alert.longitude}] and associated alert ${alert.id}`,
-        'info',
-      );
 
       return finalIncident;
     } catch (error) {
@@ -299,11 +242,6 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
       // Validate input
       this.validateAlert(alert);
 
-      logger(
-        `Creating new incident for alert ${alert.id} at site ${alert.siteId}`,
-        'info',
-      );
-
       // Initialize metadata with first centre
       const initialMetadata = this.metadataManager.initializeMetadata(alert);
 
@@ -324,11 +262,6 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
 
       // Associate the alert with the incident
       await this.repository.associateAlert(incident.id, alert.id);
-
-      logger(
-        `Successfully created incident ${updatedIncident.id} with initial centre [${alert.latitude}, ${alert.longitude}]`,
-        'info',
-      );
 
       return updatedIncident;
     } catch (error) {

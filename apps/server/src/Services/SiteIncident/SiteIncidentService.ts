@@ -104,11 +104,6 @@ export class SiteIncidentService {
     this.metrics.startTimer('process_alert_total');
 
     try {
-      logger(
-        `Processing new SiteAlert ${alert.id} for site ${alert.siteId}`,
-        'debug',
-      );
-
       // Use proximity-based detection to find best matching incident
       this.metrics.startTimer('proximity_detection');
       const detectionResult =
@@ -121,11 +116,6 @@ export class SiteIncidentService {
         const mergeParents = detectionResult.mergeParentIncidents || [];
 
         if (mergeParents.length > 1) {
-          logger(
-            `Creating merged child incident for alert ${alert.id} from ${mergeParents.length} parent incidents`,
-            'info',
-          );
-
           const shouldStopAlerts = mergeParents.some(
             parent =>
               parent.reviewStatus === SiteIncidentReviewStatus.STOP_ALERTS,
@@ -147,48 +137,20 @@ export class SiteIncidentService {
             alert.siteId,
           );
           this.metrics.endTimer('create_incident');
-
-          logger(
-            `Created merged child incident ${incident.id} for alert ${alert.id}`,
-            'info',
-          );
         } else {
-          logger(
-            `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
-            'debug',
-          );
-
           this.metrics.startTimer('create_incident');
           incident = await this.proximityService.createIncidentWithMetadata(
             alert,
           );
           this.metrics.endTimer('create_incident');
-
-          logger(
-            `Created new incident ${incident.id} for site ${alert.siteId}`,
-            'debug',
-          );
         }
       } else if (detectionResult.incident) {
-        // Associate with existing incident
-        logger(
-          `Associating alert ${alert.id} with existing incident ${
-            detectionResult.incident.id
-          } at ${detectionResult.distance?.toFixed(3)}km`,
-          'debug',
-        );
-
         this.metrics.startTimer('associate_alert');
         incident = await this.proximityService.updateIncidentCentre(
           detectionResult.incident,
           alert,
         );
         this.metrics.endTimer('associate_alert');
-
-        logger(
-          `Associated alert ${alert.id} with incident ${incident.id}`,
-          'debug',
-        );
       } else {
         // Fallback: should not happen but handle gracefully
         const error = new Error('Invalid detection result: no incident found');
@@ -504,7 +466,9 @@ export class SiteIncidentService {
       });
     }
 
-    logger(`${operation} completed in ${duration}ms`, 'debug');
+    if (operation !== 'process_alert') {
+      logger(`${operation} completed in ${duration}ms`, 'debug');
+    }
   }
 
   /**
