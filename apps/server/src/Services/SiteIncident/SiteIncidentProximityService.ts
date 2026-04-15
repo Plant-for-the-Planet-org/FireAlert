@@ -1,4 +1,8 @@
-import {type SiteAlert, type SiteIncident} from '@prisma/client';
+import {
+  type SiteAlert,
+  type SiteIncident,
+  SiteIncidentReviewStatus,
+} from '@prisma/client';
 import {logger} from '../../server/logger';
 import {env} from '../../env.mjs';
 import {
@@ -7,6 +11,7 @@ import {
   type DistanceCalculator,
   type IncidentMetadataManager,
   type ExtendedSiteIncidentRepository,
+  type RelatedSiteIncident,
 } from './types';
 import {DistanceCalculatorService} from './DistanceCalculatorService';
 import {IncidentMetadataService} from './IncidentMetadataService';
@@ -63,37 +68,104 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
         return {
           shouldCreateNew: true,
           consideredIncidents: [],
+          matchingIncidents: [],
+          terminalIncidents: [],
+          mergeParentIncidents: [],
         };
       }
 
-      // Find closest incident within proximity threshold
-      const closestMatch = this.distanceCalculator.findClosestIncident(
+      const activeIncidentsById = new Map(
+        activeIncidents.map(incident => [
+          incident.id,
+          incident as RelatedSiteIncident,
+        ]),
+      );
+
+      // Find all incidents within proximity threshold
+      const proximityMatches = this.distanceCalculator.findIncidentsWithinProximity(
         alert,
         activeIncidents,
         this.proximityKm,
       );
 
-      if (closestMatch) {
+      if (proximityMatches.length === 0) {
         logger(
-          `Found matching incident ${closestMatch.incident.id} at ${closestMatch.distance.toFixed(3)}km`,
+          `No incidents within ${this.proximityKm}km threshold for alert ${alert.id}`,
           'info',
         );
         return {
-          incident: closestMatch.incident,
-          distance: closestMatch.distance,
+          shouldCreateNew: true,
+          consideredIncidents: activeIncidents as RelatedSiteIncident[],
+          matchingIncidents: [],
+          terminalIncidents: [],
+          mergeParentIncidents: [],
+        };
+      }
+
+      const matchingIncidents = proximityMatches.map(match => {
+        const sourceIncident = match.incident as RelatedSiteIncident;
+        const terminalIncident = this.resolveTerminalIncident(
+          sourceIncident,
+          activeIncidentsById,
+        );
+
+        return {
+          incident: sourceIncident,
+          distance: match.distance,
+          terminalIncident,
+        };
+      });
+
+      // Dedupe terminal incidents so parent + child overlap maps to one terminal
+      const terminalById = new Map<string, (typeof matchingIncidents)[number]>();
+      for (const match of matchingIncidents) {
+        const key = match.terminalIncident.id;
+        const existing = terminalById.get(key);
+
+        if (!existing || match.distance < existing.distance) {
+          terminalById.set(key, match);
+        }
+      }
+
+      const terminalMatches = Array.from(terminalById.values()).sort(
+        (a, b) => a.distance - b.distance,
+      );
+      const terminalIncidents = terminalMatches.map(
+        match => match.terminalIncident,
+      );
+
+      if (terminalIncidents.length === 1) {
+        const [singleTerminalMatch] = terminalMatches;
+        if (!singleTerminalMatch) {
+          throw new Error('Unexpected empty terminal match result');
+        }
+
+        logger(
+          `Found matching terminal incident ${singleTerminalMatch.terminalIncident.id} at ${singleTerminalMatch.distance.toFixed(3)}km`,
+          'info',
+        );
+        return {
+          incident: singleTerminalMatch.terminalIncident,
+          distance: singleTerminalMatch.distance,
           shouldCreateNew: false,
-          consideredIncidents: activeIncidents,
+          consideredIncidents: activeIncidents as RelatedSiteIncident[],
+          matchingIncidents,
+          terminalIncidents,
+          mergeParentIncidents: [],
         };
       }
 
       logger(
-        `No incidents within ${this.proximityKm}km threshold for alert ${alert.id}`,
+        `Found ${terminalIncidents.length} terminal incidents in proximity for alert ${alert.id}; creating merged child incident`,
         'info',
       );
 
       return {
         shouldCreateNew: true,
-        consideredIncidents: activeIncidents,
+        consideredIncidents: activeIncidents as RelatedSiteIncident[],
+        matchingIncidents,
+        terminalIncidents,
+        mergeParentIncidents: terminalIncidents,
       };
     } catch (error) {
       logger(
@@ -217,7 +289,12 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
    * @param alert - The alert to create incident from
    * @returns Created incident
    */
-  async createIncidentWithMetadata(alert: SiteAlert): Promise<SiteIncident> {
+  async createIncidentWithMetadata(
+    alert: SiteAlert,
+    options?: {
+      reviewStatus?: SiteIncidentReviewStatus;
+    },
+  ): Promise<SiteIncident> {
     try {
       // Validate input
       this.validateAlert(alert);
@@ -236,6 +313,7 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
         startSiteAlertId: alert.id,
         latestSiteAlertId: alert.id,
         startedAt: new Date(),
+        reviewStatus: options?.reviewStatus,
       });
 
       // Update incident with initial metadata
@@ -330,6 +408,57 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
   }
 
   /**
+   * Resolves an incident to its terminal child in active chain
+   * Uses parent -> child direction via relatedIncidentId
+   * @param incident - Starting incident
+   * @param activeIncidentsById - Active incidents lookup
+   * @returns Terminal incident for association
+   */
+  private resolveTerminalIncident(
+    incident: RelatedSiteIncident,
+    activeIncidentsById: Map<string, RelatedSiteIncident>,
+  ): RelatedSiteIncident {
+    let current = incident;
+    const visited = new Set<string>([incident.id]);
+
+    while (true) {
+      const childId = this.getRelatedIncidentId(current);
+      if (!childId) {
+        return current;
+      }
+
+      if (visited.has(childId)) {
+        logger(
+          `Detected cycle while resolving terminal incident from ${incident.id}; returning ${current.id}`,
+          'warn',
+        );
+        return current;
+      }
+
+      const childIncident = activeIncidentsById.get(childId);
+      if (!childIncident) {
+        return current;
+      }
+
+      if (childIncident.siteId !== incident.siteId) {
+        logger(
+          `Cross-site related incident link detected: ${current.id} -> ${childIncident.id}. Ignoring link`,
+          'warn',
+        );
+        return current;
+      }
+
+      current = childIncident;
+      visited.add(current.id);
+    }
+  }
+
+  private getRelatedIncidentId(incident: SiteIncident): string | null {
+    return ((incident as unknown as {relatedIncidentId?: string | null})
+      .relatedIncidentId || null);
+  }
+
+  /**
    * Gets the current proximity threshold
    * @returns Proximity threshold in kilometers
    */
@@ -345,7 +474,7 @@ export class SiteIncidentProximityService implements ProximityDetectionService {
     if (typeof proximityKm !== 'number' || proximityKm <= 0) {
       throw new Error('Invalid proximityKm: must be a positive number');
     }
-    
+
     this.proximityKm = proximityKm;
     logger(`Updated proximity threshold to ${proximityKm}km`, 'info');
   }
