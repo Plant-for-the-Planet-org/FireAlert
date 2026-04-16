@@ -113,6 +113,15 @@ const IncidentPage = (
     );
 
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [hoveredRelatedIncidentId, setHoveredRelatedIncidentId] = useState<
+    string | null
+  >(null);
+  const [focusedRelatedIncidentId, setFocusedRelatedIncidentId] = useState<
+    string | null
+  >(null);
+
+  const activeRelatedIncidentId =
+    hoveredRelatedIncidentId ?? focusedRelatedIncidentId ?? null;
 
   useEffect(() => {
     if (incidentQuery.status === 'success' && !selectedAlertId) {
@@ -263,6 +272,8 @@ const IncidentPage = (
       relatedIncident.latestSiteAlert?.eventDate || relatedIncident.startedAt,
     ),
     fireCount: relatedIncident.siteAlerts.length,
+    latitude: relatedIncident.latestSiteAlert?.latitude,
+    longitude: relatedIncident.latestSiteAlert?.longitude,
   }));
 
   const googleMapUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
@@ -299,6 +310,7 @@ const IncidentPage = (
                   }
                   combinedIncidentFires={combinedIncidentFires}
                   showCombinedIncidentBoundary={shouldShowCombinedBoundary}
+                  activeRelatedIncidentId={activeRelatedIncidentId}
                 />
               </div>
             </div>
@@ -346,7 +358,12 @@ const IncidentPage = (
 
                 {INCIDENT_PAGE_FEATURE_FLAGS.SHOW_RELATED_INCIDENTS_LIST &&
                   relatedIncidentListRows.length > 0 && (
-                    <RelatedIncidentsList incidents={relatedIncidentListRows} />
+                    <RelatedIncidentsList
+                      incidents={relatedIncidentListRows}
+                      activeIncidentId={activeRelatedIncidentId}
+                      onIncidentHoverChange={setHoveredRelatedIncidentId}
+                      onIncidentFocusChange={setFocusedRelatedIncidentId}
+                    />
                   )}
               </div>
 

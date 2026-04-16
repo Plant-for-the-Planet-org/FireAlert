@@ -110,7 +110,10 @@ export function IncidentSummary({
   const combinedFires = combinedAlerts || [];
   const combinedAreaAffected = shouldRenderCombinedSummary
     ? calculateIncidentArea(
-        combinedFires.map(a => ({latitude: a.latitude, longitude: a.longitude})),
+        combinedFires.map(a => ({
+          latitude: a.latitude,
+          longitude: a.longitude,
+        })),
       )
     : null;
 
@@ -240,7 +243,7 @@ export function IncidentSummary({
 
       {shouldRenderCombinedSummary && combinedAreaAffected && (
         <div className="w-full mt-4 pt-4 border-t border-white/50">
-          <p className="text-planet-dark-gray/70 text-xs font-semibold font-sans uppercase mt-0 mb-2">
+          <p className="text-planet-dark-gray/70 pl-4 text-xs font-semibold font-sans mt-0 mb-2">
             For Combined Incidents
           </p>
           <div className="w-full flex flex-wrap gap-2">
