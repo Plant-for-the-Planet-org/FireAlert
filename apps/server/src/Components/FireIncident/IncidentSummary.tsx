@@ -5,6 +5,7 @@ import orangeAlertIcon from '../../../public/incidentPage/orange-fire-icon.svg';
 import blackAlertIcon from '../../../public/incidentPage/black-fire-icon.svg';
 import {calculateIncidentArea} from './incidentBoundaryUtils';
 import {twJoin, twMerge} from 'tailwind-merge';
+import tzlookup from '@photostructure/tz-lookup';
 
 interface AlertData {
   id: string;
@@ -20,22 +21,61 @@ interface IncidentSummaryProps {
   allAlerts: AlertData[];
   combinedAlerts?: AlertData[];
   showCombinedSummary?: boolean;
+  startedAt?: Date;
+  endedAt?: Date;
+  latitude?: number;
+  longitude?: number;
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-GB', {
+function formatDateTime(
+  date: Date,
+  latitude?: number,
+  longitude?: number,
+): {date: string; time: string; offset: string} {
+  let dateString = date.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
+  let timeString = date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
   });
+  let offsetString = '';
+
+  if (latitude !== undefined && longitude !== undefined) {
+    try {
+      const timeZone = tzlookup(latitude, longitude);
+      const formattedDate = date.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone,
+      });
+      const formattedTime = date.toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone,
+      });
+      dateString = formattedDate;
+      timeString = formattedTime;
+
+      // Get timezone offset
+      const offset = date.toLocaleString('en-GB', {
+        timeZone,
+        timeZoneName: 'shortOffset',
+      });
+      const offsetMatch = offset.match(/GMT[+-]\d{1,2}/);
+      offsetString = offsetMatch ? offsetMatch[0] : '';
+    } catch (error) {
+      // Fallback to original format if tz-lookup fails
+      console.error('Error calculating timezone:', error);
+    }
+  }
+
+  return {date: dateString, time: timeString, offset: offsetString};
 }
 
 const IncidentIcon = ({isActive}: {isActive: boolean}) => (
@@ -97,8 +137,16 @@ export function IncidentSummary({
   allAlerts,
   combinedAlerts,
   showCombinedSummary = false,
+  startedAt,
+  endedAt,
+  latitude,
+  longitude,
 }: IncidentSummaryProps) {
   const totalFires = allAlerts.length;
+
+  // Prioritize SiteIncident dates over SiteAlert dates
+  const startDate = startedAt || startAlert.eventDate;
+  const endDate = endedAt || latestAlert.eventDate;
   const areaAffected = calculateIncidentArea(
     allAlerts.map(a => ({latitude: a.latitude, longitude: a.longitude})),
     // 2,
@@ -110,7 +158,10 @@ export function IncidentSummary({
   const combinedFires = combinedAlerts || [];
   const combinedAreaAffected = shouldRenderCombinedSummary
     ? calculateIncidentArea(
-        combinedFires.map(a => ({latitude: a.latitude, longitude: a.longitude})),
+        combinedFires.map(a => ({
+          latitude: a.latitude,
+          longitude: a.longitude,
+        })),
       )
     : null;
 
@@ -154,13 +205,18 @@ export function IncidentSummary({
             <div className="flex items-center gap-2">
               <CalendarIcon isActive={isActive} />
               <span className="text-planet-dark-gray font-sans ">
-                {formatDate(startAlert.eventDate)}
+                {formatDateTime(startDate, latitude, longitude).date}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <ClockIcon isActive={isActive} />
               <span className="text-planet-dark-gray font-sans ">
-                {formatTime(startAlert.eventDate)}
+                {formatDateTime(startDate, latitude, longitude).time}
+                {formatDateTime(startDate, latitude, longitude).offset && (
+                  <span className="ml-1">
+                    ({formatDateTime(startDate, latitude, longitude).offset})
+                  </span>
+                )}
               </span>
             </div>
             {/* <div className="flex items-center gap-2">
@@ -182,13 +238,18 @@ export function IncidentSummary({
             <div className="flex items-center gap-2">
               <CalendarIcon isActive={isActive} />
               <span className="text-planet-dark-gray font-sans ">
-                {formatDate(latestAlert.eventDate)}
+                {formatDateTime(endDate, latitude, longitude).date}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <ClockIcon isActive={isActive} />
               <span className="text-planet-dark-gray font-sans ">
-                {formatTime(latestAlert.eventDate)}
+                {formatDateTime(endDate, latitude, longitude).time}
+                {formatDateTime(endDate, latitude, longitude).offset && (
+                  <span className="ml-1">
+                    ({formatDateTime(endDate, latitude, longitude).offset})
+                  </span>
+                )}
               </span>
             </div>
             {/* <div className="flex items-center gap-2">
@@ -240,7 +301,7 @@ export function IncidentSummary({
 
       {shouldRenderCombinedSummary && combinedAreaAffected && (
         <div className="w-full mt-4 pt-4 border-t border-white/50">
-          <p className="text-planet-dark-gray/70 text-xs font-semibold font-sans uppercase mt-0 mb-2">
+          <p className="text-planet-dark-gray/70 pl-4 text-xs font-semibold font-sans mt-0 mb-2">
             For Combined Incidents
           </p>
           <div className="w-full flex flex-wrap gap-2">

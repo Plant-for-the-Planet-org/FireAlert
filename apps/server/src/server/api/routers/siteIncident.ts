@@ -14,6 +14,7 @@ import {IncidentResolver} from '../../../Services/SiteIncident/IncidentResolver'
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
 import {prisma} from '../../../server/db';
+
 // Initialize services
 const siteIncidentRepository = new SiteIncidentRepository(prisma);
 const incidentResolver = new IncidentResolver(siteIncidentRepository);

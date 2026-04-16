@@ -73,6 +73,8 @@ interface Props {
   combinedIncidentFires?: IncidentFirePoint[];
   /** Toggle to render combined boundary */
   showCombinedIncidentBoundary?: boolean;
+  /** Active related incident ID for highlighting */
+  activeRelatedIncidentId?: string | null;
 }
 
 type BBox = [number, number, number, number];
@@ -134,6 +136,7 @@ const MapComponent: FC<Props> = ({
   showRelatedIncidentBoundaries = false,
   combinedIncidentFires = [],
   showCombinedIncidentBoundary = false,
+  activeRelatedIncidentId = null,
 }) => {
   // Convert polygon data to GeoJSON format
   const polygonGeoJSON = polygon
@@ -399,6 +402,7 @@ const MapComponent: FC<Props> = ({
 
       {relatedIncidentPolygons.map(incident => {
         const relatedColor = incident.isActive ? '#e86f56' : '#6b7280';
+        const isActive = incident.incidentId === activeRelatedIncidentId;
         return (
           <Source
             key={incident.incidentId}
@@ -410,21 +414,51 @@ const MapComponent: FC<Props> = ({
               type="fill"
               paint={{
                 'fill-color': relatedColor,
-                'fill-opacity': 0.06,
+                'fill-opacity': isActive ? 0.15 : 0.06,
               }}
             />
             <Layer
               id={`related-incident-polygon-line-${incident.incidentId}`}
               type="line"
               paint={{
-                'line-width': 2,
+                'line-width': isActive ? 3 : 2,
                 'line-color': relatedColor,
-                'line-opacity': 0.45,
+                'line-opacity': isActive ? 0.8 : 0.45,
               }}
             />
           </Source>
         );
       })}
+
+      {activeRelatedIncidentId &&
+        (() => {
+          const activeBoundary = relatedIncidentBoundaries.find(
+            b => b.incidentId === activeRelatedIncidentId,
+          );
+          if (!activeBoundary) return null;
+
+          const fireTheme: AlertTheme = activeBoundary.isActive
+            ? 'orange'
+            : 'gray';
+
+          return activeBoundary.fires.map((fire, index) => (
+            <Marker
+              key={`related-fire-${activeRelatedIncidentId}-${index}`}
+              longitude={fire.longitude}
+              latitude={fire.latitude}
+              anchor="bottom">
+              <div className="relative w-[20px] h-[20px] flex justify-center items-center pointer-events-none">
+                <Image
+                  src={getIconPath(fireTheme)}
+                  alt="Related fire"
+                  width={20}
+                  height={20}
+                  className="w-5 h-5"
+                />
+              </div>
+            </Marker>
+          ));
+        })()}
 
       {incidentPolygon && (
         <Source id="incident-polygon" type="geojson" data={incidentPolygon}>
