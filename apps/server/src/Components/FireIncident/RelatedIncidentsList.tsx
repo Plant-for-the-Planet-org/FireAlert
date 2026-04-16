@@ -44,7 +44,9 @@ function formatDateTime(
       });
       const offsetMatch = offset.match(/GMT[+-]\d{1,2}/);
       const offsetString = offsetMatch ? offsetMatch[0] : '';
-      return `${formattedDate} ${offsetString}`;
+      return offsetString
+        ? `${formattedDate} (${offsetString})`
+        : formattedDate;
     } catch (error) {
       // Fallback to original format if tz-lookup fails
       console.error('Error calculating timezone:', error);

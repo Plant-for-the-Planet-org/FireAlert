@@ -269,7 +269,9 @@ const IncidentPage = (
     isActive: relatedIncident.isActive,
     startedAt: new Date(relatedIncident.startedAt),
     latestAt: new Date(
-      relatedIncident.latestSiteAlert?.eventDate || relatedIncident.startedAt,
+      relatedIncident.endedAt ||
+        relatedIncident.latestSiteAlert?.eventDate ||
+        relatedIncident.startedAt,
     ),
     fireCount: relatedIncident.siteAlerts.length,
     latitude: relatedIncident.latestSiteAlert?.latitude,
@@ -280,6 +282,14 @@ const IncidentPage = (
 
   const startAlert = incident.startSiteAlert;
   const latestAlert = incident.latestSiteAlert || incident.startSiteAlert;
+
+  // Extract coordinates from site geometry for timezone lookup
+  const siteCoordinates = incident.site.geometry as {
+    type: string;
+    coordinates: [number, number];
+  } | null;
+  const siteLatitude = siteCoordinates?.coordinates?.[1];
+  const siteLongitude = siteCoordinates?.coordinates?.[0];
 
   return (
     <div id="incident-page">
@@ -342,6 +352,16 @@ const IncidentPage = (
                     }))}
                     combinedAlerts={combinedAlerts}
                     showCombinedSummary={shouldShowCombinedSummary}
+                    startedAt={
+                      incident.startedAt
+                        ? new Date(incident.startedAt)
+                        : undefined
+                    }
+                    endedAt={
+                      incident.endedAt ? new Date(incident.endedAt) : undefined
+                    }
+                    latitude={siteLatitude}
+                    longitude={siteLongitude}
                   />
                 )}
                 <DetectionInfo
