@@ -4,8 +4,6 @@ import {logger} from '../../server/logger';
 import {
   type DistanceCalculator,
   type GeoPoint,
-  type IncidentMetadataManager,
-  type IncidentCentre,
   type SiteIncidentMetadata,
 } from './types';
 
@@ -42,11 +40,6 @@ export class DistanceCalculatorService implements DistanceCalculator {
         throw new Error(`Invalid distance calculation result: ${distanceKm}`);
       }
 
-      logger(
-        `Calculated distance: ${distanceKm.toFixed(3)}km between points [${point1.latitude}, ${point1.longitude}] and [${point2.latitude}, ${point2.longitude}]`,
-        'debug',
-      );
-
       return distanceKm;
     } catch (error) {
       logger(
@@ -72,78 +65,12 @@ export class DistanceCalculatorService implements DistanceCalculator {
     proximityKm: number,
   ): {incident: SiteIncident; distance: number} | null {
     try {
-      // Validate inputs
-      this.validateAlert(alert);
-      if (!Array.isArray(incidents) || incidents.length === 0) {
-        logger('No incidents provided for proximity check', 'debug');
-        return null;
-      }
-
-      if (typeof proximityKm !== 'number' || proximityKm <= 0) {
-        throw new Error('Invalid proximityKm: must be a positive number');
-      }
-
-      const alertPoint: GeoPoint = {
-        latitude: alert.latitude,
-        longitude: alert.longitude,
-      };
-
-      let closestResult: {incident: SiteIncident; distance: number} | null = null;
-      let minDistance = Infinity;
-
-      // Find closest incident
-      for (const incident of incidents) {
-        try {
-          const centre = this.getIncidentCentre(incident);
-          if (!centre) {
-            logger(
-              `Skipping incident ${incident.id}: no centre data available`,
-              'debug',
-            );
-            continue;
-          }
-
-          const distance = this.calculateDistance(alertPoint, centre);
-
-          if (distance < minDistance) {
-            minDistance = distance;
-            closestResult = {incident, distance};
-          }
-
-          logger(
-            `Distance to incident ${incident.id}: ${distance.toFixed(3)}km`,
-            'debug',
-          );
-        } catch (error) {
-          logger(
-            `Error calculating distance to incident ${incident.id}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-            'warn',
-          );
-          continue;
-        }
-      }
-
-      // Check if closest incident is within proximity threshold
-      if (closestResult && closestResult.distance <= proximityKm) {
-        logger(
-          `Found closest incident ${closestResult.incident.id} at ${closestResult.distance.toFixed(3)}km (within ${proximityKm}km threshold)`,
-          'info',
-        );
-        return closestResult;
-      }
-
-      if (closestResult) {
-        logger(
-          `Closest incident ${closestResult.incident.id} at ${closestResult.distance.toFixed(3)}km is outside ${proximityKm}km threshold`,
-          'info',
-        );
-      } else {
-        logger('No valid incidents found for proximity check', 'info');
-      }
-
-      return null;
+      const matches = this.findIncidentsWithinProximity(
+        alert,
+        incidents,
+        proximityKm,
+      );
+      return matches[0] || null;
     } catch (error) {
       logger(
         `Error finding closest incident for alert ${alert.id}: ${
@@ -153,6 +80,62 @@ export class DistanceCalculatorService implements DistanceCalculator {
       );
       throw error;
     }
+  }
+
+  /**
+   * Finds all incidents within proximity threshold sorted by nearest first
+   * @param alert - The alert to match
+   * @param incidents - Incidents to compare
+   * @param proximityKm - Maximum distance threshold in kilometers
+   * @returns Incidents within threshold
+   */
+  findIncidentsWithinProximity(
+    alert: SiteAlert,
+    incidents: SiteIncident[],
+    proximityKm: number,
+  ): Array<{incident: SiteIncident; distance: number}> {
+    // Validate inputs
+    this.validateAlert(alert);
+    if (!Array.isArray(incidents) || incidents.length === 0) {
+      return [];
+    }
+
+    if (typeof proximityKm !== 'number' || proximityKm <= 0) {
+      throw new Error('Invalid proximityKm: must be a positive number');
+    }
+
+    const alertPoint: GeoPoint = {
+      latitude: alert.latitude,
+      longitude: alert.longitude,
+    };
+
+    const matches: Array<{incident: SiteIncident; distance: number}> = [];
+
+    for (const incident of incidents) {
+      try {
+        const centre = this.getIncidentCentre(incident);
+        if (!centre) {
+          continue;
+        }
+
+        const distance = this.calculateDistance(alertPoint, centre);
+
+        if (distance <= proximityKm) {
+          matches.push({incident, distance});
+        }
+      } catch (error) {
+        logger(
+          `Error calculating distance to incident ${incident.id}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          'warn',
+        );
+      }
+    }
+
+    matches.sort((a, b) => a.distance - b.distance);
+
+    return matches;
   }
 
   /**

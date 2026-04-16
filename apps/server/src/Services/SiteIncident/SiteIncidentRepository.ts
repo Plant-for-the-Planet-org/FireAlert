@@ -10,7 +10,7 @@ import {
   type ResolveResult,
   type IncidentMetrics,
 } from '../../Interfaces/SiteIncident';
-import {type SiteIncidentMetadata} from './types';
+import {type SiteIncidentMetadata, type RelatedSiteIncident} from './types';
 
 /**
  * Repository for SiteIncident data access operations
@@ -60,7 +60,9 @@ export class SiteIncidentRepository {
    * @param siteId - The site ID to search for
    * @returns Array of all active incidents for the site
    */
-  async findActiveIncidentsBySiteId(siteId: string): Promise<SiteIncident[]> {
+  async findActiveIncidentsBySiteId(
+    siteId: string,
+  ): Promise<RelatedSiteIncident[]> {
     // Validate input
     if (!siteId || typeof siteId !== 'string' || siteId.trim().length === 0) {
       const error = new Error('Invalid siteId: must be a non-empty string');
@@ -69,7 +71,7 @@ export class SiteIncidentRepository {
     }
 
     try {
-      const incidents = await this.prisma.siteIncident.findMany({
+      const incidents = (await this.prisma.siteIncident.findMany({
         where: {
           siteId,
           isActive: true,
@@ -77,7 +79,7 @@ export class SiteIncidentRepository {
         orderBy: {
           startedAt: 'desc',
         },
-      });
+      })) as unknown as RelatedSiteIncident[];
 
       logger(
         `Found ${incidents.length} active incidents for site ${siteId}`,
@@ -88,6 +90,33 @@ export class SiteIncidentRepository {
     } catch (error) {
       logger(
         `Error finding active incidents for site ${siteId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Finds all active SiteIncidents
+   * @returns Array of active incidents
+   */
+  async findAllActiveIncidents(): Promise<RelatedSiteIncident[]> {
+    try {
+      const incidents = (await this.prisma.siteIncident.findMany({
+        where: {
+          isActive: true,
+        },
+        orderBy: [{siteId: 'asc'}, {startedAt: 'asc'}],
+      })) as unknown as RelatedSiteIncident[];
+
+      logger(`Found ${incidents.length} active incidents`, 'debug');
+
+      return incidents;
+    } catch (error) {
+      logger(
+        `Error finding all active incidents: ${
           error instanceof Error ? error.message : String(error)
         }`,
         'error',
@@ -148,7 +177,8 @@ export class SiteIncidentRepository {
           startedAt: data.startedAt,
           isActive: true,
           isProcessed: false,
-          reviewStatus: SiteIncidentReviewStatus.TO_REVIEW,
+          reviewStatus: data.reviewStatus || SiteIncidentReviewStatus.TO_REVIEW,
+          relatedIncidentId: data.relatedIncidentId || null,
           siteAlerts: {
             connect: {
               id: data.startSiteAlertId,
@@ -474,6 +504,74 @@ export class SiteIncidentRepository {
     } catch (error) {
       logger(
         `Error associating alert ${alertId} with incident ${incidentId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Links parent incidents to a child incident
+   * @param parentIncidentIds - Parent incident IDs
+   * @param childIncidentId - Child incident ID
+   * @param siteId - Site ID (safety guard)
+   * @returns Number of updated incidents
+   */
+  async linkIncidentsToChild(
+    parentIncidentIds: string[],
+    childIncidentId: string,
+    siteId: string,
+  ): Promise<number> {
+    if (!Array.isArray(parentIncidentIds) || parentIncidentIds.length === 0) {
+      return 0;
+    }
+
+    if (!childIncidentId || typeof childIncidentId !== 'string') {
+      const error = new Error('Invalid childIncidentId: must be a string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    if (!siteId || typeof siteId !== 'string') {
+      const error = new Error('Invalid siteId: must be a string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    try {
+      const uniqueParentIds = Array.from(new Set(parentIncidentIds)).filter(
+        id => id !== childIncidentId,
+      );
+
+      if (uniqueParentIds.length === 0) {
+        return 0;
+      }
+
+      const updated = await this.prisma.siteIncident.updateMany({
+        where: {
+          id: {
+            in: uniqueParentIds,
+          },
+          siteId,
+          isActive: true,
+        },
+        data: {
+          relatedIncidentId: childIncidentId,
+          updatedAt: new Date(),
+        },
+      });
+
+      logger(
+        `Linked ${updated.count} parent incidents to child ${childIncidentId} for site ${siteId}`,
+        'info',
+      );
+
+      return updated.count;
+    } catch (error) {
+      logger(
+        `Error linking parent incidents to child ${childIncidentId}: ${
           error instanceof Error ? error.message : String(error)
         }`,
         'error',

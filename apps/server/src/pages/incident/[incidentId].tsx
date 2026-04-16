@@ -1,8 +1,12 @@
 // To access this page visit: ${URL}/incident/${incidentId}
-import type {AlertTheme} from '../../Components/FireIncident/MapComponent';
+import type {
+  AlertTheme,
+  IncidentFirePoint,
+  RelatedIncidentBoundary,
+} from '../../Components/FireIncident/MapComponent';
 
 import {createServerSideHelpers} from '@trpc/react-query/server';
-import {
+import type {
   GetStaticPaths,
   GetStaticPropsContext,
   InferGetStaticPropsType,
@@ -18,6 +22,9 @@ import {DetectionInfo} from '../../Components/FireIncident/DetectionInfo';
 import {GoogleMapsButton} from '../../Components/FireIncident/GoogleMapsButton';
 import {IncidentSummary} from '../../Components/FireIncident/IncidentSummary';
 import {LocationInfo} from '../../Components/FireIncident/LocationInfo';
+import {RelatedIncidentsList} from '../../Components/FireIncident/RelatedIncidentsList';
+import {createServerSideTRPCContext} from '../../server/api/trpc';
+import {INCIDENT_PAGE_FEATURE_FLAGS} from '../../utils/featureFlags';
 import {appRouter} from '../../server/api/root';
 import {api} from '../../utils/api';
 
@@ -84,6 +91,13 @@ function getIdentityGroup(identityKey: string): string | null {
   return identityMap.get(identityKey) ?? null;
 }
 
+interface IncidentAlertSummary {
+  id: string;
+  eventDate: Date;
+  latitude: number;
+  longitude: number;
+}
+
 const IncidentPage = (
   props: InferGetStaticPropsType<typeof getStaticProps>,
 ) => {
@@ -92,8 +106,22 @@ const IncidentPage = (
     {incidentId},
     {retry: 0},
   );
+  const relatedIncidentsQuery =
+    api.siteIncident.getRelatedIncidentsPublic.useQuery(
+      {incidentId},
+      {retry: 0},
+    );
 
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [hoveredRelatedIncidentId, setHoveredRelatedIncidentId] = useState<
+    string | null
+  >(null);
+  const [focusedRelatedIncidentId, setFocusedRelatedIncidentId] = useState<
+    string | null
+  >(null);
+
+  const activeRelatedIncidentId =
+    hoveredRelatedIncidentId ?? focusedRelatedIncidentId ?? null;
 
   useEffect(() => {
     if (incidentQuery.status === 'success' && !selectedAlertId) {
@@ -134,6 +162,33 @@ const IncidentPage = (
 
   const {data} = incidentQuery;
   const incident = data.data; // siteIncidentRouter returns { status: 'success', data: incident }
+  const relatedIncidents =
+    relatedIncidentsQuery.status === 'success'
+      ? relatedIncidentsQuery.data.data.relatedIncidents
+      : [];
+  const allIncidentsById = new Map<string, typeof incident>();
+  allIncidentsById.set(incident.id, incident);
+  relatedIncidents.forEach(relatedIncident => {
+    if (!allIncidentsById.has(relatedIncident.id)) {
+      allIncidentsById.set(relatedIncident.id, relatedIncident);
+    }
+  });
+  const allIncidents = Array.from(allIncidentsById.values());
+
+  const combinedAlertsById = new Map<string, IncidentAlertSummary>();
+  allIncidents.forEach(currentIncident => {
+    currentIncident.siteAlerts.forEach(alert => {
+      if (!combinedAlertsById.has(alert.id)) {
+        combinedAlertsById.set(alert.id, {
+          id: alert.id,
+          eventDate: new Date(alert.eventDate),
+          latitude: Number(alert.latitude),
+          longitude: Number(alert.longitude),
+        });
+      }
+    });
+  });
+  const combinedAlerts = Array.from(combinedAlertsById.values());
 
   // Use selectedAlertId if it matches an alert in siteAlerts, otherwise fallback
   const displayAlert =
@@ -180,10 +235,61 @@ const IncidentPage = (
     };
   });
 
+  const relatedIncidentBoundaries: RelatedIncidentBoundary[] = relatedIncidents
+    .map(relatedIncident => ({
+      incidentId: relatedIncident.id,
+      isActive: relatedIncident.isActive,
+      fires: relatedIncident.siteAlerts.map(
+        alert =>
+          ({
+            latitude: Number(alert.latitude),
+            longitude: Number(alert.longitude),
+          } as IncidentFirePoint),
+      ),
+    }))
+    .filter(relatedIncident => relatedIncident.fires.length > 0);
+  const combinedIncidentFires: IncidentFirePoint[] = combinedAlerts.map(
+    alert => ({
+      latitude: alert.latitude,
+      longitude: alert.longitude,
+    }),
+  );
+  const shouldShowCombinedSummary =
+    INCIDENT_PAGE_FEATURE_FLAGS.SHOW_COMBINED_INCIDENT_SUMMARY &&
+    relatedIncidents.length > 0;
+  const shouldShowRelatedIncidentsOnMap =
+    INCIDENT_PAGE_FEATURE_FLAGS.SHOW_RELATED_INCIDENTS_ON_MAP &&
+    relatedIncidentBoundaries.length > 0;
+  const shouldShowCombinedBoundary =
+    INCIDENT_PAGE_FEATURE_FLAGS.SHOW_COMBINED_INCIDENT_BOUNDARY &&
+    relatedIncidents.length > 0 &&
+    combinedIncidentFires.length > 0;
+  const relatedIncidentListRows = relatedIncidents.map(relatedIncident => ({
+    id: relatedIncident.id,
+    isActive: relatedIncident.isActive,
+    startedAt: new Date(relatedIncident.startedAt),
+    latestAt: new Date(
+      relatedIncident.endedAt ||
+        relatedIncident.latestSiteAlert?.eventDate ||
+        relatedIncident.startedAt,
+    ),
+    fireCount: relatedIncident.siteAlerts.length,
+    latitude: relatedIncident.latestSiteAlert?.latitude,
+    longitude: relatedIncident.latestSiteAlert?.longitude,
+  }));
+
   const googleMapUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
 
   const startAlert = incident.startSiteAlert;
   const latestAlert = incident.latestSiteAlert || incident.startSiteAlert;
+
+  // Extract coordinates from site geometry for timezone lookup
+  const siteCoordinates = incident.site.geometry as {
+    type: string;
+    coordinates: [number, number];
+  } | null;
+  const siteLatitude = siteCoordinates?.coordinates?.[1];
+  const siteLongitude = siteCoordinates?.coordinates?.[0];
 
   return (
     <div id="incident-page">
@@ -208,6 +314,13 @@ const IncidentPage = (
                   selectedMarkerId={displayAlert.id}
                   onMarkerClick={id => setSelectedAlertId(id)}
                   incidentCircleColor={incident?.isActive ? 'orange' : 'gray'}
+                  relatedIncidentBoundaries={relatedIncidentBoundaries}
+                  showRelatedIncidentBoundaries={
+                    shouldShowRelatedIncidentsOnMap
+                  }
+                  combinedIncidentFires={combinedIncidentFires}
+                  showCombinedIncidentBoundary={shouldShowCombinedBoundary}
+                  activeRelatedIncidentId={activeRelatedIncidentId}
                 />
               </div>
             </div>
@@ -237,6 +350,18 @@ const IncidentPage = (
                       latitude: Number(a.latitude),
                       longitude: Number(a.longitude),
                     }))}
+                    combinedAlerts={combinedAlerts}
+                    showCombinedSummary={shouldShowCombinedSummary}
+                    startedAt={
+                      incident.startedAt
+                        ? new Date(incident.startedAt)
+                        : undefined
+                    }
+                    endedAt={
+                      incident.endedAt ? new Date(incident.endedAt) : undefined
+                    }
+                    latitude={siteLatitude}
+                    longitude={siteLongitude}
                   />
                 )}
                 <DetectionInfo
@@ -250,6 +375,16 @@ const IncidentPage = (
                   <LocationInfo latitude={latitude} longitude={longitude} />
                   <ActionInfo />
                 </div>
+
+                {INCIDENT_PAGE_FEATURE_FLAGS.SHOW_RELATED_INCIDENTS_LIST &&
+                  relatedIncidentListRows.length > 0 && (
+                    <RelatedIncidentsList
+                      incidents={relatedIncidentListRows}
+                      activeIncidentId={activeRelatedIncidentId}
+                      onIncidentHoverChange={setHoveredRelatedIncidentId}
+                      onIncidentFocusChange={setFocusedRelatedIncidentId}
+                    />
+                  )}
               </div>
 
               <GoogleMapsButton googleMapUrl={googleMapUrl} />
@@ -266,13 +401,7 @@ export async function getStaticProps(
 ) {
   const helpers = createServerSideHelpers({
     router: appRouter,
-    ctx: {
-      req: {} as any,
-      prisma: {} as any,
-      user: null,
-      isAdmin: false,
-      isImpersonatedUser: false,
-    },
+    ctx: createServerSideTRPCContext(),
     transformer: superjson,
   });
   const incidentId = context.params?.incidentId as string;
@@ -281,6 +410,13 @@ export async function getStaticProps(
     await helpers.siteIncident.getIncidentPublic.prefetch({incidentId});
   } catch (e) {
     console.error('Error prefetching incident', e);
+  }
+
+  try {
+    await helpers.siteIncident.getRelatedIncidentsPublic.prefetch({incidentId});
+  } catch (e) {
+    // This is intentionally non-blocking. The page still renders with current incident data.
+    console.error('Error prefetching related incidents', e);
   }
 
   return {
@@ -292,7 +428,7 @@ export async function getStaticProps(
   };
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
+export const getStaticPaths: GetStaticPaths = () => {
   return {
     paths: [],
     fallback: 'blocking',

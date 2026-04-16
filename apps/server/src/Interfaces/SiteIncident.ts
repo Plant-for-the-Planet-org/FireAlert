@@ -19,6 +19,7 @@ export interface SiteIncidentInterface {
   startSiteAlertId: string;
   endSiteAlertId?: string | null;
   latestSiteAlertId: string;
+  relatedIncidentId?: string | null;
   startedAt: Date;
   endedAt?: Date | null;
   isActive: boolean;
@@ -38,6 +39,8 @@ export interface CreateIncidentData {
   startSiteAlertId: string;
   latestSiteAlertId: string;
   startedAt: Date;
+  relatedIncidentId?: string | null;
+  reviewStatus?: SiteIncidentReviewStatus;
 }
 
 /**
@@ -46,6 +49,7 @@ export interface CreateIncidentData {
 export interface UpdateIncidentData {
   latestSiteAlertId?: string;
   endSiteAlertId?: string | null;
+  relatedIncidentId?: string | null;
   endedAt?: Date | null;
   isActive?: boolean;
   isProcessed?: boolean;

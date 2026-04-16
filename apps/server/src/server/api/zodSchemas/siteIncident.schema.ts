@@ -14,6 +14,11 @@ export const getIncidentSchema = z.object({
 });
 
 /**
+ * Schema for getting all related incidents for a given incident ID
+ */
+export const getRelatedIncidentsSchema = getIncidentSchema;
+
+/**
  * Schema for getting active incidents for a site
  */
 export const getActiveIncidentsSchema = z.object({
