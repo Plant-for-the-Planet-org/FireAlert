@@ -1,6 +1,7 @@
 import {TRPCError} from '@trpc/server';
 import {
   getIncidentSchema,
+  getRelatedIncidentsSchema,
   getActiveIncidentsSchema,
   getIncidentHistorySchema,
   updateIncidentReviewStatusSchema,
@@ -13,6 +14,7 @@ import {IncidentResolver} from '../../../Services/SiteIncident/IncidentResolver'
 import {getIncidentById} from '../../../repositories/siteIncident';
 import {checkUserHasSitePermission} from '../../../utils/routers/site';
 import {prisma} from '../../../server/db';
+
 // Initialize services
 const siteIncidentRepository = new SiteIncidentRepository(prisma);
 const incidentResolver = new IncidentResolver(siteIncidentRepository);
@@ -105,14 +107,57 @@ export const siteIncidentRouter = createTRPCRouter({
     }),
 
   /**
+   * Get all related incidents for a single incident ID (public endpoint for sharing)
+   */
+  getRelatedIncidentsPublic: publicProcedure
+    .input(getRelatedIncidentsSchema)
+    .query(async ({input}) => {
+      try {
+        const incidentChain = await siteIncidentService.getRelatedIncidentChain(
+          input.incidentId,
+        );
+
+        if (!incidentChain) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Incident not found',
+          });
+        }
+
+        return {
+          status: 'success',
+          data: incidentChain,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Something went wrong!',
+        });
+      }
+    }),
+
+  /**
    * Get a single incident by ID (protected endpoint)
    */
   getIncident: protectedProcedure
     .input(getIncidentSchema)
     .query(async ({ctx, input}) => {
       try {
-        // logger(`getIncident `, 'debug');
-        const incident = await getIncidentById(input.incidentId);
+        const incident = await ctx.prisma.siteIncident.findUnique({
+          where: {id: input.incidentId},
+          include: {
+            site: {
+              include: {project: true},
+            },
+            startSiteAlert: true,
+            latestSiteAlert: true,
+            endSiteAlert: true,
+            siteAlerts: true,
+          },
+        });
 
         if (!incident) {
           throw new TRPCError({
@@ -128,10 +173,18 @@ export const siteIncidentRouter = createTRPCRouter({
           userId: ctx.user!.id,
         });
 
-        return incident;
+        return {
+          status: 'success',
+          data: incident,
+        };
       } catch (error) {
-        console.error('Error in getIncident:', error);
-        throw error;
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Something went wrong!',
+        });
       }
     }),
 
@@ -205,7 +258,14 @@ export const siteIncidentRouter = createTRPCRouter({
         input.status,
       );
 
-      return updatedIncident;
+      return {
+        status: 'success',
+        message:
+          input.status === 'STOP_ALERTS'
+            ? 'Alerts stopped for this incident.'
+            : 'Incident review status updated.',
+        data: updatedIncident,
+      };
     }),
 
   /**
@@ -248,6 +308,10 @@ export const siteIncidentRouter = createTRPCRouter({
         },
       });
 
-      return closedIncident;
+      return {
+        status: 'success',
+        message: 'Incident closed successfully.',
+        data: closedIncident,
+      };
     }),
 });

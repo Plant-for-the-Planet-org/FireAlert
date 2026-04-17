@@ -1,13 +1,10 @@
 import {z} from 'zod';
+import {SiteIncidentReviewStatus} from '@prisma/client';
 
 /**
  * Schema for review status values
  */
-export const reviewStatusSchema = z.enum([
-  'to_review',
-  'in_review',
-  'reviewed',
-]);
+export const reviewStatusSchema = z.nativeEnum(SiteIncidentReviewStatus);
 
 /**
  * Schema for getting a single incident by ID
@@ -15,6 +12,11 @@ export const reviewStatusSchema = z.enum([
 export const getIncidentSchema = z.object({
   incidentId: z.string().cuid({message: 'Invalid CUID'}),
 });
+
+/**
+ * Schema for getting all related incidents for a given incident ID
+ */
+export const getRelatedIncidentsSchema = getIncidentSchema;
 
 /**
  * Schema for getting active incidents for a site

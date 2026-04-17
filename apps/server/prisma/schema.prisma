@@ -83,39 +83,13 @@ model Site {
     lastMessageCreated DateTime?
     detectionArea      Float?                   @default(0)
     alerts             SiteAlert[]
-    incidents          SiteIncident[]
+    siteIncidents      SiteIncident[]
     project            Project?                 @relation(fields: [projectId], references: [id])
     user               User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
     siteRelations      SiteRelation[]
 
     @@index([userId])
     @@index([detectionGeometry], type: Gist)
-}
-
-model SiteIncident {
-    id                  String      @id @default(cuid())
-    siteId              String
-    startSiteAlertId    String
-    endSiteAlertId      String?
-    latestSiteAlertId   String
-    startedAt           DateTime    @default(now())
-    endedAt             DateTime?
-    isActive            Boolean     @default(true)
-    isProcessed         Boolean     @default(false)
-    startNotificationId String?
-    endNotificationId   String?
-    reviewStatus        String      @default("to_review")
-    createdAt           DateTime    @default(now())
-    updatedAt           DateTime    @updatedAt
-    site                Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
-    startSiteAlert      SiteAlert   @relation("startAlert", fields: [startSiteAlertId], references: [id])
-    latestSiteAlert     SiteAlert   @relation("latestAlert", fields: [latestSiteAlertId], references: [id])
-    endSiteAlert        SiteAlert?  @relation("endAlert", fields: [endSiteAlertId], references: [id])
-    siteAlerts          SiteAlert[] @relation("incidentAlerts")
-
-    @@index([siteId])
-    @@index([isActive, isProcessed])
-    @@index([startedAt])
 }
 
 model Project {
@@ -180,6 +154,38 @@ model SiteAlert {
 
     @@index([isProcessed, eventDate])
     @@index([siteIncidentId])
+}
+
+model SiteIncident {
+    id                  String                   @id @default(cuid())
+    siteId              String
+    startSiteAlertId    String
+    endSiteAlertId      String?
+    latestSiteAlertId   String
+    startedAt           DateTime                 @default(now())
+    endedAt             DateTime?
+    isActive            Boolean                  @default(true)
+    isProcessed         Boolean                  @default(false)
+    startNotificationId String?
+    endNotificationId   String?
+    reviewStatus        SiteIncidentReviewStatus @default(TO_REVIEW)
+    relatedIncidentId   String?
+    createdAt           DateTime                 @default(now())
+    updatedAt           DateTime                 @updatedAt
+    site                Site                     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+    startSiteAlert      SiteAlert                @relation("startAlert", fields: [startSiteAlertId], references: [id])
+    latestSiteAlert     SiteAlert                @relation("latestAlert", fields: [latestSiteAlertId], references: [id])
+    endSiteAlert        SiteAlert?               @relation("endAlert", fields: [endSiteAlertId], references: [id])
+    siteAlerts          SiteAlert[]              @relation("incidentAlerts")
+    relatedIncident     SiteIncident?            @relation("relatedIncidentChain", fields: [relatedIncidentId], references: [id], onDelete: SetNull)
+    parentIncidents     SiteIncident[]           @relation("relatedIncidentChain")
+
+    metadata Json?
+
+    @@index([siteId])
+    @@index([isActive, isProcessed])
+    @@index([startedAt])
+    @@index([relatedIncidentId])
 }
 
 model Notification {
@@ -282,4 +288,13 @@ enum NotificationStatus {
     START_SENT
     END_SCHEDULED
     END_SENT
+    MERGE_START_SCHEDULED
+    MERGE_START_SENT
+    MERGE_END_SCHEDULED
+    MERGE_END_SENT
+}
+
+enum SiteIncidentReviewStatus {
+    TO_REVIEW
+    STOP_ALERTS
 }

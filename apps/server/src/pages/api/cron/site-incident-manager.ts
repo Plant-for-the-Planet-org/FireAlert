@@ -29,12 +29,7 @@ export default async function siteIncidentManager(
   }
 
   try {
-    logger('Starting Site Incident Manager CRON', 'info');
-
     // 2. Initialize Services
-    // We use dynamic imports here to keep the cold start time low if possible,
-    // though for a CRON it matters less than for a user-facing API.
-    // It also matches the pattern in geo-event-fetcher.ts
     const {SiteIncidentRepository} = await import(
       '../../../Services/SiteIncident/SiteIncidentRepository'
     );
@@ -53,82 +48,71 @@ export default async function siteIncidentManager(
       env.INCIDENT_RESOLUTION_HOURS || 6,
     );
 
-    // 3. Resolve Inactive Incidents FIRST
-    // This closes incidents that haven't had activity for > 6 hours
-    // Must happen before processing unlinked alerts to prevent associating alerts with stale incidents
-    logger('Resolving inactive incidents...', 'debug');
+    // 3. Batch Process All Unlinked Alerts FIRST
+    const BATCH_SIZE = 50;
+    const THREE_HOURS_AGO = new Date(Date.now() - 3 * 60 * 60 * 1000);
+
+    let totalLinkedCount = 0;
+    let totalProcessedCount = 0;
+    let batchNumber = 0;
+    const linkErrors: Array<{id: string; error: string}> = [];
+
+    // Process all unlinked alerts in batches
+    while (true) {
+      batchNumber++;
+
+      const unlinkedAlerts = await prisma.siteAlert.findMany({
+        where: {
+          siteIncidentId: null,
+          isProcessed: false,
+          eventDate: {
+            gte: THREE_HOURS_AGO,
+          },
+        },
+        take: BATCH_SIZE,
+        orderBy: {
+          eventDate: 'asc',
+        },
+      });
+
+      if (unlinkedAlerts.length === 0) {
+        break;
+      }
+
+      totalProcessedCount += unlinkedAlerts.length;
+
+      for (const alert of unlinkedAlerts) {
+        try {
+          await siteIncidentService.processNewSiteAlert(alert);
+          totalLinkedCount++;
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          linkErrors.push({id: alert.id, error: errorMessage});
+        }
+      }
+    }
+
+    // 4. Resolve inactive incidents after linking alerts so fresh activity is considered
     let resolvedCount = 0;
     try {
       resolvedCount = await siteIncidentService.resolveInactiveIncidents();
     } catch (error) {
-      logger(
-        `Error resolving incidents: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        'error',
-      );
-      // We don't throw here to allow the response to return partial success stats
-    }
-
-    // 4. Backfill / Link Unassociated SiteAlerts
-    // Find alerts that have null siteIncidentId
-    // We limit this to avoid timeouts if there are massive amounts of unlinked alerts
-    const BATCH_SIZE = 50;
-
-    logger(
-      `Finding unassociated SiteAlerts (Limit: ${BATCH_SIZE})...`,
-      'debug',
-    );
-
-    const unlinkedAlerts = await prisma.siteAlert.findMany({
-      where: {
-        siteIncidentId: null,
-      },
-      take: BATCH_SIZE,
-      orderBy: {
-        eventDate: 'asc', // Process oldest first
-      },
-    });
-
-    let linkedCount = 0;
-    const linkErrors: Array<{id: string; error: string}> = [];
-
-    if (unlinkedAlerts.length > 0) {
-      logger(
-        `Found ${unlinkedAlerts.length} unassociated alerts. Processing...`,
-        'info',
-      );
-
-      for (const alert of unlinkedAlerts) {
-        try {
-          // This method handles creating a new incident OR linking to an existing active one
-          await siteIncidentService.processNewSiteAlert(alert);
-          linkedCount++;
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          logger(
-            `Error processing unlinked alert ${alert.id}: ${errorMessage}`,
-            'error',
-          );
-          linkErrors.push({id: alert.id, error: errorMessage});
-        }
-      }
-    } else {
-      logger('No unassociated SiteAlerts found.', 'debug');
+      // Continue and report linked work even if resolution fails
     }
 
     const duration = Date.now() - start;
 
     logger(
-      `Site Incident Manager finished in ${duration}ms. Linked: ${linkedCount}, Resolved: ${resolvedCount}`,
+      `Site Incident Manager: Processed ${totalProcessedCount} alerts in ${batchNumber} batches, Linked: ${totalLinkedCount}, Resolved: ${resolvedCount} incidents, Errors: ${linkErrors.length}, Duration: ${duration}ms`,
       'info',
     );
 
     return res.status(200).json({
       message: 'Site Incident Manager executed successfully',
-      unlinkedAlertsFound: unlinkedAlerts.length,
-      alertsProcessed: linkedCount,
+      batchesProcessed: batchNumber,
+      totalAlertsProcessed: totalProcessedCount,
+      alertsLinked: totalLinkedCount,
       incidentsResolved: resolvedCount,
       errors: linkErrors,
       durationMs: duration,

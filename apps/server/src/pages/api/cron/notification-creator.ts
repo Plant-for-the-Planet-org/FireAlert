@@ -26,15 +26,16 @@ export default async function notificationsCron(
 
   try {
     // Run both services in parallel for method-based routing
-    const [alertNotifications, incidentNotifications] = await Promise.all([
+    const [alertNotifications, incidentStats] = await Promise.all([
       createNotifications(), // SiteAlert-based (device, webhook)
       CreateIncidentNotifications.run(), // SiteIncident-based (email, sms, whatsapp)
     ]);
 
+    const incidentNotifications = incidentStats.totalNotificationsCreated;
     const totalNotifications = alertNotifications + incidentNotifications;
 
     logger(
-      `Created ${alertNotifications} SiteAlert notifications and ${incidentNotifications} incident notifications (${totalNotifications} total)`,
+      `Created ${alertNotifications} SiteAlert notifications and ${incidentNotifications} incident notifications (${totalNotifications} total). Incident stats: mergeStart=${incidentStats.createdMergeStart}, mergeEnd=${incidentStats.createdMergeEnd}, skippedStopAlerts=${incidentStats.skippedStopAlerts}, skippedSingleAlertEnd=${incidentStats.skippedSingleAlertEnd}, skippedParentEnd=${incidentStats.skippedParentEnd}`,
       'info',
     );
 
@@ -43,6 +44,7 @@ export default async function notificationsCron(
         'Notification-creator cron job executed successfully with method-based routing',
       alertNotifications: alertNotifications,
       incidentNotifications: incidentNotifications,
+      incidentNotificationStats: incidentStats,
       totalNotifications: totalNotifications,
       status: 200,
     });

@@ -249,50 +249,9 @@ export const emailTemplateString = `<!DOCTYPE HTML
 <p style="line-height: 100%;">Germany</p>
 <p style="line-height: 100%;"> </p>
 <p style="line-height: 130%;"><a rel="noopener" href="https://www.plant-for-the-planet.org/firealert" target="_blank">About FireAlert</a></p>
+{{unsubscribe_url}}
   </div>
 
-                              <table height="0px" align="center" border="0" cellpadding="0" cellspacing="0" width="100%"
-                                style="border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;border-top: 1px solid #BBBBBB;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%">
-                                <tbody>
-                                  <tr style="vertical-align: top">
-                                    <td
-                                      style="word-break: break-word;border-collapse: collapse !important;vertical-align: top;font-size: 0px;line-height: 0px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%">
-                                      <span>&#160;</span>
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-
-                      <table style="font-family:arial,helvetica,sans-serif;" role="presentation" cellpadding="0"
-                        cellspacing="0" width="100%" border="0">
-                        <tbody>
-                          <tr>
-                            <td
-                              style="overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:arial,helvetica,sans-serif;"
-                              align="left">
-
-                              <div
-                                style="font-size: 12px; line-height: 130%; text-align: center; word-wrap: break-word;">
-                                <p style="line-height: 130%;">You can manage all email notification preference in the FireAlert app. (<a href="https://play.google.com/store/apps/details?id=eco.pp.firealert">Android</a> | <a href="https://apps.apple.com/app/fire-alert-for-forests/id1667307676">iOS</a>)
-                                  <br />
-                                  <br />
-                                  FireAlert <em>by <a href="https://plant-for-the-planet.org">Plant-for-the-Planet</a></em></p>
-                                <p style="line-height: 100%;">Lindemannstr. 13,</p>
-                                <p style="line-height: 100%;">Tutzing, 82327</p>
-                                <p style="line-height: 100%;">Germany</p>
-                                <p style="line-height: 100%;"></p>
-                                <p style="line-height: 130%;"><a rel="noopener"
-                                    href="https://www.plant-for-the-planet.org/firealert" target="_blank">About
-                                    FireAlert</a> | Follow us at <a rel="noopener"
-                                    href="https://twitter.com/trilliontrees" target="_blank">@trilliontrees</a>
-                                </p>
-                                {{unsubscribe_url}}
-                              </div>
                             </td>
                           </tr>
                         </tbody>

@@ -28,6 +28,21 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   };
 };
 
+export const createServerSideTRPCContext = (
+  opts: Partial<CreateContextOptions> = {},
+) => {
+  return createInnerTRPCContext({
+    req: (opts.req ??
+      ({
+        headers: {},
+        url: '',
+      } as Partial<NextApiRequest>)) as NextApiRequest,
+    user: opts.user ?? null,
+    isAdmin: opts.isAdmin ?? false,
+    isImpersonatedUser: opts.isImpersonatedUser ?? false,
+  });
+};
+
 export const createTRPCContext = (
   opts: CreateNextContextOptions,
   user: User | null,
@@ -77,12 +92,14 @@ const passCtxToNext = t.middleware(async ({ctx, next}) => {
 const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   // Decode the token
   const {decodedToken, access_token} = await decodeToken(ctx);
+  // logger(`decodedToken: ${JSON.stringify(decodedToken)}`, 'info');
   // Find the user associated with the token
   const user = await ctx.prisma.user.findFirst({
     where: {
       sub: decodedToken?.sub,
     },
   });
+  // logger(JSON.stringify(user), 'info');
   // Find the procedure that is being called
   const url = ctx.req.url;
   const procedure = url?.substring(url?.lastIndexOf('.') + 1)
@@ -95,6 +112,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
     if (procedure == 'profile') {
       return next({
         ctx: {
+          ...ctx,
           token: {
             ...decodedToken,
             access_token,
@@ -121,6 +139,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
     if (!impersonateUserId) {
       return next({
         ctx: {
+          ...ctx,
           token: {
             ...decodedToken,
             access_token,
@@ -155,6 +174,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
     // Move to next with user, impersonatedUser, and isAdmin as true
     return next({
       ctx: {
+        ...ctx,
         token: {
           ...decodedToken,
           access_token,
@@ -178,6 +198,7 @@ const ensureUserIsAuthed = t.middleware(async ({ctx, next}) => {
   // Move to next with user as user, and isAdmin as false, and impersonatedUser as null.
   return next({
     ctx: {
+      ...ctx,
       token: {
         ...decodedToken,
         access_token,

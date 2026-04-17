@@ -43,6 +43,7 @@ export default async function notificationSender(
         alertNotificationsSent,
         incidentNotificationsSent,
         totalNotificationsSent,
+        notificationsSent: totalNotificationsSent,
       });
     } else {
       // Notifications were sent successfully
@@ -52,6 +53,7 @@ export default async function notificationSender(
         alertNotificationsSent,
         incidentNotificationsSent,
         totalNotificationsSent,
+        notificationsSent: totalNotificationsSent,
       });
     }
   } catch (error: unknown) {
