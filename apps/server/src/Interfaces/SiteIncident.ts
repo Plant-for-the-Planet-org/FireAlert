@@ -3,7 +3,12 @@
  * Defines all data structures for the SiteIncident system
  */
 
-import {type SiteAlert, type Site, type Notification} from '@prisma/client';
+import {
+  type SiteAlert,
+  type Site,
+  type Notification,
+  SiteIncidentReviewStatus,
+} from '@prisma/client';
 
 /**
  * Core SiteIncident interface representing a grouped fire event
@@ -14,13 +19,14 @@ export interface SiteIncidentInterface {
   startSiteAlertId: string;
   endSiteAlertId?: string | null;
   latestSiteAlertId: string;
+  relatedIncidentId?: string | null;
   startedAt: Date;
   endedAt?: Date | null;
   isActive: boolean;
   isProcessed: boolean;
   startNotificationId?: string | null;
   endNotificationId?: string | null;
-  reviewStatus: string;
+  reviewStatus: SiteIncidentReviewStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +39,8 @@ export interface CreateIncidentData {
   startSiteAlertId: string;
   latestSiteAlertId: string;
   startedAt: Date;
+  relatedIncidentId?: string | null;
+  reviewStatus?: SiteIncidentReviewStatus;
 }
 
 /**
@@ -41,12 +49,13 @@ export interface CreateIncidentData {
 export interface UpdateIncidentData {
   latestSiteAlertId?: string;
   endSiteAlertId?: string | null;
+  relatedIncidentId?: string | null;
   endedAt?: Date | null;
   isActive?: boolean;
   isProcessed?: boolean;
   startNotificationId?: string | null;
   endNotificationId?: string | null;
-  reviewStatus?: string;
+  reviewStatus?: SiteIncidentReviewStatus;
 }
 
 /**
@@ -150,8 +159,6 @@ export enum NotificationStatus {
  * Incident review status
  */
 export enum ReviewStatus {
-  TO_REVIEW = 'to_review',
-  IN_REVIEW = 'in_review',
-  REVIEWED = 'reviewed',
-  ARCHIVED = 'archived',
+  TO_REVIEW = 'TO_REVIEW',
+  STOP_ALERTS = 'STOP_ALERTS',
 }

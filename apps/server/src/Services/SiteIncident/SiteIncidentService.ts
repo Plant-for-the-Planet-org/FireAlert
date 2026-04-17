@@ -1,4 +1,9 @@
-import {type SiteAlert, type SiteIncident} from '@prisma/client';
+import {
+  type Prisma,
+  type SiteAlert,
+  type SiteIncident,
+  SiteIncidentReviewStatus,
+} from '@prisma/client';
 import {logger} from '../../server/logger';
 import {
   type SiteIncidentInterface,
@@ -7,7 +12,61 @@ import {
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
 import {type SiteIncidentRepository} from './SiteIncidentRepository';
 import {type IncidentResolver} from './IncidentResolver';
-import {prisma} from '../../server/db';
+import {SiteIncidentProximityService} from './SiteIncidentProximityService';
+import {type RelatedSiteIncident} from './types';
+
+const relatedIncidentInclude = {
+  site: {
+    select: {
+      id: true,
+      name: true,
+      geometry: true,
+      project: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+  startSiteAlert: {
+    select: {
+      id: true,
+      eventDate: true,
+      latitude: true,
+      longitude: true,
+      detectedBy: true,
+      confidence: true,
+    },
+  },
+  latestSiteAlert: {
+    select: {
+      id: true,
+      eventDate: true,
+      latitude: true,
+      longitude: true,
+      detectedBy: true,
+      confidence: true,
+    },
+  },
+  siteAlerts: {
+    select: {
+      id: true,
+      eventDate: true,
+      latitude: true,
+      longitude: true,
+      detectedBy: true,
+      confidence: true,
+    },
+    orderBy: {
+      eventDate: 'asc',
+    },
+  },
+} satisfies Prisma.SiteIncidentInclude;
+
+export type RelatedIncidentWithDetails = Prisma.SiteIncidentGetPayload<{
+  include: typeof relatedIncidentInclude;
+}>;
 
 /**
  * SiteIncidentService orchestrates the incident lifecycle
@@ -15,6 +74,7 @@ import {prisma} from '../../server/db';
  */
 export class SiteIncidentService {
   private metrics: PerformanceMetrics;
+  private proximityService: SiteIncidentProximityService;
 
   constructor(
     private readonly repository: SiteIncidentRepository,
@@ -22,10 +82,12 @@ export class SiteIncidentService {
     private readonly inactiveHours: number = 6,
   ) {
     this.metrics = new PerformanceMetrics();
+    this.proximityService = new SiteIncidentProximityService(repository);
   }
 
   /**
    * Processes a new SiteAlert for incident creation or association
+   * Uses proximity-based detection to find the best matching incident
    * @param alert - The new SiteAlert
    * @returns Associated or created SiteIncident
    */
@@ -42,116 +104,58 @@ export class SiteIncidentService {
     this.metrics.startTimer('process_alert_total');
 
     try {
-      logger(
-        `Processing new SiteAlert ${alert.id} for site ${alert.siteId}`,
-        'debug',
-      );
-
-      // Check for active incident
-      this.metrics.startTimer('find_active_incident');
-      const activeIncident = await this.repository.findActiveBySiteId(
-        alert.siteId,
-      );
-      this.metrics.endTimer('find_active_incident');
+      // Use proximity-based detection to find best matching incident
+      this.metrics.startTimer('proximity_detection');
+      const detectionResult =
+        await this.proximityService.findBestMatchingIncident(alert);
+      this.metrics.endTimer('proximity_detection');
 
       let incident: SiteIncident;
 
-      if (activeIncident) {
-        // Defensive check: If incident should be resolved (stale), resolve it first
-        const now = new Date();
-        const inactiveMs = now.getTime() - activeIncident.updatedAt.getTime();
-        const inactiveHours = inactiveMs / (1000 * 60 * 60);
+      if (detectionResult.shouldCreateNew) {
+        const mergeParents = detectionResult.mergeParentIncidents || [];
 
-        if (inactiveHours >= this.inactiveHours) {
-          logger(
-            `Active incident ${
-              activeIncident.id
-            } is stale (inactive for ${inactiveHours.toFixed(
-              2,
-            )}h). Resolving before processing new alert.`,
-            'debug',
-          );
-          // Associate the alert with the incident
-          await prisma.siteAlert.update({
-            where: {id: alert.id},
-            data: {
-              siteIncidentId: activeIncident.id,
-              isProcessed: true,
-            },
-          });
-
-          // Resolve the stale incident
-          try {
-            await this.resolver.batchResolveIncidents([activeIncident]);
-            logger(`Resolved stale incident ${activeIncident.id}`, 'debug');
-          } catch (error) {
-            logger(
-              `Error resolving stale incident ${activeIncident.id}: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-              'warn',
-            );
-            // Continue to create new incident even if resolution fails
-          }
-
-          // Create new incident for this alert
-          logger(
-            `Creating new incident for alert ${alert.id} on site ${alert.siteId} (previous incident was stale)`,
-            'debug',
+        if (mergeParents.length > 1) {
+          const shouldStopAlerts = mergeParents.some(
+            parent =>
+              parent.reviewStatus === SiteIncidentReviewStatus.STOP_ALERTS,
           );
 
           this.metrics.startTimer('create_incident');
-          incident = await this.repository.createIncident({
-            siteId: alert.siteId,
-            startSiteAlertId: alert.id,
-            latestSiteAlertId: alert.id,
-            startedAt: new Date(),
-          });
+          incident = await this.proximityService.createIncidentWithMetadata(
+            alert,
+            {
+              reviewStatus: shouldStopAlerts
+                ? SiteIncidentReviewStatus.STOP_ALERTS
+                : undefined,
+            },
+          );
+
+          await this.repository.linkIncidentsToChild(
+            mergeParents.map(parent => parent.id),
+            incident.id,
+            alert.siteId,
+          );
           this.metrics.endTimer('create_incident');
-
-          logger(
-            `Created new incident ${incident.id} for site ${alert.siteId}`,
-            'debug',
-          );
         } else {
-          // Associate with existing incident (it's still active)
-          logger(
-            `Associating alert ${alert.id} with existing incident ${activeIncident.id}`,
-            'debug',
+          this.metrics.startTimer('create_incident');
+          incident = await this.proximityService.createIncidentWithMetadata(
+            alert,
           );
-
-          this.metrics.startTimer('associate_alert');
-          incident = await this.repository.associateAlert(
-            activeIncident.id,
-            alert.id,
-          );
-          this.metrics.endTimer('associate_alert');
-
-          logger(
-            `Associated alert ${alert.id} with incident ${incident.id}`,
-            'debug',
-          );
+          this.metrics.endTimer('create_incident');
         }
+      } else if (detectionResult.incident) {
+        this.metrics.startTimer('associate_alert');
+        incident = await this.proximityService.updateIncidentCentre(
+          detectionResult.incident,
+          alert,
+        );
+        this.metrics.endTimer('associate_alert');
       } else {
-        // Create new incident
-        logger(
-          `Creating new incident for alert ${alert.id} on site ${alert.siteId}`,
-          'debug',
-        );
-
-        this.metrics.startTimer('create_incident');
-        incident = await this.repository.createIncident({
-          siteId: alert.siteId,
-          startSiteAlertId: alert.id,
-          latestSiteAlertId: alert.id,
-          startedAt: new Date(),
-        });
-        this.metrics.endTimer('create_incident');
-
-        logger(
-          `Created new incident ${incident.id} for site ${alert.siteId}`,
-          'debug',
-        );
+        // Fallback: should not happen but handle gracefully
+        const error = new Error('Invalid detection result: no incident found');
+        logger(`Detection result error: ${error.message}`, 'error');
+        throw error;
       }
 
       const totalDuration = this.metrics.endTimer('process_alert_total');
@@ -182,20 +186,39 @@ export class SiteIncidentService {
         'debug',
       );
 
-      // Find inactive incidents
+      // Find all active incidents and resolve stale related chains only when
+      // the entire connected component is stale.
       this.metrics.startTimer('find_inactive');
-      const inactiveIncidents = await this.repository.findInactiveIncidents(
-        this.inactiveHours,
-      );
+      const activeIncidents = await this.repository.findAllActiveIncidents();
       this.metrics.endTimer('find_inactive');
 
+      if (activeIncidents.length === 0) {
+        logger('No active incidents to evaluate for resolution', 'debug');
+        return 0;
+      }
+
+      const cutoffTime = new Date(
+        Date.now() - this.inactiveHours * 60 * 60 * 1000,
+      );
+      const relatedComponents =
+        this.buildActiveRelatedComponents(activeIncidents);
+
+      const inactiveIncidents = relatedComponents
+        .filter(component =>
+          component.every(incident => incident.updatedAt < cutoffTime),
+        )
+        .flat();
+
       if (inactiveIncidents.length === 0) {
-        logger('No inactive incidents to resolve', 'debug');
+        logger(
+          'No fully-stale related incident components to resolve',
+          'debug',
+        );
         return 0;
       }
 
       logger(
-        `Found ${inactiveIncidents.length} inactive incidents to resolve`,
+        `Found ${inactiveIncidents.length} incidents in stale related components to resolve`,
         'debug',
       );
 
@@ -313,6 +336,118 @@ export class SiteIncidentService {
   }
 
   /**
+   * Gets all related incidents for a given incident by traversing
+   * the incident chain in both directions (parent <-> child).
+   * @param incidentId - Incident ID to start traversal from
+   * @returns Current incident + flattened related incidents
+   */
+  async getRelatedIncidentChain(
+    incidentId: string,
+  ): Promise<{
+    currentIncident: RelatedIncidentWithDetails;
+    relatedIncidents: RelatedIncidentWithDetails[];
+  } | null> {
+    if (
+      !incidentId ||
+      typeof incidentId !== 'string' ||
+      incidentId.trim().length === 0
+    ) {
+      const error = new Error('Invalid incidentId: must be a non-empty string');
+      logger(`Input validation failed: ${error.message}`, 'error');
+      throw error;
+    }
+
+    const currentIncident = await this.repository.prisma.siteIncident.findUnique({
+      where: {id: incidentId},
+      include: relatedIncidentInclude,
+    });
+
+    if (!currentIncident) {
+      return null;
+    }
+
+    const siteId = currentIncident.siteId;
+    const visited = new Set<string>();
+    const queue: string[] = [incidentId];
+
+    while (queue.length > 0) {
+      const frontier = queue.splice(0, 50).filter(id => !visited.has(id));
+      if (frontier.length === 0) {
+        continue;
+      }
+
+      frontier.forEach(id => visited.add(id));
+
+      const neighbors = await this.repository.prisma.siteIncident.findMany({
+        where: {
+          siteId,
+          OR: [
+            {
+              id: {
+                in: frontier,
+              },
+            },
+            {
+              relatedIncidentId: {
+                in: frontier,
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          siteId: true,
+          relatedIncidentId: true,
+        },
+      });
+
+      for (const neighbor of neighbors) {
+        if (neighbor.siteId !== siteId) {
+          logger(
+            `Ignoring cross-site relation during related chain traversal: ${neighbor.id}`,
+            'warn',
+          );
+          continue;
+        }
+
+        if (!visited.has(neighbor.id)) {
+          queue.push(neighbor.id);
+        }
+
+        const childId = neighbor.relatedIncidentId;
+        if (childId && !visited.has(childId)) {
+          queue.push(childId);
+        }
+      }
+    }
+
+    const allIncidents = await this.repository.prisma.siteIncident.findMany({
+      where: {
+        siteId,
+        id: {
+          in: Array.from(visited),
+        },
+      },
+      include: relatedIncidentInclude,
+      orderBy: {
+        startedAt: 'desc',
+      },
+    });
+
+    const currentFromList =
+      allIncidents.find(incident => incident.id === incidentId) ||
+      currentIncident;
+    const relatedIncidents = allIncidents.filter(
+      incident => incident.id !== incidentId,
+    );
+
+    return {
+      currentIncident: currentFromList,
+      relatedIncidents,
+    };
+  }
+
+  /**
    * Records performance metrics
    * @param operation - Operation name
    * @param duration - Duration in milliseconds
@@ -331,7 +466,9 @@ export class SiteIncidentService {
       });
     }
 
-    logger(`${operation} completed in ${duration}ms`, 'debug');
+    if (operation !== 'process_alert') {
+      logger(`${operation} completed in ${duration}ms`, 'debug');
+    }
   }
 
   /**
@@ -461,7 +598,7 @@ export class SiteIncidentService {
    */
   async updateReviewStatus(
     incidentId: string,
-    status: string,
+    status: SiteIncidentReviewStatus,
   ): Promise<SiteIncident> {
     // Validate inputs
     if (
@@ -490,6 +627,33 @@ export class SiteIncidentService {
         reviewStatus: status,
       });
 
+      if (status === SiteIncidentReviewStatus.STOP_ALERTS) {
+        const descendantIncidentIds = await this.findDescendantIncidentIds(
+          updatedIncident.id,
+          updatedIncident.siteId,
+        );
+
+        if (descendantIncidentIds.length > 0) {
+          await this.repository.prisma.siteIncident.updateMany({
+            where: {
+              id: {
+                in: descendantIncidentIds,
+              },
+              siteId: updatedIncident.siteId,
+            },
+            data: {
+              reviewStatus: SiteIncidentReviewStatus.STOP_ALERTS,
+              updatedAt: new Date(),
+            },
+          });
+
+          logger(
+            `Cascaded STOP_ALERTS from incident ${incidentId} to ${descendantIncidentIds.length} descendants`,
+            'info',
+          );
+        }
+      }
+
       logger(`Updated review status for incident ${incidentId}`, 'debug');
 
       return updatedIncident;
@@ -502,5 +666,136 @@ export class SiteIncidentService {
       );
       throw error;
     }
+  }
+
+  private buildActiveRelatedComponents(
+    incidents: RelatedSiteIncident[],
+  ): RelatedSiteIncident[][] {
+    const incidentsById = new Map<string, RelatedSiteIncident>(
+      incidents.map(incident => [incident.id, incident]),
+    );
+    const incomingParents = new Map<string, string[]>();
+
+    for (const incident of incidents) {
+      const childId = this.getRelatedIncidentId(incident);
+      if (!childId) {
+        continue;
+      }
+
+      const childIncident = incidentsById.get(childId);
+      if (!childIncident) {
+        continue;
+      }
+
+      if (childIncident.siteId !== incident.siteId) {
+        logger(
+          `Ignoring cross-site relation while building components: ${incident.id} -> ${childId}`,
+          'warn',
+        );
+        continue;
+      }
+
+      const existingParents = incomingParents.get(childId) || [];
+      existingParents.push(incident.id);
+      incomingParents.set(childId, existingParents);
+    }
+
+    const visited = new Set<string>();
+    const components: RelatedSiteIncident[][] = [];
+
+    for (const incident of incidents) {
+      if (visited.has(incident.id)) {
+        continue;
+      }
+
+      const queue: string[] = [incident.id];
+      const component: RelatedSiteIncident[] = [];
+
+      while (queue.length > 0) {
+        const currentId = queue.shift();
+        if (!currentId || visited.has(currentId)) {
+          continue;
+        }
+
+        const currentIncident = incidentsById.get(currentId);
+        if (!currentIncident) {
+          continue;
+        }
+
+        visited.add(currentId);
+        component.push(currentIncident);
+
+        const childId = this.getRelatedIncidentId(currentIncident);
+        if (childId && incidentsById.has(childId)) {
+          queue.push(childId);
+        }
+
+        const parentIds = incomingParents.get(currentId) || [];
+        queue.push(...parentIds);
+      }
+
+      if (component.length > 0) {
+        components.push(component);
+      }
+    }
+
+    return components;
+  }
+
+  private async findDescendantIncidentIds(
+    incidentId: string,
+    siteId: string,
+  ): Promise<string[]> {
+    const descendants: string[] = [];
+    const visited = new Set<string>([incidentId]);
+    let currentId = incidentId;
+
+    while (true) {
+      const currentIncident = await this.repository.prisma.siteIncident.findUnique(
+        {
+          where: {
+            id: currentId,
+          },
+          select: {
+            id: true,
+            siteId: true,
+            relatedIncidentId: true,
+          },
+        },
+      );
+
+      if (!currentIncident || currentIncident.siteId !== siteId) {
+        return descendants;
+      }
+
+      const childId = currentIncident.relatedIncidentId;
+      if (!childId || visited.has(childId)) {
+        return descendants;
+      }
+
+      const childIncident = await this.repository.prisma.siteIncident.findUnique({
+        where: {
+          id: childId,
+        },
+        select: {
+          id: true,
+          siteId: true,
+          relatedIncidentId: true,
+        },
+      });
+
+      if (!childIncident || childIncident.siteId !== siteId) {
+        return descendants;
+      }
+
+      descendants.push(childIncident.id);
+      visited.add(childIncident.id);
+      currentId = childIncident.id;
+    }
+  }
+
+  private getRelatedIncidentId(incident: SiteIncident): string | null {
+    return ((incident as unknown as {relatedIncidentId?: string | null})
+      .relatedIncidentId || null);
   }
 }

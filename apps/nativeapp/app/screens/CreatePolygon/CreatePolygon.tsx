@@ -1,47 +1,45 @@
+import MapboxGL from '@rnmapbox/maps';
+import {useQueryClient} from '@tanstack/react-query';
+import {area, bbox, convertArea, polygon} from '@turf/turf';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 import {
-  View,
-  Text,
   Alert,
-  Modal,
+  BackHandler,
+  KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   StatusBar,
   StyleSheet,
-  BackHandler,
+  Text,
   TouchableOpacity,
-  KeyboardAvoidingView,
+  View,
 } from 'react-native';
-import area from '@turf/area';
-import bbox from '@turf/bbox';
-import MapboxGL from '@rnmapbox/maps';
-import {polygon, convertArea} from '@turf/helpers';
-import {useQueryClient} from '@tanstack/react-query';
 import Geolocation from 'react-native-geolocation-service';
 import Toast, {useToast} from 'react-native-toast-notifications';
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import {useNavigation} from '@react-navigation/native';
 
+import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
 import {
-  DropDown,
   AlertModal,
-  LayerModal,
   CustomButton,
+  DropDown,
   FloatingInput,
+  LayerModal,
 } from '../../components';
-import Map from './MapMarking/Map';
-import {trpc} from '../../services/trpc';
 import {RADIUS_ARR} from '../../constants';
-import {useFetchSites} from '../../utils/api';
+import {BottomBarContext} from '../../global/reducers/bottomBar';
+import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
+import {useFetchSites} from '../../utils/api';
+import distanceCalculator from '../../utils/distanceCalculator';
+import {toLetters} from '../../utils/mapMarkingCoordinate';
+import {locationPermission} from '../../utils/permissions';
 import {
   PermissionBlockedAlert,
   PermissionDeniedAlert,
 } from '../Home/PermissionAlert/LocationPermissionAlerts';
-import {locationPermission} from '../../utils/permissions';
-import {toLetters} from '../../utils/mapMarkingCoordinate';
-import distanceCalculator from '../../utils/distanceCalculator';
-import {BottomBarContext} from '../../global/reducers/bottomBar';
-import {CrossIcon, LayerIcon, MyLocIcon} from '../../assets/svgs';
-import {useNavigation} from '@react-navigation/native';
+import Map from './MapMarking/Map';
 
 const IS_ANDROID = Platform.OS === 'android';
 const ZOOM_LEVEL = 15;

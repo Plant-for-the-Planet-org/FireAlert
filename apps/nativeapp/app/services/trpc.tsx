@@ -12,6 +12,7 @@ import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persist
 
 import {Config} from '../../config';
 import {store} from '../redux/store';
+import {getCurrentVersion, versionToQueryParam} from '../utils/apiVersioning';
 import type {AppRouter} from '../../../server/src/server/api/root';
 
 export const trpc = createTRPCReact<AppRouter>();
@@ -24,10 +25,12 @@ const asyncStoragePersister = createAsyncStoragePersister({
 export const createTRPCClientOptions: CreateTRPCClientOptions<AppRouter> = {
   links: [
     httpBatchLink({
-      url: `${Config.NEXT_API_URL}`,
+      url: `${Config.NEXT_API_URL}?${versionToQueryParam()}`,
       async headers() {
         return {
           authorization: `Bearer ${store.getState().loginSlice.accessToken}`,
+          // Add version parameter to headers for additional safety
+          'x-api-version': getCurrentVersion(),
         };
       },
     }),

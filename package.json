@@ -27,5 +27,8 @@
   "packageManager": "yarn@1.22.22",
   "prisma": {
     "schema": "apps/server/prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@photostructure/tz-lookup": "^11.5.0"
   }
 }

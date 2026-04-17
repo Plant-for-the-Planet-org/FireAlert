@@ -23,7 +23,7 @@ export function getEmailTemplate(data: TemplateData): string {
 
   // Add unsubscribe link if provided
   const unsubscribeLink = data.unsubscribeUrl
-    ? `<br /><a href="${data.unsubscribeUrl}" style="color: #aaa; text-decoration: underline;">Unsubscribe from email alerts.</a>`
+    ? `<p style="line-height: 130%; margin: 12px 0 0;"><a href="${data.unsubscribeUrl}" style="color: #aaa; text-decoration: underline;">Unsubscribe from email alerts.</a></p>`
     : '';
   template = template.replace('{{unsubscribe_url}}', unsubscribeLink);
 

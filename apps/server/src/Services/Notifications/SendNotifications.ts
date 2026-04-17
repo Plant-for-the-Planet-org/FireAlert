@@ -9,7 +9,6 @@ import {logger} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import {unsubscribeService} from '../AlertMethod/UnsubscribeService';
-import {isSiteAlertMethod} from './NotificationRoutingConfig';
 import type {Notification, SiteAlert, Site} from '@prisma/client';
 
 type SiteAlertWithSite = SiteAlert & {
@@ -69,6 +68,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
     // Filter out notifications for disabled AlertMethods
     const enabledNotifications = [];
+    let skippedDisabledAlertMethods = 0;
     for (const notification of notifications) {
       try {
         const alertMethodRecord = await prisma.alertMethod.findFirst({
@@ -87,10 +87,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             where: {id: notification.id},
             data: {isSkipped: true},
           });
-          logger(
-            `Skipped notification ${notification.id} - AlertMethod disabled for ${notification.destination}`,
-            'info',
-          );
+          skippedDisabledAlertMethods++;
         }
       } catch (error) {
         logger(
@@ -173,7 +170,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
           const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
 
           // If the alertMethod is email, Construct the message for email
-          if (alertMethod === 'email') {
+          if (alertMethod === AlertMethodMethod.email) {
             // Get Local Time for Email
             const localTimeObject = getLocalTime(
               eventDate,
@@ -205,7 +202,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
           // Generate unsubscribe token for email notifications
           let unsubscribeToken: string | undefined;
-          if (alertMethod === 'email') {
+          if (alertMethod === AlertMethodMethod.email) {
             try {
               // Find the AlertMethod for this email destination
               const alertMethodRecord = await prisma.alertMethod.findFirst({
@@ -311,7 +308,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     }
 
     logger(
-      `Completed batch ${batchCount}. Successful: ${successfulNotificationIds.length}, Failed: ${unsuccessfulNotifications.length}`,
+      `Completed batch ${batchCount}. Successful: ${successfulNotificationIds.length}, Failed: ${unsuccessfulNotifications.length}, SkippedDisabledAlertMethods: ${skippedDisabledAlertMethods}`,
       'info',
     );
 
