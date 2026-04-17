@@ -5,6 +5,7 @@ import { api } from '../../utils/api';
 import type { GetStaticPropsContext, GetStaticPaths, InferGetStaticPropsType } from 'next';
 import { AlertId } from '../../Components/AlertId/AlertId';
 import { appRouter } from '../../server/api/root';
+import { createServerSideTRPCContext } from '../../server/api/trpc';
 import superjson from 'superjson';
 import ErrorDisplay from '../../Components/Assets/ErrorDisplay';
 import ErrorPage from 'next/error';
@@ -118,7 +119,7 @@ export async function getStaticProps(
 ) {
     const helpers = createServerSideHelpers({
         router: appRouter,
-        ctx: {},
+        ctx: createServerSideTRPCContext(),
         transformer: superjson,
     })
     const id = context.params?.alertId as string;

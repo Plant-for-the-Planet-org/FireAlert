@@ -48,15 +48,7 @@ export default async function siteIncidentManager(
       env.INCIDENT_RESOLUTION_HOURS || 6,
     );
 
-    // 3. Resolve Inactive Incidents FIRST
-    let resolvedCount = 0;
-    try {
-      resolvedCount = await siteIncidentService.resolveInactiveIncidents();
-    } catch (error) {
-      // Continue processing even if resolution fails
-    }
-
-    // 4. Batch Process All Unlinked Alerts
+    // 3. Batch Process All Unlinked Alerts FIRST
     const BATCH_SIZE = 50;
     const THREE_HOURS_AGO = new Date(Date.now() - 3 * 60 * 60 * 1000);
 
@@ -99,6 +91,14 @@ export default async function siteIncidentManager(
           linkErrors.push({id: alert.id, error: errorMessage});
         }
       }
+    }
+
+    // 4. Resolve inactive incidents after linking alerts so fresh activity is considered
+    let resolvedCount = 0;
+    try {
+      resolvedCount = await siteIncidentService.resolveInactiveIncidents();
+    } catch (error) {
+      // Continue and report linked work even if resolution fails
     }
 
     const duration = Date.now() - start;
