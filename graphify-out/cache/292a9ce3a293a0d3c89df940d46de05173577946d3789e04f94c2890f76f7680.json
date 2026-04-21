@@ -1,0 +1,1 @@
+{"nodes": [{"id": "apps_nativeapp_config_ts", "label": "config.ts", "file_type": "code", "source_file": "apps/nativeapp/config.ts", "source_location": "L1"}], "edges": [{"source": "apps_nativeapp_config_ts", "target": "env", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "apps/nativeapp/config.ts", "source_location": "L1", "weight": 1.0}], "raw_calls": []}
