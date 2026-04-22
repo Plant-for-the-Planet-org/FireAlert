@@ -24,9 +24,6 @@
     ]
   },
   "worktree": {
-    "symlinkDirectories": [
-      "apps/nativeapp/android",
-      "apps/nativeapp/ios"
-    ]
+    "symlinkDirectories": []
   }
 }
