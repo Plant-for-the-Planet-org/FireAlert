@@ -11,5 +11,12 @@
         ]
       }
     ]
+  },
+  "worktree": {
+    "symlinkDirectories": [
+      "node_modules",
+      "apps/nativeapp/android",
+      "apps/nativeapp/ios"
+    ]
   }
 }
