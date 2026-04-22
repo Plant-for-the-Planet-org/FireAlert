@@ -10,6 +10,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/rupamkairi/Projects/Plant-for-the-Planet/FireAlert/.claude/scripts/fix-worktree-symlinks.sh"
+          }
+        ]
+      }
     ]
   },
   "worktree": {
