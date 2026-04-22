@@ -15,7 +15,11 @@ import {CommonStack, SignInStack} from './stack';
 import {clearAll, getData, storeData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector} from '../hooks/redux/reduxHooks';
 import {OneSignalProvider} from '../hooks/notification/useOneSignal';
-import useAppLinkHandler from '../hooks/notification/useAppLinkHandler';
+import {
+  handleNotificationOpen,
+  linking,
+  navigationRef,
+} from '../utils/linking';
 import {Config} from '../../config';
 import {NotificationHandlers} from '../services/OneSignal';
 
@@ -33,17 +37,11 @@ export default function AppNavigator() {
         console.log('[OneSignal] Notification received:', notification);
       },
       onOpened: openResult => {
-        console.log('[OneSignal] Notification opened:', openResult);
+        handleNotificationOpen(openResult);
       },
     }),
     [],
   );
-
-  const handleUrl = url => {
-    console.log(url, 'url');
-  };
-
-  useAppLinkHandler(handleUrl);
 
   React.useEffect(() => {
     onlineManager.setEventListener(setOnline => {
@@ -153,7 +151,7 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <OneSignalProvider appId={onesignalAppId} handlers={notificationHandlers}>
         {isLoggedIn ? <CommonStack /> : <SignInStack />}
       </OneSignalProvider>

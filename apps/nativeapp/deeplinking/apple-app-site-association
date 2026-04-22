@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["REPLACE_TEAM_ID.eco.pp.firealert"],
+        "components": [
+          { "/": "/alert/*", "comment": "FireAlert site alert deep links" },
+          { "/": "/incident/*", "comment": "FireAlert incident deep links" },
+          { "/": "/verify/*", "comment": "FireAlert verification deep links" }
+        ]
+      }
+    ]
+  }
+}

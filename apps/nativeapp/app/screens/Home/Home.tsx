@@ -735,6 +735,31 @@ const Home = ({navigation: _navigation, route}) => {
     }
   };
 
+  // Deep-link entry: open the detail sheet (and focus the map for incidents)
+  // when Home is navigated to with an alertId/incidentId param — wait for the
+  // map camera to be ready so fitBounds actually takes effect.
+  const deepLinkHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isCameraRefVisible) {
+      return;
+    }
+    const incidentId = route?.params?.incidentId;
+    const alertId = route?.params?.alertId;
+    const target = incidentId ?? alertId;
+    if (!target || deepLinkHandledRef.current === target) {
+      return;
+    }
+    deepLinkHandledRef.current = target;
+
+    if (incidentId) {
+      handleIncidentTap(incidentId);
+    } else if (alertId) {
+      dispatch(openAlertDetails({alertId}));
+    }
+    // handleIncidentTap is redefined each render; we intentionally only re-run on param changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCameraRefVisible, route?.params?.incidentId, route?.params?.alertId]);
+
   const onPressMyLocationIcon = useCallback(
     (position: MapboxGL.Location | Geolocation.GeoPosition) => {
       if (isCameraRefVisible && camera?.current?.setCamera) {
