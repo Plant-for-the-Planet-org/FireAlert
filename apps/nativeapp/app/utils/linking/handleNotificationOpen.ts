@@ -4,6 +4,8 @@ import {CommonActions} from '@react-navigation/native';
 import {DEEP_LINK_HOST, DEEP_LINK_SCHEME, linking} from './linkingConfig';
 import {navigationRef} from './navigationRef';
 
+let _pendingEvent: NotificationClickEvent | null = null;
+
 const stripPrefix = (url: string): string => {
   for (const prefix of linking.prefixes) {
     if (url.startsWith(prefix)) {
@@ -51,6 +53,9 @@ const urlFromAdditionalData = (
  *
  * OneSignal's `suppressLaunchURLs` is enabled on Android so the SDK does
  * not open the URL in a browser — we own the routing here.
+ *
+ * If the NavigationContainer is not yet ready (cold start), the event is
+ * queued and replayed via flushPendingNotification() once nav is ready.
  */
 export const handleNotificationOpen = (event: NotificationClickEvent) => {
   const notification = event.notification;
@@ -67,6 +72,7 @@ export const handleNotificationOpen = (event: NotificationClickEvent) => {
   const path = stripPrefix(url);
 
   if (!navigationRef.isReady() || !linking.getStateFromPath) {
+    _pendingEvent = event;
     return;
   }
 
@@ -76,4 +82,16 @@ export const handleNotificationOpen = (event: NotificationClickEvent) => {
   }
 
   navigationRef.dispatch(CommonActions.reset(state));
+};
+
+/**
+ * Called from NavigationContainer's onReady callback to replay any
+ * notification tap that arrived before navigation was mounted (cold start).
+ */
+export const flushPendingNotification = () => {
+  if (_pendingEvent) {
+    const event = _pendingEvent;
+    _pendingEvent = null;
+    handleNotificationOpen(event);
+  }
 };

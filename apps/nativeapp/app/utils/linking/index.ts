@@ -1,3 +1,3 @@
 export {linking, DEEP_LINK_HOST, DEEP_LINK_SCHEME} from './linkingConfig';
 export {navigationRef} from './navigationRef';
-export {handleNotificationOpen} from './handleNotificationOpen';
+export {handleNotificationOpen, flushPendingNotification} from './handleNotificationOpen';

@@ -16,6 +16,7 @@ import {clearAll, getData, storeData} from '../utils/localStorage';
 import {useAppDispatch, useAppSelector} from '../hooks/redux/reduxHooks';
 import {OneSignalProvider} from '../hooks/notification/useOneSignal';
 import {
+  flushPendingNotification,
   handleNotificationOpen,
   linking,
   navigationRef,
@@ -151,7 +152,7 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer ref={navigationRef} linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={linking} onReady={flushPendingNotification}>
       <OneSignalProvider appId={onesignalAppId} handlers={notificationHandlers}>
         {isLoggedIn ? <CommonStack /> : <SignInStack />}
       </OneSignalProvider>
