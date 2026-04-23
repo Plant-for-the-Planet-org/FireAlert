@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "The user is creating a worktree. First, ask for a meaningful name (e.g., 'fix-auth-bug', 'feature-dark-mode'). Once they provide it, create the worktree using the parent directory pattern. Respond with the exact command they should run: git worktree add ../FA.worktrees/<name>"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/rupamkairi/Projects/Plant-for-the-Planet/FireAlert/.claude/scripts/fix-worktree-symlinks.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "worktree": {
+    "symlinkDirectories": []
+  }
+}
