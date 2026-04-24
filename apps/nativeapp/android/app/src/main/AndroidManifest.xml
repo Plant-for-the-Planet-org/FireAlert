@@ -30,6 +30,14 @@
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="https" android:host="firealert.plant-for-the-planet.org" android:pathPrefix="/alert" />
+            <data android:scheme="https" android:host="firealert.plant-for-the-planet.org" android:pathPrefix="/incident" />
+            <data android:scheme="https" android:host="firealert.plant-for-the-planet.org" android:pathPrefix="/verify" />
+        </intent-filter>
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="firealert" />
         </intent-filter>
       </activity>
     </application>

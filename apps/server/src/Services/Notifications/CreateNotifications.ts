@@ -174,6 +174,12 @@ function processSiteAlertChunk(
     const stopAlerts =
       siteAlert.siteIncident?.reviewStatus ===
       SiteIncidentReviewStatus.STOP_ALERTS;
+
+    logger(
+      `SiteAlert ${siteAlert.id}: siteId=${siteAlert.siteId}, alertMethods=${alertMethods.length}, stopAlerts=${stopAlerts}, reviewStatus=${siteAlert.siteIncident?.reviewStatus ?? 'none'}`,
+      'debug',
+    );
+
     if (stopAlerts) {
       if (alertMethods && alertMethods.length > 0) {
         alertMethods.forEach(alertMethod => {
@@ -193,11 +199,15 @@ function processSiteAlertChunk(
 
     if (alertMethods && alertMethods.length > 0) {
       alertMethods.forEach(alertMethod => {
-        if (
+        const eligible =
           alertMethod.isVerified &&
           alertMethod.isEnabled &&
-          isSiteAlertMethod(alertMethod.method)
-        ) {
+          isSiteAlertMethod(alertMethod.method);
+        logger(
+          `  alertMethod ${alertMethod.method}: isVerified=${alertMethod.isVerified}, isEnabled=${alertMethod.isEnabled}, isSiteAlertMethod=${isSiteAlertMethod(alertMethod.method)} → eligible=${eligible}`,
+          'debug',
+        );
+        if (eligible) {
           notificationDataQueue.push({
             siteAlertId: siteAlert.id,
             siteId: siteAlert.siteId,
@@ -207,9 +217,13 @@ function processSiteAlertChunk(
           });
         }
       });
+    } else {
+      logger(`SiteAlert ${siteAlert.id}: no alertMethods found`, 'debug');
     }
     processedSiteAlerts.push(siteAlert.id);
   }
+
+  logger(`Notification queue has ${notificationDataQueue.length} entries`, 'debug');
 
   // Create notifications based on conditions
   for (const notification of notificationDataQueue) {
@@ -323,22 +337,31 @@ const createNotifications = async () => {
       orderBy: [{siteId: 'asc'}, {eventDate: 'asc'}],
     });
 
+    logger(`Found ${unprocessedAlerts.length} unprocessed SiteAlerts`, 'debug');
+
     const processedAlerts = unprocessedAlerts.map(el => {
       if (!el.site.user) {
         // site.user would be null for protected-sites
         // siteRelation may have multiple user, flatmap all user's alertMethods & adding to user.alertMethods so further functionality can detect further
+        const flatMapped = el.site.siteRelations.flatMap(
+          sr => sr.user.alertMethods,
+        );
+        logger(
+          `SiteAlert ${el.id}: protected site — flatmapped ${flatMapped.length} alertMethods from ${el.site.siteRelations.length} siteRelations`,
+          'debug',
+        );
         return {
           ...el,
           site: {
             ...el.site,
-            user: {
-              alertMethods: el.site.siteRelations.flatMap(
-                sr => sr.user.alertMethods,
-              ),
-            },
+            user: {alertMethods: flatMapped},
           },
         };
       }
+      logger(
+        `SiteAlert ${el.id}: site ${el.siteId} has ${el.site.user.alertMethods.length} alertMethods`,
+        'debug',
+      );
       return el;
     });
 

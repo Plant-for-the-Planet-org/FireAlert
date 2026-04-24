@@ -1,5 +1,5 @@
 import type {AdditionalOptions} from '../../Interfaces/AdditionalOptions';
-import {type AlertMethodMethod} from '../../Interfaces/AlertMethod';
+import {AlertMethodMethod} from '../../Interfaces/AlertMethod';
 import type DataRecord from '../../Interfaces/DataRecord';
 import {type NotificationParameters} from '../../Interfaces/NotificationParameters';
 import {getLocalTime} from '../../../src/utils/date';
@@ -66,6 +66,11 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
       take: take,
     });
 
+    logger(
+      `Batch ${batchCount + 1}: fetched ${notifications.length} notifications to evaluate`,
+      'debug',
+    );
+
     // Filter out notifications for disabled AlertMethods
     const enabledNotifications = [];
     let skippedDisabledAlertMethods = 0;
@@ -79,6 +84,11 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
           },
         });
 
+        logger(
+          `Notification ${notification.id}: method=${notification.alertMethod}, alertMethodEnabled=${!!alertMethodRecord}`,
+          'debug',
+        );
+
         if (alertMethodRecord) {
           enabledNotifications.push(notification);
         } else {
@@ -88,6 +98,10 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             data: {isSkipped: true},
           });
           skippedDisabledAlertMethods++;
+          logger(
+            `Notification ${notification.id}: skipped — alertMethod ${notification.alertMethod} is disabled or not found`,
+            'debug',
+          );
         }
       } catch (error) {
         logger(
@@ -114,9 +128,18 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     const successfulDestinations: string[] = [];
     const failedAlertMethods: FailedAlertMethod[] = [];
 
+    logger(
+      `Starting Promise.all for ${filteredNotifications.length} notifications in batch ${batchCount + 1}`,
+      'debug',
+    );
+
     await Promise.all(
-      notifications.map(async (notification: NotificationWithRelations) => {
+      filteredNotifications.map(async (notification: NotificationWithRelations) => {
         try {
+          logger(
+            `[send] notification.id=${notification.id} siteAlert=${notification.siteAlert ? 'exists' : 'NULL'}`,
+            'debug',
+          );
           const {id, destination, siteAlert} = notification;
           const alertMethod = notification.alertMethod as AlertMethodMethod;
           const {
@@ -168,6 +191,11 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             message = `Detected ${input} ${siteName} with ${confidence} confidence. ${checkLatLong}`;
           }
           const url = `https://firealert.plant-for-the-planet.org/alert/${alertId}`;
+          // Device notifications use the custom scheme so iOS/Android open the app directly instead of Safari/browser (Universal Links not yet configured).
+          const notifUrl =
+            alertMethod === AlertMethodMethod.device
+              ? `firealert://alert/${alertId}`
+              : url;
 
           // If the alertMethod is email, Construct the message for email
           if (alertMethod === AlertMethodMethod.email) {
@@ -233,7 +261,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             id: id,
             message: message,
             subject: subject,
-            url: url,
+            url: notifUrl,
             unsubscribeToken: unsubscribeToken,
             alert: {
               id: alertId,
@@ -251,12 +279,22 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             // site: {id: siteId},
             // user: {id: userId!},
           };
+          logger(
+            `Sending notification ${id}: method=${alertMethod}, alertId=${alertId}, siteId=${site.id}, siteName=${siteName}, distance=${distance}m`,
+            'debug',
+          );
+
           const notifier = NotifierRegistry.get(alertMethod);
 
           const isDelivered = await notifier.notify(
             destination,
             notificationParameters,
             {req},
+          );
+
+          logger(
+            `Notification ${id}: isDelivered=${isDelivered}`,
+            'debug',
           );
 
           if (isDelivered === true) {
@@ -267,12 +305,9 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             failedAlertMethods.push({destination, method: alertMethod});
           }
         } catch (error) {
-          logger(
-            `Error processing notification ${notification.id}: ${
-              (error as Error)?.message
-            }`,
-            'error',
-          );
+          const errMsg = (error as Error)?.message;
+          console.error(`[send-error] notification.id=${notification.id}: ${errMsg}`);
+          logger(`Error processing notification ${notification.id}: ${errMsg}`, 'error');
         }
       }),
     );
@@ -299,6 +334,10 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     if (unsuccessfulNotifications.length > 0) {
       const unsuccessfulNotificationIds = unsuccessfulNotifications.map(
         ({id}) => id,
+      );
+      logger(
+        `Batch ${batchCount}: marking ${unsuccessfulNotificationIds.length} notifications as skipped: [${unsuccessfulNotificationIds.join(', ')}]`,
+        'debug',
       );
 
       await prisma.notification.updateMany({
