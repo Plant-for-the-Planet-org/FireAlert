@@ -29,7 +29,8 @@ const homeState = (params: Record<string, unknown>) => ({
     {
       name: 'BottomTab',
       state: {
-        routes: [{name: 'Home', params}],
+        // __ts is a nonce so re-tapping the same notification produces a new params object, forcing Home's useEffect to re-fire.
+        routes: [{name: 'Home', params: {...params, __ts: Date.now()}}],
       },
     },
   ],

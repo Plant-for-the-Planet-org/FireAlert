@@ -64,23 +64,33 @@ export const handleNotificationOpen = (event: NotificationClickEvent) => {
     | Record<string, unknown>
     | undefined;
 
+  console.log('[deepLink] handleNotificationOpen called', {
+    launchUrl,
+    additionalData,
+  });
+
   const url = launchUrl || urlFromAdditionalData(additionalData);
   if (!url) {
+    console.log('[deepLink] no url resolved, aborting');
     return;
   }
 
   const path = stripPrefix(url);
+  console.log('[deepLink] url=', url, 'path=', path);
 
   if (!navigationRef.isReady() || !linking.getStateFromPath) {
+    console.log('[deepLink] navigation not ready, queuing event');
     _pendingEvent = event;
     return;
   }
 
   const state = linking.getStateFromPath(path.replace(/^\/+/, ''), linking.config);
   if (!state) {
+    console.log('[deepLink] getStateFromPath returned null for path', path);
     return;
   }
 
+  console.log('[deepLink] dispatching reset with state', JSON.stringify(state));
   navigationRef.dispatch(CommonActions.reset(state));
 };
 

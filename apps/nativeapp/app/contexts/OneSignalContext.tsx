@@ -149,6 +149,10 @@ export function OneSignalProvider({
         };
 
         const openedHandler = (event: NotificationClickEvent) => {
+          console.log('[deepLink] OneSignal click event received', {
+            hasHandler: !!handlersRef.current?.onOpened,
+            notificationId: event.notification?.notificationId,
+          });
           if (handlersRef.current?.onOpened) {
             handlersRef.current.onOpened(event);
           }
