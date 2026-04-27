@@ -14,11 +14,11 @@ const config = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+
   typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete even if
     // your project has type errors.
-    // !! WARN !!
     ignoreBuildErrors: true,
   },
 
@@ -36,6 +36,18 @@ const config = {
   // Add the compiler option and remove console logs in production
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  async headers() {
+    return [
+      {
+        source: '/.well-known/apple-app-site-association',
+        headers: [
+          {key: 'Content-Type', value: 'application/json'},
+          {key: 'Cache-Control', value: 'public, max-age=300'},
+        ],
+      },
+    ];
   },
 };
 
