@@ -58,6 +58,8 @@
 	<string>We need access to precise location to show your current location and background location tracking.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need access to precise location to show your current location for creating sites.</string>
+	<key>OneSignal_suppress_launch_urls</key>
+	<true/>
 	<key>RCTNewArchEnabled</key>
 	<false/>
 	<key>UIBackgroundModes</key>
@@ -76,9 +78,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<!-- Prevents OneSignal SDK from auto-opening the notification URL before our click handler runs. Paired with com.onesignal.suppressLaunchURLs in AndroidManifest.xml. -->
-	<key>OneSignal_suppress_launch_urls</key>
-	<true/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 </dict>
