@@ -21,9 +21,10 @@ export function logger(message: string | object, level: LoggerLevels) {
   if (loggerInstance) {
     switch (level) {
       case 'debug':
-        loggerInstance.info(message).catch(err => {
-          console.log(err);
-        });
+        // debug logs are only emitted in development — never sent to Logtail
+        if (process.env.NODE_ENV === 'development') {
+          console.debug(`[DEBUG] ${message}`);
+        }
         break;
       case 'info':
         loggerInstance.info(message).catch(err => {
@@ -44,6 +45,12 @@ export function logger(message: string | object, level: LoggerLevels) {
         console.error(`Invalid log level: ${level as string}`);
     }
   } else {
-    console.log(`[${level.toUpperCase()}] ${message}`);
+    if (level === 'debug') {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug(`[DEBUG] ${message}`);
+      }
+    } else {
+      console.log(`[${level.toUpperCase()}] ${message}`);
+    }
   }
 }

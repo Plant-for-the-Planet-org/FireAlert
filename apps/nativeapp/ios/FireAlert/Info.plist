@@ -20,6 +20,19 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>eco.pp.firealert</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>firealert</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -45,6 +58,8 @@
 	<string>We need access to precise location to show your current location and background location tracking.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need access to precise location to show your current location for creating sites.</string>
+	<key>OneSignal_suppress_launch_urls</key>
+	<true/>
 	<key>RCTNewArchEnabled</key>
 	<false/>
 	<key>UIBackgroundModes</key>
