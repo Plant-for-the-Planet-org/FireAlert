@@ -33,6 +33,9 @@ export class OneSignalStateManager {
   private listeners: Set<StateChangeListener>;
   private initializationPromise: Promise<void> | null;
   private listenersRegistered = false;
+  private appStateSubscription: ReturnType<
+    typeof AppState.addEventListener
+  > | null = null;
   private androidPermissionSyncPromise: Promise<void> | null = null;
   private androidPermissionRetryTimers: ReturnType<typeof setTimeout>[] = [];
   private androidPermissionRetryRunId = 0;
@@ -250,7 +253,10 @@ export class OneSignalStateManager {
       this.handlePermissionChange,
     );
 
-    AppState.addEventListener('change', this.handleAppStateChange);
+    this.appStateSubscription = AppState.addEventListener(
+      'change',
+      this.handleAppStateChange,
+    );
     OneSignal.User.addEventListener('change', this.handleUserStateChange);
 
     OneSignal.User.pushSubscription.addEventListener(
@@ -469,6 +475,10 @@ export class OneSignalStateManager {
     try {
       this.currentExternalUserId = null;
       this.stopAndroidPermissionPropagation();
+      this.appStateSubscription?.remove();
+      this.appStateSubscription = null;
+      this.listenersRegistered = false;
+      this.initializationStatus = {state: InitializationState.NOT_STARTED};
       this.setState({
         userId: null,
         pushToken: null,
