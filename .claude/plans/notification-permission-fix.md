@@ -6,19 +6,18 @@ Push notifications stopped working in production after the deep-linking PR
 (#331) shipped, even though email notifications still arrive and the mobile
 app records the device in our DB.
 
-OneSignal dashboard for player ID `b393b6e5-311f-40a5-98b4-274c5cb91c15`
-(a real test device, CMF Phone 2 Pro on Android 16) shows:
+OneSignal dashboard for a test device (`<DEVICE_NAME>` on Android `<VERSION>`) shows:
 
 - Status: **Never Subscribed**
 - Status details: **Permission Not Granted**
-- 7 sessions, first session 04/28, last session 04/29
+- Several sessions recorded across consecutive days
 
 So the SDK is running on the device, but OneSignal has never observed a
 permission grant, so it has no push token and no subscription. The server's
 send call returns:
 
 ```json
-{"id":"","errors":{"invalid_player_ids":["b393b6e5-..."]}}
+{"id":"","errors":{"invalid_player_ids":["<ONE_SIGNAL_PLAYER_ID>"]}}
 ```
 
 …with HTTP 200, which our current server code treats as success. Two bugs
@@ -216,7 +215,7 @@ No new dependencies. No DB migration. No native (Pods/gradle) changes.
 User testing setup:
 - Local server with production OneSignal credentials in `.env`
 - Local Postgres for FireAlert DB
-- Android 16 emulator (Pixel 10) **or** real CMF Phone 2 Pro (Android 16)
+- Android 16 emulator (Pixel 10) **or** a real Android 13+ device
 
 ### Steps
 

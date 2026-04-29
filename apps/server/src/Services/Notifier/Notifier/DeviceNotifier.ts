@@ -124,7 +124,7 @@ class DeviceNotifier implements Notifier {
           : `noneDelivered (id="${responseBody?.id}", recipients=${responseBody?.recipients})`;
 
       console.error(
-        `[device-notifier] OneSignal rejected: ${reason} notificationId=${parameters.id} player_id=${destination} body=${JSON.stringify(responseBody)}`,
+        `[device-notifier] OneSignal rejected: ${reason} notificationId=${parameters.id} player_id=${destination.substring(0, 8)}...`,
       );
       logger(
         `Failed to send device notification (${reason}) for ${parameters.id}`,
