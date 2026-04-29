@@ -6,6 +6,17 @@ import {logger} from '../../../server/logger';
 import {prisma} from '../../../server/db';
 import {handleFailedNotification as genericFailedNotificationHandler} from '../handleFailedNotification';
 
+// Subset of the OneSignal Create Notification response we rely on.
+// Full schema: https://documentation.onesignal.com/reference/create-notification
+type OneSignalNotificationResponse = {
+  id?: string;
+  recipients?: number;
+  errors?: {
+    invalid_player_ids?: string[];
+    [key: string]: unknown;
+  };
+};
+
 class DeviceNotifier implements Notifier {
   getSupportedMethods(): Array<string> {
     return [NOTIFICATION_METHOD.DEVICE];
@@ -34,8 +45,9 @@ class DeviceNotifier implements Notifier {
         'info',
       );
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger(
-        `Database Error: Couldn't modify the alertMethod or delete the notification: ${error}`,
+        `Database Error: Couldn't modify the alertMethod or delete the notification: ${errorMessage}`,
         'error',
       );
     }
@@ -87,16 +99,35 @@ class DeviceNotifier implements Notifier {
       body: JSON.stringify(payload),
     });
 
-    const responseBody = await response.json().catch(() => null);
+    const responseBody = (await response
+      .json()
+      .catch(() => null)) as OneSignalNotificationResponse | null;
     logger(
       `DeviceNotifier: OneSignal response status=${response.status}, body=${JSON.stringify(responseBody)}`,
       'debug',
     );
 
-    if (!response.ok) {
-      console.error(`[device-notifier] OneSignal rejected: status=${response.status} statusText="${response.statusText}" notificationId=${parameters.id} player_id=${destination} body=${JSON.stringify(responseBody)}`);
+    // OneSignal returns HTTP 200 even when zero recipients were reached
+    // (e.g. invalid_player_ids, unsubscribed devices). Treat those as
+    // failures so failCount increments and operators have observability.
+    const invalidPlayerIds = responseBody?.errors?.invalid_player_ids;
+    const hasInvalidPlayers = !!invalidPlayerIds?.length;
+    const noneDelivered =
+      responseBody?.id === '' || responseBody?.recipients === 0;
+    const oneSignalRejection = hasInvalidPlayers || noneDelivered;
+
+    if (!response.ok || oneSignalRejection) {
+      const reason = !response.ok
+        ? `HTTP ${response.status} ${response.statusText}`
+        : hasInvalidPlayers
+          ? `invalid_player_ids=${JSON.stringify(invalidPlayerIds)}`
+          : `noneDelivered (id="${responseBody?.id}", recipients=${responseBody?.recipients})`;
+
+      console.error(
+        `[device-notifier] OneSignal rejected: ${reason} notificationId=${parameters.id} player_id=${destination} body=${JSON.stringify(responseBody)}`,
+      );
       logger(
-        `Failed to send device notification. Error: ${response.statusText} for ${parameters.id}`,
+        `Failed to send device notification (${reason}) for ${parameters.id}`,
         'error',
       );
 
