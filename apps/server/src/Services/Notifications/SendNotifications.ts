@@ -118,11 +118,17 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
     // If no notifications are found, exit the loop
     if (filteredNotifications.length === 0) {
-      logger(`Nothing to process anymore notification.length = 0`, 'info');
+      logger(
+        `stage=NotificationSender channel=alert event=no_more_notifications`,
+        'debug',
+      );
       continueProcessing = false;
       break;
     }
-    logger(`Notifications to be sent: ${filteredNotifications.length}`, 'info');
+    logger(
+      `stage=NotificationSender channel=alert event=batch_start batch=${batchCount + 1} count=${filteredNotifications.length}`,
+      'debug',
+    );
 
     const successfulNotificationIds: string[] = [];
     const successfulDestinations: string[] = [];
@@ -305,9 +311,14 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             failedAlertMethods.push({destination, method: alertMethod});
           }
         } catch (error) {
-          const errMsg = (error as Error)?.message;
+          const err = error as Error;
+          const errMsg = err?.message ?? String(error);
+          const stack = err?.stack ?? 'n/a';
           console.error(`[send-error] notification.id=${notification.id}: ${errMsg}`);
-          logger(`Error processing notification ${notification.id}: ${errMsg}`, 'error');
+          logger(
+            `stage=NotificationSender channel=alert event=notification_failure notification_id=${notification.id} alert_method=${notification.alertMethod} message="${errMsg.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+            'error',
+          );
         }
       }),
     );
@@ -347,7 +358,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     }
 
     logger(
-      `Completed batch ${batchCount}. Successful: ${successfulNotificationIds.length}, Failed: ${unsuccessfulNotifications.length}, SkippedDisabledAlertMethods: ${skippedDisabledAlertMethods}`,
+      `stage=NotificationSender channel=alert event=batch_complete batch=${batchCount} successful=${successfulNotificationIds.length} failed=${unsuccessfulNotifications.length} skipped_disabled=${skippedDisabledAlertMethods}`,
       'info',
     );
 

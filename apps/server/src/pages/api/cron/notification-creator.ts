@@ -20,8 +20,8 @@ export default async function notificationsCron(
   }
 
   logger(
-    'Running Notification Creator with method-based routing: SiteAlert (device, webhook) + SiteIncident (email, sms, whatsapp)',
-    'info',
+    'stage=NotificationCreator event=start routing="alert=device,webhook incident=email,sms,whatsapp"',
+    'debug',
   );
 
   try {
@@ -35,7 +35,7 @@ export default async function notificationsCron(
     const totalNotifications = alertNotifications + incidentNotifications;
 
     logger(
-      `Created ${alertNotifications} SiteAlert notifications and ${incidentNotifications} incident notifications (${totalNotifications} total). Incident stats: mergeStart=${incidentStats.createdMergeStart}, mergeEnd=${incidentStats.createdMergeEnd}, skippedStopAlerts=${incidentStats.skippedStopAlerts}, skippedSingleAlertEnd=${incidentStats.skippedSingleAlertEnd}, skippedParentEnd=${incidentStats.skippedParentEnd}`,
+      `stage=NotificationCreator event=summary alert=${alertNotifications} incident=${incidentNotifications} total=${totalNotifications} merge_start=${incidentStats.createdMergeStart} merge_end=${incidentStats.createdMergeEnd} skipped_stop_alerts=${incidentStats.skippedStopAlerts} skipped_single_alert_end=${incidentStats.skippedSingleAlertEnd} skipped_parent_end=${incidentStats.skippedParentEnd}`,
       'info',
     );
 
@@ -55,8 +55,12 @@ export default async function notificationsCron(
         : 500;
     const message =
       error instanceof Error ? error.message : 'Internal Server Error';
+    const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
 
-    logger(`Error executing notification creator: ${message}`, 'error');
+    logger(
+      `stage=NotificationCreator event=failure status=${statusCode} message="${message.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+      'error',
+    );
     return res.status(statusCode).json({message, status: statusCode});
   }
 }

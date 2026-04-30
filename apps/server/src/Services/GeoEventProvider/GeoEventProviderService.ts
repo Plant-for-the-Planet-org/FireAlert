@@ -87,12 +87,12 @@ export class GeoEventProviderService {
     if (totalDuration > 30000) {
       // >30 seconds
       logger(
-        `WARNING: Total provider processing took ${totalDuration}ms (>30s threshold)`,
+        `stage=Pipeline event=slow total_ms=${totalDuration} threshold_ms=30000`,
         'warn',
       );
     } else if (totalDuration > 5000) {
       // >5 seconds
-      logger(`INFO: Total provider processing took ${totalDuration}ms`, 'info');
+      logger(`stage=Pipeline event=notice total_ms=${totalDuration}`, 'debug');
     }
 
     const finalResult = results.reduce(
@@ -136,15 +136,12 @@ export class GeoEventProviderService {
       const parsedConfig = JSON.parse(JSON.stringify(config));
       const slice = parsedConfig.slice;
 
-      let breadcrumbPrefix = `${geoEventProviderClientId} Slice ${slice}:`;
-      if (geoEventProviderClientId === 'GEOSTATIONARY') {
-        breadcrumbPrefix = `Geostationary Satellite ${clientApiKey}:`;
-      }
+      const tag =
+        geoEventProviderClientId === 'GEOSTATIONARY'
+          ? `[GEO/${clientApiKey}]`
+          : `[${geoEventProviderClientId}/${slice}]`;
 
-      logger(
-        `Processing provider: ${breadcrumbPrefix}`,
-        'info',
-      );
+      logger(`${tag} stage=Provider event=start`, 'debug');
 
       // Fetch latest geo events from provider
       metrics.startTimer('fetch_events');
@@ -157,16 +154,6 @@ export class GeoEventProviderService {
         lastRun,
       );
       const fetchDuration = metrics.endTimer('fetch_events');
-
-      logger(
-        `Fetching time took ${fetchDuration}ms`,
-        'debug',
-      );
-
-      logger(
-        `${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`,
-        'info',
-      );
 
       if (geoEvents.length > 0) {
         // OPTIMIZATION: Pre-fetch existing IDs once for all chunks
@@ -207,8 +194,8 @@ export class GeoEventProviderService {
             if (chunkDuration > 2000) {
               // >2 seconds
               logger(
-                `Chunk ${chunkIndex} took ${chunkDuration}ms (>2s threshold)`,
-                'info',
+                `${tag} stage=GeoEvent event=slow_chunk index=${chunkIndex} time_ms=${chunkDuration}`,
+                'warn',
               );
             }
 
@@ -233,11 +220,19 @@ export class GeoEventProviderService {
         result.addEventsCreated(totalCreated);
 
         logger(
-          `GeoEvent process: processed ${geoEvents.length} events in ${chunkResults.length} chunks, created ${totalCreated}, time took ${chunkProcessingDuration}ms, prefetch: ${prefetchDuration}ms, existing IDs: ${preFetchedIds.length}`,
-          'debug',
+          `${tag} stage=GeoEvent fetched=${geoEvents.length} created=${totalCreated} fetch_ms=${fetchDuration} process_ms=${chunkProcessingDuration}`,
+          'info',
         );
 
-        logger(`${breadcrumbPrefix} Created ${totalCreated} GeoEvents`, 'info');
+        logger(
+          `${tag} stage=GeoEvent chunks=${chunkResults.length} new=${totalNew} prefetch_ms=${prefetchDuration} existing_ids=${preFetchedIds.length}`,
+          'debug',
+        );
+      } else {
+        logger(
+          `${tag} stage=GeoEvent fetched=0 created=0 fetch_ms=${fetchDuration} process_ms=0`,
+          'info',
+        );
       }
 
       // Create site alerts
@@ -253,13 +248,12 @@ export class GeoEventProviderService {
       if (alertDuration > 3000) {
         // >3 seconds
         logger(
-          `INFO: Alert creation took ${alertDuration}ms (>3s threshold)`,
-          'info',
+          `${tag} stage=SiteAlert event=slow_creation time_ms=${alertDuration} threshold_ms=3000`,
+          'warn',
         );
       }
 
       result.addAlertsCreated(alertCount);
-      logger(`${breadcrumbPrefix} Created ${alertCount} Site Alerts`, 'info');
 
       // Update lastRun timestamp
       metrics.startTimer('db_update');
@@ -273,7 +267,7 @@ export class GeoEventProviderService {
         error instanceof Error ? error : new Error(String(error));
       result.addError(errorMessage);
       logger(
-        `Error processing provider ${provider.id}: ${errorMessage.message}`,
+        `stage=Provider event=failure provider_id=${provider.id} client_id=${provider.clientId} message="${errorMessage.message.replace(/"/g, '\\"')}" stack="${(errorMessage.stack ?? 'n/a').replace(/"/g, '\\"')}"`,
         'error',
       );
     }
@@ -285,14 +279,14 @@ export class GeoEventProviderService {
     if (totalProviderDuration > 30000) {
       // >30 seconds
       logger(
-        `WARNING: Provider ${provider.id} took ${totalProviderDuration}ms (>30s threshold)`,
+        `stage=Provider event=slow provider_id=${provider.id} total_ms=${totalProviderDuration} threshold_ms=30000`,
         'warn',
       );
     } else if (totalProviderDuration > 5000) {
       // >5 seconds
       logger(
-        `INFO: Provider ${provider.id} took ${totalProviderDuration}ms (>5s threshold)`,
-        'info',
+        `stage=Provider event=notice provider_id=${provider.id} total_ms=${totalProviderDuration}`,
+        'debug',
       );
     }
 

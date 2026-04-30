@@ -41,8 +41,9 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
 
       return token;
     } catch (error) {
+      const err = error as Error;
       logger(
-        `Failed to generate unsubscribe token: ${(error as Error).message}`,
+        `stage=Unsubscribe event=token_generation_failure user_id=${userId} alert_method_id=${alertMethodId} message="${err.message.replace(/"/g, '\\"')}" stack="${(err.stack ?? 'n/a').replace(/"/g, '\\"')}"`,
         'error',
       );
       throw new Error('Failed to generate unsubscribe token');
@@ -128,7 +129,13 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
         user,
       };
     } catch (error) {
-      logger(`Token validation error: ${(error as Error).message}`, 'error');
+      {
+        const err = error as Error;
+        logger(
+          `stage=Unsubscribe event=token_validation_failure message="${err.message.replace(/"/g, '\\"')}" stack="${(err.stack ?? 'n/a').replace(/"/g, '\\"')}"`,
+          'error',
+        );
+      }
 
       this.logAuditEvent({
         action: 'token_validation_failed',
@@ -213,7 +220,7 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
       });
 
       logger(
-        `Successfully unsubscribed AlertMethod ${payload.alertMethodId} for User ${payload.userId}`,
+        `stage=Unsubscribe event=success alert_method_id=${payload.alertMethodId} user_id=${payload.userId}`,
         'info',
       );
 
@@ -224,8 +231,9 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
         alertMethodId: payload.alertMethodId,
       };
     } catch (error) {
+      const err = error as Error;
       logger(
-        `Unsubscribe processing error: ${(error as Error).message}`,
+        `stage=Unsubscribe event=process_failure message="${err.message.replace(/"/g, '\\"')}" stack="${(err.stack ?? 'n/a').replace(/"/g, '\\"')}"`,
         'error',
       );
 
@@ -238,21 +246,25 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
   }
 
   /**
-   * Logs audit events for unsubscribe operations
-   * @param event The audit event to log
+   * Logs audit events for unsubscribe operations.
+   * `token_generated` fires for every notification (spammy) — emitted at debug.
+   * User-facing actions (`unsubscribe_processed`, validation outcomes) emit at info.
    */
   private logAuditEvent(event: UnsubscribeAuditLog): void {
     try {
-      const logMessage = `Unsubscribe audit: ${event.action} - User: ${event.userId}, AlertMethod: ${event.alertMethodId}`;
-      const logData = {
-        ...event,
-        timestamp: event.timestamp.toISOString(),
-      };
+      const level: 'debug' | 'info' =
+        event.action === 'token_generated' ? 'debug' : 'info';
 
-      logger(`${logMessage} - ${JSON.stringify(logData)}`, 'info');
+      logger(
+        `stage=Unsubscribe event=audit action=${event.action} user_id=${event.userId} alert_method_id=${event.alertMethodId} timestamp=${event.timestamp.toISOString()}`,
+        level,
+      );
     } catch (error) {
       // Don't throw errors for logging failures
-      logger(`Failed to log audit event: ${(error as Error).message}`, 'warn');
+      logger(
+        `stage=Unsubscribe event=audit_log_failure message="${(error as Error).message.replace(/"/g, '\\"')}"`,
+        'warn',
+      );
     }
   }
 }

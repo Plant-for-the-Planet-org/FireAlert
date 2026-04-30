@@ -208,16 +208,16 @@ export async function sendIncidentNotifications(
     // If no notifications are found, exit the loop
     if (notifications.length === 0) {
       logger(
-        `No incident notifications to process (notification.length = 0)`,
-        'info',
+        `stage=NotificationSender channel=incident event=no_more_notifications`,
+        'debug',
       );
       continueProcessing = false;
       break;
     }
 
     logger(
-      `Incident notifications to be sent: ${notifications.length}`,
-      'info',
+      `stage=NotificationSender channel=incident event=batch_start batch=${batchCount + 1} count=${notifications.length}`,
+      'debug',
     );
 
     const successfulNotificationIds: string[] = [];
@@ -321,10 +321,11 @@ export async function sendIncidentNotifications(
               successCount++;
             }
           } catch (error) {
+            const err = error as Error;
+            const message = err?.message ?? String(error);
+            const stack = err?.stack ?? 'n/a';
             logger(
-              `Error processing incident notification ${id_typed}: ${
-                (error as Error)?.message
-              }`,
+              `stage=NotificationSender channel=incident event=notification_failure notification_id=${id_typed} message="${message.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
               'error',
             );
           }
@@ -401,7 +402,7 @@ export async function sendIncidentNotifications(
     }
 
     logger(
-      `Completed incident notification batch ${batchCount}. Successful: ${successfulNotificationIds.length}, Failed: ${unsuccessfulNotifications.length}`,
+      `stage=NotificationSender channel=incident event=batch_complete batch=${batchCount} successful=${successfulNotificationIds.length} failed=${unsuccessfulNotifications.length}`,
       'info',
     );
 

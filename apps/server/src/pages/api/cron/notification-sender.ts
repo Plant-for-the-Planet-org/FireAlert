@@ -19,8 +19,8 @@ export default async function notificationSender(
   }
 
   logger(
-    'Running Notification Sender with method-based routing: SiteAlert (device, webhook) + SiteIncident (email, sms, whatsapp)',
-    'info',
+    'stage=NotificationSender event=start routing="alert=device,webhook incident=email,sms,whatsapp"',
+    'debug',
   );
 
   try {
@@ -33,6 +33,11 @@ export default async function notificationSender(
 
     const totalNotificationsSent =
       alertNotificationsSent + incidentNotificationsSent;
+
+    logger(
+      `stage=NotificationSender event=summary alert_sent=${alertNotificationsSent} incident_sent=${incidentNotificationsSent} total_sent=${totalNotificationsSent}`,
+      'info',
+    );
 
     if (totalNotificationsSent === 0) {
       // No notifications were needed to be sent, but the job executed successfully
@@ -60,7 +65,11 @@ export default async function notificationSender(
     // Handle genuine failure (e.g., database connection issue)
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';
-    logger(`Error executing notification sender: ${errorMessage}`, 'error');
+    const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
+    logger(
+      `stage=NotificationSender event=failure message="${errorMessage.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+      'error',
+    );
     res.status(307).json({
       message: 'Cron job failed to execute',
       status: '307',
