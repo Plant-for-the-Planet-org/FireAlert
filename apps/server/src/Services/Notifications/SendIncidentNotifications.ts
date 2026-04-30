@@ -1,6 +1,6 @@
 import {type NextApiRequest} from 'next';
 import {prisma} from '../../server/db';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import {env} from '../../env.mjs';
 import {
   NotificationStatus,
@@ -90,10 +90,8 @@ export class SendIncidentNotifications {
       }
 
       logger(
-        `Processing batch ${batchCount + 1}: ${
-          notifications.length
-        } incident notifications to be sent.`,
-        'info',
+        `stage=NotificationSender channel=incident event=batch_start batch=${batchCount + 1} count=${notifications.length}`,
+        'debug',
       );
 
       const successfulIds: string[] = [];
@@ -197,7 +195,7 @@ export class SendIncidentNotifications {
       }
 
       logger(
-        `Completed incident notification batch ${batchCount + 1}. Successful: ${successfulIds.length}, Failed: ${failedIds.length}, MissingMetadata: ${skippedMissingMetadataCount}, Errors: ${processingErrorCount}`,
+        `stage=NotificationSender channel=incident event=batch_complete batch=${batchCount + 1} successful=${successfulIds.length} failed=${failedIds.length} missing_metadata=${skippedMissingMetadataCount} errors=${processingErrorCount}`,
         'info',
       );
 
@@ -245,10 +243,9 @@ export class SendIncidentNotifications {
         alertMethodRecord.userId,
       );
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       logger(
-        `Failed to generate unsubscribe token for ${destination}: ${
-          (error as Error).message
-        }`,
+        `stage=NotificationSender channel=incident event=token_generation_failure message="${escapeLogfmt(message)}"`,
         'warn',
       );
       return undefined;

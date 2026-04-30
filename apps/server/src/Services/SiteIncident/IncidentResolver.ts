@@ -1,5 +1,5 @@
 import {type SiteIncident, type SiteAlert} from '@prisma/client';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import {
   type IncidentState,
   type ResolveResult,
@@ -83,7 +83,7 @@ export class IncidentResolver {
 
     try {
       logger(
-        `Starting batch resolution of ${incidents.length} incidents`,
+        `stage=Resolution event=batch_start batch_size=${incidents.length}`,
         'debug',
       );
 
@@ -97,16 +97,16 @@ export class IncidentResolver {
       metrics.recordMetric('total_duration_ms', totalDuration);
 
       logger(
-        `Batch resolution completed: ${result.resolvedCount}/${incidents.length} resolved in ${totalDuration}ms`,
-        'info',
+        `stage=Resolution event=batch_complete resolved=${result.resolvedCount} of=${incidents.length} time_ms=${totalDuration}`,
+        'debug',
       );
 
       return result;
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
       logger(
-        `Error in batch resolution: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `stage=Resolution event=batch_failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
         'error',
       );
       throw error;
@@ -120,12 +120,12 @@ export class IncidentResolver {
    */
   validateIncident(incident: SiteIncident): boolean {
     if (!incident.id || !incident.siteId) {
-      logger(`Invalid incident: missing id or siteId`, 'warn');
+      logger(`stage=Resolution event=invalid_incident reason=missing_id_or_site_id`, 'warn');
       return false;
     }
 
     if (!incident.startSiteAlertId || !incident.latestSiteAlertId) {
-      logger(`Invalid incident ${incident.id}: missing alert IDs`, 'warn');
+      logger(`stage=Resolution event=invalid_incident incident_id=${incident.id} reason=missing_alert_ids`, 'warn');
       return false;
     }
 

@@ -5,7 +5,7 @@ import {type NotificationParameters} from '../../Interfaces/NotificationParamete
 import {getLocalTime} from '../../../src/utils/date';
 import {env} from '../../env.mjs';
 import {prisma} from '../../server/db';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import {unsubscribeService} from '../AlertMethod/UnsubscribeService';
@@ -116,13 +116,30 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
     const filteredNotifications = enabledNotifications;
 
-    // If no notifications are found, exit the loop
-    if (filteredNotifications.length === 0) {
-      logger(`Nothing to process anymore notification.length = 0`, 'info');
+    // If nothing was fetched, exit the loop
+    if (notifications.length === 0) {
+      logger(
+        `stage=NotificationSender channel=alert event=no_more_notifications`,
+        'debug',
+      );
       continueProcessing = false;
       break;
     }
-    logger(`Notifications to be sent: ${filteredNotifications.length}`, 'info');
+
+    // If fetched notifications were all skipped/disabled, move on to next batch.
+    if (filteredNotifications.length === 0) {
+      logger(
+        `stage=NotificationSender channel=alert event=batch_all_skipped batch=${batchCount + 1} fetched=${notifications.length}`,
+        'debug',
+      );
+      batchCount += 1;
+      continue;
+    }
+
+    logger(
+      `stage=NotificationSender channel=alert event=batch_start batch=${batchCount + 1} count=${filteredNotifications.length}`,
+      'debug',
+    );
 
     const successfulNotificationIds: string[] = [];
     const successfulDestinations: string[] = [];
@@ -305,9 +322,13 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             failedAlertMethods.push({destination, method: alertMethod});
           }
         } catch (error) {
-          const errMsg = (error as Error)?.message;
+          const errMsg = error instanceof Error ? error.message : String(error);
+          const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
           console.error(`[send-error] notification.id=${notification.id}: ${errMsg}`);
-          logger(`Error processing notification ${notification.id}: ${errMsg}`, 'error');
+          logger(
+            `stage=NotificationSender channel=alert event=notification_failure notification_id=${notification.id} alert_method=${notification.alertMethod} message="${escapeLogfmt(errMsg)}" stack="${escapeLogfmt(stack)}"`,
+            'error',
+          );
         }
       }),
     );
@@ -347,7 +368,7 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
     }
 
     logger(
-      `Completed batch ${batchCount}. Successful: ${successfulNotificationIds.length}, Failed: ${unsuccessfulNotifications.length}, SkippedDisabledAlertMethods: ${skippedDisabledAlertMethods}`,
+      `stage=NotificationSender channel=alert event=batch_complete batch=${batchCount} successful=${successfulNotificationIds.length} failed=${unsuccessfulNotifications.length} skipped_disabled=${skippedDisabledAlertMethods}`,
       'info',
     );
 
