@@ -116,8 +116,8 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
 
     const filteredNotifications = enabledNotifications;
 
-    // If no notifications are found, exit the loop
-    if (filteredNotifications.length === 0) {
+    // If nothing was fetched, exit the loop
+    if (notifications.length === 0) {
       logger(
         `stage=NotificationSender channel=alert event=no_more_notifications`,
         'debug',
@@ -125,6 +125,17 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
       continueProcessing = false;
       break;
     }
+
+    // If fetched notifications were all skipped/disabled, move on to next batch.
+    if (filteredNotifications.length === 0) {
+      logger(
+        `stage=NotificationSender channel=alert event=batch_all_skipped batch=${batchCount + 1} fetched=${notifications.length}`,
+        'debug',
+      );
+      batchCount += 1;
+      continue;
+    }
+
     logger(
       `stage=NotificationSender channel=alert event=batch_start batch=${batchCount + 1} count=${filteredNotifications.length}`,
       'debug',
