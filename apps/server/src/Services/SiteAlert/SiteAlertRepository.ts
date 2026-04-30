@@ -1,4 +1,4 @@
-import {type PrismaClient, Prisma} from '@prisma/client';
+import {type PrismaClient, Prisma, type SiteAlert} from '@prisma/client';
 import {logger} from '../../server/logger';
 
 /**
@@ -15,9 +15,9 @@ export class SiteAlertRepository {
    * @param eventIds - Array of GeoEvent IDs
    * @returns Array of SiteAlerts
    */
-  async findAlertsByEventIds(eventIds: string[]): Promise<any[]> {
+  async findAlertsByEventIds(eventIds: string[]): Promise<SiteAlert[]> {
     try {
-      const alerts = (await this.prisma.$queryRaw`
+      const alerts = await this.prisma.$queryRaw<SiteAlert[]>`
         SELECT sa.*
         FROM "SiteAlert" sa
         INNER JOIN "GeoEvent" ge ON 
@@ -26,10 +26,13 @@ export class SiteAlertRepository {
           AND sa."eventDate" = ge."eventDate"
         WHERE ge.id IN (${Prisma.join(eventIds)})
         ORDER BY sa."eventDate" DESC
-      `) as any[];
+      `;
       return alerts;
     } catch (error) {
-      logger(`Failed to find alerts by event IDs. Error: ${error}`, 'error');
+      logger(
+        `Failed to find alerts by event IDs. Error: ${String(error)}`,
+        'error',
+      );
       return [];
     }
   }
@@ -156,7 +159,7 @@ export class SiteAlertRepository {
       return alertsCreated;
     } catch (error) {
       logger(
-        `Failed to create SiteAlerts for GEOSTATIONARY. Error: ${error}`,
+        `Failed to create SiteAlerts for GEOSTATIONARY. Error: ${String(error)}`,
         'error',
       );
       return 0;
@@ -266,7 +269,10 @@ export class SiteAlertRepository {
 
       return alertsCreated;
     } catch (error) {
-      logger(`Failed to create SiteAlerts for POLAR. Error: ${error}`, 'error');
+      logger(
+        `Failed to create SiteAlerts for POLAR. Error: ${String(error)}`,
+        'error',
+      );
       return 0;
     }
   }

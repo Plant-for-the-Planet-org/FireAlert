@@ -4,8 +4,18 @@ import {type SiteIncidentService} from '../SiteIncident/SiteIncidentService';
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
 import {logger, escapeLogfmt} from '../../server/logger';
 
-const buildProviderTag = (clientId: string, slice: string): string =>
-  clientId === 'GEOSTATIONARY' ? `[GEO/${slice}]` : `[${clientId}/${slice}]`;
+// Provider tag uses geoEventProviderId for GEOSTATIONARY so the same provider
+// gets the same tag across GeoEvent / SiteAlert / SiteIncident stages.
+// clientApiKey is intentionally NOT used here — it can carry secret material
+// (e.g. NASA FIRMS map keys) for some providers.
+const buildProviderTag = (
+  clientId: string,
+  slice: string,
+  providerId: string,
+): string =>
+  clientId === 'GEOSTATIONARY'
+    ? `[GEO/${providerId}]`
+    : `[${clientId}/${slice}]`;
 
 /**
  * Service for coordinating site alert creation workflow.
@@ -114,7 +124,7 @@ export class SiteAlertService {
       metrics.recordNestedMetric('batch_durations', batchDurations);
     }
 
-    const tag = buildProviderTag(clientId, slice);
+    const tag = buildProviderTag(clientId, slice, providerId);
     logger(
       `${tag} stage=SiteAlert batches=${batchCount} created=${totalAlerts} time_ms=${totalDuration} type=${
         isGeostationary ? 'GEOSTATIONARY' : 'POLAR'
@@ -178,7 +188,12 @@ export class SiteAlertService {
     if (this.siteIncidentService && alertCount > 0) {
       metrics.startTimer('incident_processing');
       try {
-        await this.processIncidentsForBatch(eventIds, clientId, slice);
+        await this.processIncidentsForBatch(
+          eventIds,
+          providerId,
+          clientId,
+          slice,
+        );
       } catch (error) {
         logger(
           `Error processing incidents for batch: ${
@@ -197,7 +212,7 @@ export class SiteAlertService {
     if (batchDuration > 3000) {
       // >3 seconds
       logger(
-        `${buildProviderTag(clientId, slice)} stage=SiteAlert event=slow_batch events=${eventIds.length} time_ms=${batchDuration}`,
+        `${buildProviderTag(clientId, slice, providerId)} stage=SiteAlert event=slow_batch events=${eventIds.length} time_ms=${batchDuration}`,
         'warn',
       );
     }
@@ -215,6 +230,7 @@ export class SiteAlertService {
    */
   private async processIncidentsForBatch(
     eventIds: string[],
+    providerId: string,
     clientId: string,
     slice: string,
   ): Promise<void> {
@@ -222,7 +238,7 @@ export class SiteAlertService {
       return;
     }
 
-    const tag = buildProviderTag(clientId, slice);
+    const tag = buildProviderTag(clientId, slice, providerId);
     const startedAt = Date.now();
 
     try {
