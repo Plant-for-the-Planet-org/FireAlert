@@ -4,7 +4,7 @@ import {
   type SiteIncident,
   SiteIncidentReviewStatus,
 } from '@prisma/client';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import {
   type SiteIncidentInterface,
   type IncidentMetrics,
@@ -275,7 +275,7 @@ export class SiteIncidentService {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
       logger(
-        `stage=Resolution event=failure message="${message.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+        `stage=Resolution event=failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
         'error',
       );
       throw error;

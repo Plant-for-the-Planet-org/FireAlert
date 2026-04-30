@@ -14,6 +14,20 @@ if (sourceToken) {
 
 type LoggerLevels = 'debug' | 'info' | 'warn' | 'error';
 
+/**
+ * Escapes a value for safe inclusion inside a logfmt double-quoted field.
+ * Order matters: backslash must be escaped first, then CR/LF, then quotes.
+ * This prevents stack traces (which contain raw newlines) from fragmenting
+ * a single logfmt record into multiple physical log lines.
+ */
+export function escapeLogfmt(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/"/g, '\\"');
+}
+
 export function logger(message: string | object, level: LoggerLevels) {
   if (typeof message === 'object') {
     message = JSON.stringify(message, null, 2);

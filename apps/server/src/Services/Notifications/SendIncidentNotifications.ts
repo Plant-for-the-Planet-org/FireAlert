@@ -1,6 +1,6 @@
 import {type NextApiRequest} from 'next';
 import {prisma} from '../../server/db';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import {env} from '../../env.mjs';
 import {
   NotificationStatus,
@@ -243,8 +243,9 @@ export class SendIncidentNotifications {
         alertMethodRecord.userId,
       );
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       logger(
-        `stage=NotificationSender channel=incident event=token_generation_failure destination=${destination} message="${(error as Error).message.replace(/"/g, '\\"')}"`,
+        `stage=NotificationSender channel=incident event=token_generation_failure message="${escapeLogfmt(message)}"`,
         'warn',
       );
       return undefined;

@@ -1,6 +1,6 @@
 import {type GeoEventProvider} from '@prisma/client';
 import {type GeoEventProviderClientId} from '../../Interfaces/GeoEventProvider';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import {BatchProcessor} from '../../utils/BatchProcessor';
 import {OperationResult} from '../../utils/OperationResult';
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
@@ -138,7 +138,7 @@ export class GeoEventProviderService {
 
       const tag =
         geoEventProviderClientId === 'GEOSTATIONARY'
-          ? `[GEO/${clientApiKey}]`
+          ? `[GEO/${geoEventProviderId}]`
           : `[${geoEventProviderClientId}/${slice}]`;
 
       logger(`${tag} stage=Provider event=start`, 'debug');
@@ -267,7 +267,7 @@ export class GeoEventProviderService {
         error instanceof Error ? error : new Error(String(error));
       result.addError(errorMessage);
       logger(
-        `stage=Provider event=failure provider_id=${provider.id} client_id=${provider.clientId} message="${errorMessage.message.replace(/"/g, '\\"')}" stack="${(errorMessage.stack ?? 'n/a').replace(/"/g, '\\"')}"`,
+        `stage=Provider event=failure provider_id=${provider.id} client_id=${provider.clientId} message="${escapeLogfmt(errorMessage.message)}" stack="${escapeLogfmt(errorMessage.stack ?? 'n/a')}"`,
         'error',
       );
     }

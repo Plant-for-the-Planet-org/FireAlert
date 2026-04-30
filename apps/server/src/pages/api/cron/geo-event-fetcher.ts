@@ -4,7 +4,7 @@
 import {type NextApiRequest, type NextApiResponse} from 'next';
 import {type GeoEventProvider} from '@prisma/client';
 import {prisma} from '@/server/db';
-import {logger} from '@/server/logger';
+import {logger, escapeLogfmt} from '@/server/logger';
 import {env} from '@/env.mjs';
 import {
   type ProviderConfig,
@@ -260,7 +260,7 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
     const slice = parsedConfig.slice;
     const tag =
       geoEventProviderClientId === 'GEOSTATIONARY'
-        ? `[GEO/${clientApiKey}]`
+        ? `[GEO/${geoEventProviderId}]`
         : `[${geoEventProviderClientId}/${slice}]`;
 
     // First fetch all geoEvents from the provider
@@ -331,7 +331,7 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
     logger(
-      `stage=Pipeline event=legacy_failure message="${message.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+      `stage=Pipeline event=legacy_failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
       'error',
     );
     // Consider returning partial success or error status

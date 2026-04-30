@@ -5,7 +5,7 @@ import {type NotificationParameters} from '../../Interfaces/NotificationParamete
 import {getLocalTime} from '../../../src/utils/date';
 import {env} from '../../env.mjs';
 import {prisma} from '../../server/db';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import type {NotificationStatus, SiteAlert, Site, Prisma} from '@prisma/client';
@@ -321,11 +321,12 @@ export async function sendIncidentNotifications(
               successCount++;
             }
           } catch (error) {
-            const err = error as Error;
-            const message = err?.message ?? String(error);
-            const stack = err?.stack ?? 'n/a';
+            const message =
+              error instanceof Error ? error.message : String(error);
+            const stack =
+              error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
             logger(
-              `stage=NotificationSender channel=incident event=notification_failure notification_id=${id_typed} message="${message.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+              `stage=NotificationSender channel=incident event=notification_failure notification_id=${id_typed} message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
               'error',
             );
           }

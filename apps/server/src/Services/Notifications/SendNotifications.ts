@@ -5,7 +5,7 @@ import {type NotificationParameters} from '../../Interfaces/NotificationParamete
 import {getLocalTime} from '../../../src/utils/date';
 import {env} from '../../env.mjs';
 import {prisma} from '../../server/db';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import {unsubscribeService} from '../AlertMethod/UnsubscribeService';
@@ -311,12 +311,11 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             failedAlertMethods.push({destination, method: alertMethod});
           }
         } catch (error) {
-          const err = error as Error;
-          const errMsg = err?.message ?? String(error);
-          const stack = err?.stack ?? 'n/a';
+          const errMsg = error instanceof Error ? error.message : String(error);
+          const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
           console.error(`[send-error] notification.id=${notification.id}: ${errMsg}`);
           logger(
-            `stage=NotificationSender channel=alert event=notification_failure notification_id=${notification.id} alert_method=${notification.alertMethod} message="${errMsg.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+            `stage=NotificationSender channel=alert event=notification_failure notification_id=${notification.id} alert_method=${notification.alertMethod} message="${escapeLogfmt(errMsg)}" stack="${escapeLogfmt(stack)}"`,
             'error',
           );
         }

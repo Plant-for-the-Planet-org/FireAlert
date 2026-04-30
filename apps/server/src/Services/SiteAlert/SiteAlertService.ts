@@ -2,7 +2,7 @@ import {type SiteAlertRepository} from './SiteAlertRepository';
 import {type GeoEventRepository} from '../GeoEvent/GeoEventRepository';
 import {type SiteIncidentService} from '../SiteIncident/SiteIncidentService';
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 
 const buildProviderTag = (clientId: string, slice: string): string =>
   clientId === 'GEOSTATIONARY' ? `[GEO/${slice}]` : `[${clientId}/${slice}]`;
@@ -260,7 +260,7 @@ export class SiteAlertService {
             error instanceof Error ? error.message : String(error);
           const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
           logger(
-            `${tag} stage=SiteIncident event=alert_failure alert_id=${alert.id} message="${message.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+            `${tag} stage=SiteIncident event=alert_failure alert_id=${alert.id} message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
             'error',
           );
           // Continue processing other alerts on individual failure
@@ -284,7 +284,7 @@ export class SiteAlertService {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
       logger(
-        `${tag} stage=SiteIncident event=batch_failure message="${message.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+        `${tag} stage=SiteIncident event=batch_failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
         'error',
       );
       throw error;

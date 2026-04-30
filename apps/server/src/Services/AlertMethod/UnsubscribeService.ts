@@ -1,5 +1,5 @@
 import {prisma} from '../../server/db';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import type {
   UnsubscribeService,
   UnsubscribeTokenValidation,
@@ -41,9 +41,10 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
 
       return token;
     } catch (error) {
-      const err = error as Error;
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
       logger(
-        `stage=Unsubscribe event=token_generation_failure user_id=${userId} alert_method_id=${alertMethodId} message="${err.message.replace(/"/g, '\\"')}" stack="${(err.stack ?? 'n/a').replace(/"/g, '\\"')}"`,
+        `stage=Unsubscribe event=token_generation_failure user_id=${userId} alert_method_id=${alertMethodId} message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
         'error',
       );
       throw new Error('Failed to generate unsubscribe token');
@@ -130,9 +131,10 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
       };
     } catch (error) {
       {
-        const err = error as Error;
+        const message = error instanceof Error ? error.message : String(error);
+        const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
         logger(
-          `stage=Unsubscribe event=token_validation_failure message="${err.message.replace(/"/g, '\\"')}" stack="${(err.stack ?? 'n/a').replace(/"/g, '\\"')}"`,
+          `stage=Unsubscribe event=token_validation_failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
           'error',
         );
       }
@@ -231,9 +233,10 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
         alertMethodId: payload.alertMethodId,
       };
     } catch (error) {
-      const err = error as Error;
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
       logger(
-        `stage=Unsubscribe event=process_failure message="${err.message.replace(/"/g, '\\"')}" stack="${(err.stack ?? 'n/a').replace(/"/g, '\\"')}"`,
+        `stage=Unsubscribe event=process_failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
         'error',
       );
 
@@ -261,8 +264,9 @@ class UnsubscribeServiceImpl implements UnsubscribeService {
       );
     } catch (error) {
       // Don't throw errors for logging failures
+      const message = error instanceof Error ? error.message : String(error);
       logger(
-        `stage=Unsubscribe event=audit_log_failure message="${(error as Error).message.replace(/"/g, '\\"')}"`,
+        `stage=Unsubscribe event=audit_log_failure message="${escapeLogfmt(message)}"`,
         'warn',
       );
     }

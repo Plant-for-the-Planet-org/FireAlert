@@ -3,7 +3,7 @@
 import {type NextApiRequest, type NextApiResponse} from 'next';
 import {CreateIncidentNotifications} from '../../../../src/Services/Notifications/CreateIncidentNotifications';
 import createNotifications from '../../../../src/Services/Notifications/CreateNotifications';
-import {logger} from '../../../../src/server/logger';
+import {logger, escapeLogfmt} from '../../../../src/server/logger';
 import {env} from '../../../env.mjs';
 
 export default async function notificationsCron(
@@ -58,7 +58,7 @@ export default async function notificationsCron(
     const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
 
     logger(
-      `stage=NotificationCreator event=failure status=${statusCode} message="${message.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+      `stage=NotificationCreator event=failure status=${statusCode} message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
       'error',
     );
     return res.status(statusCode).json({message, status: statusCode});

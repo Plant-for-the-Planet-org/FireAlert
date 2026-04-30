@@ -2,7 +2,7 @@ import {type NextApiRequest, type NextApiResponse} from 'next';
 import {env} from '../../../env.mjs';
 import {SendIncidentNotifications} from '../../../Services/Notifications/SendIncidentNotifications';
 import sendNotifications from '../../../Services/Notifications/SendNotifications';
-import {logger} from '../../../../src/server/logger';
+import {logger, escapeLogfmt} from '../../../../src/server/logger';
 
 export default async function notificationSender(
   req: NextApiRequest,
@@ -67,7 +67,7 @@ export default async function notificationSender(
       error instanceof Error ? error.message : 'Unknown error';
     const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
     logger(
-      `stage=NotificationSender event=failure message="${errorMessage.replace(/"/g, '\\"')}" stack="${stack.replace(/"/g, '\\"')}"`,
+      `stage=NotificationSender event=failure message="${escapeLogfmt(errorMessage)}" stack="${escapeLogfmt(stack)}"`,
       'error',
     );
     res.status(307).json({
