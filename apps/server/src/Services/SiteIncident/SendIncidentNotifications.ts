@@ -5,7 +5,7 @@ import {type NotificationParameters} from '../../Interfaces/NotificationParamete
 import {getLocalTime} from '../../../src/utils/date';
 import {env} from '../../env.mjs';
 import {prisma} from '../../server/db';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import type {NotificationStatus, SiteAlert, Site, Prisma} from '@prisma/client';
@@ -208,16 +208,16 @@ export async function sendIncidentNotifications(
     // If no notifications are found, exit the loop
     if (notifications.length === 0) {
       logger(
-        `No incident notifications to process (notification.length = 0)`,
-        'info',
+        `stage=NotificationSender channel=incident event=no_more_notifications`,
+        'debug',
       );
       continueProcessing = false;
       break;
     }
 
     logger(
-      `Incident notifications to be sent: ${notifications.length}`,
-      'info',
+      `stage=NotificationSender channel=incident event=batch_start batch=${batchCount + 1} count=${notifications.length}`,
+      'debug',
     );
 
     const successfulNotificationIds: string[] = [];
@@ -321,10 +321,12 @@ export async function sendIncidentNotifications(
               successCount++;
             }
           } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            const stack =
+              error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
             logger(
-              `Error processing incident notification ${id_typed}: ${
-                (error as Error)?.message
-              }`,
+              `stage=NotificationSender channel=incident event=notification_failure notification_id=${id_typed} message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
               'error',
             );
           }
@@ -401,7 +403,7 @@ export async function sendIncidentNotifications(
     }
 
     logger(
-      `Completed incident notification batch ${batchCount}. Successful: ${successfulNotificationIds.length}, Failed: ${unsuccessfulNotifications.length}`,
+      `stage=NotificationSender channel=incident event=batch_complete batch=${batchCount} successful=${successfulNotificationIds.length} failed=${unsuccessfulNotifications.length}`,
       'info',
     );
 

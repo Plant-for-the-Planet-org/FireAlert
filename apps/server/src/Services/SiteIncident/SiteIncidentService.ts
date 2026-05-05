@@ -4,7 +4,7 @@ import {
   type SiteIncident,
   SiteIncidentReviewStatus,
 } from '@prisma/client';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import {
   type SiteIncidentInterface,
   type IncidentMetrics,
@@ -89,9 +89,14 @@ export class SiteIncidentService {
    * Processes a new SiteAlert for incident creation or association
    * Uses proximity-based detection to find the best matching incident
    * @param alert - The new SiteAlert
-   * @returns Associated or created SiteIncident
+   * @returns Result with the incident and the action taken
    */
-  async processNewSiteAlert(alert: SiteAlert): Promise<SiteIncidentInterface> {
+  async processNewSiteAlert(
+    alert: SiteAlert,
+  ): Promise<{
+    incident: SiteIncidentInterface;
+    action: 'created' | 'associated';
+  }> {
     // Validate input
     if (!alert || !alert.id || !alert.siteId) {
       const error = new Error(
@@ -111,8 +116,10 @@ export class SiteIncidentService {
       this.metrics.endTimer('proximity_detection');
 
       let incident: SiteIncident;
+      let action: 'created' | 'associated';
 
       if (detectionResult.shouldCreateNew) {
+        action = 'created';
         const mergeParents = detectionResult.mergeParentIncidents || [];
 
         if (mergeParents.length > 1) {
@@ -145,6 +152,7 @@ export class SiteIncidentService {
           this.metrics.endTimer('create_incident');
         }
       } else if (detectionResult.incident) {
+        action = 'associated';
         this.metrics.startTimer('associate_alert');
         incident = await this.proximityService.updateIncidentCentre(
           detectionResult.incident,
@@ -161,7 +169,7 @@ export class SiteIncidentService {
       const totalDuration = this.metrics.endTimer('process_alert_total');
       this.recordMetrics('process_alert', totalDuration);
 
-      return incident as SiteIncidentInterface;
+      return {incident: incident as SiteIncidentInterface, action};
     } catch (error) {
       logger(
         `Error processing alert ${alert.id}: ${
@@ -182,7 +190,7 @@ export class SiteIncidentService {
 
     try {
       logger(
-        `Starting resolution of inactive incidents (>${this.inactiveHours}h)`,
+        `stage=Resolution event=start inactive_hours=${this.inactiveHours}`,
         'debug',
       );
 
@@ -193,7 +201,11 @@ export class SiteIncidentService {
       this.metrics.endTimer('find_inactive');
 
       if (activeIncidents.length === 0) {
-        logger('No active incidents to evaluate for resolution', 'debug');
+        const totalDuration = this.metrics.endTimer('resolve_inactive_total');
+        logger(
+          `stage=Resolution event=summary active=0 stale=0 resolved=0 failed=0 invalid=0 time_ms=${totalDuration}`,
+          'info',
+        );
         return 0;
       }
 
@@ -210,15 +222,16 @@ export class SiteIncidentService {
         .flat();
 
       if (inactiveIncidents.length === 0) {
+        const totalDuration = this.metrics.endTimer('resolve_inactive_total');
         logger(
-          'No fully-stale related incident components to resolve',
-          'debug',
+          `stage=Resolution event=summary active=${activeIncidents.length} stale=0 resolved=0 failed=0 invalid=0 time_ms=${totalDuration}`,
+          'info',
         );
         return 0;
       }
 
       logger(
-        `Found ${inactiveIncidents.length} incidents in stale related components to resolve`,
+        `stage=Resolution event=stale_found active=${activeIncidents.length} stale=${inactiveIncidents.length}`,
         'debug',
       );
 
@@ -226,9 +239,18 @@ export class SiteIncidentService {
       const validIncidents = inactiveIncidents.filter(incident =>
         this.resolver.validateIncident(incident),
       );
+      const invalidCount = inactiveIncidents.length - validIncidents.length;
 
       if (validIncidents.length === 0) {
-        logger('No valid incidents to resolve', 'warn');
+        const totalDuration = this.metrics.endTimer('resolve_inactive_total');
+        logger(
+          `stage=Resolution event=no_valid_incidents stale=${inactiveIncidents.length} invalid=${invalidCount}`,
+          'warn',
+        );
+        logger(
+          `stage=Resolution event=summary active=${activeIncidents.length} stale=${inactiveIncidents.length} resolved=0 failed=0 invalid=${invalidCount} time_ms=${totalDuration}`,
+          'info',
+        );
         return 0;
       }
 
@@ -244,16 +266,16 @@ export class SiteIncidentService {
       });
 
       logger(
-        `Resolution complete: ${result.resolvedCount}/${validIncidents.length} resolved in ${totalDuration}ms`,
+        `stage=Resolution event=summary active=${activeIncidents.length} stale=${inactiveIncidents.length} resolved=${result.resolvedCount} failed=${result.errors.length} invalid=${invalidCount} time_ms=${totalDuration}`,
         'info',
       );
 
       return result.resolvedCount;
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
       logger(
-        `Error resolving inactive incidents: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `stage=Resolution event=failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
         'error',
       );
       throw error;

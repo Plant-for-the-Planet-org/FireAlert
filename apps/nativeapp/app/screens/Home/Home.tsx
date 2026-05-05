@@ -225,6 +225,11 @@ const Home = ({navigation: _navigation, route}) => {
   }, [isCameraRefVisible, setSelected, siteInfo?.bboxGeo, siteInfo?.siteInfo]);
 
   useEffect(() => {
+    // Skip default user-location zoom when opening via deep link — the deep-link
+    // effect below will zoom to the alert/incident location instead.
+    if (route?.params?.alertId || route?.params?.incidentId) {
+      return;
+    }
     if (
       isCameraRefVisible &&
       camera?.current?.setCamera &&
@@ -244,6 +249,8 @@ const Home = ({navigation: _navigation, route}) => {
     configData?.loc?.latitude,
     configData?.loc?.longitude,
     isCameraRefVisible,
+    route?.params?.alertId,
+    route?.params?.incidentId,
   ]);
 
   useEffect(() => {
@@ -734,6 +741,75 @@ const Home = ({navigation: _navigation, route}) => {
       });
     }
   };
+
+  // Deep-link entry: open the detail sheet (and focus the map for incidents)
+  // when Home is navigated to with an alertId/incidentId param — wait for the
+  // map camera to be ready so fitBounds actually takes effect.
+  const deepLinkHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    const ts = route?.params?.__ts;
+    const incidentId = route?.params?.incidentId;
+    const alertId = route?.params?.alertId;
+    const target = incidentId ?? alertId;
+    console.log('[deepLink] Home useEffect fired', {
+      isCameraRefVisible,
+      alertId,
+      incidentId,
+      ts,
+      handledRef: deepLinkHandledRef.current,
+    });
+    if (!isCameraRefVisible || !target) {
+      return;
+    }
+    // Dedup key includes __ts so re-tapping the same notification re-runs this.
+    const key = `${target}:${ts ?? ''}`;
+    if (deepLinkHandledRef.current === key) {
+      console.log('[deepLink] Home: already handled for this tap', {key});
+      return;
+    }
+
+    if (incidentId) {
+      deepLinkHandledRef.current = key;
+      console.log('[deepLink] Home: dispatching incident tap', incidentId);
+      handleIncidentTap(incidentId);
+      return;
+    }
+
+    if (alertId) {
+      const alertData = alerts?.json?.data?.find(
+        (a: any) => a.id === alertId,
+      );
+      // Always open the details sheet (idempotent Redux dispatch).
+      dispatch(openAlertDetails({alertId}));
+      if (!alertData) {
+        // Alerts not loaded yet — don't mark handled so we retry on data load.
+        console.log('[deepLink] Home: alert data not loaded yet for', alertId);
+        return;
+      }
+      deepLinkHandledRef.current = key;
+      const cameraSettings = calculateAlertCamera(
+        alertData,
+        alertData.detectedBy,
+        alertData.confidence,
+      );
+      console.log('[deepLink] Home: zooming to alert', {alertId, cameraSettings});
+      if (camera?.current?.setCamera && cameraSettings) {
+        camera.current.setCamera({
+          centerCoordinate: cameraSettings.centerCoordinate,
+          zoomLevel: cameraSettings.zoomLevel,
+          animationDuration: 500,
+        });
+      }
+    }
+    // handleIncidentTap is redefined each render; we intentionally only re-run on param/data changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isCameraRefVisible,
+    route?.params?.incidentId,
+    route?.params?.alertId,
+    route?.params?.__ts,
+    alerts?.json?.data,
+  ]);
 
   const onPressMyLocationIcon = useCallback(
     (position: MapboxGL.Location | Geolocation.GeoPosition) => {

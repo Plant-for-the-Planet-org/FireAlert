@@ -2,7 +2,20 @@ import {type SiteAlertRepository} from './SiteAlertRepository';
 import {type GeoEventRepository} from '../GeoEvent/GeoEventRepository';
 import {type SiteIncidentService} from '../SiteIncident/SiteIncidentService';
 import {PerformanceMetrics} from '../../utils/PerformanceMetrics';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
+
+// Provider tag uses geoEventProviderId for GEOSTATIONARY so the same provider
+// gets the same tag across GeoEvent / SiteAlert / SiteIncident stages.
+// clientApiKey is intentionally NOT used here — it can carry secret material
+// (e.g. NASA FIRMS map keys) for some providers.
+const buildProviderTag = (
+  clientId: string,
+  slice: string,
+  providerId: string,
+): string =>
+  clientId === 'GEOSTATIONARY'
+    ? `[GEO/${providerId}]`
+    : `[${clientId}/${slice}]`;
 
 /**
  * Service for coordinating site alert creation workflow.
@@ -111,11 +124,16 @@ export class SiteAlertService {
       metrics.recordNestedMetric('batch_durations', batchDurations);
     }
 
-    // Add detailed SiteAlert processing log
+    const tag = buildProviderTag(clientId, slice, providerId);
     logger(
-      `SiteAlert process: processed GeoEvents in ${batchCount} batches, created ${totalAlerts} alerts, time took ${totalDuration}ms, batch size: ${batchSize}, provider type: ${
+      `${tag} stage=SiteAlert batches=${batchCount} created=${totalAlerts} time_ms=${totalDuration} type=${
         isGeostationary ? 'GEOSTATIONARY' : 'POLAR'
       }`,
+      'info',
+    );
+
+    logger(
+      `${tag} stage=SiteAlert batch_size=${batchSize} batches=${batchCount} created=${totalAlerts} time_ms=${totalDuration}`,
       'debug',
     );
 
@@ -170,7 +188,12 @@ export class SiteAlertService {
     if (this.siteIncidentService && alertCount > 0) {
       metrics.startTimer('incident_processing');
       try {
-        await this.processIncidentsForBatch(eventIds);
+        await this.processIncidentsForBatch(
+          eventIds,
+          providerId,
+          clientId,
+          slice,
+        );
       } catch (error) {
         logger(
           `Error processing incidents for batch: ${
@@ -189,7 +212,7 @@ export class SiteAlertService {
     if (batchDuration > 3000) {
       // >3 seconds
       logger(
-        `SLOW BATCH: ${clientId} batch with ${eventIds.length} events took ${batchDuration}ms`,
+        `${buildProviderTag(clientId, slice, providerId)} stage=SiteAlert event=slow_batch events=${eventIds.length} time_ms=${batchDuration}`,
         'warn',
       );
     }
@@ -202,50 +225,82 @@ export class SiteAlertService {
    * Retrieves newly created alerts and associates them with incidents.
    *
    * @param eventIds - Array of event IDs that were processed
+   * @param clientId - Provider client id (for log tag)
+   * @param slice - Provider slice (for log tag)
    */
-  private async processIncidentsForBatch(eventIds: string[]): Promise<void> {
+  private async processIncidentsForBatch(
+    eventIds: string[],
+    providerId: string,
+    clientId: string,
+    slice: string,
+  ): Promise<void> {
     if (!this.siteIncidentService) {
       return;
     }
+
+    const tag = buildProviderTag(clientId, slice, providerId);
+    const startedAt = Date.now();
 
     try {
       // Retrieve the alerts that were just created for these events
       const alerts = await this.repository.findAlertsByEventIds(eventIds);
 
       if (alerts.length === 0) {
-        logger('No alerts found for incident processing', 'debug');
+        logger(`${tag} stage=SiteIncident event=no_alerts`, 'debug');
         return;
       }
 
       logger(
-        `Processing incidents for ${alerts.length} newly created alerts`,
+        `${tag} stage=SiteIncident event=processing alerts=${alerts.length}`,
         'debug',
       );
+
+      let createdCount = 0;
+      let associatedCount = 0;
+      let failedCount = 0;
 
       // Process each alert for incident creation/association
       for (const alert of alerts) {
         try {
-          await this.siteIncidentService.processNewSiteAlert(alert);
+          const result = await this.siteIncidentService.processNewSiteAlert(
+            alert,
+          );
+          if (result.action === 'created') {
+            createdCount++;
+          } else {
+            associatedCount++;
+          }
         } catch (error) {
+          failedCount++;
+          const message =
+            error instanceof Error ? error.message : String(error);
+          const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
           logger(
-            `Failed to process incident for alert ${alert.id}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
+            `${tag} stage=SiteIncident event=alert_failure alert_id=${alert.id} message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
             'error',
           );
           // Continue processing other alerts on individual failure
         }
       }
 
+      const duration = Date.now() - startedAt;
+
       logger(
-        `Completed incident processing for ${alerts.length} alerts`,
-        'debug',
+        `${tag} stage=SiteIncident processed=${alerts.length} created=${createdCount} associated=${associatedCount} time_ms=${duration}`,
+        'info',
       );
+
+      if (failedCount > 0) {
+        logger(
+          `${tag} stage=SiteIncident event=partial_failure failed=${failedCount} of=${alerts.length}`,
+          'warn',
+        );
+      }
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
       logger(
-        `Error in processIncidentsForBatch: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `${tag} stage=SiteIncident event=batch_failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
         'error',
       );
       throw error;

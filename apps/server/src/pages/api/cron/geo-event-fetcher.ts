@@ -4,7 +4,7 @@
 import {type NextApiRequest, type NextApiResponse} from 'next';
 import {type GeoEventProvider} from '@prisma/client';
 import {prisma} from '@/server/db';
-import {logger} from '@/server/logger';
+import {logger, escapeLogfmt} from '@/server/logger';
 import {env} from '@/env.mjs';
 import {
   type ProviderConfig,
@@ -26,10 +26,10 @@ export default async function alertFetcher(
 ) {
   // Check feature flag to determine which implementation to use
   if (env.USE_REFACTORED_PIPELINE) {
-    logger('Using REFACTORED pipeline implementation', 'info');
+    logger('stage=Pipeline event=mode mode=REFACTORED', 'debug');
     return await refactoredImplementation(req, res);
   } else {
-    logger('Using LEGACY pipeline implementation', 'info');
+    logger('stage=Pipeline event=mode mode=LEGACY', 'debug');
     return await legacyImplementation(req, res);
   }
 }
@@ -84,15 +84,15 @@ async function refactoredImplementation(
   const selected = providerManager.selectProviders(eligible, limit);
 
   if (selected.length === 0) {
-    logger('No eligible providers to process', 'info');
+    logger('stage=Pipeline event=no_eligible_providers', 'debug');
     return res
       .status(200)
       .json(RequestHandler.buildSuccess(OperationResult.empty()));
   }
 
   logger(
-    `Running Geo Event Fetcher. Taking ${selected.length} eligible providers.`,
-    'info',
+    `stage=Pipeline event=run providers=${selected.length}`,
+    'debug',
   );
 
   // 5. Initialize services with dependency injection
@@ -121,7 +121,7 @@ async function refactoredImplementation(
     queue,
   );
 
-  logger(`Using provider concurrency: ${concurrency}`, 'info');
+  logger(`stage=Pipeline event=config concurrency=${concurrency}`, 'debug');
 
   // 6. Process providers with concurrency control
   const result = await providerService.processProviders(selected, concurrency);
@@ -218,8 +218,8 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
   // }
 
   logger(
-    `Running Geo Event Fetcher. Taking ${selectedProviders.length} eligible providers.`,
-    'info',
+    `stage=Pipeline event=run providers=${selectedProviders.length} mode=LEGACY`,
+    'debug',
   );
 
   // Define Chunk Size for processGeoEvents
@@ -258,10 +258,10 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
     geoEventProvider.initialize(parsedConfig);
 
     const slice = parsedConfig.slice;
-    let breadcrumbPrefix = `${geoEventProviderClientId} Slice ${slice}:`;
-    if (geoEventProviderClientId === 'GEOSTATIONARY') {
-      breadcrumbPrefix = `Geostationary Satellite ${clientApiKey}:`;
-    }
+    const tag =
+      geoEventProviderClientId === 'GEOSTATIONARY'
+        ? `[GEO/${geoEventProviderId}]`
+        : `[${geoEventProviderClientId}/${slice}]`;
 
     // First fetch all geoEvents from the provider
     return await geoEventProvider
@@ -273,12 +273,6 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
         lastRun,
       )
       .then(async (geoEvents: GeoEventInterface[]) => {
-        // If there are geoEvents, emit an event to find duplicates and persist them
-        logger(
-          `${breadcrumbPrefix} Fetched ${geoEvents.length} geoEvents`,
-          'info',
-        );
-
         let totalEventCount = 0;
         let totalNewGeoEvent = 0;
 
@@ -301,22 +295,17 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
         }
 
         logger(
-          `${breadcrumbPrefix} Found ${totalNewGeoEvent} new Geo Events`,
-          'info',
-        );
-        logger(
-          `${breadcrumbPrefix} Created ${totalEventCount} Geo Events`,
+          `${tag} stage=GeoEvent fetched=${geoEvents.length} created=${totalEventCount} new=${totalNewGeoEvent}`,
           'info',
         );
 
-        // if (totalNewGeoEvent > 0) {
         const alertCount: number = await createSiteAlerts(
           geoEventProviderId,
           geoEventProviderClientId as GeoEventProviderClientId,
           slice,
         );
         logger(
-          `${breadcrumbPrefix} Created ${alertCount} Site Alerts.`,
+          `${tag} stage=SiteAlert created=${alertCount}`,
           'info',
         );
 
@@ -339,10 +328,10 @@ async function legacyImplementation(req: NextApiRequest, res: NextApiResponse) {
   try {
     await Promise.all(promises);
   } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
     logger(
-      `Something went wrong before creating notifications. ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `stage=Pipeline event=legacy_failure message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
       'error',
     );
     // Consider returning partial success or error status

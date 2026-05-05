@@ -3,6 +3,7 @@
  * Manages OneSignal device state and lifecycle
  */
 
+import {AppState, type AppStateStatus, Platform} from 'react-native';
 import {OneSignal} from 'react-native-onesignal';
 import {DeviceState, StateChangeEvent, StateChangeListener} from './types';
 
@@ -20,10 +21,27 @@ interface InitializationStatus {
   completionTime?: number;
 }
 
+type PermissionChangeEvent = boolean | {permission?: boolean};
+type OneSignalUserChangeEvent = {current?: {externalId?: string | null}};
+
+const ANDROID_PERMISSION_PROPAGATION_RETRY_DELAYS_MS = [
+  1000, 2500, 4500,
+] as const;
+
 export class OneSignalStateManager {
   private state: DeviceState;
   private listeners: Set<StateChangeListener>;
   private initializationPromise: Promise<void> | null;
+  private listenersRegistered = false;
+  private appStateSubscription: ReturnType<
+    typeof AppState.addEventListener
+  > | null = null;
+  private androidPermissionSyncPromise: Promise<void> | null = null;
+  private androidPermissionRetryTimers: ReturnType<typeof setTimeout>[] = [];
+  private androidPermissionRetryRunId = 0;
+  private androidPermissionPropagationActive = false;
+  private androidPermissionPropagationAttemptInFlight = false;
+  private currentExternalUserId: string | null = null;
   private initializationStatus: InitializationStatus = {
     state: InitializationState.NOT_STARTED,
   };
@@ -59,8 +77,13 @@ export class OneSignalStateManager {
 
     try {
       await this.initializationPromise;
+      if (this.initializationStatus.state !== InitializationState.READY) {
+        throw (
+          this.initializationStatus.error ??
+          new Error('OneSignal initialization failed')
+        );
+      }
     } finally {
-      this.initializationStatus.state = InitializationState.NOT_STARTED;
       this.initializationPromise = null;
     }
   }
@@ -74,33 +97,43 @@ export class OneSignalStateManager {
         state: InitializationState.INITIALIZING,
         startTime: Date.now(),
       };
+      this.currentExternalUserId = userId;
 
       OneSignal.initialize(appId);
-      OneSignal.Notifications.requestPermission(false);
       OneSignal.login(userId);
+      this.registerEventListeners();
 
-      OneSignal.User.pushSubscription.addEventListener(
-        'change',
-        async _subscription => {
-          await this.updateDeviceState();
+      // Decide whether to prompt. Skip the prompt if the user has already
+      // answered (granted or denied) — Android 13+ won't re-prompt after a
+      // denial anyway, and re-prompting on every launch is bad UX.
+      const currentPermission =
+        await OneSignal.Notifications.getPermissionAsync();
 
-          const event = {
-            type: 'subscription_changed' as const,
-            previousState: {...this.state},
-            currentState: {...this.state},
-            timestamp: Date.now(),
-          };
-          this.listeners.forEach(listener => {
-            try {
-              listener(event);
-            } catch (_error) {
-              // Error in listener handled silently
-            }
-          });
-        },
-      );
+      if (!currentPermission) {
+        // fallbackToSettings = true so users who previously denied can be
+        // sent to system Settings via the SDK to re-enable.
+        const granted = await OneSignal.Notifications.requestPermission(true);
+        if (granted) {
+          await this.ensurePushSubscriptionAfterGrant(userId);
+        }
+      } else {
+        // OS permission already granted — make sure subscription is opted in.
+        OneSignal.User.pushSubscription.optIn();
+
+        if (Platform.OS === 'android') {
+          await this.ensureAndroidPermissionSync(userId);
+        }
+      }
 
       await this.updateDeviceState();
+
+      if (
+        Platform.OS === 'android' &&
+        this.state.permission &&
+        !this.hasFullyActivatedAndroidSubscription(userId)
+      ) {
+        this.startAndroidPermissionPropagation(userId);
+      }
 
       this.setState({isInitialized: true});
 
@@ -118,6 +151,33 @@ export class OneSignalStateManager {
       };
     }
   }
+
+  /**
+   * Handles OS-level permission changes (grants from settings, runtime
+   * prompt outcome, etc). On grant we explicitly opt the user in so the
+   * OneSignal subscription transitions from "Never Subscribed" to
+   * subscribed. Dispatches `permission_changed` so consumers (e.g. the
+   * device sync hook) can re-sync the server-side alertMethod record.
+   *
+   * Bound as an arrow-property so `this` is preserved when used as a
+   * listener callback.
+   */
+  private handlePermissionChange = async (
+    event: PermissionChangeEvent,
+  ): Promise<void> => {
+    const granted = this.normalizePermissionChange(event);
+    const previousState = {...this.state};
+
+    if (granted) {
+      await this.ensurePushSubscriptionAfterGrant(this.currentExternalUserId);
+    } else if (Platform.OS === 'android') {
+      this.stopAndroidPermissionPropagation();
+    }
+
+    await this.updateDeviceState();
+
+    this.emitStateChange('permission_changed', previousState);
+  };
 
   getState(): DeviceState {
     return {...this.state};
@@ -164,8 +224,236 @@ export class OneSignalStateManager {
     }
   }
 
+  private async ensurePushSubscriptionAfterGrant(
+    userId: string | null,
+  ): Promise<void> {
+    // On Android, the runtime permission grant can complete before OneSignal
+    // has fully attached the refreshed push subscription to the logged-in
+    // user. Replaying the settled state here prevents the "works only after
+    // reopening the app" symptom without affecting iOS behavior.
+    OneSignal.User.pushSubscription.optIn();
+
+    if (Platform.OS !== 'android' || !userId) {
+      return;
+    }
+
+    this.startAndroidPermissionPropagation(userId);
+    await this.ensureAndroidPermissionSync(userId);
+  }
+
+  private registerEventListeners(): void {
+    if (this.listenersRegistered) {
+      return;
+    }
+
+    // Register listeners BEFORE asking for permission so the grant event is
+    // never missed.
+    OneSignal.Notifications.addEventListener(
+      'permissionChange',
+      this.handlePermissionChange,
+    );
+
+    this.appStateSubscription = AppState.addEventListener(
+      'change',
+      this.handleAppStateChange,
+    );
+    OneSignal.User.addEventListener('change', this.handleUserStateChange);
+
+    OneSignal.User.pushSubscription.addEventListener(
+      'change',
+      async _subscription => {
+        const previousState = {...this.state};
+        await this.updateDeviceState();
+        this.emitStateChange('subscription_changed', previousState);
+      },
+    );
+
+    this.listenersRegistered = true;
+  }
+
+  private handleUserStateChange = async (
+    event: OneSignalUserChangeEvent,
+  ): Promise<void> => {
+    if (
+      Platform.OS !== 'android' ||
+      !this.androidPermissionPropagationActive ||
+      !this.currentExternalUserId ||
+      event?.current?.externalId !== this.currentExternalUserId
+    ) {
+      return;
+    }
+
+    await this.ensureAndroidPermissionSync(this.currentExternalUserId);
+  };
+
+  private handleAppStateChange = async (
+    appState: AppStateStatus,
+  ): Promise<void> => {
+    if (
+      Platform.OS !== 'android' ||
+      appState !== 'active' ||
+      !this.androidPermissionPropagationActive ||
+      !this.currentExternalUserId
+    ) {
+      return;
+    }
+
+    await this.ensureAndroidPermissionSync(this.currentExternalUserId);
+  };
+
+  private normalizePermissionChange(event: PermissionChangeEvent): boolean {
+    if (typeof event === 'boolean') {
+      return event;
+    }
+
+    return event?.permission === true;
+  }
+
+  private emitStateChange(
+    type: StateChangeEvent['type'],
+    previousState: DeviceState,
+  ): void {
+    const event: StateChangeEvent = {
+      type,
+      previousState,
+      currentState: {...this.state},
+      timestamp: Date.now(),
+    };
+
+    this.listeners.forEach(listener => {
+      try {
+        listener(event);
+      } catch (_error) {
+        // Error in listener handled silently
+      }
+    });
+  }
+
+  private async ensureAndroidPermissionSync(userId: string): Promise<void> {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    if (this.androidPermissionSyncPromise) {
+      return this.androidPermissionSyncPromise;
+    }
+
+    this.androidPermissionSyncPromise =
+      this.runAndroidPermissionPropagationAttempt(userId);
+
+    try {
+      await this.androidPermissionSyncPromise;
+    } finally {
+      this.androidPermissionSyncPromise = null;
+    }
+  }
+
+  private startAndroidPermissionPropagation(userId: string): void {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    this.clearAndroidPermissionPropagationRetries();
+    this.androidPermissionRetryRunId += 1;
+    this.androidPermissionPropagationActive = true;
+    const runId = this.androidPermissionRetryRunId;
+    const stopDelayMs =
+      ANDROID_PERMISSION_PROPAGATION_RETRY_DELAYS_MS[
+        ANDROID_PERMISSION_PROPAGATION_RETRY_DELAYS_MS.length - 1
+      ] + 1500;
+
+    ANDROID_PERMISSION_PROPAGATION_RETRY_DELAYS_MS.forEach(delayMs => {
+      const timer = setTimeout(() => {
+        if (
+          runId !== this.androidPermissionRetryRunId ||
+          this.currentExternalUserId !== userId
+        ) {
+          return;
+        }
+
+        this.ensureAndroidPermissionSync(userId).catch(() => {
+          // Graceful error handling
+        });
+      }, delayMs);
+
+      this.androidPermissionRetryTimers.push(timer);
+    });
+
+    const stopTimer = setTimeout(() => {
+      if (runId === this.androidPermissionRetryRunId) {
+        this.stopAndroidPermissionPropagation();
+      }
+    }, stopDelayMs);
+
+    this.androidPermissionRetryTimers.push(stopTimer);
+  }
+
+  private clearAndroidPermissionPropagationRetries(): void {
+    this.androidPermissionRetryTimers.forEach(timer => clearTimeout(timer));
+    this.androidPermissionRetryTimers = [];
+  }
+
+  private stopAndroidPermissionPropagation(): void {
+    this.clearAndroidPermissionPropagationRetries();
+    this.androidPermissionPropagationActive = false;
+    this.androidPermissionRetryRunId += 1;
+  }
+
+  private async runAndroidPermissionPropagationAttempt(
+    userId: string,
+  ): Promise<void> {
+    if (
+      Platform.OS !== 'android' ||
+      this.androidPermissionPropagationAttemptInFlight
+    ) {
+      return;
+    }
+
+    const hasPermission = await this.safeOneSignalCall(
+      () => OneSignal.Notifications.getPermissionAsync(),
+      'getPermissionAsync',
+    );
+    if (!hasPermission || this.currentExternalUserId !== userId) {
+      return;
+    }
+
+    this.androidPermissionPropagationAttemptInFlight = true;
+
+    try {
+      // Replaying the same-session startup sequence is intentionally hacky
+      // but bounded. Reopen fixes the device because initialize/login runs
+      // again after Android permission is already granted. These nudges
+      // emulate that cold-start reconciliation inside the same session.
+      OneSignal.login(userId);
+      await this.sleep(300);
+      OneSignal.User.pushSubscription.optIn();
+      await this.sleep(300);
+      OneSignal.login(userId);
+      await this.sleep(300);
+      await this.updateDeviceState();
+    } finally {
+      this.androidPermissionPropagationAttemptInFlight = false;
+    }
+
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private hasFullyActivatedAndroidSubscription(userId: string): boolean {
+    return (
+      this.state.permission &&
+      this.state.externalId === userId &&
+      this.state.optedIn &&
+      !!this.state.pushToken &&
+      !!this.state.userId
+    );
+  }
+
   async handleLogin(userId: string): Promise<void> {
     try {
+      this.currentExternalUserId = userId;
       this.setState({
         userId: null,
         pushToken: null,
@@ -185,6 +473,12 @@ export class OneSignalStateManager {
 
   async handleLogout(): Promise<void> {
     try {
+      this.currentExternalUserId = null;
+      this.stopAndroidPermissionPropagation();
+      this.appStateSubscription?.remove();
+      this.appStateSubscription = null;
+      this.listenersRegistered = false;
+      this.initializationStatus = {state: InitializationState.NOT_STARTED};
       this.setState({
         userId: null,
         pushToken: null,
@@ -210,6 +504,18 @@ export class OneSignalStateManager {
 
       if (permission !== previousPermission) {
         this.setState({permission});
+
+        if (
+          permission &&
+          Platform.OS === 'android' &&
+          this.currentExternalUserId
+        ) {
+          await this.ensurePushSubscriptionAfterGrant(
+            this.currentExternalUserId,
+          );
+        } else if (!permission && Platform.OS === 'android') {
+          this.stopAndroidPermissionPropagation();
+        }
       }
     } catch (_error) {
       // Graceful error handling

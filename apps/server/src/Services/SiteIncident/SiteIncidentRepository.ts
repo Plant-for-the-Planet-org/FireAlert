@@ -3,7 +3,7 @@ import {
   type SiteIncident,
   SiteIncidentReviewStatus,
 } from '@prisma/client';
-import {logger} from '../../server/logger';
+import {logger, escapeLogfmt} from '../../server/logger';
 import {
   type CreateIncidentData,
   type UpdateIncidentData,
@@ -82,16 +82,16 @@ export class SiteIncidentRepository {
       })) as unknown as RelatedSiteIncident[];
 
       logger(
-        `Found ${incidents.length} active incidents for site ${siteId}`,
+        `stage=SiteIncident event=found_active site_id=${siteId} count=${incidents.length}`,
         'debug',
       );
 
       return incidents;
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack ?? 'n/a' : 'n/a';
       logger(
-        `Error finding active incidents for site ${siteId}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `stage=SiteIncident event=find_active_failure site_id=${siteId} message="${escapeLogfmt(message)}" stack="${escapeLogfmt(stack)}"`,
         'error',
       );
       throw error;
@@ -111,7 +111,10 @@ export class SiteIncidentRepository {
         orderBy: [{siteId: 'asc'}, {startedAt: 'asc'}],
       })) as unknown as RelatedSiteIncident[];
 
-      logger(`Found ${incidents.length} active incidents`, 'debug');
+      logger(
+        `stage=SiteIncident event=found_active_all count=${incidents.length}`,
+        'debug',
+      );
 
       return incidents;
     } catch (error) {
@@ -414,14 +417,14 @@ export class SiteIncidentRepository {
           resolvedCount++;
 
           logger(
-            `Resolved SiteIncident ${incident.id} for site ${incident.siteId}`,
+            `stage=Resolution event=resolved incident_id=${incident.id} site_id=${incident.siteId}`,
             'debug',
           );
         } catch (error) {
           const err = error instanceof Error ? error : new Error(String(error));
           errors.push({incidentId: incident.id, error: err});
           logger(
-            `Error resolving incident ${incident.id}: ${err.message}`,
+            `stage=Resolution event=resolve_failure incident_id=${incident.id} message="${escapeLogfmt(err.message)}"`,
             'warn',
           );
         }
@@ -430,7 +433,7 @@ export class SiteIncidentRepository {
       metrics.totalDurationMs = Date.now() - startTime;
 
       logger(
-        `Batch resolution complete: ${resolvedCount}/${incidents.length} resolved in ${metrics.totalDurationMs}ms`,
+        `stage=Resolution event=db_batch_complete resolved=${resolvedCount} of=${incidents.length} time_ms=${metrics.totalDurationMs}`,
         'debug',
       );
 

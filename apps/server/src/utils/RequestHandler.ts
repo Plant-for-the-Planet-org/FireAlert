@@ -134,17 +134,17 @@ export class RequestHandler {
         const startMemory = getNumericValue(metricsData, 'start_memory_mb');
         const endMemory = getNumericValue(metricsData, 'end_memory_mb');
         
-        // Single line summary
+        // Single line summary (logfmt-style)
         logger(
-          `GEO-EVENT-FETCHER SUMMARY: Events Processed: ${resultData.eventsProcessed}, Created: ${resultData.eventsCreated}, Alerts: ${resultData.alertsCreated}, Duration: ${totalDuration || 'N/A'}ms, Providers: ${providersProcessed || 0}, Memory: ${getDisplayValue(startMemory)}MB → ${getDisplayValue(endMemory)}MB`,
-          'debug',
+          `stage=Pipeline event=summary events=${resultData.eventsProcessed} created=${resultData.eventsCreated} alerts=${resultData.alertsCreated} duration_ms=${totalDuration ?? 0} providers=${providersProcessed || 0} mem_start_mb=${getDisplayValue(startMemory)} mem_end_mb=${getDisplayValue(endMemory)}`,
+          'info',
         );
-        
-        // Log provider-specific metrics (one line per provider)
+
+        // Per-provider breakdown — verbose only
         if (metricsData.provider_processing) {
           Object.entries(metricsData.provider_processing).forEach(([providerId, providerMetrics]) => {
             logger(
-              `Provider ${providerId}: Fetch: ${providerMetrics.fetch_events_ms || 'N/A'}ms, Processing: ${providerMetrics.chunk_processing_ms || 'N/A'}ms, Alerts: ${providerMetrics.alert_creation_ms || 'N/A'}ms, Total: ${providerMetrics.provider_total_ms || 'N/A'}ms, Chunks: ${providerMetrics.chunks_processed || 0}`,
+              `stage=Pipeline event=provider_breakdown provider=${providerId} fetch_ms=${providerMetrics.fetch_events_ms ?? 0} process_ms=${providerMetrics.chunk_processing_ms ?? 0} alerts_ms=${providerMetrics.alert_creation_ms ?? 0} total_ms=${providerMetrics.provider_total_ms ?? 0} chunks=${providerMetrics.chunks_processed || 0}`,
               'debug',
             );
           });
