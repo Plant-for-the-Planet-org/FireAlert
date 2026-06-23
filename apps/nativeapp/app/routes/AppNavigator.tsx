@@ -34,9 +34,7 @@ export default function AppNavigator() {
 
   const notificationHandlers = React.useMemo<NotificationHandlers>(
     () => ({
-      onReceived: notification => {
-        console.log('[OneSignal] Notification received:', notification);
-      },
+      onReceived: _notification => {},
       onOpened: openResult => {
         handleNotificationOpen(openResult);
       },

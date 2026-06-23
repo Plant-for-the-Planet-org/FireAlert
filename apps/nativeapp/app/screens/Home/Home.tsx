@@ -648,6 +648,7 @@ const Home = ({navigation: _navigation, route}) => {
     incidentId: string,
     incidentBoundary?: Feature<GeoJsonPolygon> | null,
   ) => {
+    // Zoom is best-effort — always open incident details regardless of outcome.
     try {
       const focusPadding = [80, 40, Math.max(240, SCREEN_HEIGHT * 0.45), 40];
       let hasFocused = false;
@@ -677,48 +678,44 @@ const Home = ({navigation: _navigation, route}) => {
 
       // Fallback to server fetch and boundary calculation if local boundary was unavailable.
       if (!hasFocused) {
-        const incidentResponse = await (
-          trpc as any
-        ).siteIncident.getIncident.fetch({json: {incidentId}});
-        const incidentData =
-          incidentResponse?.json?.data ||
-          incidentResponse?.data ||
-          incidentResponse;
-        const incidentAlerts = incidentData?.siteAlerts || [];
+        try {
+          const incidentResponse = await (
+            trpc as any
+          ).siteIncident.getIncident.fetch({json: {incidentId}});
+          const incidentData =
+            incidentResponse?.json?.data ||
+            incidentResponse?.data ||
+            incidentResponse;
+          const incidentAlerts = incidentData?.siteAlerts || [];
 
-        if (incidentAlerts.length > 0) {
-          const cameraSettings = calculateIncidentCamera(incidentAlerts);
+          if (incidentAlerts.length > 0) {
+            const cameraSettings = calculateIncidentCamera(incidentAlerts);
 
-          if (cameraSettings?.bounds && camera?.current?.fitBounds) {
-            camera.current.fitBounds(
-              cameraSettings.bounds.ne,
-              cameraSettings.bounds.sw,
-              focusPadding,
-              500,
-            );
-            hasFocused = true;
-          } else if (cameraSettings && camera?.current?.setCamera) {
-            camera.current.setCamera({
-              centerCoordinate: cameraSettings.centerCoordinate,
-              zoomLevel: cameraSettings.zoomLevel,
-              animationDuration: 500,
-            });
-            hasFocused = true;
+            if (cameraSettings?.bounds && camera?.current?.fitBounds) {
+              camera.current.fitBounds(
+                cameraSettings.bounds.ne,
+                cameraSettings.bounds.sw,
+                focusPadding,
+                500,
+              );
+            } else if (cameraSettings && camera?.current?.setCamera) {
+              camera.current.setCamera({
+                centerCoordinate: cameraSettings.centerCoordinate,
+                zoomLevel: cameraSettings.zoomLevel,
+                animationDuration: 500,
+              });
+            }
           }
-        } else {
-          console.warn('[Home] No alerts found for incident zoom calculation');
+        } catch {
+          // Zoom unavailable (e.g. auth not yet ready on cold-start deeplink). Ignore.
         }
       }
-
-      // Open incident details with Redux
-      dispatch(openIncidentDetails({incidentId}));
-      setSelectedIncidentId(null);
-    } catch (error) {
-      console.error('[Home] Error handling incident tap:', error);
-      // Fallback: just open details without zoom
-      dispatch(openIncidentDetails({incidentId}));
-      setSelectedIncidentId(null);
+    } catch {
+      // Ignore unexpected zoom errors.
     }
+
+    dispatch(openIncidentDetails({incidentId}));
+    setSelectedIncidentId(null);
   };
 
   const handleAlertTapFromIncident = (alert: any) => {
@@ -751,26 +748,17 @@ const Home = ({navigation: _navigation, route}) => {
     const incidentId = route?.params?.incidentId;
     const alertId = route?.params?.alertId;
     const target = incidentId ?? alertId;
-    console.log('[deepLink] Home useEffect fired', {
-      isCameraRefVisible,
-      alertId,
-      incidentId,
-      ts,
-      handledRef: deepLinkHandledRef.current,
-    });
     if (!isCameraRefVisible || !target) {
       return;
     }
     // Dedup key includes __ts so re-tapping the same notification re-runs this.
     const key = `${target}:${ts ?? ''}`;
     if (deepLinkHandledRef.current === key) {
-      console.log('[deepLink] Home: already handled for this tap', {key});
       return;
     }
 
     if (incidentId) {
       deepLinkHandledRef.current = key;
-      console.log('[deepLink] Home: dispatching incident tap', incidentId);
       handleIncidentTap(incidentId);
       return;
     }
@@ -783,7 +771,6 @@ const Home = ({navigation: _navigation, route}) => {
       dispatch(openAlertDetails({alertId}));
       if (!alertData) {
         // Alerts not loaded yet — don't mark handled so we retry on data load.
-        console.log('[deepLink] Home: alert data not loaded yet for', alertId);
         return;
       }
       deepLinkHandledRef.current = key;
@@ -792,7 +779,6 @@ const Home = ({navigation: _navigation, route}) => {
         alertData.detectedBy,
         alertData.confidence,
       );
-      console.log('[deepLink] Home: zooming to alert', {alertId, cameraSettings});
       if (camera?.current?.setCamera && cameraSettings) {
         camera.current.setCamera({
           centerCoordinate: cameraSettings.centerCoordinate,
