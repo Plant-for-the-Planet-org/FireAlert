@@ -19,11 +19,13 @@ import {CustomButton} from '../../components';
 import {Colors, Typography} from '../../styles';
 import {VerifyAccAlert} from '../../assets/svgs';
 import {storeData} from '../../utils/localStorage';
+import {isUnverifiedEmailError} from '../../utils/authErrors';
 import LinearGradient from 'react-native-linear-gradient';
 import {useAuth0} from 'react-native-auth0';
 import {useToast} from 'react-native-toast-notifications';
 
 const launch_screen = require('../../assets/images/launch_screen.png');
+const LOG_PREFIX = '[Login]';
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -33,47 +35,119 @@ const Login = () => {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
+    console.log(`${LOG_PREFIX} Auth0 hook error state changed`, {
+      hasError: !!error,
+      code: error?.code,
+      message: error?.message,
+      name: error?.name,
+    });
+
     if (error) {
-      if (error.code === 'unauthorized') {
-        setShowVerifyAccModal(true);
+      if (isUnverifiedEmailError(error)) {
+        console.log(
+          `${LOG_PREFIX} Auth0 error — email verification required, showing modal`,
+        );
+        showEmailVerificationModal();
+      } else {
+        console.warn(
+          `${LOG_PREFIX} Auth0 error did not match unverified email; modal not shown`,
+          error,
+        );
       }
     }
   }, [error]);
 
+  const showEmailVerificationModal = () => {
+    setShowVerifyAccModal(true);
+    setIsLoading(false);
+  };
+
   const handleLogin = async () => {
+    console.log(`${LOG_PREFIX} handleLogin started`);
+
     try {
       setShowVerifyAccModal(false);
       setIsLoading(true);
-      const authCred = await authorize(
-        {
-          scope: 'openid email profile offline_access',
-          audience: 'urn:plant-for-the-planet',
-        },
-        {
-          ephemeralSession: false,
-          useLegacyCallbackUrl: true,
-        },
-      );
+
+      const authorizeParams = {
+        scope: 'openid email profile offline_access',
+        audience: 'urn:plant-for-the-planet',
+      };
+      const authorizeOptions = {
+        ephemeralSession: false,
+        useLegacyCallbackUrl: true,
+      };
+
+      console.log(`${LOG_PREFIX} Calling Auth0 authorize`, {
+        params: authorizeParams,
+        options: authorizeOptions,
+      });
+
+      const authCred = await authorize(authorizeParams, authorizeOptions);
+
+      console.log(`${LOG_PREFIX} Auth0 authorize returned`, {
+        hasCredentials: !!authCred,
+        hasAccessToken: !!authCred?.accessToken,
+        hasRefreshToken: !!authCred?.refreshToken,
+        hasIdToken: !!authCred?.idToken,
+        tokenType: authCred?.tokenType,
+        expiresAt: authCred?.expiresAt,
+        scope: authCred?.scope,
+      });
 
       if (authCred) {
+        console.log(`${LOG_PREFIX} Credentials received — fetching user details`);
+
         const request = {
           onSuccess: async () => {
+            console.log(`${LOG_PREFIX} getUserDetails succeeded — completing login`);
             dispatch(updateIsLoggedIn(true));
             storeData('cred', authCred);
             setIsLoading(false);
+            console.log(`${LOG_PREFIX} Login flow completed successfully`);
           },
-          onFail: () => {
+          onFail: (message?: string) => {
+            console.error(`${LOG_PREFIX} getUserDetails failed`, {message});
             setIsLoading(false);
           },
         };
         dispatch(updateAccessToken(authCred?.accessToken));
         dispatch(getUserDetails(request));
       } else {
+        console.warn(
+          `${LOG_PREFIX} authorize returned no credentials`,
+          {error},
+        );
+        if (isUnverifiedEmailError(error)) {
+          console.log(
+            `${LOG_PREFIX} No credentials + unverified email error — showing modal`,
+          );
+          showEmailVerificationModal();
+        } else {
+          setIsLoading(false);
+          setTimeout(() => toast.show('Login Failed'), 0);
+        }
+      }
+    } catch (loginError) {
+      console.error(`${LOG_PREFIX} handleLogin caught an error`, {
+        message:
+          loginError instanceof Error ? loginError.message : String(loginError),
+        name: loginError instanceof Error ? loginError.name : undefined,
+        code:
+          loginError && typeof loginError === 'object' && 'code' in loginError
+            ? (loginError as {code?: string}).code
+            : undefined,
+        error: loginError,
+      });
+      if (isUnverifiedEmailError(loginError)) {
+        console.log(
+          `${LOG_PREFIX} Caught error — email verification required, showing modal`,
+        );
+        showEmailVerificationModal();
+      } else {
         setIsLoading(false);
         toast.show('Login Failed');
       }
-    } catch (error) {
-      toast.show('Login Failed');
     }
   };
 
@@ -96,7 +170,7 @@ const Login = () => {
           />
         </View>
       </ImageBackground>
-      <Modal transparent animationType={'slide'} visible={showVerifyAccModal}>
+      <Modal animationType={'slide'} visible={showVerifyAccModal}>
         <View style={styles.modalContainer}>
           <VerifyAccAlert width={250} height={200} />
           <Text style={styles.alertHeader}>Please confirm your email.</Text>

@@ -82,6 +82,27 @@ export function OneSignalProvider({
     handlersRef.current = handlers;
   }, [handlers]);
 
+  // Initialize SDK and register click listener immediately on mount — no auth gate.
+  // OneSignal.initialize() must be called before addEventListener; it is idempotent
+  // so the gated init calling it again later is safe.
+  // Cold-start taps arrive before userId resolves; registering here ensures they
+  // are never dropped. handlersRef is stable from mount.
+  useEffect(() => {
+    OneSignal.initialize(appId);
+
+    const earlyOpenedHandler = (event: NotificationClickEvent) => {
+      if (handlersRef.current?.onOpened) {
+        handlersRef.current.onOpened(event);
+      }
+    };
+
+    OneSignal.Notifications.addEventListener('click', earlyOpenedHandler);
+
+    return () => {
+      OneSignal.Notifications.removeEventListener('click', earlyOpenedHandler);
+    };
+  }, [appId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const performSync = useCallback(
     async (syncState: DeviceState, currentUserId: string) => {
       if (initializationRef.current.syncCompleted) {
@@ -148,21 +169,10 @@ export function OneSignalProvider({
           }
         };
 
-        const openedHandler = (event: NotificationClickEvent) => {
-          console.log('[deepLink] OneSignal click event received', {
-            hasHandler: !!handlersRef.current?.onOpened,
-            notificationId: event.notification?.notificationId,
-          });
-          if (handlersRef.current?.onOpened) {
-            handlersRef.current.onOpened(event);
-          }
-        };
-
         OneSignal.Notifications.addEventListener(
           'foregroundWillDisplay',
           receivedHandler,
         );
-        OneSignal.Notifications.addEventListener('click', openedHandler);
 
         await performSync(state, currentUserId);
 
@@ -176,7 +186,6 @@ export function OneSignalProvider({
             'foregroundWillDisplay',
             receivedHandler,
           );
-          OneSignal.Notifications.removeEventListener('click', openedHandler);
         };
       } catch (err) {
         const initError = err instanceof Error ? err : new Error(String(err));
