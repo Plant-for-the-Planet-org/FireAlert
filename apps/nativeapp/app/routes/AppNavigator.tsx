@@ -137,7 +137,11 @@ export default function AppNavigator() {
           SplashScreen.hide();
         }
       } catch (err) {
-        await forceLogout();
+        try {
+          await forceLogout();
+        } finally {
+          SplashScreen.hide();
+        }
       }
     } else {
       SplashScreen.hide();

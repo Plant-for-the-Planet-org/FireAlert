@@ -19,12 +19,18 @@ let inFlightRefresh: Promise<string | null> | null = null;
 export async function forceLogout() {
   try {
     await auth0.credentialsManager.clearCredentials();
-    await auth0.webAuth.clearSession({}, {useLegacyCallbackUrl: true});
-  } finally {
-    store.dispatch(updateIsLoggedIn(false));
-    store.dispatch(setSessionExpired(true));
-    await clearAll();
+  } catch (error) {
+    console.log('forceLogout: clearCredentials failed', error);
   }
+  try {
+    await auth0.webAuth.clearSession({}, {useLegacyCallbackUrl: true});
+  } catch (error) {
+    console.log('forceLogout: clearSession failed', error);
+  }
+  store.dispatch(updateIsLoggedIn(false));
+  store.dispatch(updateAccessToken(''));
+  store.dispatch(setSessionExpired(true));
+  await clearAll();
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
