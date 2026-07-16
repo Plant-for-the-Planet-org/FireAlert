@@ -13,6 +13,7 @@ import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persist
 import {Config} from '../../config';
 import {store} from '../redux/store';
 import {getCurrentVersion, versionToQueryParam} from '../utils/apiVersioning';
+import {refreshAccessToken} from '../utils/auth';
 import type {AppRouter} from '../../../server/src/server/api/root';
 
 export const trpc = createTRPCReact<AppRouter>();
@@ -20,6 +21,28 @@ export const trpc = createTRPCReact<AppRouter>();
 const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
 });
+
+async function fetchWithAuthRetry(
+  url: RequestInfo | URL,
+  init?: RequestInit,
+  retried = false,
+): Promise<Response> {
+  const res = await fetch(url, init);
+  if (res.status === 401 && !retried) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      return fetchWithAuthRetry(
+        url,
+        {
+          ...init,
+          headers: {...init?.headers, authorization: `Bearer ${newToken}`},
+        },
+        true,
+      );
+    }
+  }
+  return res;
+}
 
 // console.log('Config.NEXT_API_URL', Config.NEXT_API_URL);
 export const createTRPCClientOptions: CreateTRPCClientOptions<AppRouter> = {
@@ -33,6 +56,7 @@ export const createTRPCClientOptions: CreateTRPCClientOptions<AppRouter> = {
           'x-api-version': getCurrentVersion(),
         };
       },
+      fetch: fetchWithAuthRetry as typeof fetch,
     }),
   ],
 };

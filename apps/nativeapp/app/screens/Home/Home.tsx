@@ -87,7 +87,7 @@ import {useIncidentData} from '../../hooks/incident/useIncidentData';
 import {trpc} from '../../services/trpc';
 import {Colors, Typography} from '../../styles';
 import type {IncidentCircleResult} from '../../types/incident';
-import {useFetchSites} from '../../utils/api';
+import {useFetchSites, useFetchProtectedSiteAlerts} from '../../utils/api';
 import handleLink from '../../utils/browserLinking';
 import {categorizedRes} from '../../utils/filters';
 import {getFireIcon} from '../../utils/getFireIcon';
@@ -259,6 +259,10 @@ const Home = ({navigation: _navigation, route}) => {
 
   const {data: alerts} = useFetchSites({enabled: true});
 
+  const {data: protectedSiteAlerts} = useFetchProtectedSiteAlerts({
+    enabled: true,
+  });
+
   // Fetch incident data when an alert with siteIncidentId is selected
   const {incident} = useIncidentData({
     incidentId: selectedAlert?.siteIncidentId,
@@ -290,14 +294,17 @@ const Home = ({navigation: _navigation, route}) => {
     [sites],
   );
 
-  // Filter alerts by duration
+  // Filter alerts by duration (own sites + protected sites)
   const filteredAlerts = useMemo(() => {
-    if (!alerts?.json?.data) return [];
+    const ownAlerts = alerts?.json?.data || [];
+    const protectedAlerts = protectedSiteAlerts?.json?.data || [];
+    const allAlerts = ownAlerts.concat(protectedAlerts);
+    if (allAlerts.length === 0) return [];
     const cutoffDate = moment().subtract(mapDurationDays, 'days');
-    return alerts.json.data.filter(alert =>
+    return allAlerts.filter(alert =>
       moment(alert.eventDate).isAfter(cutoffDate),
     );
-  }, [alerts, mapDurationDays]);
+  }, [alerts, protectedSiteAlerts, mapDurationDays]);
 
   // Compose incidents from filtered alerts
   const composedIncidents = useMemo(() => {

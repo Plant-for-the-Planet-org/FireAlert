@@ -10,6 +10,7 @@ interface LoginState {
   accessToken: string;
   userDetails: any;
   configData: any;
+  sessionExpired: boolean;
 }
 
 const initialState: LoginState = {
@@ -17,6 +18,7 @@ const initialState: LoginState = {
   accessToken: '',
   userDetails: null,
   configData: null,
+  sessionExpired: false,
 };
 
 export const loginSlice = createSlice({
@@ -35,6 +37,9 @@ export const loginSlice = createSlice({
     updateConfigData: (state, action: PayloadAction<any>) => {
       state.configData = action.payload;
     },
+    setSessionExpired: (state, action: PayloadAction<boolean>) => {
+      state.sessionExpired = action.payload;
+    },
   },
 });
 
@@ -43,6 +48,7 @@ export const {
   updateConfigData,
   updateAccessToken,
   updateUserDetails,
+  setSessionExpired,
 } = loginSlice.actions;
 export default loginSlice.reducer;
 
