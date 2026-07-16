@@ -15,3 +15,22 @@ export const useFetchSites = ({enabled, ...props}: UseQueryOptions) => {
   });
   return data;
 };
+
+export const useFetchProtectedSiteAlerts = ({
+  enabled,
+  ...props
+}: UseQueryOptions) => {
+  const toast = useToast();
+  const data = trpc.alert.getAlertsForProtectedSites.useQuery(
+    ['alerts', 'getAlertsForProtectedSites'],
+    {
+      enabled,
+      retryDelay: 3000, // Delay between retry attempts in milliseconds
+      onError: () => {
+        toast.show('Something went wrong', {type: 'danger'});
+      },
+      ...props,
+    },
+  );
+  return data;
+};
