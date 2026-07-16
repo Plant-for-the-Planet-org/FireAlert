@@ -879,7 +879,10 @@ const Settings = () => {
                 <Text style={[styles.smallHeading]}>Email</Text>
                 {!alertMethods?.enabled.email && <DisabledBadge />}
               </View>
-              <TouchableOpacity onPress={handleAddEmail}>
+              <TouchableOpacity
+                disabled={!alertMethods?.enabled.email}
+                style={!alertMethods?.enabled.email && styles.addButtonDisabled}
+                onPress={handleAddEmail}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
@@ -1026,7 +1029,10 @@ const Settings = () => {
                 <Text style={styles.smallHeading}>SMS</Text>
                 {!alertMethods?.enabled.sms && <DisabledBadge />}
               </View>
-              <TouchableOpacity onPress={handleAddSms}>
+              <TouchableOpacity
+                disabled={!alertMethods?.enabled.sms}
+                style={!alertMethods?.enabled.sms && styles.addButtonDisabled}
+                onPress={handleAddSms}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
@@ -1106,7 +1112,10 @@ const Settings = () => {
                 <Text style={styles.smallHeading}>Webhook</Text>
                 {!alertMethods?.enabled.webhook && <DisabledBadge />}
               </View>
-              <TouchableOpacity onPress={handleWebhook}>
+              <TouchableOpacity
+                disabled={!alertMethods?.enabled.webhook}
+                style={!alertMethods?.enabled.webhook && styles.addButtonDisabled}
+                onPress={handleWebhook}>
                 <AddIcon />
               </TouchableOpacity>
             </View>
@@ -2013,6 +2022,9 @@ export const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.5,
+  },
+  addButtonDisabled: {
+    opacity: 0.4,
   },
   siteActionText: {
     marginLeft: 30,
