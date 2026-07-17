@@ -14,7 +14,7 @@ export const config = {
 const MAX_DURATION = config.maxDuration * 1000 - 20000;
 
 // Set up a uniform time to be 1 AM for cleanup reference
-const currentDateTimeAt1AM = new Date();
+let currentDateTimeAt1AM = new Date();
 currentDateTimeAt1AM.setHours(1, 0, 0, 0); // Set time to 1:00 AM of today
 
 function shouldContinueDeletion(
@@ -388,16 +388,18 @@ async function cleanNotifications(startTime: number) {
 
   // Use continueDeletion patterns like the above functions
   let continueDeletion = true;
+  const ninetyDaysAgo = new Date(
+    currentDateTimeAt1AM.getTime() - 90 * 24 * 60 * 60 * 1000,
+  );
   while (continueDeletion) {
-    // Delete Notifications which have sentAt Older than 90 Days (if NULL Do not delete)
+    // Delete Notifications which have sentAt Older than 90 Days (if NULL Do not delete),
+    // or which were skipped (failed to send, so sentAt never gets set) and are older than 90 Days
     const notificationsToDelete = await prisma.notification.findMany({
       where: {
-        sentAt: {
-          not: null,
-          lt: new Date(
-            currentDateTimeAt1AM.getTime() - 90 * 24 * 60 * 60 * 1000,
-          ),
-        },
+        OR: [
+          {sentAt: {not: null, lt: ninetyDaysAgo}},
+          {isSkipped: true, sentAt: null, createdAt: {lt: ninetyDaysAgo}},
+        ],
       },
       take: batchSize,
       select: {id: true},
@@ -441,6 +443,10 @@ export default async function dbCleanup(
       return;
     }
   }
+  // Recompute "now" fresh for every request — see note on the module-level declaration above.
+  currentDateTimeAt1AM = new Date();
+  currentDateTimeAt1AM.setHours(1, 0, 0, 0);
+
   const startTime = Date.now();
   // What is to be cleaned
   const validCleanupOptions = [
