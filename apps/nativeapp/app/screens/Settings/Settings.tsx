@@ -48,11 +48,11 @@ import {
   PlanetLogo,
   SmsIcon,
   TrashOutlineIcon,
-  TrashSolidIcon,
-  VerificationWarning,
   WarningIcon,
 } from '../../assets/svgs';
 import {
+  AlertMethodListItem,
+  AlertMethodSection,
   BottomSheet,
   CustomButton,
   DropDown,
@@ -73,12 +73,15 @@ import {useSelector} from 'react-redux';
 import {useOneSignal} from '../../hooks/notification/useOneSignal';
 import {RootState} from '../../redux/store';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
+import {createLogger} from '../../utils/logger';
 import {
-  ComingSoonBadge,
-  DisabledBadge,
-  DisabledNotificationInfo,
-} from './Badges';
+  removeAlertMethodFromCache,
+  upsertAlertMethodInCache,
+} from '../../hooks/alertMethod/useAlertMethodCache';
+import {ComingSoonBadge} from './Badges';
 import ProtectedSitesSettings from './ProtectedSitesSettings';
+
+const log = createLogger('Settings');
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -147,7 +150,8 @@ const Settings = () => {
   } = trpc.alertMethod.getAlertMethods.useQuery(undefined, {
     enabled: sitesSuccess,
     retryDelay: 3000,
-    onError: () => {
+    onError: error => {
+      log.error('getAlertMethods onError', {message: error?.message});
       toast.show('something went wrong', {type: 'danger'});
     },
   });
@@ -166,22 +170,33 @@ const Settings = () => {
         return;
       }
 
-      const filterDeviceAlertMethod = formattedAlertPreferences.device.filter(
+      const deviceAlertMethods = formattedAlertPreferences?.device;
+      if (!deviceAlertMethods) {
+        log.warn(
+          'formattedAlertPreferences.device is missing - would have crashed here before this guard',
+          {availableMethodKeys: Object.keys(formattedAlertPreferences ?? {})},
+        );
+        setDeviceAlertPreferences([]);
+        return;
+      }
+
+      let nextDeviceAlertMethods = deviceAlertMethods;
+      const filterDeviceAlertMethod = deviceAlertMethods.filter(
         el => userId === el?.destination && el.deviceId === deviceId,
       );
       if (filterDeviceAlertMethod.length > 0) {
         const filteredData = filterDeviceAlertMethod[0];
-        const nonFilteredData = formattedAlertPreferences.device.filter(
+        const nonFilteredData = deviceAlertMethods.filter(
           el => userId !== el?.destination || el.deviceId !== deviceId,
         );
-        formattedAlertPreferences.device = [
-          filteredData,
-          ...nonFilteredData,
-        ].filter(el => el.deviceName !== '');
+        nextDeviceAlertMethods = [filteredData, ...nonFilteredData].filter(
+          el => el?.deviceName !== '',
+        );
       }
 
-      setDeviceAlertPreferences(formattedAlertPreferences?.device);
-    } catch {
+      setDeviceAlertPreferences(nextDeviceAlertMethods);
+    } catch (error) {
+      log.error('deviceNotification failed', {message: error?.message});
       setDeviceAlertPreferences([]);
     }
   }, [
@@ -248,28 +263,18 @@ const Settings = () => {
   const deleteAlertMethod = trpc.alertMethod.deleteAlertMethod.useMutation({
     retryDelay: 3000,
     onSuccess: (data, req) => {
-      queryClient.setQueryData(
-        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
-        oldData =>
-          oldData
-            ? {
-                ...oldData,
-                json: {
-                  ...oldData.json,
-                  data: oldData.json.data.filter(
-                    item => item.id !== req?.json?.alertMethodId,
-                  ),
-                },
-              }
-            : null,
-      );
+      log.info('deleteAlertMethod onSuccess', {
+        alertMethodId: req?.json?.alertMethodId,
+      });
+      removeAlertMethodFromCache(queryClient, req?.json?.alertMethodId);
       const loadingArr = delAlertMethodArr.filter(
         el => el !== req?.json?.alertMethodId,
       );
       setDelAlertMethodArr(loadingArr);
       setReRender(!reRender);
     },
-    onError: () => {
+    onError: error => {
+      log.error('deleteAlertMethod onError', {message: error?.message});
       toast.show('something went wrong', {type: 'danger'});
     },
   });
@@ -317,28 +322,16 @@ const Settings = () => {
     {
       retryDelay: 3000,
       onSuccess: res => {
-        queryClient.setQueryData(
-          [['alertMethod', 'getAlertMethods'], {type: 'query'}],
-          oldData =>
-            oldData
-              ? {
-                  ...oldData,
-                  json: {
-                    ...oldData?.json,
-                    data: oldData?.json?.data?.map(item =>
-                      item.id === res?.json?.data?.id ? res?.json?.data : item,
-                    ),
-                  },
-                }
-              : null,
-        );
+        log.info('updateAlertMethod onSuccess', res?.json?.data);
+        upsertAlertMethodInCache(queryClient, res?.json?.data);
         const loadingArr = alertMethodLoaderArr.filter(
           el => el !== res?.json?.data?.id,
         );
         setAlertMethodLoaderArr(loadingArr);
         setReRender(!reRender);
       },
-      onError: () => {
+      onError: error => {
+        log.error('updateAlertMethod onError', {message: error?.message});
         toast.show('something went wrong', {type: 'danger'});
       },
     },
@@ -347,20 +340,33 @@ const Settings = () => {
   const verifyAlertPreference = trpc.alertMethod.sendVerification.useMutation({
     retryDelay: 3000,
     onSuccess: (data, variables) => {
+      log.info('sendVerification onSuccess - raw response', data);
       if (data?.json?.status === 403) {
         return toast.show(data?.json?.message || 'something went wrong', {
           type: 'warning',
         });
       }
-      const alertMethod = alertPreferences?.json?.data?.filter(
-        item => item.id === variables?.json?.alertMethodId,
-      );
+      const matches = alertPreferences?.json?.data?.filter(
+        item => item?.id === variables?.json?.alertMethodId,
+      ) ?? [];
+      const alertMethod = matches[0];
+      if (!alertMethod) {
+        log.warn(
+          'No matching alertMethod found after sendVerification - would have crashed here before this guard',
+          {
+            alertMethodId: variables?.json?.alertMethodId,
+            hadAlertPreferences: !!alertPreferences?.json?.data,
+          },
+        );
+        return toast.show('something went wrong', {type: 'danger'});
+      }
       navigation.navigate('Otp', {
-        verificationType: alertMethod[0]?.method,
-        alertMethod: alertMethod[0],
+        verificationType: alertMethod.method,
+        alertMethod,
       });
     },
-    onError: () => {
+    onError: error => {
+      log.error('sendVerification onError', {message: error?.message});
       toast.show('something went wrong', {type: 'danger'});
     },
   });
@@ -413,7 +419,12 @@ const Settings = () => {
   };
 
   const handleNotifySwitch = (data, isEnabled) => {
-    const {alertMethodId} = data;
+    const alertMethodId = data?.alertMethodId;
+    if (!alertMethodId) {
+      log.warn('handleNotifySwitch called with no alertMethodId', {data});
+      return;
+    }
+    log.info('updateAlertMethod mutate', {alertMethodId, isEnabled});
     setAlertMethodLoaderArr(prevState => [...prevState, alertMethodId]);
     updateAlertPreferences.mutate({
       json: {params: {alertMethodId}, body: {isEnabled}},
@@ -421,12 +432,25 @@ const Settings = () => {
   };
 
   const _handleVerify = alertMethodData => () => {
+    const alertMethodId = alertMethodData?.id;
+    if (!alertMethodId) {
+      log.warn('_handleVerify called with no alertMethod id', {
+        alertMethodData,
+      });
+      return;
+    }
+    log.info('sendVerification mutate', {alertMethodId});
     verifyAlertPreference.mutate({
-      json: {alertMethodId: alertMethodData.id},
+      json: {alertMethodId},
     });
   };
 
   const handleRemoveAlertMethod = alertMethodId => {
+    if (!alertMethodId) {
+      log.warn('handleRemoveAlertMethod called with no alertMethodId');
+      return;
+    }
+    log.info('deleteAlertMethod mutate', {alertMethodId});
     setDelAlertMethodArr(prevState => [...prevState, alertMethodId]);
     deleteAlertMethod.mutate({json: {alertMethodId}});
   };
@@ -798,389 +822,141 @@ const Settings = () => {
         {/* notifications */}
         <View style={[styles.myNotifications, styles.commonPadding]}>
           <Text style={styles.mainHeading}>Notifications</Text>
-          <View style={styles.mySiteNameMainContainer}>
-            <View style={styles.mySiteNameSubContainer}>
-              <View style={styles.mobileContainer}>
-                <PhoneIcon />
-                <Text style={[styles.smallHeading]}>Mobile</Text>
-                {!alertMethods?.enabled.device && <DisabledBadge />}
-              </View>
-            </View>
-            {!alertMethods?.enabled.device && (
-              <DisabledNotificationInfo method="device" />
-            )}
-            {deviceAlertPreferences?.length > 0 && (
-              <View style={styles.emailContainer}>
-                {deviceAlertPreferences?.map((item, i) => (
-                  <View key={`emails_${i}`}>
-                    <View
-                      style={[
-                        styles.emailSubContainer,
-                        styles.justifyContentSpaceBetween,
-                      ]}>
-                      <View style={styles.deviceItem}>
-                        <Text style={styles.myEmailName}>
-                          {item?.deviceName}
-                        </Text>
-                        {i === 0 && (
-                          <View style={styles.deviceTagCon}>
-                            <Text style={styles.deviceTag}>
-                              {''} this device
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.emailSubContainer}>
-                        {alertMethodLoaderArr.includes(item?.id) ? (
-                          <ActivityIndicator
-                            size={'small'}
-                            color={Colors.PRIMARY}
-                          />
-                        ) : (
-                          <Switch
-                            value={item?.isEnabled}
-                            onValueChange={val =>
-                              handleNotifySwitch({alertMethodId: item.id}, val)
-                            }
-                          />
-                        )}
-                        {!(i === 0) && (
-                          <TouchableOpacity
-                            style={styles.trashIcon}
-                            disabled={delAlertMethodArr.includes(item?.id)}
-                            onPress={() => handleRemoveAlertMethod(item?.id)}>
-                            {delAlertMethodArr.includes(item?.id) ? (
-                              <ActivityIndicator
-                                size={'small'}
-                                color={Colors.PRIMARY}
-                              />
-                            ) : (
-                              <TrashSolidIcon />
-                            )}
-                          </TouchableOpacity>
-                        )}
-                      </View>
+          <AlertMethodSection
+            icon={<PhoneIcon />}
+            label="Mobile"
+            enabled={!!alertMethods?.enabled.device}
+            disabledInfoMethod="device"
+            hasItems={deviceAlertPreferences?.length > 0}>
+            {deviceAlertPreferences?.map((item, i) => (
+              <AlertMethodListItem
+                key={`device_${item?.id ?? i}`}
+                destinationText={item?.deviceName ?? ''}
+                isVerified={true}
+                isEnabled={item?.isEnabled}
+                isToggleLoading={alertMethodLoaderArr.includes(item?.id)}
+                isDeleting={delAlertMethodArr.includes(item?.id)}
+                showDelete={i !== 0}
+                tag={
+                  i === 0 ? (
+                    <View style={styles.deviceTagCon}>
+                      <Text style={styles.deviceTag}>{''} this device</Text>
                     </View>
-                    {deviceAlertPreferences?.length - 1 !== i && (
-                      <View
-                        style={[styles.separator, styles.marginVertical12]}
-                      />
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+                  ) : undefined
+                }
+                isLast={deviceAlertPreferences?.length - 1 === i}
+                onToggle={val =>
+                  handleNotifySwitch({alertMethodId: item?.id}, val)
+                }
+                onVerify={_handleVerify(item)}
+                onDelete={() => handleRemoveAlertMethod(item?.id)}
+              />
+            ))}
+          </AlertMethodSection>
           {/* emails */}
-          <View style={styles.mySiteNameMainContainer}>
-            <View style={styles.mySiteNameSubContainer}>
-              <View style={styles.mobileContainer}>
-                <EmailIcon />
-                <Text style={[styles.smallHeading]}>Email</Text>
-                {!alertMethods?.enabled.email && <DisabledBadge />}
-              </View>
-              <TouchableOpacity
-                disabled={!alertMethods?.enabled.email}
-                style={!alertMethods?.enabled.email && styles.addButtonDisabled}
-                onPress={handleAddEmail}>
-                <AddIcon />
-              </TouchableOpacity>
-            </View>
-            {!alertMethods?.enabled.email && (
-              <DisabledNotificationInfo method="email" />
-            )}
-            {formattedAlertPreferences?.email?.length > 0 && (
-              <View style={styles.emailContainer}>
-                {formattedAlertPreferences?.email?.map((item, i) => (
-                  <View key={`emails_${i}`}>
-                    <View
-                      style={[
-                        styles.emailSubContainer,
-                        styles.justifyContentSpaceBetween,
-                      ]}>
-                      <Text style={styles.myEmailName}>
-                        {item?.destination}
-                      </Text>
-                      <View style={styles.emailSubContainer}>
-                        {item?.isVerified ? (
-                          alertMethodLoaderArr.includes(item?.id) ? (
-                            <ActivityIndicator
-                              size={'small'}
-                              color={Colors.PRIMARY}
-                            />
-                          ) : (
-                            <Switch
-                              value={item?.isEnabled}
-                              onValueChange={val =>
-                                handleNotifySwitch(
-                                  {alertMethodId: item.id},
-                                  val,
-                                )
-                              }
-                            />
-                          )
-                        ) : (
-                          <TouchableOpacity
-                            style={styles.verifiedChipsCon}
-                            onPress={_handleVerify(item)}>
-                            <View style={styles.verifiedChips}>
-                              <VerificationWarning />
-                              <Text style={styles.verifiedTxt}>Verify</Text>
-                            </View>
-                          </TouchableOpacity>
-                        )}
-                        <TouchableOpacity
-                          style={styles.trashIcon}
-                          disabled={delAlertMethodArr.includes(item?.id)}
-                          onPress={() => handleRemoveAlertMethod(item?.id)}>
-                          {delAlertMethodArr.includes(item?.id) ? (
-                            <ActivityIndicator
-                              size={'small'}
-                              color={Colors.PRIMARY}
-                            />
-                          ) : (
-                            <TrashSolidIcon />
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    {formattedAlertPreferences?.email?.length - 1 !== i && (
-                      <View
-                        style={[styles.separator, styles.marginVertical12]}
-                      />
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+          <AlertMethodSection
+            icon={<EmailIcon />}
+            label="Email"
+            enabled={!!alertMethods?.enabled.email}
+            disabledInfoMethod="email"
+            onAdd={handleAddEmail}
+            hasItems={formattedAlertPreferences?.email?.length > 0}>
+            {formattedAlertPreferences?.email?.map((item, i) => (
+              <AlertMethodListItem
+                key={`email_${item?.id ?? i}`}
+                destinationText={item?.destination ?? ''}
+                isVerified={!!item?.isVerified}
+                isEnabled={item?.isEnabled}
+                isToggleLoading={alertMethodLoaderArr.includes(item?.id)}
+                isDeleting={delAlertMethodArr.includes(item?.id)}
+                isLast={formattedAlertPreferences?.email?.length - 1 === i}
+                onToggle={val =>
+                  handleNotifySwitch({alertMethodId: item?.id}, val)
+                }
+                onVerify={_handleVerify(item)}
+                onDelete={() => handleRemoveAlertMethod(item?.id)}
+              />
+            ))}
+          </AlertMethodSection>
           {/* whatsapp */}
-          {/* <View style={styles.mySiteNameMainContainer}>
-            <View style={styles.mySiteNameSubContainer}>
-              <View style={styles.mobileContainer}>
-                <WhatsAppIcon />
-                <Text style={styles.smallHeading}>WhatsApp</Text>
-                {!alertMethods?.enabled.whatsapp && <DisabledBadge />}
-              </View>
-              <TouchableOpacity onPress={handleAddWhatsapp}>
-                <AddIcon />
-              </TouchableOpacity>
-            </View>
-            {formattedAlertPreferences?.whatsapp?.length > 0 && (
-              <View style={styles.emailContainer}>
-                {formattedAlertPreferences?.whatsapp?.map((item, i) => (
-                  <View key={`whatsapp_${i}`}>
-                    <View
-                      style={[
-                        styles.emailSubContainer,
-                        styles.justifyContentSpaceBetween,
-                      ]}>
-                      <Text style={styles.myEmailName}>
-                        {item?.destination}
-                      </Text>
-                      <View style={styles.emailSubContainer}>
-                        {item?.isVerified ? (
-                          alertMethodLoaderArr.includes(item?.id) ? (
-                            <ActivityIndicator
-                              size={'small'}
-                              color={Colors.PRIMARY}
-                            />
-                          ) : (
-                            <Switch
-                              value={item?.isEnabled}
-                              onValueChange={val =>
-                                handleNotifySwitch(
-                                  {alertMethodId: item?.id},
-                                  val,
-                                )
-                              }
-                            />
-                          )
-                        ) : (
-                          <TouchableOpacity
-                            style={styles.verifiedChipsCon}
-                            onPress={_handleVerify(item)}>
-                            <View style={styles.verifiedChips}>
-                              <VerificationWarning />
-                              <Text style={styles.verifiedTxt}>Verify</Text>
-                            </View>
-                          </TouchableOpacity>
-                        )}
-                        <TouchableOpacity
-                          style={styles.marginLeft20}
-                          onPress={() => handleRemoveAlertMethod(item?.id)}>
-                          <TrashSolidIcon />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    {formattedAlertPreferences?.whatsapp?.length - 1 !== i && (
-                      <View style={[styles.separator, styles.marginVertical12]} />
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-          </View> */}
+          {/* <AlertMethodSection
+            icon={<WhatsAppIcon />}
+            label="WhatsApp"
+            enabled={!!alertMethods?.enabled.whatsapp}
+            disabledInfoMethod="whatsapp"
+            onAdd={handleAddWhatsapp}
+            hasItems={formattedAlertPreferences?.whatsapp?.length > 0}>
+            {formattedAlertPreferences?.whatsapp?.map((item, i) => (
+              <AlertMethodListItem
+                key={`whatsapp_${item?.id ?? i}`}
+                destinationText={item?.destination ?? ''}
+                isVerified={!!item?.isVerified}
+                isEnabled={item?.isEnabled}
+                isToggleLoading={alertMethodLoaderArr.includes(item?.id)}
+                isDeleting={delAlertMethodArr.includes(item?.id)}
+                isLast={formattedAlertPreferences?.whatsapp?.length - 1 === i}
+                onToggle={val =>
+                  handleNotifySwitch({alertMethodId: item?.id}, val)
+                }
+                onVerify={_handleVerify(item)}
+                onDelete={() => handleRemoveAlertMethod(item?.id)}
+              />
+            ))}
+          </AlertMethodSection> */}
           {/* sms */}
-          <View style={styles.mySiteNameMainContainer}>
-            <View style={styles.mySiteNameSubContainer}>
-              <View style={styles.mobileContainer}>
-                <SmsIcon />
-                <Text style={styles.smallHeading}>SMS</Text>
-                {!alertMethods?.enabled.sms && <DisabledBadge />}
-              </View>
-              <TouchableOpacity
-                disabled={!alertMethods?.enabled.sms}
-                style={!alertMethods?.enabled.sms && styles.addButtonDisabled}
-                onPress={handleAddSms}>
-                <AddIcon />
-              </TouchableOpacity>
-            </View>
-            {!alertMethods?.enabled.sms && (
-              <DisabledNotificationInfo method="sms" />
-            )}
-            {formattedAlertPreferences?.sms?.length > 0 && (
-              <View style={styles.emailContainer}>
-                {formattedAlertPreferences?.sms?.map((item, i) => (
-                  <View key={`sms_${i}`}>
-                    <View
-                      style={[
-                        styles.emailSubContainer,
-                        styles.justifyContentSpaceBetween,
-                      ]}>
-                      <Text style={styles.myEmailName}>
-                        {extractCountryCode(item?.destination).countryCode +
-                          ' ' +
-                          extractCountryCode(item?.destination).remainingNumber}
-                      </Text>
-                      <View style={styles.emailSubContainer}>
-                        {item?.isVerified ? (
-                          alertMethodLoaderArr.includes(item?.id) ? (
-                            <ActivityIndicator
-                              size={'small'}
-                              color={Colors.PRIMARY}
-                            />
-                          ) : (
-                            <Switch
-                              value={item?.isEnabled}
-                              onValueChange={val =>
-                                handleNotifySwitch(
-                                  {alertMethodId: item.id},
-                                  val,
-                                )
-                              }
-                            />
-                          )
-                        ) : (
-                          <TouchableOpacity
-                            style={styles.verifiedChipsCon}
-                            onPress={_handleVerify(item)}>
-                            <View style={styles.verifiedChips}>
-                              <VerificationWarning />
-                              <Text style={styles.verifiedTxt}>Verify</Text>
-                            </View>
-                          </TouchableOpacity>
-                        )}
-
-                        <TouchableOpacity
-                          style={styles.trashIcon}
-                          disabled={delAlertMethodArr.includes(item?.id)}
-                          onPress={() => handleRemoveAlertMethod(item?.id)}>
-                          {delAlertMethodArr.includes(item?.id) ? (
-                            <ActivityIndicator color={Colors.PRIMARY} />
-                          ) : (
-                            <TrashSolidIcon />
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    {formattedAlertPreferences?.sms?.length - 1 !== i && (
-                      <View
-                        style={[styles.separator, styles.marginVertical12]}
-                      />
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+          <AlertMethodSection
+            icon={<SmsIcon />}
+            label="SMS"
+            enabled={!!alertMethods?.enabled.sms}
+            disabledInfoMethod="sms"
+            onAdd={handleAddSms}
+            hasItems={formattedAlertPreferences?.sms?.length > 0}>
+            {formattedAlertPreferences?.sms?.map((item, i) => {
+              const {countryCode, remainingNumber} = extractCountryCode(
+                item?.destination,
+              );
+              return (
+                <AlertMethodListItem
+                  key={`sms_${item?.id ?? i}`}
+                  destinationText={`${countryCode} ${remainingNumber}`}
+                  isVerified={!!item?.isVerified}
+                  isEnabled={item?.isEnabled}
+                  isToggleLoading={alertMethodLoaderArr.includes(item?.id)}
+                  isDeleting={delAlertMethodArr.includes(item?.id)}
+                  isLast={formattedAlertPreferences?.sms?.length - 1 === i}
+                  onToggle={val =>
+                    handleNotifySwitch({alertMethodId: item?.id}, val)
+                  }
+                  onVerify={_handleVerify(item)}
+                  onDelete={() => handleRemoveAlertMethod(item?.id)}
+                />
+              );
+            })}
+          </AlertMethodSection>
           {/* webhooks */}
-          <View style={styles.mySiteNameMainContainer}>
-            <View style={styles.mySiteNameSubContainer}>
-              <View style={styles.mobileContainer}>
-                <GlobeWebIcon width={17} height={17} />
-                <Text style={styles.smallHeading}>Webhook</Text>
-                {!alertMethods?.enabled.webhook && <DisabledBadge />}
-              </View>
-              <TouchableOpacity
-                disabled={!alertMethods?.enabled.webhook}
-                style={!alertMethods?.enabled.webhook && styles.addButtonDisabled}
-                onPress={handleWebhook}>
-                <AddIcon />
-              </TouchableOpacity>
-            </View>
-            {formattedAlertPreferences?.webhook?.length > 0 && (
-              <View style={styles.emailContainer}>
-                {formattedAlertPreferences?.webhook?.map((item, i) => (
-                  <View key={`webhook_${i}`}>
-                    <View
-                      style={[
-                        styles.emailSubContainer,
-                        styles.justifyContentSpaceBetween,
-                      ]}>
-                      <Text style={styles.myEmailName}>
-                        {item?.destination}
-                      </Text>
-                      <View style={styles.emailSubContainer}>
-                        {item?.isVerified ? (
-                          alertMethodLoaderArr.includes(item?.id) ? (
-                            <ActivityIndicator
-                              size={'small'}
-                              color={Colors.PRIMARY}
-                            />
-                          ) : (
-                            <Switch
-                              value={item?.isEnabled}
-                              onValueChange={val =>
-                                handleNotifySwitch(
-                                  {alertMethodId: item.id},
-                                  val,
-                                )
-                              }
-                            />
-                          )
-                        ) : (
-                          <TouchableOpacity
-                            style={styles.verifiedChipsCon}
-                            onPress={_handleVerify(item)}>
-                            <View style={styles.verifiedChips}>
-                              <VerificationWarning />
-                              <Text style={styles.verifiedTxt}>Verify</Text>
-                            </View>
-                          </TouchableOpacity>
-                        )}
-                        <TouchableOpacity
-                          style={styles.trashIcon}
-                          disabled={delAlertMethodArr.includes(item?.id)}
-                          onPress={() => handleRemoveAlertMethod(item?.id)}>
-                          {delAlertMethodArr.includes(item?.id) ? (
-                            <ActivityIndicator color={Colors.PRIMARY} />
-                          ) : (
-                            <TrashSolidIcon />
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                    {formattedAlertPreferences?.webhook?.length - 1 !== i && (
-                      <View
-                        style={[styles.separator, styles.marginVertical12]}
-                      />
-                    )}
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+          <AlertMethodSection
+            icon={<GlobeWebIcon width={17} height={17} />}
+            label="Webhook"
+            enabled={!!alertMethods?.enabled.webhook}
+            onAdd={handleWebhook}
+            hasItems={formattedAlertPreferences?.webhook?.length > 0}>
+            {formattedAlertPreferences?.webhook?.map((item, i) => (
+              <AlertMethodListItem
+                key={`webhook_${item?.id ?? i}`}
+                destinationText={item?.destination ?? ''}
+                isVerified={!!item?.isVerified}
+                isEnabled={item?.isEnabled}
+                isToggleLoading={alertMethodLoaderArr.includes(item?.id)}
+                isDeleting={delAlertMethodArr.includes(item?.id)}
+                isLast={formattedAlertPreferences?.webhook?.length - 1 === i}
+                onToggle={val =>
+                  handleNotifySwitch({alertMethodId: item?.id}, val)
+                }
+                onVerify={_handleVerify(item)}
+                onDelete={() => handleRemoveAlertMethod(item?.id)}
+              />
+            ))}
+          </AlertMethodSection>
         </View>
         {/* Warning */}
         <View style={styles.alertWarningContainer}>

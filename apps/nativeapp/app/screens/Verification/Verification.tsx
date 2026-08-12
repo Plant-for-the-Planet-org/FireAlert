@@ -10,14 +10,16 @@ import {
 import React, {useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {useToast} from 'react-native-toast-notifications';
-// import Clipboard from '@react-native-clipboard/clipboard';
-
 import {trpc} from '../../services/trpc';
 import {useAppSelector} from '../../hooks';
 import {Colors, Typography} from '../../styles';
 import {validateEmail} from '../../utils/emailVerifier';
+import {createLogger} from '../../utils/logger';
+import {upsertAlertMethodInCache} from '../../hooks/alertMethod/useAlertMethodCache';
 import {CrossIcon, InfoIcon, PasteIcon} from '../../assets/svgs';
 import {CustomButton, FloatingInput, PhoneInput} from '../../components';
+
+const log = createLogger('Add');
 
 const IS_ANDROID = Platform.OS === 'android';
 
@@ -40,6 +42,7 @@ const Verification = ({navigation, route}) => {
   const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
     retryDelay: 3000,
     onSuccess: data => {
+      log.info('createAlertMethod onSuccess - raw response', data);
       if (
         [405, 403].includes(data?.json?.status) ||
         [405, 403].includes(data?.json?.httpStatus)
@@ -50,26 +53,22 @@ const Verification = ({navigation, route}) => {
         });
       }
       const result = data?.json?.data;
-      queryClient.setQueryData(
-        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
-        oldData =>
-          oldData
-            ? {
-                ...oldData,
-                json: {
-                  ...oldData.json,
-                  data: [...oldData.json.data, result],
-                },
-              }
-            : null,
-      );
+      upsertAlertMethodInCache(queryClient, result);
       setLoading(false);
+      if (!result?.id) {
+        log.error(
+          'createAlertMethod succeeded but response had no usable data - not navigating to Otp',
+          {result},
+        );
+        return toast.show('something went wrong', {type: 'danger'});
+      }
       navigation.navigate('Otp', {
         verificationType,
         alertMethod: result,
       });
     },
-    onError: () => {
+    onError: error => {
+      log.error('createAlertMethod onError', {message: error?.message});
       setLoading(false);
       toast.show('something went wrong', {type: 'danger'});
     },
@@ -110,6 +109,7 @@ const Verification = ({navigation, route}) => {
           ? webhookUrl
           : newEmail,
     };
+    log.info('createAlertMethod mutate', payload);
     createAlertPreference.mutate({json: payload});
   };
 
@@ -128,9 +128,11 @@ const Verification = ({navigation, route}) => {
     setNewEmail(emailText);
   };
 
-  const handlePaste: () => Promise<void> = async () => {
-    // const content = await Clipboard.getString();
-    setWebhookUrl(content);
+  const handlePaste: () => void = () => {
+    log.warn('Paste tapped but clipboard support is not installed - no-op');
+    toast.show('Paste is not available yet, please type the URL', {
+      type: 'warning',
+    });
   };
 
   return (
