@@ -133,7 +133,6 @@ const OtpInput = React.forwardRef<OtpInputHandle, IOtpInputProps>(
             keyboardType="number-pad"
             textContentType="oneTimeCode"
             autoComplete="sms-otp"
-            returnKeyType="done"
             selectTextOnFocus
             onFocus={() => setFocusedIndex(index)}
             onBlur={() => setFocusedIndex(-1)}
