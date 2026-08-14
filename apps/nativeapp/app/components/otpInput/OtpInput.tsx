@@ -15,8 +15,7 @@ import {
 
 import {Colors, Typography} from '../../styles';
 
-
-const DEFAULT_PIN_COUNT = 5;
+export const DEFAULT_PIN_COUNT = 5;
 
 const toDigits = (value: string | undefined, count: number) => {
   const chars = String(value ?? '')

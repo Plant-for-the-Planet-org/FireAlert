@@ -16,7 +16,10 @@ import {useCountdown} from '../../hooks';
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {CustomButton, ErrorBoundary, OtpInput} from '../../components';
-import type {OtpInputHandle} from '../../components/otpInput/OtpInput';
+import {
+  DEFAULT_PIN_COUNT,
+  type OtpInputHandle,
+} from '../../components/otpInput/OtpInput';
 import {createLogger, redactAlertMethod} from '../../utils/logger';
 import {upsertAlertMethodInCache} from '../../hooks/alertMethod/useAlertMethodCache';
 
@@ -81,6 +84,15 @@ const Otp = ({navigation, route}) => {
         hasAlertMethod: !!route?.params?.alertMethod,
       });
       return toast.show('something went wrong', {type: 'danger'});
+    }
+    // Slots can be left with a gap, which serializes to a short code. Catch
+    // it here so an incomplete token is not sent as a failed verification.
+    if (code?.length !== DEFAULT_PIN_COUNT) {
+      log.warn('handleContinue called with an incomplete code', {
+        length: code?.length ?? 0,
+        expected: DEFAULT_PIN_COUNT,
+      });
+      return toast.show('Please enter the complete code', {type: 'warning'});
     }
     log.info('verify mutate', {alertMethodId});
     verifyAlertMethod.mutate({
