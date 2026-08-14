@@ -1,6 +1,6 @@
 import type {QueryClient} from '@tanstack/react-query';
 
-import {createLogger} from '../../utils/logger';
+import {createLogger, redactAlertMethod} from '../../utils/logger';
 import {
   ALERT_METHODS_QUERY_KEY,
   type AlertMethod,
@@ -18,7 +18,7 @@ export function upsertAlertMethodInCache(
 ) {
   if (!alertMethod?.id) {
     log.warn('Skipped cache write: mutation result had no id', {
-      alertMethod,
+      alertMethod: redactAlertMethod(alertMethod),
     });
     return;
   }

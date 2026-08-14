@@ -2,7 +2,6 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -18,6 +17,13 @@ import {Colors, Typography} from '../../styles';
 
 
 const DEFAULT_PIN_COUNT = 5;
+
+const toDigits = (value: string | undefined, count: number) => {
+  const chars = String(value ?? '')
+    .slice(0, count)
+    .split('');
+  return Array.from({length: count}, (_, i) => chars[i] ?? '');
+};
 
 interface IOtpInputProps {
   code?: string | undefined;
@@ -36,11 +42,18 @@ const OtpInput = React.forwardRef<OtpInputHandle, IOtpInputProps>(
     const inputRefs = useRef<Array<TextInput | null>>([]);
     const [focusedIndex, setFocusedIndex] = useState<number>(-1);
 
-    const digits = useMemo(() => {
-      const chars = String(code ?? '')
-        .slice(0, pinCount)
-        .split('');
-      return Array.from({length: pinCount}, (_, i) => chars[i] ?? '');
+    // Slot positions are the source of truth. `code` is a gapless string, so
+    // deriving digits from it would collapse an emptied middle slot and shift
+    // every later digit left. Re-derive only when the parent supplies a value
+    // that is not our own echo, such as an external clear.
+    const [digits, setDigits] = useState<string[]>(() =>
+      toDigits(code, pinCount),
+    );
+
+    useEffect(() => {
+      setDigits(prev =>
+        prev.join('') === String(code ?? '') ? prev : toDigits(code, pinCount),
+      );
     }, [code, pinCount]);
 
     const focusField = useCallback(
@@ -53,6 +66,7 @@ const OtpInput = React.forwardRef<OtpInputHandle, IOtpInputProps>(
 
     const commit = useCallback(
       (nextDigits: string[]) => {
+        setDigits(nextDigits);
         const value = nextDigits.join('');
         onCodeChanged?.(value);
         if (value.length === pinCount) {
@@ -62,13 +76,18 @@ const OtpInput = React.forwardRef<OtpInputHandle, IOtpInputProps>(
       [onCodeChanged, onCodeFilled, pinCount],
     );
 
-    useImperativeHandle(ref, () => ({
-      focusField,
-      clear: () => {
-        onCodeChanged?.('');
-        focusField(0);
-      },
-    }));
+    useImperativeHandle(
+      ref,
+      () => ({
+        focusField,
+        clear: () => {
+          setDigits(toDigits('', pinCount));
+          onCodeChanged?.('');
+          focusField(0);
+        },
+      }),
+      [focusField, onCodeChanged, pinCount],
+    );
 
     useEffect(() => {
       const timer = setTimeout(() => focusField(0), 100);

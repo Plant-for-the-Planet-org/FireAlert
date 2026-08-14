@@ -3,7 +3,7 @@ import {ActivityIndicator, Text, TouchableOpacity, View} from 'react-native';
 
 import {TrashSolidIcon, VerificationWarning} from '../../assets/svgs';
 import {Colors} from '../../styles';
-import {styles} from '../../screens/Settings/Settings';
+import {alertMethodStyles as styles} from './styles';
 import Switch from '../switch/Switch';
 
 interface AlertMethodListItemProps {
@@ -62,6 +62,9 @@ const AlertMethodListItem = ({
             <TouchableOpacity
               style={styles.trashIcon}
               disabled={isDeleting}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${destinationText}`}
+              accessibilityState={{disabled: isDeleting, busy: isDeleting}}
               onPress={onDelete}>
               {isDeleting ? (
                 <ActivityIndicator size={'small'} color={Colors.PRIMARY} />

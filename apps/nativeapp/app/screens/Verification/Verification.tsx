@@ -14,7 +14,7 @@ import {trpc} from '../../services/trpc';
 import {useAppSelector} from '../../hooks';
 import {Colors, Typography} from '../../styles';
 import {validateEmail} from '../../utils/emailVerifier';
-import {createLogger} from '../../utils/logger';
+import {createLogger, redactAlertMethod} from '../../utils/logger';
 import {upsertAlertMethodInCache} from '../../hooks/alertMethod/useAlertMethodCache';
 import {CrossIcon, InfoIcon, PasteIcon} from '../../assets/svgs';
 import {CustomButton, FloatingInput, PhoneInput} from '../../components';
@@ -42,7 +42,10 @@ const Verification = ({navigation, route}) => {
   const createAlertPreference = trpc.alertMethod.createAlertMethod.useMutation({
     retryDelay: 3000,
     onSuccess: data => {
-      log.info('createAlertMethod onSuccess - raw response', data);
+      log.info('createAlertMethod onSuccess', {
+        status: data?.json?.status,
+        alertMethod: redactAlertMethod(data?.json?.data),
+      });
       if (
         [405, 403].includes(data?.json?.status) ||
         [405, 403].includes(data?.json?.httpStatus)
@@ -58,7 +61,7 @@ const Verification = ({navigation, route}) => {
       if (!result?.id) {
         log.error(
           'createAlertMethod succeeded but response had no usable data - not navigating to Otp',
-          {result},
+          {alertMethod: redactAlertMethod(result)},
         );
         return toast.show('something went wrong', {type: 'danger'});
       }
@@ -109,7 +112,7 @@ const Verification = ({navigation, route}) => {
           ? webhookUrl
           : newEmail,
     };
-    log.info('createAlertMethod mutate', payload);
+    log.info('createAlertMethod mutate', {method: payload.method});
     createAlertPreference.mutate({json: payload});
   };
 

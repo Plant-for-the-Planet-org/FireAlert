@@ -73,12 +73,12 @@ import {useSelector} from 'react-redux';
 import {useOneSignal} from '../../hooks/notification/useOneSignal';
 import {RootState} from '../../redux/store';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
-import {createLogger} from '../../utils/logger';
+import {createLogger, redactAlertMethod} from '../../utils/logger';
 import {
   removeAlertMethodFromCache,
   upsertAlertMethodInCache,
 } from '../../hooks/alertMethod/useAlertMethodCache';
-import {ComingSoonBadge} from './Badges';
+import {ComingSoonBadge} from '../../components/alertMethod/Badges';
 import ProtectedSitesSettings from './ProtectedSitesSettings';
 
 const log = createLogger('Settings');
@@ -173,7 +173,7 @@ const Settings = () => {
       const deviceAlertMethods = formattedAlertPreferences?.device;
       if (!deviceAlertMethods) {
         log.warn(
-          'formattedAlertPreferences.device is missing - would have crashed here before this guard',
+          'device alert methods missing in formatted preferences',
           {availableMethodKeys: Object.keys(formattedAlertPreferences ?? {})},
         );
         setDeviceAlertPreferences([]);
@@ -189,12 +189,12 @@ const Settings = () => {
         const nonFilteredData = deviceAlertMethods.filter(
           el => userId !== el?.destination || el.deviceId !== deviceId,
         );
-        nextDeviceAlertMethods = [filteredData, ...nonFilteredData].filter(
-          el => el?.deviceName !== '',
-        );
+        nextDeviceAlertMethods = [filteredData, ...nonFilteredData];
       }
 
-      setDeviceAlertPreferences(nextDeviceAlertMethods);
+      setDeviceAlertPreferences(
+        nextDeviceAlertMethods.filter(el => el?.deviceName !== ''),
+      );
     } catch (error) {
       log.error('deviceNotification failed', {message: error?.message});
       setDeviceAlertPreferences([]);
@@ -322,7 +322,7 @@ const Settings = () => {
     {
       retryDelay: 3000,
       onSuccess: res => {
-        log.info('updateAlertMethod onSuccess', res?.json?.data);
+        log.info('updateAlertMethod onSuccess', redactAlertMethod(res?.json?.data));
         upsertAlertMethodInCache(queryClient, res?.json?.data);
         const loadingArr = alertMethodLoaderArr.filter(
           el => el !== res?.json?.data?.id,
@@ -340,7 +340,7 @@ const Settings = () => {
   const verifyAlertPreference = trpc.alertMethod.sendVerification.useMutation({
     retryDelay: 3000,
     onSuccess: (data, variables) => {
-      log.info('sendVerification onSuccess - raw response', data);
+      log.info('sendVerification onSuccess', {status: data?.json?.status});
       if (data?.json?.status === 403) {
         return toast.show(data?.json?.message || 'something went wrong', {
           type: 'warning',
@@ -352,7 +352,7 @@ const Settings = () => {
       const alertMethod = matches[0];
       if (!alertMethod) {
         log.warn(
-          'No matching alertMethod found after sendVerification - would have crashed here before this guard',
+          'No matching alertMethod found after sendVerification',
           {
             alertMethodId: variables?.json?.alertMethodId,
             hadAlertPreferences: !!alertPreferences?.json?.data,
@@ -435,7 +435,7 @@ const Settings = () => {
     const alertMethodId = alertMethodData?.id;
     if (!alertMethodId) {
       log.warn('_handleVerify called with no alertMethod id', {
-        alertMethodData,
+        alertMethod: redactAlertMethod(alertMethodData),
       });
       return;
     }
@@ -1340,9 +1340,6 @@ export const styles = StyleSheet.create({
   justifyContentSpaceBetween: {
     justifyContent: 'space-between',
   },
-  marginVertical12: {
-    marginVertical: 12,
-  },
   marginLeft20: {
     marginLeft: 20,
   },
@@ -1548,28 +1545,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  mySiteNameMainContainer: {
-    marginTop: 24,
-    borderRadius: 12,
-    justifyContent: 'space-between',
-    backgroundColor: Colors.WHITE,
-    // shadow
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4.62,
-    elevation: 8,
-  },
-  mySiteNameSubContainer: {
-    paddingVertical: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-  },
   mySiteNameContainer: {
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -1617,33 +1592,6 @@ export const styles = StyleSheet.create({
     color: Colors.PLANET_DARK_GRAY,
     paddingVertical: 5,
     width: SCREEN_WIDTH / 2.5,
-  },
-  myEmailName: {
-    paddingVertical: 5,
-    maxWidth: SCREEN_WIDTH / 2,
-    color: Colors.PLANET_DARK_GRAY,
-    fontSize: Typography.FONT_SIZE_14,
-    fontFamily: Typography.FONT_FAMILY_REGULAR,
-    paddingRight: 10,
-  },
-  smallHeading: {
-    fontSize: Typography.FONT_SIZE_16,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.PLANET_DARK_GRAY,
-    paddingVertical: 5,
-    marginLeft: 12,
-  },
-  mobileContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  emailContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  emailSubContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   warningContainer: {
     borderRadius: 12,
@@ -1799,9 +1747,6 @@ export const styles = StyleSheet.create({
   btnDisabled: {
     opacity: 0.5,
   },
-  addButtonDisabled: {
-    opacity: 0.4,
-  },
   siteActionText: {
     marginLeft: 30,
     color: Colors.GRADIENT_PRIMARY,
@@ -1847,29 +1792,6 @@ export const styles = StyleSheet.create({
     height: 0.5,
     backgroundColor: '#e0e0e0',
   },
-  verifiedChipsCon: {
-    height: 45,
-    justifyContent: 'center',
-  },
-  verifiedChips: {
-    backgroundColor: '#F2994A20',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  verifiedTxt: {
-    marginLeft: 2,
-    fontSize: 8,
-    fontFamily: Typography.FONT_FAMILY_BOLD,
-    color: Colors.TEXT_COLOR,
-  },
-  trashIcon: {
-    marginLeft: 5,
-    paddingVertical: 15,
-    paddingLeft: 10,
-  },
   projectSyncInfo: {
     fontSize: 12,
     marginTop: 16,
@@ -1888,10 +1810,6 @@ export const styles = StyleSheet.create({
     color: Colors.GRAY_LIGHTEST,
     fontSize: Typography.FONT_SIZE_12,
     fontFamily: Typography.FONT_FAMILY_REGULAR,
-  },
-  deviceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   deviceTagCon: {
     backgroundColor: Colors.ORANGE,

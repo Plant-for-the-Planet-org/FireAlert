@@ -17,7 +17,7 @@ import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
 import {CustomButton, ErrorBoundary, OtpInput} from '../../components';
 import type {OtpInputHandle} from '../../components/otpInput/OtpInput';
-import {createLogger} from '../../utils/logger';
+import {createLogger, redactAlertMethod} from '../../utils/logger';
 import {upsertAlertMethodInCache} from '../../hooks/alertMethod/useAlertMethodCache';
 
 const log = createLogger('Otp');
@@ -37,7 +37,10 @@ const Otp = ({navigation, route}) => {
   const verifyAlertMethod = trpc.alertMethod.verify.useMutation({
     retryDelay: 3000,
     onSuccess: data => {
-      log.info('verify onSuccess - raw response', data);
+      log.info('verify onSuccess', {
+        status: data?.json?.status,
+        alertMethod: redactAlertMethod(data?.json?.data),
+      });
       if (data?.json?.status === 406) {
         return toast.show(data?.json?.message || 'something went wrong', {
           type: 'warning',
@@ -73,10 +76,10 @@ const Otp = ({navigation, route}) => {
   const handleContinue = () => {
     const alertMethodId = route?.params?.alertMethod?.id;
     if (!alertMethodId) {
-      log.error(
-        'handleContinue called with no alertMethod.id in route params',
-        {routeParams: route?.params},
-      );
+      log.error('handleContinue called with no alertMethod.id in route params', {
+        verificationType,
+        hasAlertMethod: !!route?.params?.alertMethod,
+      });
       return toast.show('something went wrong', {type: 'danger'});
     }
     log.info('verify mutate', {alertMethodId});

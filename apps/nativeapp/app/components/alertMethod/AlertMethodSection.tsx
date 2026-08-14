@@ -2,8 +2,8 @@ import React from 'react';
 import {Text, TouchableOpacity, View} from 'react-native';
 
 import {AddIcon} from '../../assets/svgs';
-import {DisabledBadge, DisabledNotificationInfo} from '../../screens/Settings/Badges';
-import {styles} from '../../screens/Settings/Settings';
+import {DisabledBadge, DisabledNotificationInfo} from './Badges';
+import {alertMethodStyles as styles} from './styles';
 
 interface AlertMethodSectionProps {
   icon: React.ReactNode;
