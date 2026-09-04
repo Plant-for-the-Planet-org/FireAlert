@@ -8,6 +8,9 @@ import LayerModal from './layerModal/LayerModal';
 import PhoneInput from './phoneInput/PhoneInput';
 import FloatingInput from './inputs/FloatingInput';
 import BottomSheet from './bottomSheet/BottomSheet';
+import AlertMethodSection from './alertMethod/AlertMethodSection';
+import AlertMethodListItem from './alertMethod/AlertMethodListItem';
+import ErrorBoundary from './errorBoundary/ErrorBoundary';
 
 export {
   Switch,
@@ -20,4 +23,7 @@ export {
   BottomSheet,
   CustomButton,
   FloatingInput,
+  AlertMethodSection,
+  AlertMethodListItem,
+  ErrorBoundary,
 };
