@@ -15,45 +15,47 @@ import {trpc} from '../../services/trpc';
 import {useCountdown} from '../../hooks';
 import {CrossIcon} from '../../assets/svgs';
 import {Colors, Typography} from '../../styles';
-import {CustomButton, OtpInput} from '../../components';
+import {CustomButton, ErrorBoundary, OtpInput} from '../../components';
+import {
+  DEFAULT_PIN_COUNT,
+  type OtpInputHandle,
+} from '../../components/otpInput/OtpInput';
+import {createLogger, redactAlertMethod} from '../../utils/logger';
+import {upsertAlertMethodInCache} from '../../hooks/alertMethod/useAlertMethodCache';
+
+const log = createLogger('Otp');
 
 const Otp = ({navigation, route}) => {
   const {verificationType} = route.params;
   const [code, setCode] = useState<string | undefined>('');
 
   const toast = useToast();
-  const otpInputRef = useRef();
+  const otpInputRef = useRef<OtpInputHandle>(null);
   const queryClient = useQueryClient();
   const [count, setCount] = useCountdown(30);
+
+  const goToSettings = () =>
+    navigation.navigate('BottomTab', {screen: 'Settings'});
 
   const verifyAlertMethod = trpc.alertMethod.verify.useMutation({
     retryDelay: 3000,
     onSuccess: data => {
+      log.info('verify onSuccess', {
+        status: data?.json?.status,
+        alertMethod: redactAlertMethod(data?.json?.data),
+      });
       if (data?.json?.status === 406) {
         return toast.show(data?.json?.message || 'something went wrong', {
           type: 'warning',
         });
       }
-      queryClient.setQueryData(
-        [['alertMethod', 'getAlertMethods'], {type: 'query'}],
-        oldData =>
-          oldData
-            ? {
-                ...oldData,
-                json: {
-                  ...oldData?.json,
-                  data: oldData?.json?.data?.map(item =>
-                    item.id === data?.json?.data?.id ? data?.json?.data : item,
-                  ),
-                },
-              }
-            : null,
-      );
-      navigation.navigate('Settings');
+      upsertAlertMethodInCache(queryClient, data?.json?.data);
+      goToSettings();
     },
-    onError: () => {
+    onError: error => {
+      log.error('verify onError', {message: error?.message});
       setCode('');
-      //  otpInputRef.current.focusField(1);
+      otpInputRef.current?.focusField(0);
       toast.show('something went wrong', {type: 'danger'});
     },
   });
@@ -61,20 +63,42 @@ const Otp = ({navigation, route}) => {
   const verifyAlertPreference = trpc.alertMethod.sendVerification.useMutation({
     retryDelay: 3000,
     onSuccess: () => {
+      log.info('sendVerification (resend code) onSuccess');
       setCount(30);
     },
-    onError: () => {
+    onError: error => {
+      log.error('sendVerification (resend code) onError', {
+        message: error?.message,
+      });
       toast.show('something went wrong', {type: 'danger'});
     },
   });
 
-  const handleClose = () => navigation.navigate('Settings');
+  const handleClose = () => goToSettings();
 
   const handleContinue = () => {
+    const alertMethodId = route?.params?.alertMethod?.id;
+    if (!alertMethodId) {
+      log.error('handleContinue called with no alertMethod.id in route params', {
+        verificationType,
+        hasAlertMethod: !!route?.params?.alertMethod,
+      });
+      return toast.show('something went wrong', {type: 'danger'});
+    }
+    // Slots can be left with a gap, which serializes to a short code. Catch
+    // it here so an incomplete token is not sent as a failed verification.
+    if (code?.length !== DEFAULT_PIN_COUNT) {
+      log.warn('handleContinue called with an incomplete code', {
+        length: code?.length ?? 0,
+        expected: DEFAULT_PIN_COUNT,
+      });
+      return toast.show('Please enter the complete code', {type: 'warning'});
+    }
+    log.info('verify mutate', {alertMethodId});
     verifyAlertMethod.mutate({
       json: {
         params: {
-          alertMethodId: route?.params?.alertMethod?.id,
+          alertMethodId,
         },
         body: {
           token: code,
@@ -84,8 +108,14 @@ const Otp = ({navigation, route}) => {
   };
 
   const handleGetCode = () => {
+    const alertMethodId = route?.params?.alertMethod?.id;
+    if (!alertMethodId) {
+      log.error('handleGetCode called with no alertMethod.id in route params');
+      return toast.show('something went wrong', {type: 'danger'});
+    }
+    log.info('sendVerification (resend code) mutate', {alertMethodId});
     verifyAlertPreference.mutate({
-      json: {alertMethodId: route?.params?.alertMethod?.id},
+      json: {alertMethodId},
     });
   };
 
@@ -108,11 +138,11 @@ const Otp = ({navigation, route}) => {
             </Text>
           ))}
         <View style={styles.subContainer}>
-          <OtpInput
-            code={code}
-            onCodeChanged={setCode}
-            otpInputRef={otpInputRef}
-          />
+          <ErrorBoundary
+            label="OtpInput"
+            fallbackMessage="Couldn't load the code input. Please close this screen and try again.">
+            <OtpInput code={code} onCodeChanged={setCode} ref={otpInputRef} />
+          </ErrorBoundary>
           <View style={styles.resendOtpBtn}>
             {count === 0 ? (
               verifyAlertPreference?.isLoading ? (

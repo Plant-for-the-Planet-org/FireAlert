@@ -6,6 +6,10 @@ interface PhoneNumberData {
 }
 
 export const extractCountryCode = (phoneNumber: string): PhoneNumberData => {
+  if (!phoneNumber) {
+    return {countryCode: '', remainingNumber: ''};
+  }
+
   // Define the maximum length of the country code
   const maxCountryCodeLength: number = 4;
 

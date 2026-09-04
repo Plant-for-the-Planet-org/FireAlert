@@ -1,16 +1,17 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import {styles as settingsStyles} from './Settings';
+
+import {alertMethodStyles} from './styles';
 
 export function DisabledBadge() {
   return (
     <View
       style={[
         styles.badgeMarginLeft,
-        settingsStyles.deviceTagCon,
-        settingsStyles.comingSoonCon,
+        alertMethodStyles.deviceTagCon,
+        alertMethodStyles.comingSoonCon,
       ]}>
-      <Text style={settingsStyles.deviceTag}>Disabled</Text>
+      <Text style={alertMethodStyles.deviceTag}>Disabled</Text>
     </View>
   );
 }
@@ -20,8 +21,8 @@ export function DisabledNotificationInfo(props: {method: string}) {
     <Text
       style={[
         styles.infoMerginBottom,
-        settingsStyles.commonPadding,
-        settingsStyles.desc,
+        alertMethodStyles.commonPadding,
+        alertMethodStyles.desc,
       ]}>
       Sending {props.method} notifications is currently paused.
     </Text>
@@ -30,8 +31,9 @@ export function DisabledNotificationInfo(props: {method: string}) {
 
 export function ComingSoonBadge() {
   return (
-    <View style={[settingsStyles.deviceTagCon, settingsStyles.comingSoon]}>
-      <Text style={settingsStyles.deviceTag}>Coming Soon</Text>
+    <View
+      style={[alertMethodStyles.deviceTagCon, alertMethodStyles.comingSoon]}>
+      <Text style={alertMethodStyles.deviceTag}>Coming Soon</Text>
     </View>
   );
 }

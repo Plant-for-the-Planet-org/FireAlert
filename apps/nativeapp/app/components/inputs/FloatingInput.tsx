@@ -111,7 +111,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   verifierInput: {
-    width: 240,
+    flex: 1,
+    marginRight: 10,
   },
   verified: {
     width: 15,

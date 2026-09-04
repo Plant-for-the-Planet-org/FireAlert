@@ -8,10 +8,11 @@ type NewResStructure = {
 
 export function categorizedRes(data: Array<ResStructure>, typeKey: string) {
   const newObj: NewResStructure = {};
-  data
+  const validData = data.filter(item => item != null);
+  validData
     .map(item => item[typeKey])
     .forEach(method => {
-      const filteredData = data?.filter(item => item[typeKey] === method);
+      const filteredData = validData.filter(item => item[typeKey] === method);
       newObj[String(method).toLowerCase()] = filteredData;
     });
   return newObj;
