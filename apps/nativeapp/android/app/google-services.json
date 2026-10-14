@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "672997944590",
+    "project_id": "firealert-2022",
+    "storage_bucket": "firealert-2022.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:672997944590:android:b0eb3cc923743a76c0bb5f",
+        "android_client_info": {
+          "package_name": "eco.pp.firealert"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKs5ErpYi1CklG7dM9uJM73LqyjCjFfSM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

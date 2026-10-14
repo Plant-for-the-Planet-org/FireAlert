@@ -20,7 +20,7 @@
 ## Authentication & Notifications
 
 - **Authentication**: Auth0 React Native SDK
-- **Push Notifications**: OneSignal React Native
+- **Push Notifications**: Firebase Cloud Messaging (`@react-native-firebase/messaging` 25.x) with Notifee for permission, Android channel and foreground banners
 
 ## Date & Time
 
@@ -67,9 +67,11 @@ yarn nativeapp ios
 
 ### Push Notifications
 
-- **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification services in mobile app. Enables device registration and push notification delivery to users.
-  - **Production**: `b2d812fb-af59-4745-a588-c55c5fe197f1` (current active)
-  - **Local/Development**: `fa495a1f-8f09-49b7-a92f-6e429ee76e5e` (alternative for testing)
+- No `.env` value is needed. Firebase config comes from native files:
+  - Android: `android/app/google-services.json`
+  - iOS: `ios/FireAlert/GoogleService-Info.plist`
+- The app registers its FCM token as a `device` alert method with `pushProvider: FCM`.
+- `ONESIGNAL_APP_ID` was removed. Older app versions still use OneSignal until users update.
 
 ### Mapping Services
 

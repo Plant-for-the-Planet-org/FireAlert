@@ -1,10 +1,10 @@
-import type {NotificationClickEvent} from 'react-native-onesignal';
 import {CommonActions} from '@react-navigation/native';
 
 import {DEEP_LINK_HOST, DEEP_LINK_SCHEME, linking} from './linkingConfig';
 import {navigationRef} from './navigationRef';
+import type {NotificationOpenPayload} from '../../services/PushNotification/types';
 
-let _pendingEvent: NotificationClickEvent | null = null;
+let _pendingEvent: NotificationOpenPayload | null = null;
 
 const stripPrefix = (url: string): string => {
   for (const prefix of linking.prefixes) {
@@ -47,24 +47,15 @@ const urlFromAdditionalData = (
 };
 
 /**
- * Routes a OneSignal notification click to the correct in-app screen by
- * turning its URL (or `additionalData`) into a navigation state via the
+ * Routes a push notification tap (FCM / Notifee) to the correct in-app screen
+ * by turning its URL (or data payload) into a navigation state via the
  * shared linking config, then applying it to the navigation container.
- *
- * OneSignal's `suppressLaunchURLs` is enabled on Android so the SDK does
- * not open the URL in a browser — we own the routing here.
  *
  * If the NavigationContainer is not yet ready (cold start), the event is
  * queued and replayed via flushPendingNotification() once nav is ready.
  */
-export const handleNotificationOpen = (event: NotificationClickEvent) => {
-  const notification = event.notification;
-  const launchUrl = (notification as unknown as {launchURL?: string}).launchURL;
-  const additionalData = notification.additionalData as
-    | Record<string, unknown>
-    | undefined;
-
-  const url = launchUrl || urlFromAdditionalData(additionalData);
+export const handleNotificationOpen = (event: NotificationOpenPayload) => {
+  const url = event.url || urlFromAdditionalData(event.data);
   if (!url) {
     return;
   }

@@ -13,7 +13,7 @@ apps/nativeapp/
 │   │   ├── actions/        # Redux action types
 │   │   └── reducers/       # Context providers
 │   ├── hooks/              # Custom React hooks
-│   │   ├── notification/   # OneSignal and app linking hooks
+│   │   ├── notification/   # Push notification and app linking hooks
 │   │   ├── redux/          # Redux hooks
 │   │   └── timer/          # Timer utilities
 │   ├── redux/              # Redux store and slices

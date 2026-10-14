@@ -7,12 +7,18 @@ import {
   type LimitAlertMethodBasedOnPlanProps,
 } from '../../Interfaces/AlertMethod';
 import {generate5DigitOTP} from '../notification/otp';
-import {type AlertMethod, type Prisma, type PrismaClient} from '@prisma/client';
+import {
+  type AlertMethod,
+  type Prisma,
+  type PrismaClient,
+  PushProvider,
+} from '@prisma/client';
 import {env} from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import {prisma} from '../../server/db';
 import {sendEmailVerificationCode} from '../notification/userEmails';
 import {logger} from '../../server/logger';
+import {getFirebaseMessaging} from '../../server/firebaseAdmin';
 
 export const limitSpecificAlertMethodPerUser = async ({
   ctx,
@@ -281,6 +287,7 @@ export function returnAlertMethod(alertMethod: AlertMethod) {
     destination: alertMethod.destination,
     deviceName: alertMethod.deviceName,
     deviceId: alertMethod.deviceId,
+    pushProvider: alertMethod.pushProvider,
     isEnabled: alertMethod.isEnabled,
     isVerified: alertMethod.isVerified,
     lastTokenSentDate: alertMethod.lastTokenSentDate,
@@ -295,6 +302,35 @@ export interface VerificationResponse {
 }
 
 export const deviceVerification = async (
+  destination: string,
+  pushProvider: PushProvider = PushProvider.ONESIGNAL,
+): Promise<boolean> => {
+  if (pushProvider === PushProvider.FCM) {
+    return fcmTokenVerification(destination);
+  }
+  return oneSignalPlayerVerification(destination);
+};
+
+// Checks that the FCM token is valid for our Firebase project with a
+// dry-run send. Nothing is delivered to the device.
+const fcmTokenVerification = async (token: string): Promise<boolean> => {
+  const messaging = getFirebaseMessaging();
+  if (!messaging) {
+    logger(`Push notifications are disabled: FCM is not configured`, 'warn');
+    return false;
+  }
+
+  try {
+    await messaging.send({token}, true);
+    return true;
+  } catch (error) {
+    const code = (error as {code?: string})?.code ?? 'unknown';
+    logger(`FCM token verification failed: ${code}`, 'warn');
+    return false;
+  }
+};
+
+const oneSignalPlayerVerification = async (
   destination: string,
 ): Promise<boolean> => {
   // Check if OneSignal is configured
@@ -380,3 +416,54 @@ export const handlePendingVerification = async (
     };
   }
 };
+
+/**
+ * Inactivates (soft-deletes) device rows that the row `keep` now replaces.
+ * Called only after `keep` exists, so a device always has an active row,
+ * even when FCM verification fails.
+ * - Same user and deviceId, other destination: an older token on this device
+ *   (OneSignal ID before the FCM upgrade, or an old FCM token).
+ * - Other users with the same destination or deviceId: account switch.
+ * Rows are never hard-deleted here, so they stay as an audit trail.
+ */
+export async function retireReplacedDeviceRows(
+  prismaClient: PrismaClient,
+  keep: AlertMethod,
+): Promise<void> {
+  if (keep.method !== 'device') {
+    return;
+  }
+
+  // Never filter on an undefined deviceId: Prisma would treat it as "match all".
+  const sameDevice = keep.deviceId ? [{deviceId: keep.deviceId}] : [];
+  const candidates = await prismaClient.alertMethod.findMany({
+    where: {
+      id: {not: keep.id},
+      method: 'device',
+      deletedAt: null,
+      OR: [{destination: keep.destination}, ...sameDevice],
+    },
+  });
+  if (candidates.length === 0) {
+    return;
+  }
+
+  await prismaClient.alertMethod.updateMany({
+    where: {id: {in: candidates.map(row => row.id)}},
+    data: {deletedAt: new Date()},
+  });
+
+  for (const row of candidates) {
+    const isSameUser = row.userId === keep.userId;
+    const oldProvider = row.pushProvider ?? PushProvider.ONESIGNAL;
+    const reason = !isSameUser
+      ? 'account_switch'
+      : oldProvider !== keep.pushProvider
+        ? 'onesignal_to_fcm'
+        : 'token_changed';
+    logger(
+      `stage=PushMigration event=device_row_inactivated reason=${reason} note="old device row soft-deleted (kept for audit) because a newer row replaced it" user_id=${row.userId} device_id=${row.deviceId ?? 'none'} old_alert_method_id=${row.id} old_provider=${oldProvider} old_destination=${row.destination.substring(0, 12)}... new_alert_method_id=${keep.id} new_user_id=${keep.userId} new_provider=${keep.pushProvider ?? PushProvider.ONESIGNAL}`,
+      'info',
+    );
+  }
+}

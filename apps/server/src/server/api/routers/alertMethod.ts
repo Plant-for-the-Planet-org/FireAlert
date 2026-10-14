@@ -1,4 +1,5 @@
 import {TRPCError} from '@trpc/server';
+import {PushProvider} from '@prisma/client';
 import {parsePhoneNumberFromString} from 'libphonenumber-js';
 import type {UserPlan} from '../../../../src/Interfaces/AlertMethod';
 import {env} from '../../../../src/env.mjs';
@@ -11,6 +12,7 @@ import {
   findVerificationRequest,
   handlePendingVerification,
   limitAlertMethodBasedOnPlan,
+  retireReplacedDeviceRows,
   returnAlertMethod,
 } from '../../../utils/routers/alertMethod';
 import {createTRPCRouter, protectedProcedure, publicProcedure} from '../trpc';
@@ -150,6 +152,7 @@ export const alertMethodRouter = createTRPCRouter({
             deletedAt: null,
           },
         });
+        await retireReplacedDeviceRows(ctx.prisma, updatedAlertMethod);
         return {
           status: 'success',
           message: 'Deleted alertMethod has been restored',
@@ -158,6 +161,7 @@ export const alertMethodRouter = createTRPCRouter({
       }
       // If existing alertMethod hasn't been soft deleted, but exists, then return sucess
       if (existingAlertMethod) {
+        await retireReplacedDeviceRows(ctx.prisma, existingAlertMethod);
         return {
           status: 'success',
           message: 'AlertMethod already exists',
@@ -176,42 +180,13 @@ export const alertMethodRouter = createTRPCRouter({
       // If the alertMethod method is device then try deviceVerification, if it fails, throw an error, if it succeds create alertMethod
 
       // If a user Logs out and logs in with a new user on the same device, the destination does not change. This results in multiple alertMethods with the same destination.
-      // To fix this, we should remove the AlertMethod from the previous user and add it to the new user.
+      // To fix this, the previous user's AlertMethod is inactivated (soft-deleted) after the new one is created.
       if (input.method === 'device') {
-        const isDeviceVerified = await deviceVerification(input.destination);
+        const isDeviceVerified = await deviceVerification(
+          input.destination,
+          input.pushProvider,
+        );
         if (isDeviceVerified) {
-          // Check if the destination (PlayerID) already exists in the table
-          // Retrieve alert methods that match the destination or (userId and deviceName)
-          const existingAlertMethods = await ctx.prisma.alertMethod.findMany({
-            where: {
-              OR: [
-                {destination: input.destination},
-                // Checks for duplicates by deviceId for all devices (returns duplicate ios devices)
-                {deviceId: input.deviceId},
-                // Checks for devices with the same name but different deviceId for the same user
-                // We need NOT on deviceId to prevent selecting ios devices (ios deviceNames are not unique)
-                // (returns duplicate android devices)
-                {
-                  AND: [
-                    {userId: userId},
-                    {deviceName: input.deviceName},
-                    {deviceId: {not: input.deviceId}},
-                  ],
-                },
-              ],
-            },
-          });
-
-          // If it does exist and is associated with a different userId, delete it
-          for (const existingAlertMethod of existingAlertMethods) {
-            if (existingAlertMethod.userId !== userId) {
-              await ctx.prisma.alertMethod.delete({
-                where: {
-                  id: existingAlertMethod.id,
-                },
-              });
-            }
-          }
           // Now finally add the alertMethod to the user
           const alertMethod = await ctx.prisma.alertMethod.create({
             data: {
@@ -219,11 +194,18 @@ export const alertMethodRouter = createTRPCRouter({
               destination: input.destination,
               deviceName: input.deviceName,
               deviceId: input.deviceId,
+              pushProvider: input.pushProvider ?? PushProvider.ONESIGNAL,
               isVerified: true,
               isEnabled: true,
               userId: userId,
             },
           });
+
+          // Inactivate older rows for this device (old token, OneSignal ID,
+          // or another user's row after an account switch). Done after the
+          // create so the device is never left without an active row.
+          await retireReplacedDeviceRows(ctx.prisma, alertMethod);
+
           return {
             status: 'success',
             message:

@@ -1,5 +1,14 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {
+  JSX,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  AppState,
+  Linking,
   Platform,
   View,
   Text,
@@ -10,37 +19,138 @@ import {
 import DeviceInfo from 'react-native-device-info';
 import SpInAppUpdates, {
   IAUUpdateKind,
+  IosNeedsUpdateResponse,
   StartUpdateOptions,
 } from 'sp-react-native-in-app-updates';
+import {Colors, Typography} from '../styles';
 
 const inAppUpdates = new SpInAppUpdates(false);
 
-export async function promptAppUpdateOnInit() {
-  try {
-    const currentVersion = DeviceInfo.getVersion();
-    console.log('Checking for app update. Current version:', currentVersion);
+const ANDROID_STORE_URL = `market://details?id=${DeviceInfo.getBundleId()}`;
 
-    const installer = await DeviceInfo.getInstallerPackageName();
-    console.log('installer', installer);
-    // if (Platform.OS === 'android' && installer === 'com.android.vending') {
-    // safe to call checkNeedsUpdate
-    const result = await inAppUpdates.checkNeedsUpdate({
-      curVersion: currentVersion,
-    });
-    console.log('checkNeedsUpdate result:', result);
+/**
+ * Mandatory update gate. Starting with 1.10.0, any newer version in the
+ * store must be installed before the app can be used.
+ *
+ * - Checks the store on launch and whenever the app comes back to the
+ *   foreground.
+ * - Android: starts Google Play's IMMEDIATE update flow once per launch.
+ * - Both platforms: shows a full-screen "Update required" screen on top of
+ *   the app, with no way to dismiss it. The only action opens the update.
+ * - If the check itself fails (offline, sideloaded or debug build, store
+ *   unreachable), the app stays usable, so a store outage never locks
+ *   users out.
+ */
+export function ForceUpdateGate(): JSX.Element | null {
+  const [storeUrl, setStoreUrl] = useState<string | null>(null);
+  const [isRequired, setIsRequired] = useState(false);
+  const autoStartedRef = useRef(false);
 
-    if (result.shouldUpdate) {
-      let updateOptions: StartUpdateOptions = {};
+  const startUpdate = useCallback(async (url: string | null) => {
+    try {
       if (Platform.OS === 'android') {
-        updateOptions = {updateType: IAUUpdateKind.IMMEDIATE};
+        await inAppUpdates.startUpdate({updateType: IAUUpdateKind.IMMEDIATE});
+        return;
       }
-      await inAppUpdates.startUpdate(updateOptions);
+    } catch (e) {
+      console.log('ForceUpdateGate startUpdate error:', e);
     }
-    // }
-  } catch (e) {
-    console.log('promptAppUpdateOnInit error:', e);
+    // iOS, or Android when the Play flow is not available.
+    Linking.openURL(url ?? ANDROID_STORE_URL).catch(e =>
+      console.log('ForceUpdateGate openURL error:', e),
+    );
+  }, []);
+
+  const check = useCallback(async () => {
+    try {
+      const result = await inAppUpdates.checkNeedsUpdate({
+        curVersion: DeviceInfo.getVersion(),
+      });
+      if (!result.shouldUpdate) {
+        return;
+      }
+      const url =
+        Platform.OS === 'ios'
+          ? (result as IosNeedsUpdateResponse).other?.trackViewUrl ?? null
+          : ANDROID_STORE_URL;
+      setStoreUrl(url);
+      setIsRequired(true);
+      if (Platform.OS === 'android' && !autoStartedRef.current) {
+        autoStartedRef.current = true;
+        startUpdate(url);
+      }
+    } catch (e) {
+      console.log('ForceUpdateGate check error:', e);
+    }
+  }, [startUpdate]);
+
+  useEffect(() => {
+    check();
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        check();
+      }
+    });
+    return () => sub.remove();
+  }, [check]);
+
+  if (!isRequired) {
+    return null;
   }
+
+  return (
+    <View style={gateStyles.overlay}>
+      <Text style={gateStyles.title}>Update required</Text>
+      <Text style={gateStyles.message}>
+        A new version of FireAlert is available. Please update to keep getting
+        fire alerts.
+      </Text>
+      <TouchableOpacity
+        accessibilityRole="button"
+        onPress={() => startUpdate(storeUrl)}
+        style={gateStyles.button}>
+        <Text style={gateStyles.buttonText}>Update now</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
+
+const gateStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 9999,
+    elevation: 9999,
+    backgroundColor: Colors.WHITE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  title: {
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    fontSize: Typography.FONT_SIZE_22,
+    color: Colors.TEXT_COLOR,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  message: {
+    fontFamily: Typography.FONT_FAMILY_REGULAR,
+    fontSize: Typography.FONT_SIZE_16,
+    color: Colors.TEXT_COLOR,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  button: {
+    backgroundColor: Colors.PRIMARY,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+  },
+  buttonText: {
+    fontFamily: Typography.FONT_FAMILY_BOLD,
+    fontSize: Typography.FONT_SIZE_16,
+    color: Colors.WHITE,
+  },
+});
 
 export function PromptInAppUpdatePanel(): JSX.Element {
   const [currentVersion, setCurrentVersion] = useState<string>('');

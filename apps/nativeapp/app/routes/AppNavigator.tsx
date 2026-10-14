@@ -16,17 +16,14 @@ import {CommonStack, SignInStack} from './stack';
 import {getData} from '../utils/localStorage';
 import {refreshAccessToken, forceLogout} from '../utils/auth';
 import {useAppDispatch, useAppSelector} from '../hooks/redux/reduxHooks';
-import {OneSignalProvider} from '../hooks/notification/useOneSignal';
+import {PushNotificationProvider} from '../hooks/notification/usePushNotification';
 import {
   flushPendingNotification,
   handleNotificationOpen,
   linking,
   navigationRef,
 } from '../utils/linking';
-import {Config} from '../../config';
-import {NotificationHandlers} from '../services/OneSignal';
-
-const onesignalAppId = Config.ONESIGNAL_APP_ID || '';
+import {NotificationHandlers} from '../services/PushNotification';
 
 export default function AppNavigator() {
   const {isLoggedIn, sessionExpired} = useAppSelector(
@@ -38,9 +35,8 @@ export default function AppNavigator() {
 
   const notificationHandlers = React.useMemo<NotificationHandlers>(
     () => ({
-      onReceived: _notification => {},
-      onOpened: openResult => {
-        handleNotificationOpen(openResult);
+      onOpened: payload => {
+        handleNotificationOpen(payload);
       },
     }),
     [],
@@ -153,9 +149,9 @@ export default function AppNavigator() {
       ref={navigationRef}
       linking={linking}
       onReady={flushPendingNotification}>
-      <OneSignalProvider appId={onesignalAppId} handlers={notificationHandlers}>
+      <PushNotificationProvider handlers={notificationHandlers}>
         {isLoggedIn ? <CommonStack /> : <SignInStack />}
-      </OneSignalProvider>
+      </PushNotificationProvider>
     </NavigationContainer>
   );
 }

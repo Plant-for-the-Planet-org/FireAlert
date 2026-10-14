@@ -1,5 +1,5 @@
 import useCountdown from './timer/useCountdown';
-import {useOneSignal} from './notification/useOneSignal';
+import {usePushNotification} from './notification/usePushNotification';
 import {useAppDispatch, useAppSelector} from './redux/reduxHooks';
 
-export {useCountdown, useAppDispatch, useAppSelector, useOneSignal};
+export {useCountdown, useAppDispatch, useAppSelector, usePushNotification};

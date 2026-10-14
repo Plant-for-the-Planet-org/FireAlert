@@ -12,11 +12,9 @@ import AppNavigator from './routes/AppNavigator';
 import {MapLayerProvider} from './global/reducers/mapLayers';
 import {BottomBarProvider} from './global/reducers/bottomBar';
 import {Config} from '../config';
-import {promptAppUpdateOnInit} from './utils/PromptInAppUpdate';
+import {ForceUpdateGate} from './utils/PromptInAppUpdate';
 
 MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
-
-promptAppUpdateOnInit();
 
 function App(): JSX.Element {
   return (
@@ -42,6 +40,7 @@ function App(): JSX.Element {
           </BottomSheetModalProvider>
         </ToastProvider>
       </Auth0Provider>
+      <ForceUpdateGate />
     </GestureHandlerRootView>
   );
 }

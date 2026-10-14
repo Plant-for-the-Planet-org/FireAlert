@@ -70,7 +70,7 @@ import {extractCountryCode} from '../../utils/countryCodeFilter';
 import {POINT_RADIUS_ARR, RADIUS_ARR, WEB_URLS} from '../../constants';
 import {useNavigation} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
-import {useOneSignal} from '../../hooks/notification/useOneSignal';
+import {usePushNotification} from '../../hooks/notification/usePushNotification';
 import {RootState} from '../../redux/store';
 import {categorizedRes, groupSitesAsProject} from '../../utils/filters';
 import {createLogger, redactAlertMethod} from '../../utils/logger';
@@ -91,7 +91,7 @@ const IS_ANDROID = Platform.OS === 'android';
 const Settings = () => {
   const navigation = useNavigation();
   const {alertMethods} = useSelector((state: RootState) => state.settingsSlice);
-  const {state: oneSignalState} = useOneSignal();
+  const {state: pushState} = usePushNotification();
 
   const [siteId, setSiteId] = useState<string | null>('');
   const [pageXY, setPageXY] = useState<object | null>(null);
@@ -163,7 +163,7 @@ const Settings = () => {
   const deviceNotification = useCallback(async () => {
     try {
       const {deviceId} = await getDeviceInfo();
-      const userId = oneSignalState?.userId ?? null;
+      const userId = pushState?.token ?? null;
 
       if (userId == null) {
         setDeviceAlertPreferences([]);
@@ -201,7 +201,7 @@ const Settings = () => {
     }
   }, [
     formattedAlertPreferences,
-    oneSignalState?.userId,
+    pushState?.token,
     setDeviceAlertPreferences,
   ]);
 
