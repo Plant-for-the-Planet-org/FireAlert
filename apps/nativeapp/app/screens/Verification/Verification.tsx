@@ -140,7 +140,7 @@ const Verification = ({navigation, route}) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle={'dark-content'} backgroundColor={Colors.WHITE} />
+      <StatusBar barStyle={'dark-content'} />
       <KeyboardAvoidingView
         {...(Platform.OS === 'ios' ? {behavior: 'padding'} : {})}
         style={styles.container}>
