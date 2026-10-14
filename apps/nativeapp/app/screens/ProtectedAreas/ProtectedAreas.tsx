@@ -42,7 +42,6 @@ const ProtectedAreas = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar
         barStyle={'dark-content'}
-        backgroundColor={Colors.TRANSPARENT}
       />
       <View style={[styles.headingContainer, styles.commonPadding]}>
         {/* <Text style={styles.mainHeading}>Protected Areas</Text> */}

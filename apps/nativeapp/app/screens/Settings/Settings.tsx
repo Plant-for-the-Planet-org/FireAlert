@@ -586,7 +586,6 @@ const Settings = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar
         barStyle={'dark-content'}
-        backgroundColor={Colors.TRANSPARENT}
       />
       <ScrollView
         contentContainerStyle={styles.scrollContainer}

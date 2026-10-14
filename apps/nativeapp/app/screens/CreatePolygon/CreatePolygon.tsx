@@ -393,11 +393,7 @@ const CreatePolygon = () => {
     <View style={styles.container}>
       <StatusBar
         animated
-        translucent
         barStyle={siteNameModalVisible ? 'dark-content' : 'light-content'}
-        backgroundColor={
-          siteNameModalVisible ? Colors.WHITE : Colors.TRANSPARENT
-        }
       />
       <Map
         map={map}
