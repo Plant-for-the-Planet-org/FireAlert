@@ -8,7 +8,8 @@ apps/nativeapp/
 │   ├── api/                # API configuration (axios, tRPC)
 │   ├── assets/             # Images, fonts, SVGs, animations
 │   ├── components/         # Reusable UI components
-│   ├── constants/          # App constants (country codes, URLs)
+│   ├── constants/          # App constants (country codes, web and store URLs)
+│   ├── contexts/           # React contexts (PushNotificationContext: FCM state, taps, foreground banners)
 │   ├── global/             # Global state management
 │   │   ├── actions/        # Redux action types
 │   │   └── reducers/       # Context providers
@@ -19,9 +20,11 @@ apps/nativeapp/
 │   ├── redux/              # Redux store and slices
 │   ├── routes/             # Navigation configuration
 │   ├── screens/            # Screen components
-│   ├── services/           # tRPC client configuration
+│   ├── services/           # Service layer
+│   │   ├── trpc.tsx        # tRPC client configuration
+│   │   └── PushNotification/ # FCM + Notifee state manager, device sync logic, types
 │   ├── styles/             # Theme, colors, typography
-│   └── utils/              # Utility functions
+│   └── utils/              # Utility functions (incl. PromptInAppUpdate: mandatory update gate)
 ├── android/                # Android-specific configuration
 ├── ios/                    # iOS-specific configuration
 └── __tests__/              # Test files

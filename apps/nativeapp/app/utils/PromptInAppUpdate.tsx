@@ -19,14 +19,15 @@ import {
 import DeviceInfo from 'react-native-device-info';
 import SpInAppUpdates, {
   IAUUpdateKind,
-  IosNeedsUpdateResponse,
   StartUpdateOptions,
 } from 'sp-react-native-in-app-updates';
 import {Colors, Typography} from '../styles';
+import {WEB_URLS} from '../constants/webUrls';
 
 const inAppUpdates = new SpInAppUpdates(false);
 
-const ANDROID_STORE_URL = `market://details?id=${DeviceInfo.getBundleId()}`;
+const STORE_URL =
+  Platform.OS === 'ios' ? WEB_URLS.APP_STORE : WEB_URLS.PLAY_STORE;
 
 /**
  * Mandatory update gate. Starting with 1.10.0, any newer version in the
@@ -42,11 +43,10 @@ const ANDROID_STORE_URL = `market://details?id=${DeviceInfo.getBundleId()}`;
  *   users out.
  */
 export function ForceUpdateGate(): JSX.Element | null {
-  const [storeUrl, setStoreUrl] = useState<string | null>(null);
   const [isRequired, setIsRequired] = useState(false);
   const autoStartedRef = useRef(false);
 
-  const startUpdate = useCallback(async (url: string | null) => {
+  const startUpdate = useCallback(async () => {
     try {
       if (Platform.OS === 'android') {
         await inAppUpdates.startUpdate({updateType: IAUUpdateKind.IMMEDIATE});
@@ -56,7 +56,7 @@ export function ForceUpdateGate(): JSX.Element | null {
       console.log('ForceUpdateGate startUpdate error:', e);
     }
     // iOS, or Android when the Play flow is not available.
-    Linking.openURL(url ?? ANDROID_STORE_URL).catch(e =>
+    Linking.openURL(STORE_URL).catch(e =>
       console.log('ForceUpdateGate openURL error:', e),
     );
   }, []);
@@ -69,15 +69,10 @@ export function ForceUpdateGate(): JSX.Element | null {
       if (!result.shouldUpdate) {
         return;
       }
-      const url =
-        Platform.OS === 'ios'
-          ? (result as IosNeedsUpdateResponse).other?.trackViewUrl ?? null
-          : ANDROID_STORE_URL;
-      setStoreUrl(url);
       setIsRequired(true);
       if (Platform.OS === 'android' && !autoStartedRef.current) {
         autoStartedRef.current = true;
-        startUpdate(url);
+        startUpdate();
       }
     } catch (e) {
       console.log('ForceUpdateGate check error:', e);
@@ -107,7 +102,7 @@ export function ForceUpdateGate(): JSX.Element | null {
       </Text>
       <TouchableOpacity
         accessibilityRole="button"
-        onPress={() => startUpdate(storeUrl)}
+        onPress={startUpdate}
         style={gateStyles.button}>
         <Text style={gateStyles.buttonText}>Update now</Text>
       </TouchableOpacity>
