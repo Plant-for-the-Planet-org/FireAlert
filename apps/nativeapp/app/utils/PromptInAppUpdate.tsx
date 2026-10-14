@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import SpInAppUpdates, {
+  AndroidNeedsUpdateResponse,
+  IAUAvailabilityStatus,
   IAUUpdateKind,
   StartUpdateOptions,
 } from 'sp-react-native-in-app-updates';
@@ -73,6 +75,17 @@ export function ForceUpdateGate({
       const result = await inAppUpdates.checkNeedsUpdate({
         curVersion: DeviceInfo.getVersion(),
       });
+      // Android: an update started earlier but not finished reports
+      // shouldUpdate=false. Keep the gate up. The library cannot resume it,
+      // so "Update now" falls back to the Play Store listing.
+      const isAndroidUpdateInProgress =
+        Platform.OS === 'android' &&
+        (result as AndroidNeedsUpdateResponse).other?.updateAvailability ===
+          IAUAvailabilityStatus.DEVELOPER_TRIGGERED;
+      if (isAndroidUpdateInProgress) {
+        setIsRequired(true);
+        return;
+      }
       if (!result.shouldUpdate) {
         return;
       }
@@ -106,19 +119,22 @@ export function ForceUpdateGate({
       </View>
       {isRequired && (
         <View style={gateStyles.overlay} accessibilityViewIsModal>
-          <Text accessibilityRole="header" style={gateStyles.title}>
-            Update required
-          </Text>
-          <Text style={gateStyles.message}>
-            A new version of FireAlert is available. Please update to keep
-            getting fire alerts.
-          </Text>
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={startUpdate}
-            style={gateStyles.button}>
-            <Text style={gateStyles.buttonText}>Update now</Text>
-          </TouchableOpacity>
+          {/* Scrolls so "Update now" stays reachable with large text sizes. */}
+          <ScrollView contentContainerStyle={gateStyles.overlayContent}>
+            <Text accessibilityRole="header" style={gateStyles.title}>
+              Update required
+            </Text>
+            <Text style={gateStyles.message}>
+              A new version of FireAlert is available. Please update to keep
+              getting fire alerts.
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={startUpdate}
+              style={gateStyles.button}>
+              <Text style={gateStyles.buttonText}>Update now</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       )}
     </View>
@@ -134,9 +150,13 @@ const gateStyles = StyleSheet.create({
     zIndex: 9999,
     elevation: 9999,
     backgroundColor: Colors.WHITE,
+  },
+  overlayContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
+    paddingVertical: 48,
   },
   title: {
     fontFamily: Typography.FONT_FAMILY_BOLD,
