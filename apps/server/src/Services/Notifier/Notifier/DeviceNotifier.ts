@@ -84,7 +84,9 @@ class DeviceNotifier implements Notifier {
 
   private async getPushProvider(destination: string): Promise<PushProvider> {
     const alertMethod = await prisma.alertMethod.findFirst({
-      where: {destination, method: NOTIFICATION_METHOD.DEVICE},
+      // Active rows only: a soft-deleted row with the same token may
+      // have a different provider.
+      where: {destination, method: NOTIFICATION_METHOD.DEVICE, deletedAt: null},
       select: {pushProvider: true},
     });
     // NULL = row created before FCM existed, so it is a OneSignal ID.

@@ -423,7 +423,9 @@ export const handlePendingVerification = async (
  * even when FCM verification fails.
  * - Same user and deviceId, other destination: an older token on this device
  *   (OneSignal ID before the FCM upgrade, or an old FCM token).
- * - Other users with the same destination or deviceId: account switch.
+ * - Other users with the same destination: account switch. deviceId is
+ *   sent by the client and not verified, so it only matches this user's
+ *   own rows. Otherwise any user could retire another user's device.
  * Rows are never hard-deleted here, so they stay as an audit trail.
  */
 export async function retireReplacedDeviceRows(
@@ -435,7 +437,9 @@ export async function retireReplacedDeviceRows(
   }
 
   // Never filter on an undefined deviceId: Prisma would treat it as "match all".
-  const sameDevice = keep.deviceId ? [{deviceId: keep.deviceId}] : [];
+  const sameDevice = keep.deviceId
+    ? [{deviceId: keep.deviceId, userId: keep.userId}]
+    : [];
   const candidates = await prismaClient.alertMethod.findMany({
     where: {
       id: {not: keep.id},

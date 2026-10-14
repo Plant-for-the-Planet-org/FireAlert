@@ -41,8 +41,15 @@ const STORE_URL =
  * - If the check itself fails (offline, sideloaded or debug build, store
  *   unreachable), the app stays usable, so a store outage never locks
  *   users out.
+ * - Wraps the app: while an update is required, the app below is hidden
+ *   from screen readers, so only the gate can be reached. The app tree
+ *   stays mounted, so nothing restarts when the gate appears.
  */
-export function ForceUpdateGate(): JSX.Element | null {
+export function ForceUpdateGate({
+  children,
+}: {
+  children: React.ReactNode;
+}): JSX.Element {
   const [isRequired, setIsRequired] = useState(false);
   const autoStartedRef = useRef(false);
 
@@ -89,28 +96,39 @@ export function ForceUpdateGate(): JSX.Element | null {
     return () => sub.remove();
   }, [check]);
 
-  if (!isRequired) {
-    return null;
-  }
-
   return (
-    <View style={gateStyles.overlay}>
-      <Text style={gateStyles.title}>Update required</Text>
-      <Text style={gateStyles.message}>
-        A new version of FireAlert is available. Please update to keep getting
-        fire alerts.
-      </Text>
-      <TouchableOpacity
-        accessibilityRole="button"
-        onPress={startUpdate}
-        style={gateStyles.button}>
-        <Text style={gateStyles.buttonText}>Update now</Text>
-      </TouchableOpacity>
+    <View style={gateStyles.container}>
+      <View
+        style={gateStyles.container}
+        accessibilityElementsHidden={isRequired}
+        importantForAccessibility={isRequired ? 'no-hide-descendants' : 'auto'}>
+        {children}
+      </View>
+      {isRequired && (
+        <View style={gateStyles.overlay} accessibilityViewIsModal>
+          <Text accessibilityRole="header" style={gateStyles.title}>
+            Update required
+          </Text>
+          <Text style={gateStyles.message}>
+            A new version of FireAlert is available. Please update to keep
+            getting fire alerts.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={startUpdate}
+            style={gateStyles.button}>
+            <Text style={gateStyles.buttonText}>Update now</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
 
 const gateStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 9999,

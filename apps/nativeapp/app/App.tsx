@@ -19,28 +19,29 @@ MapboxGL.setAccessToken(Config.MAPBOXGL_ACCCESS_TOKEN);
 function App(): JSX.Element {
   return (
     <GestureHandlerRootView style={styles.container}>
-      <Auth0Provider
-        domain={Config.AUTH0_DOMAIN}
-        clientId={Config.AUTH0_CLIENT_ID}>
-        <ToastProvider
-          duration={2000}
-          offsetBottom={100}
-          placement={'bottom'}
-          animationType="zoom-in">
-          <BottomSheetModalProvider>
-            <BottomBarProvider>
-              <TRPCProvider>
-                <Provider store={store}>
-                  <MapLayerProvider>
-                    <AppNavigator />
-                  </MapLayerProvider>
-                </Provider>
-              </TRPCProvider>
-            </BottomBarProvider>
-          </BottomSheetModalProvider>
-        </ToastProvider>
-      </Auth0Provider>
-      <ForceUpdateGate />
+      <ForceUpdateGate>
+        <Auth0Provider
+          domain={Config.AUTH0_DOMAIN}
+          clientId={Config.AUTH0_CLIENT_ID}>
+          <ToastProvider
+            duration={2000}
+            offsetBottom={100}
+            placement={'bottom'}
+            animationType="zoom-in">
+            <BottomSheetModalProvider>
+              <BottomBarProvider>
+                <TRPCProvider>
+                  <Provider store={store}>
+                    <MapLayerProvider>
+                      <AppNavigator />
+                    </MapLayerProvider>
+                  </Provider>
+                </TRPCProvider>
+              </BottomBarProvider>
+            </BottomSheetModalProvider>
+          </ToastProvider>
+        </Auth0Provider>
+      </ForceUpdateGate>
     </GestureHandlerRootView>
   );
 }

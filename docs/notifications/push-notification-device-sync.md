@@ -22,7 +22,7 @@ The `pushProvider` column tells the server how to send:
 | **Upgrade from OneSignal**   | A row for this `deviceId` holds the old OneSignal ID.                     | `createAlertMethod` (FCM). The server then soft-deletes the OneSignal row.               |
 | **Reinstall / token change** | A row for this `deviceId` holds an old FCM token.                         | `createAlertMethod` (new token). The server then soft-deletes the old row.               |
 | **Permission change**        | The row for the current token exists, `isEnabled` differs from permission. | `updateAlertMethod`                                                                      |
-| **Account switch**           | Another user's row has the same token or `deviceId`.                      | Server soft-deletes the other user's row after creating or restoring this user's row.   |
+| **Account switch**           | Another user's row has the same token.                                     | Server soft-deletes the other user's row after creating or restoring this user's row.   |
 | **Multiple devices**         | Each device has its own `deviceId`.                                        | One `AlertMethod` per device.                                                            |
 
 The app **never deletes first**. It creates the new row, and the server inactivates the replaced rows only after that succeeds. If the create fails (for example, FCM verification fails), the old row stays active and keeps sending.
