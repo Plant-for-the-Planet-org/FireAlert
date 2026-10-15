@@ -154,8 +154,6 @@ const Login = () => {
   return (
     <>
       <StatusBar
-        translucent
-        backgroundColor={Colors.TRANSPARENT}
         barStyle={showVerifyAccModal ? 'dark-content' : 'light-content'}
       />
       <ImageBackground source={launch_screen} style={styles.image}>

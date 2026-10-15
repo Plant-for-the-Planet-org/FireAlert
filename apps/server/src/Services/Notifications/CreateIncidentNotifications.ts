@@ -22,6 +22,7 @@ type AlertMethodInfo = {
   isEnabled: boolean;
 };
 
+// Soft-deleted alert methods are excluded so they never get notifications.
 const incidentNotificationInclude = {
   parentIncidents: {
     select: {
@@ -37,14 +38,14 @@ const incidentNotificationInclude = {
     include: {
       user: {
         include: {
-          alertMethods: true,
+          alertMethods: {where: {deletedAt: null}},
         },
       },
       siteRelations: {
         include: {
           user: {
             include: {
-              alertMethods: true,
+              alertMethods: {where: {deletedAt: null}},
             },
           },
         },

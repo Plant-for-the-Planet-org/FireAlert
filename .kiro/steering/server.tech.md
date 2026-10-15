@@ -24,7 +24,7 @@
 
 - **SMS**: Twilio integration
 - **Email**: Nodemailer
-- **Push Notifications**: OneSignal
+- **Push Notifications**: Firebase Cloud Messaging (`firebase-admin`), plus OneSignal for legacy devices
 
 ## Database Commands
 
@@ -87,7 +87,13 @@ yarn server db:push
 - **`SMTP_URL`**: SMTP server connection URL for email delivery (format: `smtp://username:password@host:port`)
 - **`EMAIL_FROM`**: Default sender email address and display name for outgoing emails
 
-#### Push Notifications (OneSignal)
+#### Push Notifications (FCM and OneSignal)
+
+Each `device` alert method has a `pushProvider`. `FCM` rows send through Firebase. `ONESIGNAL` or `NULL` (legacy) rows send through OneSignal, so users on older app versions keep getting alerts.
+
+- **`FIREBASE_PROJECT_ID`**: Firebase project ID of the service account.
+- **`FIREBASE_CLIENT_EMAIL`**: Service account client email.
+- **`FIREBASE_PRIVATE_KEY`**: Service account private key. One line, with `\n` for line breaks.
 
 - **`ONESIGNAL_APP_ID`**: OneSignal application ID for push notification delivery to mobile devices. This ID identifies the specific OneSignal app configuration and must match the app ID configured in the mobile application. Used for device verification and push notification targeting.
 - **`ONESIGNAL_REST_API_KEY`**: OneSignal REST API key for server-side push notification operations. This key enables the server to send push notifications, verify device subscriptions, and manage user segments. Required for device alert method verification and notification delivery.

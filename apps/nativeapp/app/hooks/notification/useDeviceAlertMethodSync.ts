@@ -1,31 +1,38 @@
 /**
  * Device alert method sync: orchestration only. Uses alert method queries and
- * deviceSyncLogic to perform create / update / deleteThenCreate. No OneSignal init.
+ * deviceSyncLogic to perform create / update. No push SDK init.
  */
 
 import {useCallback, useRef} from 'react';
 import {useAlertMethodQueries} from '../../api/alertMethod';
-import {computeDeviceSyncAction} from '../../services/OneSignal/deviceSyncLogic';
-import type {DeviceState} from '../../services/OneSignal/types';
+import {computeDeviceSyncAction} from '../../services/PushNotification/deviceSyncLogic';
+import {
+  CURRENT_PUSH_PROVIDER,
+  type DeviceState,
+} from '../../services/PushNotification/types';
 import {getDeviceInfo} from '../../utils/deviceInfo';
-import type {DeviceAlertMethodRecord} from '../../services/OneSignal/types';
+import type {DeviceAlertMethodRecord} from '../../services/PushNotification/types';
 
-/** Extract alert methods array from refetch result (server returns { status, data: array }). */
+/**
+ * Extract alert methods array from refetch result.
+ * Server returns { status, data: array }; the tRPC client wraps it as { json: {...} }.
+ */
 function getAlertMethodsArray(
   refetchResult: unknown,
 ): DeviceAlertMethodRecord[] {
-  const r = refetchResult as
-    | {data?: {data?: DeviceAlertMethodRecord[]}}
-    | {data?: DeviceAlertMethodRecord[]}
+  const body = (refetchResult as {data?: unknown} | undefined)?.data as
+    | {json?: {data?: DeviceAlertMethodRecord[]}; data?: unknown}
+    | DeviceAlertMethodRecord[]
     | undefined;
-  if (!r) return [];
-  if (Array.isArray((r as {data?: DeviceAlertMethodRecord[]}).data))
-    return (r as {data: DeviceAlertMethodRecord[]}).data;
-  return (r as {data?: {data?: DeviceAlertMethodRecord[]}}).data?.data ?? [];
+  if (!body) return [];
+  if (Array.isArray(body)) return body;
+  if (Array.isArray(body.json?.data)) return body.json!.data!;
+  if (Array.isArray(body.data)) return body.data as DeviceAlertMethodRecord[];
+  return [];
 }
 
 export interface UseDeviceAlertMethodSyncOptions {
-  /** Called when a create, update, or deleteThenCreate has completed successfully. */
+  /** Called when a create or update has completed successfully. */
   onSyncCompleted?: () => void;
 }
 
@@ -37,7 +44,6 @@ export function useDeviceAlertMethodSync(
     refetchAlertMethods,
     createAlertMethod,
     updateAlertMethod,
-    deleteAlertMethod,
   } = useAlertMethodQueries();
 
   const syncInProgressRef = useRef(false);
@@ -48,7 +54,8 @@ export function useDeviceAlertMethodSync(
         return;
       }
 
-      if (!deviceState.userId) {
+      const pushToken = deviceState.token;
+      if (!pushToken) {
         return;
       }
 
@@ -62,7 +69,7 @@ export function useDeviceAlertMethodSync(
         const syncAction = computeDeviceSyncAction({
           deviceId,
           deviceName,
-          oneSignalUserId: deviceState.userId,
+          pushToken,
           permission: deviceState.permission,
           alertMethods,
         });
@@ -80,7 +87,8 @@ export function useDeviceAlertMethodSync(
                   deviceId,
                   deviceName,
                   method: 'device',
-                  destination: deviceState.userId,
+                  destination: pushToken,
+                  pushProvider: CURRENT_PUSH_PROVIDER,
                 },
               },
               {
@@ -116,39 +124,6 @@ export function useDeviceAlertMethodSync(
             );
             return;
           }
-
-          case 'deleteThenCreate': {
-            deleteAlertMethod.mutate(
-              {json: {alertMethodId: syncAction.alertMethodId}},
-              {
-                onSuccess: () => {
-                  createAlertMethod.mutate(
-                    {
-                      json: {
-                        deviceId,
-                        deviceName,
-                        method: 'device',
-                        destination: deviceState.userId,
-                      },
-                    },
-                    {
-                      onSuccess: () => {
-                        syncInProgressRef.current = false;
-                        onSyncCompleted?.();
-                      },
-                      onError: (_err: Error) => {
-                        syncInProgressRef.current = false;
-                      },
-                    },
-                  );
-                },
-                onError: (_err: Error) => {
-                  syncInProgressRef.current = false;
-                },
-              },
-            );
-            return;
-          }
         }
       } catch (_err) {
         syncInProgressRef.current = false;
@@ -158,7 +133,6 @@ export function useDeviceAlertMethodSync(
       refetchAlertMethods,
       createAlertMethod,
       updateAlertMethod,
-      deleteAlertMethod,
       onSyncCompleted,
     ],
   );

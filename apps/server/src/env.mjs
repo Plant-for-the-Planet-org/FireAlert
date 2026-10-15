@@ -30,6 +30,11 @@ const server = z.object({
   // OneSignal configuration for push notifications. If not provided, push notifications will be disabled.
   ONESIGNAL_APP_ID: z.string().optional(),
   ONESIGNAL_REST_API_KEY: z.string().optional(),
+  // Firebase Cloud Messaging (FCM) service account for push notifications.
+  // If not provided, push to FCM devices will be disabled.
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().optional(),
   // If you want to use Twilio, you need to set the following variables
   // On Development App can be run without Twilio
   TWILIO_ACCOUNT_SID: z.string().optional(),
@@ -165,6 +170,9 @@ const processEnv = {
   NEXT_PUBLIC_AUTH0_DOMAIN: process.env.AUTH0_DOMAIN,
   ONESIGNAL_APP_ID: process.env.ONESIGNAL_APP_ID,
   ONESIGNAL_REST_API_KEY: process.env.ONESIGNAL_REST_API_KEY,
+  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+  FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+  FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,

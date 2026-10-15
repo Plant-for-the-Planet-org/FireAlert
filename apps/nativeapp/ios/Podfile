@@ -14,6 +14,9 @@ prepare_react_native_project!
 
 $RNMapboxMapsImpl = 'mapbox'
 
+# React Native Firebase with static frameworks (see use_frameworks! below)
+$RNFirebaseAsStaticFramework = true
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage
   use_frameworks! :linkage => linkage.to_sym
@@ -49,6 +52,13 @@ target 'FireAlert' do
         config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
         config.build_settings['CLANG_WARN_NON_MODULAR_INCLUDE_IN_FRAMEWORK_MODULE'] = 'NO'
 
+        # Xcode 27 rejects deployment targets below 15.0. Raise old pod
+        # targets (incl. resource/privacy bundles) to the app's minimum.
+        deployment_target = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+        if deployment_target.nil? || Gem::Version.new(deployment_target) < Gem::Version.new('15.1')
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        end
+
         flags = config.build_settings['OTHER_CFLAGS']
         if flags.is_a?(Array)
           config.build_settings['OTHER_CFLAGS'] = flags.reject { |f|
@@ -80,9 +90,4 @@ target 'FireAlert' do
       end
     end
   end
-end
-
-target 'OneSignalNotificationServiceExtension' do
-  platform :ios, '15.1'
-  pod 'OneSignalXCFramework', '>= 5.0.0', '< 6.0'
 end

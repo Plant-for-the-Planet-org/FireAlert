@@ -306,6 +306,8 @@ const createNotifications = async () => {
             user: {
               select: {
                 alertMethods: {
+                  // Soft-deleted rows (e.g. replaced OneSignal devices) get no alerts.
+                  where: {deletedAt: null},
                   select: {
                     method: true,
                     destination: true,
@@ -320,6 +322,7 @@ const createNotifications = async () => {
                 user: {
                   select: {
                     alertMethods: {
+                      where: {deletedAt: null},
                       select: {
                         method: true,
                         destination: true,

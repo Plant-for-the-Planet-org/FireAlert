@@ -81,6 +81,9 @@ const sendNotifications = async ({req}: AdditionalOptions): Promise<number> => {
             destination: notification.destination,
             method: notification.alertMethod,
             isEnabled: true,
+            // Soft-deleted rows (e.g. OneSignal rows replaced by FCM) must
+            // not receive notifications queued before the swap.
+            deletedAt: null,
           },
         });
 

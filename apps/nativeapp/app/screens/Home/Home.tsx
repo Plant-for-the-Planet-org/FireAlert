@@ -1311,16 +1311,10 @@ const Home = ({navigation: _navigation, route}) => {
       ) : null}
       <StatusBar
         animated
-        translucent
         barStyle={
           profileEditModal || siteNameModalVisible
             ? 'dark-content'
             : 'light-content'
-        }
-        backgroundColor={
-          profileEditModal || siteNameModalVisible
-            ? Colors.WHITE
-            : Colors.TRANSPARENT
         }
       />
       <LayerModal visible={visible} onRequestClose={closeMapLayer} />

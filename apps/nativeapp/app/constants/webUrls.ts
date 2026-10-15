@@ -11,4 +11,7 @@ export enum WEB_URLS {
   MODIS = 'https://modis.gsfc.nasa.gov/',
   VIIRS = 'https://www.nesdis.noaa.gov/current-satellite-missions/currently-flying/joint-polar-satellite-system/visible-infrared-imaging',
   LANDSAT = 'https://landsat.gsfc.nasa.gov/',
+  // Official store listings, as linked from https://www.plant-for-the-planet.org/firealert/
+  APP_STORE = 'https://apps.apple.com/app/fire-alert-for-forests/id1667307676',
+  PLAY_STORE = 'https://play.google.com/store/apps/details?id=eco.pp.firealert',
 }
