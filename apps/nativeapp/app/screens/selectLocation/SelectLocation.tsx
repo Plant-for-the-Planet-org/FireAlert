@@ -316,11 +316,7 @@ const SelectLocation = () => {
     <>
       <StatusBar
         animated
-        translucent
         barStyle={siteNameModalVisible ? 'dark-content' : 'light-content'}
-        backgroundColor={
-          siteNameModalVisible ? Colors.WHITE : Colors.TRANSPARENT
-        }
       />
       <MapboxGL.MapView
         ref={map}

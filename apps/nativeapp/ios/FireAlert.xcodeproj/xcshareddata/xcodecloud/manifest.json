@@ -1,0 +1,9 @@
+{
+  "id" : "3dba853f-d97c-468b-ba4f-15fc72b05f8b",
+  "targets" : [
+    {
+      "id" : "DCF603B4-5A16-4B58-B49F-4CF7CA00899B",
+      "name" : "FireAlert"
+    }
+  ]
+}

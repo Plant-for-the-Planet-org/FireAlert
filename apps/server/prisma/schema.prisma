@@ -56,6 +56,8 @@ model AlertMethod {
     lastTokenSentDate   DateTime?
     userId              String
     failCount           Int                  @default(0)
+    // Push provider for method "device". NULL means legacy OneSignal (player/subscription ID).
+    pushProvider        PushProvider?
     user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
     verificationRequest VerificationRequest?
 
@@ -258,6 +260,11 @@ model ProtectedArea {
 
     @@index([geom], map: "ProtectedArea_geom_idx", type: Gist)
     @@map("ProtectedArea")
+}
+
+enum PushProvider {
+    ONESIGNAL
+    FCM
 }
 
 enum Role {
