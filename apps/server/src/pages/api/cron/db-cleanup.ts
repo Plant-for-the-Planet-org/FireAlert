@@ -373,6 +373,12 @@ async function cleanAlertMethods() {
       deletedAt: {
         lte: new Date(currentDateTimeAt1AM.getTime() - 7 * 24 * 60 * 60 * 1000),
       },
+      // Keep soft-deleted OneSignal device rows forever as an audit trail of
+      // the FCM migration. NULL pushProvider means a legacy OneSignal row.
+      NOT: {
+        method: 'device',
+        OR: [{pushProvider: null}, {pushProvider: 'ONESIGNAL'}],
+      },
     },
   });
   logger(`Deleted ${deletedAlertMethods.count} alertMethods`, 'info');

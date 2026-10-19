@@ -10,6 +10,8 @@ export const createAlertMethodSchema = z
     }),
     deviceName: z.string().optional(),
     deviceId: z.string().optional(),
+    // Only for method "device". Omitted by legacy apps, which means OneSignal.
+    pushProvider: z.enum(['ONESIGNAL', 'FCM']).optional(),
   })
   .refine(
     obj => {
