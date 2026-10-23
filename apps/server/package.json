@@ -65,7 +65,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/md5": "^2.3.2",
     "@types/node": "^18.14.0",
-    "@types/nodemailer": "^8.0.0",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@types/react-lottie": "^1.2.6",
