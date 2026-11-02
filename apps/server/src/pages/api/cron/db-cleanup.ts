@@ -198,6 +198,10 @@ async function cleanUsers(startTime: number) {
           deletedNotifications: countNotifications,
         };
 
+      // SiteIncidents point to siteAlerts (start/latest/end) with a restrict FK,
+      // so they must go before the siteAlerts.
+      await prisma.siteIncident.deleteMany({where: {siteId: siteId}});
+
       if (siteAlertIds.length > 0) {
         await prisma.siteAlert.deleteMany({where: {id: {in: siteAlertIds}}});
         await updateOrCreateStats('siteAlerts_deleted', siteAlertIds.length);
@@ -320,6 +324,10 @@ async function cleanSites(startTime: number) {
         deletedSiteAlerts: total_delCount_siteAlert,
         deletedNotifications: total_delCount_notification,
       };
+
+    // SiteIncidents point to siteAlerts (start/latest/end) with a restrict FK,
+    // so they must go before the siteAlerts.
+    await prisma.siteIncident.deleteMany({where: {siteId: siteId}});
 
     if (siteAlertIds.length > 0) {
       await prisma.siteAlert.deleteMany({where: {id: {in: siteAlertIds}}});
