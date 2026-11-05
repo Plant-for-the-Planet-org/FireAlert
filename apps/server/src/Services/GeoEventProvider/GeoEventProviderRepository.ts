@@ -1,4 +1,4 @@
-import {type PrismaClient, type GeoEventProvider} from '@prisma/client';
+import {type PrismaClient, type GeoEventProvider} from '@/generated/prisma/client';
 
 /**
  * Repository for GeoEventProvider data access operations.

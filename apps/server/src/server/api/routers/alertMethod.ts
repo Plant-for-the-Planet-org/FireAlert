@@ -1,5 +1,5 @@
 import {TRPCError} from '@trpc/server';
-import {PushProvider} from '@prisma/client';
+import {PushProvider} from '@/generated/prisma/client';
 import {parsePhoneNumberFromString} from 'libphonenumber-js';
 import type {UserPlan} from '../../../../src/Interfaces/AlertMethod';
 import {env} from '../../../../src/env.mjs';

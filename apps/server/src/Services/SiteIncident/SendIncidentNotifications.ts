@@ -8,7 +8,7 @@ import {prisma} from '../../server/db';
 import {logger, escapeLogfmt} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
-import type {NotificationStatus, SiteAlert, Site, Prisma} from '@prisma/client';
+import type {NotificationStatus, SiteAlert, Site, Prisma} from '@/generated/prisma/client';
 
 const ALERT_SMS_DISABLED = env.ALERT_SMS_DISABLED;
 const ALERT_WHATSAPP_DISABLED = env.ALERT_WHATSAPP_DISABLED;

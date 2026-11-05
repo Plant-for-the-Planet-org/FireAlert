@@ -1,5 +1,5 @@
 import {TRPCError} from '@trpc/server';
-import type {SiteIncident} from '@prisma/client';
+import type {SiteIncident} from '@/generated/prisma/client';
 
 /**
  * State machine states for SiteIncident lifecycle

@@ -1,4 +1,4 @@
-import {Prisma} from '@prisma/client';
+import {Prisma} from '@/generated/prisma/client';
 import {prisma} from '../../server/db';
 import {logger} from '../../../src/server/logger';
 import {type GeoEventProviderClientId} from '../../Interfaces/GeoEventProvider';

@@ -6,7 +6,7 @@ import {logger} from '../../../server/logger';
 import {prisma} from '../../../server/db';
 import {handleFailedNotification as genericFailedNotificationHandler} from '../handleFailedNotification';
 import {getFirebaseMessaging} from '../../../server/firebaseAdmin';
-import {PushProvider} from '@prisma/client';
+import {PushProvider} from '@/generated/prisma/client';
 
 // Android notification channel created by the native app on startup.
 export const FCM_ANDROID_CHANNEL_ID = 'firealert-alerts';

@@ -8,7 +8,7 @@ import {
   type Site,
   type Notification,
   SiteIncidentReviewStatus,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 
 /**
  * Core SiteIncident interface representing a grouped fire event

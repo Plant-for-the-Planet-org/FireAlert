@@ -1,4 +1,4 @@
-import type { Prisma, Site, SiteAlert, SiteRelation } from '@prisma/client';
+import type { Prisma, Site, SiteAlert, SiteRelation } from '@/generated/prisma/client';
 import { TRPCError } from '@trpc/server';
 import * as countries from 'i18n-iso-countries';
 import {

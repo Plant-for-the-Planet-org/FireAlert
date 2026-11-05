@@ -1,4 +1,4 @@
-import {type PrismaClient} from '@prisma/client';
+import {type PrismaClient} from '@/generated/prisma/client';
 import {BaseDataService} from '@/Services/dev/BaseDataService';
 import {logger} from '@/server/logger';
 

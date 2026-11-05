@@ -2,7 +2,7 @@ import {
   SiteIncidentReviewStatus,
   type Prisma,
   type PrismaClient,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 
 export type IncidentNotificationKind = 'START' | 'END';
 

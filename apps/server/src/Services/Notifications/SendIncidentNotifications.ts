@@ -6,7 +6,7 @@ import {
   NotificationStatus,
   type Prisma,
   type SiteAlert,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import type {NotificationParameters} from '../../Interfaces/NotificationParameters';

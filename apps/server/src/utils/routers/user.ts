@@ -2,9 +2,8 @@ import {TRPCError} from '@trpc/server';
 import {
   type Project,
   Prisma,
-  type PrismaClient,
   type User,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 import {fetchProjectsWithSitesForUser, planetUser} from '../fetch';
 import {createAlertMethodInPrismaTransaction} from './alertMethod';
 import {env} from '../../env.mjs';
@@ -12,14 +11,7 @@ import {prisma} from '../../server/db';
 
 interface CreateUserArgs {
   id?: string;
-  prisma: Omit<
-    PrismaClient<
-      Prisma.PrismaClientOptions,
-      never,
-      Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
-    >,
-    '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'
-  >;
+  prisma: Prisma.TransactionClient;
   name: string;
   sub: string;
   email: string;

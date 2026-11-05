@@ -2,7 +2,7 @@ import {prisma} from '../../server/db';
 import {CustomError} from '../../utils/errorHandler';
 import {logger} from '../../server/logger';
 import {isSiteAlertMethod} from './NotificationRoutingConfig';
-import {SiteIncidentReviewStatus} from '@prisma/client';
+import {SiteIncidentReviewStatus} from '@/generated/prisma/client';
 
 // Logic in Prisma:
 // Initialize an empty array → `notificationDataQueue` -> Queue for holding data required for conditional notification creation

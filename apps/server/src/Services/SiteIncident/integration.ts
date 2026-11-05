@@ -1,7 +1,7 @@
 import {logger} from '../../server/logger';
 import {siteIncidentService} from './SiteIncidentService';
 import {notificationBoundaryService} from './NotificationBoundaryService';
-import type {SiteAlert, GeoEvent} from '@prisma/client';
+import type {SiteAlert, GeoEvent} from '@/generated/prisma/client';
 
 /**
  * Integration helper for SiteIncident creation when processing SiteAlerts

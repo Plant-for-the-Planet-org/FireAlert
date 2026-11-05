@@ -1,6 +1,9 @@
 generator client {
     provider = "prisma-client"
-    output   = "./generated/prisma"
+    output   = "../src/generated/prisma"
+    // Next.js (Turbopack) does not map "./x.js" to "./x.ts", so emit
+    // extensionless relative imports in the generated client.
+    importFileExtension = ""
 }
 
 datasource db {

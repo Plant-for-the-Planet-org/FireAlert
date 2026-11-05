@@ -6,7 +6,7 @@ import type {
   SiteAlert,
   Notification,
   Prisma,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 
 /**
  * Metadata structure for incident notifications

@@ -2,7 +2,7 @@
 // FEATURE FLAG CONTROLLED - Supports both legacy and refactored implementations
 
 import {type NextApiRequest, type NextApiResponse} from 'next';
-import {type GeoEventProvider} from '@prisma/client';
+import {type GeoEventProvider} from '@/generated/prisma/client';
 import {prisma} from '@/server/db';
 import {logger, escapeLogfmt} from '@/server/logger';
 import {env} from '@/env.mjs';

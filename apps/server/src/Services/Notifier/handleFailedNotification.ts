@@ -1,4 +1,4 @@
-import type {AlertMethod} from '@prisma/client';
+import type {AlertMethod} from '@/generated/prisma/client';
 import type {AlertMethodMethod} from '../../Interfaces/AlertMethod';
 import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';

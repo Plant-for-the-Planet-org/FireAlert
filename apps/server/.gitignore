@@ -49,4 +49,4 @@ check.ts
 .turbo
 
 # Prisma generated types >= 7
-prisma/generated
+src/generated/prisma

@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {SiteIncidentReviewStatus} from '@prisma/client';
+import {SiteIncidentReviewStatus} from '@/generated/prisma/client';
 
 /**
  * Schema for review status values
