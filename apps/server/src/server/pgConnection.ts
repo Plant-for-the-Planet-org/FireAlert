@@ -57,9 +57,10 @@ export function toPgConnectionSettings(
     params.delete(key);
   }
 
-  // pg lets a `host` query parameter override the URL host. A host that
-  // starts with "/" is a Unix socket, which is local.
-  const host = params.get('host') || parsed.hostname;
+  // pg lets a `host` query parameter override the URL host, and uses the
+  // last one when it repeats. A host that starts with "/" is a Unix socket,
+  // which is local.
+  const host = params.getAll('host').at(-1) || parsed.hostname;
   const isLocal = host.startsWith('/') || LOCAL_HOSTS.has(host);
   if (!params.has('sslmode') && !env.PGSSLMODE && !isLocal) {
     params.set('sslmode', 'require');

@@ -31,6 +31,7 @@ const cases: Array<[string, string, Ssl, Record<string, string>?]> = [
   ['remote host, no sslmode', 'postgres://u:p@db.example.com/d', 'TLS, no cert check'],
   ['remote host, PGSSLMODE set', 'postgres://u:p@db.example.com/d', 'none', {PGSSLMODE: 'disable'}],
   ['?host= overrides a local URL host', 'postgresql://u:p@localhost/d?host=db.example.com', 'TLS, no cert check'],
+  ['repeated ?host=: last one wins, like pg', 'postgresql://u:p@localhost/d?host=localhost&host=db.example.com', 'TLS, no cert check'],
   ['?host= Unix socket is local', 'postgresql://u:p@db.example.com/d?host=/var/run/postgresql', 'none'],
   ['sslmode=require', 'postgres://u:p@h/d?sslmode=require', 'TLS, no cert check'],
   ['sslmode=prefer', 'postgres://u:p@h/d?sslmode=prefer', 'TLS, no cert check'],
