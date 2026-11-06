@@ -4,7 +4,7 @@
 
 - **Framework**: Next.js 16 (Pages Router) with TypeScript
 - **API Layer**: tRPC for type-safe APIs with React Query integration
-- **Runtime**: Node.js 22.x
+- **Runtime**: Node.js 22.x (22.12 or newer; Prisma 7 needs `^20.19 || ^22.12 || >=24`)
 - **React Query**: Integrated via tRPC for client-side data fetching, caching, and synchronization. Provides `useQuery` and `useMutation` hooks for server state management
 - **MapLibre GL**: Used via `react-map-gl/maplibre` for interactive maps with custom styling, markers, and polygon rendering. Replaces Mapbox GL for open-source mapping
 - **Zod**: Schema validation library for type-safe API inputs/outputs, form validation, and runtime type checking. Integrated with tRPC for automatic request validation
@@ -66,7 +66,7 @@ yarn server db:push
 - **`DATABASE_PRISMA_URL`**: Connection string the app's Prisma Client uses at runtime (may be pooled). Falls back to `DATABASE_URL`
 - **`DATABASE_URL`**: Primary PostgreSQL connection string. Fallback for the two URLs above and below
 - **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling. Used by Prisma CLI commands (`migrate`, `db pull`) via `prisma.config.ts`. Falls back to `DATABASE_URL`, then `DATABASE_PRISMA_URL`
-- **SSL**: if a URL has `sslmode`, the app adds `uselibpqcompat=true` so `sslmode=require` encrypts without verifying the certificate (same as Prisma 5). Add `uselibpqcompat` to the URL yourself to override
+- **SSL and pool options**: `src/server/pgConnection.ts` maps Prisma 5 URL options to `pg`. `sslmode=prefer|require` encrypt without verifying the certificate (via `uselibpqcompat=true`); a non-local URL without `sslmode` gets `sslmode=require`; `sslaccept=strict` becomes `verify-full`. `prefer` no longer falls back to plain text, so use `sslmode=disable` for a server without TLS. `connection_limit`, `pool_timeout` (default 10 s) and `schema` keep working
 
 ### Mapping & Geospatial
 

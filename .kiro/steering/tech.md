@@ -34,7 +34,7 @@ yarn nativeapp ios
 
 ## Prerequisites
 
-- Node.js 22.x
+- Node.js 22.x (22.12 or newer, required by Prisma 7)
 - Yarn 1.22.x
 - PostgreSQL with PostGIS extension
 
