@@ -15,7 +15,8 @@
     "db:reset": "dotenv -e ../../.env npx prisma migrate reset",
     "db:generate": "dotenv -e ../../.env -- npx prisma generate",
     "db:studio": "dotenv -e ../../.env npx prisma studio",
-    "postinstall": "yarn db:generate"
+    "postinstall": "yarn db:generate",
+    "test:unit": "node --experimental-strip-types --test src/server/pgConnection.test.mts"
   },
   "dependencies": {
     "@google/earthengine": "^0.1.396",

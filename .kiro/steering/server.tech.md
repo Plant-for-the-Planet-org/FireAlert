@@ -4,7 +4,7 @@
 
 - **Framework**: Next.js 16 (Pages Router) with TypeScript
 - **API Layer**: tRPC for type-safe APIs with React Query integration
-- **Runtime**: Node.js 22.x (22.12 or newer; Prisma 7 needs `^20.19 || ^22.12 || >=24`)
+- **Runtime**: Node.js 22.12+ or 24+ (Prisma 7 needs `^20.19 || ^22.12 || >=24`; Node 23 is not supported)
 - **React Query**: Integrated via tRPC for client-side data fetching, caching, and synchronization. Provides `useQuery` and `useMutation` hooks for server state management
 - **MapLibre GL**: Used via `react-map-gl/maplibre` for interactive maps with custom styling, markers, and polygon rendering. Replaces Mapbox GL for open-source mapping
 - **Zod**: Schema validation library for type-safe API inputs/outputs, form validation, and runtime type checking. Integrated with tRPC for automatic request validation

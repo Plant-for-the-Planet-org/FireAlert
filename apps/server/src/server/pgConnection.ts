@@ -24,14 +24,16 @@ export interface PgConnectionSettings {
  * SSL, compared with Prisma 5:
  * - No `sslmode` and no PGSSLMODE: Prisma 5 tried TLS first, pg uses none.
  *   For non-local hosts we set `sslmode=require` (encrypt, no cert check).
+ *   The host is the one pg connects to (a `?host=` parameter wins).
  * - `sslmode=prefer|require|verify-ca`: we add `uselibpqcompat=true`, so
  *   pg follows libpq and does not verify the certificate for prefer/require
  *   (pg 8 alone treats them as verify-full).
  * - `sslmode=prefer` does not fall back to plain text in pg. A server
  *   without TLS rejects the connection; use `sslmode=disable` for it.
- * - `sslaccept=strict` (Prisma 5 option) becomes `sslmode=verify-full`.
+ * - `sslaccept=strict` (Prisma 5 option) becomes `sslmode=verify-full`,
+ *   even if the URL also sets `uselibpqcompat`.
  * - `sslmode=no-verify|verify-full|disable` are left as pg reads them.
- * - An explicit `uselibpqcompat` in the URL is never changed.
+ * - An explicit `uselibpqcompat` in the URL is never changed or added to.
  *
  * Pool, compared with Prisma 5:
  * - `connection_limit` becomes the pool `max` (pg default is 10).
@@ -55,21 +57,25 @@ export function toPgConnectionSettings(
     params.delete(key);
   }
 
-  if (
-    !params.has('sslmode') &&
-    !env.PGSSLMODE &&
-    !LOCAL_HOSTS.has(parsed.hostname)
-  ) {
+  // pg lets a `host` query parameter override the URL host. A host that
+  // starts with "/" is a Unix socket, which is local.
+  const host = params.get('host') || parsed.hostname;
+  const isLocal = host.startsWith('/') || LOCAL_HOSTS.has(host);
+  if (!params.has('sslmode') && !env.PGSSLMODE && !isLocal) {
     params.set('sslmode', 'require');
   }
 
   const sslMode = params.get('sslmode');
-  if (!params.has('uselibpqcompat') && sslMode) {
-    if (sslAccept === 'strict' && (sslMode === 'prefer' || sslMode === 'require')) {
-      params.set('sslmode', 'verify-full');
-    } else if (LIBPQ_COMPAT_MODES.has(sslMode)) {
-      params.set('uselibpqcompat', 'true');
-    }
+  if (sslAccept === 'strict' && (sslMode === 'prefer' || sslMode === 'require')) {
+    // Strict wins, even over an explicit uselibpqcompat: verify-full checks
+    // the certificate in both pg modes.
+    params.set('sslmode', 'verify-full');
+  } else if (
+    sslMode &&
+    LIBPQ_COMPAT_MODES.has(sslMode) &&
+    !params.has('uselibpqcompat')
+  ) {
+    params.set('uselibpqcompat', 'true');
   }
 
   const poolConfig: PoolConfig = {

@@ -10,7 +10,9 @@ const SLOW_QUERY_MS = 1000;
 export function createPrismaClient(
   log: Prisma.PrismaClientOptions['log'] = ['error'],
 ) {
-  const url = env.DATABASE_PRISMA_URL ?? env.DATABASE_URL;
+  // `||`: with SKIP_ENV_VALIDATION, env holds raw values, so a blank
+  // DATABASE_PRISMA_URL must still fall back to DATABASE_URL.
+  const url = env.DATABASE_PRISMA_URL || env.DATABASE_URL;
   if (!url) {
     throw new Error('DATABASE_PRISMA_URL or DATABASE_URL must be set');
   }
