@@ -1,6 +1,6 @@
 import {type NotificationParameters} from '../../Interfaces/NotificationParameters';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
-import type {User} from '@prisma/client';
+import type {User} from '@/generated/prisma/client';
 
 const sendEmail = async (
   destination: string,

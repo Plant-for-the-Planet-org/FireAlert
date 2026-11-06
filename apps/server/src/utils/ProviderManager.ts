@@ -1,4 +1,4 @@
-import {type GeoEventProvider} from '@prisma/client';
+import {type GeoEventProvider} from '@/generated/prisma/client';
 import {
   type GeoEventProviderClass,
   type GeoEventProviderConfig,

@@ -12,7 +12,7 @@ import {
   type Prisma,
   type PrismaClient,
   PushProvider,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 import {env} from '../../env.mjs';
 import NotifierRegistry from '../../Services/Notifier/NotifierRegistry';
 import {prisma} from '../../server/db';
@@ -245,14 +245,7 @@ export const findVerificationRequest = async (alertMethodId: string) => {
 };
 
 interface CreateAlertMethodInPrismaTransactionArgs {
-  prisma: Omit<
-    PrismaClient<
-      Prisma.PrismaClientOptions,
-      never,
-      Prisma.RejectOnNotFound | Prisma.RejectPerOperation | undefined
-    >,
-    '$connect' | '$disconnect' | '$on' | '$transaction' | '$use'
-  >;
+  prisma: Prisma.TransactionClient;
   method: 'email' | 'sms' | 'device' | 'whatsapp' | 'webhook';
   isEnabled: boolean;
   email: string;

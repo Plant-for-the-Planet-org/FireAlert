@@ -1,4 +1,4 @@
-import {type PrismaClient, Prisma, type SiteAlert} from '@prisma/client';
+import {type PrismaClient, Prisma, type SiteAlert} from '@/generated/prisma/client';
 import {logger} from '../../server/logger';
 
 /**

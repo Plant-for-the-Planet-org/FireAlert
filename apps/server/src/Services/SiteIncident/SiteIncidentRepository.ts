@@ -2,7 +2,7 @@ import {
   type PrismaClient,
   type SiteIncident,
   SiteIncidentReviewStatus,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 import {logger, escapeLogfmt} from '../../server/logger';
 import {
   type CreateIncidentData,

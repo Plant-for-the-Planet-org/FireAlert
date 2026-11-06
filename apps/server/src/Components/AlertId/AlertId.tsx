@@ -7,7 +7,7 @@ import copyIcon from '../../../public/alertPage/copy.svg';
 import locationPinIcon from '../../../public/alertPage/locationPin.svg';
 import radarIcon from '../../../public/alertPage/radarIcon.svg';
 import Image from 'next/image';
-import {Prisma} from '@prisma/client';
+import {Prisma} from '@/generated/prisma/client';
 
 export interface AlertData {
   timeAgo: string;

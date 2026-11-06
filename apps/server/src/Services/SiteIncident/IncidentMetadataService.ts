@@ -1,4 +1,4 @@
-import {type SiteAlert, type SiteIncident} from '@prisma/client';
+import {type SiteAlert, type SiteIncident} from '@/generated/prisma/client';
 import {logger} from '../../server/logger';
 import {
   type IncidentMetadataManager,

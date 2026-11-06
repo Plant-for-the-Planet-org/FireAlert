@@ -9,7 +9,7 @@ import {logger, escapeLogfmt} from '../../server/logger';
 import NotifierRegistry from '../Notifier/NotifierRegistry';
 import {NOTIFICATION_METHOD} from '../Notifier/methodConstants';
 import {unsubscribeService} from '../AlertMethod/UnsubscribeService';
-import type {Notification, SiteAlert, Site} from '@prisma/client';
+import type {Notification, SiteAlert, Site} from '@/generated/prisma/client';
 
 type SiteAlertWithSite = SiteAlert & {
   site: Site;

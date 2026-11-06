@@ -1,7 +1,7 @@
 import {prisma} from '../../server/db';
 import {logger} from '../../server/logger';
 import {TRPCError} from '@trpc/server';
-import type {NotificationStatus} from '@prisma/client';
+import type {NotificationStatus} from '@/generated/prisma/client';
 
 /**
  * Service for creating incident boundary notifications (START and END)

@@ -1,6 +1,6 @@
 import {prisma} from '../server/db';
 import {logger} from '../server/logger';
-import type {SiteIncident, Prisma} from '@prisma/client';
+import type {SiteIncident, Prisma} from '@/generated/prisma/client';
 
 /**
  * Repository for SiteIncident data access operations

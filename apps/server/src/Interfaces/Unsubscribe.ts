@@ -1,4 +1,4 @@
-import type {AlertMethod, User} from '@prisma/client';
+import type {AlertMethod, User} from '@/generated/prisma/client';
 import type {UnsubscribeTokenPayload} from '../utils/unsubscribe/tokenEncryption';
 
 export interface UnsubscribeTokenValidation {

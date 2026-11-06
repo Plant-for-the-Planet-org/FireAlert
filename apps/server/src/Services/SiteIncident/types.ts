@@ -1,4 +1,4 @@
-import {type SiteIncident, type SiteAlert} from '@prisma/client';
+import {type SiteIncident, type SiteAlert} from '@/generated/prisma/client';
 import {
   type CreateIncidentData,
   type UpdateIncidentData,

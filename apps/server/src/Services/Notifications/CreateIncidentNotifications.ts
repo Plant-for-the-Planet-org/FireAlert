@@ -9,7 +9,7 @@ import {
   NotificationStatus,
   type Prisma,
   type SiteIncident,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 import {isSiteIncidentMethod} from './NotificationRoutingConfig';
 import {
   IncidentNotificationEligibilityService,

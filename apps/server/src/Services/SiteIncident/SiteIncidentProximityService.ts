@@ -1,4 +1,4 @@
-import {type SiteAlert, type SiteIncident, type SiteIncidentReviewStatus} from '@prisma/client';
+import {type SiteAlert, type SiteIncident, type SiteIncidentReviewStatus} from '@/generated/prisma/client';
 import {logger} from '../../server/logger';
 import {env} from '../../env.mjs';
 import {

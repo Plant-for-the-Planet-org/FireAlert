@@ -2,9 +2,9 @@
 
 ## Framework & Core
 
-- **Framework**: Next.js 13+ with TypeScript
+- **Framework**: Next.js 16 (Pages Router) with TypeScript
 - **API Layer**: tRPC for type-safe APIs with React Query integration
-- **Runtime**: Node.js 22.x
+- **Runtime**: Node.js 22.12+ or 24+ (Prisma 7 needs `^20.19 || ^22.12 || >=24`; Node 23 is not supported)
 - **React Query**: Integrated via tRPC for client-side data fetching, caching, and synchronization. Provides `useQuery` and `useMutation` hooks for server state management
 - **MapLibre GL**: Used via `react-map-gl/maplibre` for interactive maps with custom styling, markers, and polygon rendering. Replaces Mapbox GL for open-source mapping
 - **Zod**: Schema validation library for type-safe API inputs/outputs, form validation, and runtime type checking. Integrated with tRPC for automatic request validation
@@ -12,7 +12,7 @@
 ## Database & ORM
 
 - **Database**: PostgreSQL with PostGIS extensions
-- **ORM**: Prisma with custom migrations for PostGIS
+- **ORM**: Prisma 7 with custom migrations for PostGIS. Connects through the `pg` driver adapter (`@prisma/adapter-pg`); the client is generated to `src/generated/prisma` (gitignored) and imported from `@/generated/prisma/client`
 - **Geospatial**: PostGIS for geometry operations and intersections
 
 ## Authentication & Security
@@ -63,10 +63,10 @@ yarn server db:push
 
 ### Database Configuration
 
-- **`DATABASE_URL`**: Primary PostgreSQL connection string with connection pooling for application queries
-- **`DATABASE_PRISMA_URL`**: Prisma-specific database connection string (typically same as DATABASE_URL)
-- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling, required for Prisma migrations
-- **`DATABASE_URL_NON_POOLING_SHADOW`**: Shadow database connection for Prisma migration validation and testing
+- **`DATABASE_PRISMA_URL`**: Connection string the app's Prisma Client uses at runtime (may be pooled). Falls back to `DATABASE_URL`
+- **`DATABASE_URL`**: Primary PostgreSQL connection string. Fallback for the two URLs above and below
+- **`DATABASE_URL_NON_POOLING`**: Direct PostgreSQL connection without pooling. Used by Prisma CLI commands (`migrate`, `db pull`) via `prisma.config.ts`. Falls back to `DATABASE_URL`, then `DATABASE_PRISMA_URL`
+- **SSL and pool options**: `src/server/pgConnection.ts` maps Prisma 5 URL options to `pg`. `sslmode=prefer|require` encrypt without verifying the certificate (via `uselibpqcompat=true`); a non-local URL without `sslmode` gets `sslmode=require`; `sslaccept=strict` becomes `verify-full`. `prefer` no longer falls back to plain text, so use `sslmode=disable` for a server without TLS. `connection_limit`, `pool_timeout` (default 10 s) and `schema` keep working
 
 ### Mapping & Geospatial
 
@@ -135,5 +135,6 @@ Each `device` alert method has a `pushProvider`. `FCM` rows send through Firebas
 
 - Uses `dotenv -e ../../.env` to load root environment file
 - Also uses Next.js default `.env` & `.env.local` fallback for local development
-- Requires `DATABASE_URL` and `DATABASE_URL_NON_POOLING` (non-pooling for migrations)
-- Prisma generates client automatically on `yarn install`
+- Requires `DATABASE_URL` or `DATABASE_PRISMA_URL`, plus `DATABASE_URL_NON_POOLING` for migrations
+- Prisma CLI settings live in `apps/server/prisma.config.ts` (Prisma 7 no longer reads the `prisma` key in `package.json` or loads `.env` on its own)
+- Prisma generates the client automatically on `yarn install`

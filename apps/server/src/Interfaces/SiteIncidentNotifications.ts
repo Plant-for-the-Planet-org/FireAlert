@@ -1,4 +1,4 @@
-import {type NotificationStatus} from '@prisma/client';
+import {type NotificationStatus} from '@/generated/prisma/client';
 
 export type IncidentNotificationType = 'START' | 'END';
 export type IncidentMetadataType =

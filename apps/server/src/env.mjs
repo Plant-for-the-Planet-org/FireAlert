@@ -156,10 +156,10 @@ const client = z.object({
  * @type {Record<keyof z.infer<typeof server> | keyof z.infer<typeof client>, string | undefined>}
  */
 const processEnv = {
-  DATABASE_PRISMA_URL: process.env.DATABASE_PRISMA_URL,
-  DATABASE_URL: process.env.DATABASE_URL
-    ? process.env.DATABASE_URL
-    : process.env.DATABASE_PRISMA_URL,
+  // Empty values (e.g. `DATABASE_PRISMA_URL=` copied from .env.sample) count
+  // as unset, so they fall back instead of failing URL validation.
+  DATABASE_PRISMA_URL: process.env.DATABASE_PRISMA_URL || undefined,
+  DATABASE_URL: process.env.DATABASE_URL || process.env.DATABASE_PRISMA_URL || undefined,
   DATABASE_URL_NON_POOLING: process.env.DATABASE_URL_NON_POOLING
     ? process.env.DATABASE_URL_NON_POOLING
     : process.env.DATABASE_URL,

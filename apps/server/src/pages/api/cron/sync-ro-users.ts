@@ -9,7 +9,7 @@ import { env } from "../../../env.mjs";
 import { logger } from "../../../../src/server/logger";
 import { fetchAllProjectsWithSites } from "../../../../src/utils/fetch";
 import moment from 'moment';
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 // https://vercel.com/docs/functions/configuring-functions
 export const config = {

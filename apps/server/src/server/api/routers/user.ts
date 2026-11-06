@@ -6,7 +6,7 @@ import {
   handleNewUser,
   returnUserSettings,
 } from '../../../utils/routers/user';
-import {User} from '@prisma/client';
+import {User} from '@/generated/prisma/client';
 import {
   sendAccountDeletionCancellationEmail,
   sendSoftDeletionEmail,

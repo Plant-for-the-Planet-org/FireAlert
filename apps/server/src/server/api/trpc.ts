@@ -1,7 +1,7 @@
 //  This section defines the "contexts" that are available in the backend API.
 //  These allow you to access things when processing a request, like the database, the session, etc.
 
-import type {User} from '@prisma/client';
+import type {User} from '@/generated/prisma/client';
 import {initTRPC, TRPCError} from '@trpc/server';
 import type {CreateNextContextOptions} from '@trpc/server/adapters/next';
 import type {NextApiRequest} from 'next';

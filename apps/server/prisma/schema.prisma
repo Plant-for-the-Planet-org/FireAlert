@@ -1,12 +1,13 @@
 generator client {
-    provider = "prisma-client-js"
+    provider = "prisma-client"
+    output   = "../src/generated/prisma"
+    // Next.js (Turbopack) does not map "./x.js" to "./x.ts", so emit
+    // extensionless relative imports in the generated client.
+    importFileExtension = ""
 }
 
 datasource db {
-    provider  = "postgresql"
-    url       = env("DATABASE_PRISMA_URL")
-    directUrl = env("DATABASE_URL_NON_POOLING")
-    // shadowDatabaseUrl = env("DATABASE_URL_NON_POOLING_SHADOW")
+    provider = "postgresql"
 }
 
 model User {

@@ -1,0 +1,29 @@
+# Local PostgreSQL + PostGIS for FireAlert development.
+# Matches DATABASE_URL in apps/server/.env: postgres://postgres:<password>@localhost:54321/postgres
+#
+# Start:  docker compose up -d   (password defaults to "password"; set POSTGRES_PASSWORD to override)
+# The image is the multi-arch (amd64 + arm64) build of postgis/postgis.
+services:
+  db:
+    image: imresamu/postgis:17-3.5
+    container_name: firealert-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      # Defaults to "password". Only read when the volume is first created;
+      # changing it later needs ALTER USER or a fresh volume.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: postgres
+    ports:
+      # Loopback only, so other machines on the network cannot reach it.
+      - "127.0.0.1:54321:5432"
+    volumes:
+      - firealert-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  firealert-pgdata:

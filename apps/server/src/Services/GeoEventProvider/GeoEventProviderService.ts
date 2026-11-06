@@ -1,4 +1,4 @@
-import {type GeoEventProvider} from '@prisma/client';
+import {type GeoEventProvider} from '@/generated/prisma/client';
 import {type GeoEventProviderClientId} from '../../Interfaces/GeoEventProvider';
 import {logger, escapeLogfmt} from '../../server/logger';
 import {BatchProcessor} from '../../utils/BatchProcessor';
